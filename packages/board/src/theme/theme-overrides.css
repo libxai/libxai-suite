@@ -1,0 +1,159 @@
+/**
+ * Theme Overrides for Components - v0.5.0
+ * Automatically adapts all component colors to current theme
+ */
+
+/* ==========================================================================
+   GLOBAL THEME OVERRIDES
+   Apply theme colors to all hardcoded component colors
+   ========================================================================== */
+
+/* Light Theme Modal Overrides */
+[data-theme="light"] .card-detail-overlay {
+  background: rgba(0, 0, 0, 0.3) !important;
+}
+
+[data-theme="light"] .card-detail-modal {
+  background: var(--theme-bg-primary) !important;
+  border-color: var(--theme-border-primary) !important;
+}
+
+[data-theme="light"] .card-detail-header,
+[data-theme="light"] .card-detail-tabs {
+  background: var(--theme-bg-secondary) !important;
+  border-color: var(--theme-border-primary) !important;
+}
+
+[data-theme="light"] .card-detail-btn {
+  background: var(--theme-bg-secondary) !important;
+  border-color: var(--theme-border-primary) !important;
+  color: var(--theme-text-primary) !important;
+}
+
+[data-theme="light"] .card-detail-btn:hover {
+  background: var(--theme-bg-tertiary) !important;
+}
+
+[data-theme="light"] .card-detail-textarea,
+[data-theme="light"] .card-detail-comment-textarea {
+  background: var(--theme-bg-secondary) !important;
+  border-color: var(--theme-border-primary) !important;
+  color: var(--theme-text-primary) !important;
+}
+
+[data-theme="light"] .card-detail-label {
+  color: var(--theme-text-tertiary) !important;
+}
+
+[data-theme="light"] .card-detail-text {
+  color: var(--theme-text-primary) !important;
+}
+
+/* Light Theme Command Palette */
+[data-theme="light"] .command-palette-overlay {
+  background: rgba(0, 0, 0, 0.3) !important;
+}
+
+[data-theme="light"] .command-palette-modal {
+  background: var(--theme-bg-primary) !important;
+  border-color: var(--theme-border-primary) !important;
+}
+
+[data-theme="light"] .command-palette-input {
+  background: var(--theme-bg-secondary) !important;
+  border-color: var(--theme-border-primary) !important;
+  color: var(--theme-text-primary) !important;
+}
+
+[data-theme="light"] .command-palette-item {
+  color: var(--theme-text-primary) !important;
+}
+
+[data-theme="light"] .command-palette-item-label {
+  color: var(--theme-text-secondary) !important;
+}
+
+/* Light Theme Bulk Operations */
+[data-theme="light"] .bulk-operations-toolbar {
+  background: var(--theme-bg-primary) !important;
+  border-color: var(--theme-border-primary) !important;
+}
+
+/* ========================================================================== */
+/* Neutral Theme Overrides */
+/* ========================================================================== */
+
+[data-theme="neutral"] .card-detail-overlay {
+  background: rgba(0, 0, 0, 0.2) !important;
+}
+
+[data-theme="neutral"] .card-detail-modal {
+  background: var(--theme-bg-primary) !important;
+  border-color: var(--theme-border-primary) !important;
+}
+
+[data-theme="neutral"] .card-detail-header,
+[data-theme="neutral"] .card-detail-tabs {
+  background: var(--theme-bg-secondary) !important;
+  border-color: var(--theme-border-primary) !important;
+}
+
+[data-theme="neutral"] .card-detail-btn {
+  background: var(--theme-bg-secondary) !important;
+  border-color: var(--theme-border-primary) !important;
+  color: var(--theme-text-primary) !important;
+}
+
+[data-theme="neutral"] .card-detail-btn:hover {
+  background: var(--theme-bg-tertiary) !important;
+}
+
+[data-theme="neutral"] .card-detail-textarea,
+[data-theme="neutral"] .card-detail-comment-textarea {
+  background: var(--theme-bg-secondary) !important;
+  border-color: var(--theme-border-primary) !important;
+  color: var(--theme-text-primary) !important;
+}
+
+[data-theme="neutral"] .card-detail-label {
+  color: var(--theme-text-tertiary) !important;
+}
+
+[data-theme="neutral"] .card-detail-text {
+  color: var(--theme-text-primary) !important;
+}
+
+/* Neutral Theme Command Palette */
+[data-theme="neutral"] .command-palette-overlay {
+  background: rgba(0, 0, 0, 0.2) !important;
+}
+
+[data-theme="neutral"] .command-palette-modal {
+  background: var(--theme-bg-primary) !important;
+  border-color: var(--theme-border-primary) !important;
+}
+
+[data-theme="neutral"] .command-palette-input {
+  background: var(--theme-bg-secondary) !important;
+  border-color: var(--theme-border-primary) !important;
+  color: var(--theme-text-primary) !important;
+}
+
+[data-theme="neutral"] .command-palette-item {
+  color: var(--theme-text-primary) !important;
+}
+
+[data-theme="neutral"] .command-palette-item-label {
+  color: var(--theme-text-secondary) !important;
+}
+
+/* Neutral Theme Bulk Operations */
+[data-theme="neutral"] .bulk-operations-toolbar {
+  background: var(--theme-bg-primary) !important;
+  border-color: var(--theme-border-primary) !important;
+}
+
+/* ============================================================================
+   NOTE: FilterBar and GroupBySelector now use CSS variables directly
+   No theme-specific overrides needed - they automatically adapt to all themes
+   ============================================================================ */

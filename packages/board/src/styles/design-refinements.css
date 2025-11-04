@@ -1,0 +1,214 @@
+/**
+ * ASAKAA v0.6.0 - Design Refinements
+ * Enhanced visual clarity through intentional subtraction
+ * Philosophy: Content is king, metadata is quiet, color is intentional
+ */
+
+/* ==========================================================================
+   REFINED LABELS - Pure text, no backgrounds
+   ========================================================================== */
+.asakaa-label {
+  font-size: var(--font-xs);
+  font-weight: var(--font-medium);
+  padding: 0;
+  margin-right: var(--space-2);
+  color: var(--color-text-tertiary);
+  transition: color var(--duration-fast) var(--ease-smooth);
+}
+
+.asakaa-label:hover {
+  color: var(--color-text-secondary);
+}
+
+/* ==========================================================================
+   REFINED COLUMN PROGRESS - Subtle text only
+   ========================================================================== */
+.asakaa-column-count {
+  font-size: var(--font-2xs);
+  font-weight: var(--font-semibold);
+  padding: 0;
+  color: var(--color-text-tertiary);
+  background: none;
+  border: none;
+}
+
+/* ==========================================================================
+   USER AVATARS - Humanized assignment display
+   ========================================================================== */
+.asakaa-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-2xs);
+  font-weight: var(--font-bold);
+  color: var(--color-text-primary);
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border-primary);
+  text-transform: uppercase;
+  transition: all var(--duration-fast) var(--ease-smooth);
+}
+
+.asakaa-avatar:hover {
+  transform: scale(1.1);
+  border-color: var(--color-border-secondary);
+}
+
+.asakaa-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-full);
+  object-fit: cover;
+}
+
+.asakaa-avatar-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.asakaa-avatar-group .asakaa-avatar {
+  margin-left: calc(var(--space-2) * -1);
+}
+
+.asakaa-avatar-group .asakaa-avatar:first-child {
+  margin-left: 0;
+}
+
+/* ==========================================================================
+   REFINED DATE DISPLAY - Plain text, color only for urgency
+   ========================================================================== */
+.asakaa-date {
+  font-size: var(--font-xs);
+  font-weight: var(--font-medium);
+  color: var(--color-text-tertiary);
+  padding: 0;
+  background: none;
+  border: none;
+}
+
+.asakaa-date-overdue {
+  color: var(--color-error);
+  font-weight: var(--font-semibold);
+}
+
+/* Neutral theme: monochromatic design using grayscale filter */
+[data-theme="neutral"] * {
+  filter: grayscale(100%) !important;
+}
+
+/* Dropdown menus: excluded from grayscale to maintain readability */
+html[data-theme="neutral"] .priority-selector-menu,
+html[data-theme="neutral"] .priority-selector-menu *,
+html[data-theme="neutral"] .date-picker-menu,
+html[data-theme="neutral"] .date-picker-menu *,
+html[data-theme="neutral"] .user-selector-menu,
+html[data-theme="neutral"] .user-selector-menu *,
+html[data-theme="neutral"] .dependencies-selector-menu,
+html[data-theme="neutral"] .dependencies-selector-menu *,
+html[data-theme="neutral"] .column-manager-menu,
+html[data-theme="neutral"] .column-manager-menu * {
+  filter: none !important;
+}
+
+/* Priority indicators - grayscale only */
+[data-theme="neutral"] .asakaa-priority-low,
+[data-theme="neutral"] .asakaa-priority-medium,
+[data-theme="neutral"] .asakaa-priority-high {
+  background: transparent !important;
+  color: var(--color-text-secondary) !important;
+  border: 1px solid var(--color-border-primary) !important;
+}
+
+[data-theme="neutral"] .asakaa-priority-urgent {
+  background: var(--color-text-primary) !important;
+  color: var(--color-bg-primary) !important;
+  animation: none !important;
+}
+
+/* Dates - no red for overdue, use bold weight instead */
+[data-theme="neutral"] .asakaa-date-overdue {
+  color: var(--color-text-primary) !important;
+  font-weight: var(--font-black) !important;
+  text-decoration: underline;
+}
+
+/* Column progress indicators - pure text */
+[data-theme="neutral"] .asakaa-column-count {
+  background: none !important;
+  border: none !important;
+  color: var(--color-text-tertiary) !important;
+}
+
+/* Hover states - subtle gray only */
+[data-theme="neutral"] .asakaa-card:hover {
+  border-color: var(--color-text-tertiary) !important;
+  background: var(--color-bg-secondary) !important;
+}
+
+[data-theme="neutral"] .asakaa-column:hover {
+  border-color: var(--color-text-tertiary) !important;
+}
+
+/* Remove ALL SVG colors - force grayscale (EXCEPT Gantt chart) */
+[data-theme="neutral"] svg:not([data-gantt-chart] svg) {
+  filter: grayscale(100%) !important;
+  opacity: 0.8;
+}
+
+[data-theme="neutral"] svg *:not([data-gantt-chart] svg *) {
+  fill: currentColor !important;
+  stroke: currentColor !important;
+}
+
+/* Gantt chart: exclude from grayscale filters to preserve theme colors */
+[data-theme="neutral"] [data-gantt-chart] svg,
+[data-theme="neutral"] [data-gantt-chart] svg * {
+  filter: none !important;
+  opacity: 1 !important;
+}
+
+/* Remove color from buttons and interactive elements */
+[data-theme="neutral"] button {
+  background: var(--color-bg-secondary) !important;
+  color: var(--color-text-primary) !important;
+  border-color: var(--color-border-primary) !important;
+}
+
+[data-theme="neutral"] button:hover {
+  background: var(--color-bg-tertiary) !important;
+  border-color: var(--color-border-secondary) !important;
+}
+
+/* Labels - absolutely no background color */
+[data-theme="neutral"] .asakaa-label {
+  background: transparent !important;
+  color: var(--color-text-tertiary) !important;
+}
+
+/* Ensure no accent colors leak through */
+[data-theme="neutral"] [class*="blue"],
+[data-theme="neutral"] [class*="red"],
+[data-theme="neutral"] [class*="green"],
+[data-theme="neutral"] [class*="yellow"],
+[data-theme="neutral"] [class*="orange"],
+[data-theme="neutral"] [class*="purple"],
+[data-theme="neutral"] [class*="pink"] {
+  color: var(--color-text-primary) !important;
+  background: transparent !important;
+  border-color: var(--color-border-primary) !important;
+}
+
+/* Force grayscale on any element with inline color styles */
+[data-theme="neutral"] [style*="color"],
+[data-theme="neutral"] [style*="background"],
+[data-theme="neutral"] [style*="border"] {
+  filter: grayscale(100%) !important;
+}
+
+/* ==========================================================================
+   MODAL V2 VARIABLES - Defined in card-detail-modal-v2.css
+   No need to redefine here - avoiding CSS conflicts
+   ========================================================================== */

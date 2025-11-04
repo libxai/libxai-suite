@@ -1,0 +1,134 @@
+{
+  "name": "@libxai/board",
+  "version": "0.8.0",
+  "type": "module",
+  "description": "Professional Gantt Chart + Kanban Board for React - Part of LibXAI Suite - TypeScript - Production-Ready - Zero Config",
+  "author": "LibXAI <hello@libxai.com>",
+  "license": "BUSL-1.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/libxai/libxai-suite.git",
+    "directory": "packages/board"
+  },
+  "homepage": "https://libxai.com/board",
+  "bugs": {
+    "url": "https://github.com/libxai/libxai-suite/issues"
+  },
+  "keywords": [
+    "libxai",
+    "libxai-suite",
+    "react",
+    "gantt-chart",
+    "kanban-board",
+    "project-management",
+    "task-management",
+    "typescript",
+    "ui-components",
+    "component-library",
+    "react-gantt",
+    "react-kanban",
+    "scheduling",
+    "planning",
+    "agile",
+    "scrum",
+    "drag-and-drop",
+    "productivity",
+    "team-collaboration"
+  ],
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./styles.css": "./dist/styles.css"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "tsup",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
+    "bench": "vitest bench --run",
+    "bench:watch": "vitest bench",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts,.tsx",
+    "format": "prettier --write \"src/**/*.{ts,tsx}\"",
+    "docs": "typedoc",
+    "demo": "npm run dev --prefix examples/demo"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "^2.0.27",
+    "@ai-sdk/openai": "^2.0.49",
+    "@libxai/core": "file:../core",
+    "@dnd-kit/core": "^6.1.0",
+    "@dnd-kit/sortable": "^8.0.0",
+    "@tanstack/react-virtual": "^3.13.12",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.1",
+    "cmdk": "^1.1.1",
+    "framer-motion": "^11.11.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^3.0.3",
+    "jspdf-autotable": "^5.0.2",
+    "lucide-react": "^0.487.0",
+    "react-markdown": "^10.1.0",
+    "recharts": "^3.2.1",
+    "rehype-highlight": "^7.0.2",
+    "rehype-sanitize": "^6.0.0",
+    "remark-gfm": "^4.0.1",
+    "tailwind-merge": "^2.5.0",
+    "xlsx": "^0.18.5",
+    "zod": "^3.25.76"
+  },
+  "peerDependencies": {
+    "ai": "^4.0.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
+  "peerDependenciesMeta": {
+    "ai": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@axe-core/react": "^4.11.0",
+    "@testing-library/jest-dom": "^6.5.0",
+    "@testing-library/react": "^16.0.0",
+    "@testing-library/user-event": "^14.5.2",
+    "@types/node": "^24.7.2",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "@vitest/coverage-v8": "^2.1.9",
+    "@vitest/ui": "^2.1.0",
+    "ai": "^4.3.19",
+    "autoprefixer": "^10.4.20",
+    "axe-core": "^4.11.0",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "jsdom": "^25.0.0",
+    "postcss": "^8.4.47",
+    "postcss-cli": "^11.0.1",
+    "postcss-import": "^15.1.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "tailwindcss": "^3.4.0",
+    "tsup": "^8.3.0",
+    "typedoc": "^0.28.14",
+    "typescript": "^5.6.0",
+    "vite": "^5.4.0",
+    "vitest": "^2.1.0"
+  }
+}

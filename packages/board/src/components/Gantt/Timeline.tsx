@@ -1,0 +1,491 @@
+import { useMemo, useCallback } from 'react';
+import { TimeScale, Task, GanttTemplates } from './types';
+import { TaskBar } from './TaskBar';
+import { DependencyLine } from './DependencyLine';
+import { Milestone } from './Milestone';
+
+interface TimelineProps {
+  tasks: Task[];
+  theme: any;
+  rowHeight: number;
+  timeScale: TimeScale;
+  startDate: Date;
+  endDate: Date;
+  zoom: number;
+  templates: Required<GanttTemplates>; // v0.8.0
+  onTaskClick?: (task: Task) => void;
+  onTaskDblClick?: (task: Task) => void; // v0.8.0
+  onTaskContextMenu?: (task: Task, event: React.MouseEvent) => void; // v0.8.0
+  onTaskDateChange?: (task: Task, newStart: Date, newEnd: Date) => void;
+  onDependencyCreate?: (fromTask: Task, toTaskId: string) => void;
+  onDependencyDelete?: (taskId: string, dependencyId: string) => void;
+}
+
+export interface TaskPosition {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export function Timeline({
+  tasks,
+  theme,
+  rowHeight: ROW_HEIGHT,
+  timeScale,
+  startDate,
+  endDate,
+  zoom,
+  templates,
+  onTaskClick,
+  onTaskDblClick, // v0.8.0
+  onTaskContextMenu, // v0.8.0
+  onTaskDateChange,
+  onDependencyCreate,
+  onDependencyDelete,
+}: TimelineProps) {
+  const HEADER_HEIGHT = 48; // Must match TaskGrid's HEADER_HEIGHT for alignment
+
+  // Calculate dimensions
+  const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+  const dayWidth = timeScale === 'day' ? 60 : timeScale === 'week' ? 20 : 8;
+  const timelineWidth = totalDays * dayWidth * zoom;
+
+  // Get week number - moved before useMemo
+  const getWeekNumber = (date: Date): number => {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+  };
+
+  // Check if date is weekend
+  const isWeekend = (date: Date): boolean => {
+    const day = date.getDay();
+    return day === 0 || day === 6;
+  };
+
+  // Convert pixel position to date
+  const pixelToDate = useCallback((pixelX: number): Date => {
+    const days = Math.round(pixelX / (dayWidth * zoom));
+    const newDate = new Date(startDate);
+    newDate.setDate(newDate.getDate() + days);
+    return newDate;
+  }, [startDate, dayWidth, zoom]);
+
+  // Handle click on timeline to create task bar for tasks without dates
+  const handleTimelineClick = useCallback((e: React.MouseEvent<SVGRectElement>, task: Task) => {
+    // Only create bar if task doesn't have dates (no existing bar)
+    if (task.startDate && task.endDate) {
+      return; // Task already has dates, do nothing
+    }
+
+    const svgElement = e.currentTarget.ownerSVGElement;
+    if (!svgElement) return;
+
+    const point = svgElement.createSVGPoint();
+    point.x = e.clientX;
+    point.y = e.clientY;
+    const svgPoint = point.matrixTransform(svgElement.getScreenCTM()?.inverse());
+
+    // Calculate the clicked date
+    const clickedDate = pixelToDate(svgPoint.x);
+
+    // Create a 1-day task bar
+    const endDate = new Date(clickedDate);
+    endDate.setDate(endDate.getDate() + 1);
+
+    // Call the date change handler to create the task bar
+    onTaskDateChange?.(task, clickedDate, endDate);
+  }, [pixelToDate, onTaskDateChange]);
+
+  // Flatten tasks for rendering
+  const flattenTasks = (tasks: Task[], result: Task[] = []): Task[] => {
+    for (const task of tasks) {
+      result.push(task);
+      if (task.subtasks && task.subtasks.length > 0 && task.isExpanded) {
+        flattenTasks(task.subtasks, result);
+      }
+    }
+    return result;
+  };
+
+  const flatTasks = flattenTasks(tasks);
+
+  // Calculate task position
+  const getTaskPosition = useCallback((task: Task) => {
+    // Return null position for tasks without dates
+    if (!task.startDate || !task.endDate) {
+      return { x: 0, width: 0 };
+    }
+
+    const taskStart = task.startDate.getTime();
+    const taskEnd = task.endDate.getTime();
+    const rangeStart = startDate.getTime();
+
+    const daysFromStart = (taskStart - rangeStart) / (1000 * 60 * 60 * 24);
+    const duration = (taskEnd - taskStart) / (1000 * 60 * 60 * 24);
+
+    const x = daysFromStart * dayWidth * zoom;
+    // Minimum width: allow 1 day minimum, but ensure at least 40px for visibility
+    const minWidth = Math.max(dayWidth * zoom, 40);
+    const width = Math.max(duration * dayWidth * zoom, minWidth);
+
+    return { x, width };
+  }, [startDate, dayWidth, zoom]);
+
+  // Build task positions map for collision detection
+  const taskPositions = useMemo((): TaskPosition[] => {
+    return flatTasks
+      .filter(task => task.startDate && task.endDate) // Only include tasks with dates
+      .map((task) => {
+        const { x, width } = getTaskPosition(task);
+        const actualIndex = flatTasks.findIndex(t => t.id === task.id);
+        const y = HEADER_HEIGHT + actualIndex * ROW_HEIGHT + 12;
+        return {
+          id: task.id,
+          x,
+          y,
+          width,
+          height: 32, // TaskBar height
+        };
+      });
+  }, [flatTasks, getTaskPosition]);
+
+  // Generate timeline headers
+  const headers = useMemo(() => {
+    const result: Array<{ date: Date; label: string; x: number }> = [];
+    const current = new Date(startDate);
+    let index = 0;
+
+    while (current <= endDate) {
+      const daysFromStart =
+        (current.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
+      const x = daysFromStart * dayWidth * zoom;
+
+      if (timeScale === 'day') {
+        result.push({
+          date: new Date(current),
+          label: current.toLocaleDateString('en-US', { day: 'numeric', month: 'short' }),
+          x,
+        });
+        current.setDate(current.getDate() + 1);
+      } else if (timeScale === 'week') {
+        const weekNum = getWeekNumber(current);
+        result.push({
+          date: new Date(current),
+          label: `Week ${weekNum}`,
+          x,
+        });
+        current.setDate(current.getDate() + 7);
+      } else {
+        result.push({
+          date: new Date(current),
+          label: current.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+          x,
+        });
+        current.setMonth(current.getMonth() + 1);
+      }
+      index++;
+    }
+
+    return result;
+  }, [startDate, endDate, timeScale, dayWidth, zoom]);
+
+  // Today position
+  const todayX = useMemo(() => {
+    const today = new Date();
+    const daysFromStart = (today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
+    return daysFromStart * dayWidth * zoom;
+  }, [startDate, dayWidth, zoom]);
+
+  return (
+    <div className="flex-1 overflow-auto" data-gantt-chart style={{ backgroundColor: theme.bgPrimary }}>
+      <svg
+        width={Math.max(timelineWidth, 1000)}
+        height={Math.max(flatTasks.length * ROW_HEIGHT + HEADER_HEIGHT, 600)}
+      >
+        <defs>
+          <filter id="shadow">
+            <feDropShadow dx="0" dy="1" stdDeviation="2" floodOpacity="0.1" />
+          </filter>
+
+          {/* Neutral theme: Diagonal stripes pattern for critical/overdue tasks */}
+          <pattern id="diagonal-stripes" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="8" stroke={theme.border} strokeWidth="2" />
+          </pattern>
+        </defs>
+
+        {/* Full SVG Background */}
+        <rect
+          x={0}
+          y={0}
+          width={Math.max(timelineWidth, 1000)}
+          height={Math.max(flatTasks.length * ROW_HEIGHT + HEADER_HEIGHT, 600)}
+          fill={theme.bgPrimary}
+        />
+
+        {/* Header Background */}
+        <rect
+          x={0}
+          y={0}
+          width={timelineWidth}
+          height={HEADER_HEIGHT}
+          fill={theme.bgGrid}
+        />
+
+        {/* Grid Lines and Weekend Backgrounds */}
+        {headers.map((header, index) => {
+          const nextX = headers[index + 1]?.x || timelineWidth;
+          const isWeekendDay = isWeekend(header.date);
+
+          return (
+            <g key={index}>
+              {/* Weekend background - subtle highlight */}
+              {isWeekendDay && (
+                <rect
+                  x={header.x}
+                  y={HEADER_HEIGHT}
+                  width={nextX - header.x}
+                  height={flatTasks.length * ROW_HEIGHT}
+                  fill={theme.bgWeekend}
+                  opacity={0.6}
+                />
+              )}
+
+              {/* Grid line */}
+              <line
+                x1={header.x}
+                y1={HEADER_HEIGHT}
+                x2={header.x}
+                y2={flatTasks.length * ROW_HEIGHT + HEADER_HEIGHT}
+                stroke={theme.border}
+                strokeWidth={1}
+                opacity={0.1}
+              />
+
+              {/* Header text */}
+              <text
+                x={header.x + 8}
+                y={HEADER_HEIGHT / 2}
+                fill={theme.textTertiary}
+                fontSize="11"
+                fontFamily="Inter, sans-serif"
+                dominantBaseline="middle"
+              >
+                {header.label}
+              </text>
+            </g>
+          );
+        })}
+
+        {/* Today Line - Solid, prominent indicator */}
+        {todayX >= 0 && todayX <= timelineWidth && (
+          <g>
+            {/* Solid line - more prominent */}
+            <line
+              x1={todayX}
+              y1={HEADER_HEIGHT}
+              x2={todayX}
+              y2={flatTasks.length * ROW_HEIGHT + HEADER_HEIGHT}
+              stroke={theme.today}
+              strokeWidth={2}
+              opacity={1}
+            />
+            <circle cx={todayX} cy={HEADER_HEIGHT - 10} r={6} fill={theme.today} opacity={1} />
+          </g>
+        )}
+
+        {/* Row Backgrounds with Click-to-Create functionality */}
+        {flatTasks.map((task, index) => {
+          const hasTaskBar = task.startDate && task.endDate;
+
+          return (
+            <g key={`row-group-${task.id}`}>
+              {/* Background stripe - alternating rows for better readability */}
+              <rect
+                key={`row-${task.id}`}
+                x={0}
+                y={HEADER_HEIGHT + index * ROW_HEIGHT}
+                width={timelineWidth}
+                height={ROW_HEIGHT}
+                fill={index % 2 === 0 ? 'transparent' : theme.bgSecondary}
+                opacity={1}
+                style={{ pointerEvents: 'none' }}
+              />
+
+              {/* Clickable area for tasks without dates */}
+              {!hasTaskBar && (
+                <>
+                  <rect
+                    key={`clickable-${task.id}`}
+                    x={0}
+                    y={HEADER_HEIGHT + index * ROW_HEIGHT}
+                    width={timelineWidth}
+                    height={ROW_HEIGHT}
+                    fill="transparent"
+                    style={{
+                      cursor: 'pointer',
+                      pointerEvents: 'all'
+                    }}
+                    onClick={(e) => handleTimelineClick(e, task)}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.setAttribute('fill', theme.accentLight);
+                      e.currentTarget.setAttribute('opacity', '0.5');
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.setAttribute('fill', 'transparent');
+                      e.currentTarget.setAttribute('opacity', '1');
+                    }}
+                  />
+                  {/* Placeholder text for empty tasks */}
+                  <text
+                    key={`placeholder-${task.id}`}
+                    x={todayX > 0 ? todayX : 100}
+                    y={HEADER_HEIGHT + index * ROW_HEIGHT + ROW_HEIGHT / 2}
+                    fill={theme.textTertiary}
+                    fontSize="12"
+                    fontFamily="Inter, sans-serif"
+                    fontStyle="italic"
+                    dominantBaseline="middle"
+                    opacity={0.4}
+                    style={{ pointerEvents: 'none', userSelect: 'none' }}
+                  >
+                    Click to set dates...
+                  </text>
+                </>
+              )}
+            </g>
+          );
+        })}
+
+        {/* Dependencies */}
+        {flatTasks.map((task, toIndex) => {
+          if (!task.dependencies || task.dependencies.length === 0) return null;
+          // Skip if task doesn't have dates
+          if (!task.startDate || !task.endDate) return null;
+
+          return task.dependencies.map((depId) => {
+            const depTask = flatTasks.find((t) => t.id === depId);
+            if (!depTask) return null;
+            // Skip if dependency task doesn't have dates
+            if (!depTask.startDate || !depTask.endDate) return null;
+
+            const fromIndex = flatTasks.findIndex((t) => t.id === depId);
+            const fromPos = getTaskPosition(depTask);
+            const toPos = getTaskPosition(task);
+
+            return (
+              <DependencyLine
+                key={`dep-${depId}-${task.id}`}
+                x1={fromPos.x + fromPos.width}
+                y1={HEADER_HEIGHT + fromIndex * ROW_HEIGHT + ROW_HEIGHT / 2}
+                x2={toPos.x}
+                y2={HEADER_HEIGHT + toIndex * ROW_HEIGHT + ROW_HEIGHT / 2}
+                theme={theme}
+                onDelete={() => onDependencyDelete?.(task.id, depId)}
+              />
+            );
+          });
+        })}
+
+        {/* Tasks */}
+        {flatTasks.map((task, index) => {
+          // Don't render task bar if task doesn't have dates
+          if (!task.startDate || !task.endDate) {
+            return null;
+          }
+
+          const { x, width } = getTaskPosition(task);
+          const y = HEADER_HEIGHT + index * ROW_HEIGHT + 12;
+
+          // Container phase (has subtasks): render as bracket bar
+          const isContainer = task.subtasks && task.subtasks.length > 0 && !task.isMilestone;
+
+          if (task.isMilestone) {
+            return (
+              <Milestone
+                key={task.id}
+                task={task}
+                x={x + width / 2}
+                y={y + 16}
+                theme={theme}
+                onClick={onTaskClick}
+              />
+            );
+          }
+
+          if (isContainer) {
+            // Render container as bracket bar
+            return (
+              <g key={task.id} onClick={() => onTaskClick?.(task)} style={{ cursor: 'pointer' }}>
+                {/* Top bracket line */}
+                <line
+                  x1={x}
+                  y1={y}
+                  x2={x + width}
+                  y2={y}
+                  stroke={theme.borderLight}
+                  strokeWidth={2}
+                  opacity={0.6}
+                />
+                {/* Left vertical */}
+                <line
+                  x1={x}
+                  y1={y}
+                  x2={x}
+                  y2={y + 32}
+                  stroke={theme.borderLight}
+                  strokeWidth={2}
+                  opacity={0.6}
+                />
+                {/* Right vertical */}
+                <line
+                  x1={x + width}
+                  y1={y}
+                  x2={x + width}
+                  y2={y + 32}
+                  stroke={theme.borderLight}
+                  strokeWidth={2}
+                  opacity={0.6}
+                />
+                {/* Bottom bracket line */}
+                <line
+                  x1={x}
+                  y1={y + 32}
+                  x2={x + width}
+                  y2={y + 32}
+                  stroke={theme.borderLight}
+                  strokeWidth={2}
+                  opacity={0.6}
+                />
+              </g>
+            );
+          }
+
+          return (
+            <TaskBar
+              key={task.id}
+              task={task}
+              x={x}
+              y={y}
+              width={width}
+              theme={theme}
+              dayWidth={dayWidth * zoom}
+              startDate={startDate}
+              templates={templates}
+              onClick={onTaskClick}
+              onDoubleClick={onTaskDblClick} // v0.8.0
+              onContextMenu={onTaskContextMenu} // v0.8.0
+              onDateChange={onTaskDateChange}
+              onDependencyCreate={onDependencyCreate}
+              allTaskPositions={taskPositions}
+            />
+          );
+        })}
+      </svg>
+    </div>
+  );
+}

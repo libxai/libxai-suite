@@ -1,0 +1,42 @@
+{
+  "name": "libxai-suite",
+  "version": "0.8.0",
+  "private": true,
+  "description": "LibXAI Suite - Professional React Component Library for Modern Teams - Gantt Chart + Kanban Board + More",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=@libxai/board",
+    "build": "npm run build:core && npm run build:headless && npm run build:board",
+    "build:core": "npm run build --workspace=@libxai/core",
+    "build:headless": "npm run build --workspace=@libxai/headless",
+    "build:board": "npm run build --workspace=@libxai/board",
+    "test": "npm run test:core && npm run test:headless && npm run test:board",
+    "test:core": "npm run test --workspace=@libxai/core",
+    "test:headless": "npm run test --workspace=@libxai/headless",
+    "test:board": "npm run test --workspace=@libxai/board",
+    "storybook": "npm run storybook --workspace=@libxai/board",
+    "lint": "eslint . --ext .ts,.tsx",
+    "format": "prettier --write \"**/*.{ts,tsx,json,md}\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-react": "^7.35.0",
+    "eslint-plugin-react-hooks": "^4.6.2",
+    "prettier": "^3.3.3",
+    "typescript": "^5.6.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "dependencies": {
+    "@floating-ui/react": "^0.27.16"
+  }
+}

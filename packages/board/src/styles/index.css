@@ -1,0 +1,632 @@
+/**
+ * ASAKAA Design System v2.0
+ * Apple-level design consistency
+ * Every pixel matters. Every decision is intentional.
+ */
+
+
+/* ============================================================================
+   COMPONENT STYLES - Imported FIRST for PostCSS
+   @import must precede all other statements (besides @charset)
+   ============================================================================ */
+
+/* FilterBar - Advanced filtering and sorting UI */
+@import './components/filter-bar.css';
+
+/* Card Detail Modal - Full card editing experience */
+@import './components/card-detail-modal.css';
+
+/* Card Detail Modal V2 - Enhanced task detail view */
+@import '../components/CardDetailModal/card-detail-modal-v2.css';
+
+/* Card Stack - Smart grouping of related cards (v0.6.0) */
+@import '../components/CardStack/card-stack.css';
+
+/* Card History - Time travel and replay functionality (v0.6.0) */
+@import '../components/CardHistory/card-history.css';
+
+/* Card Relationships - Interactive graph visualization (v0.6.0) */@import '../components/CardRelationships/card-relationships.css';
+/* Command Palette - Keyboard-driven navigation */
+@import './components/command-palette.css';
+
+/* Charts - Analytics and data visualization */
+@import './components/charts.css';
+
+/* Bulk Operations - Multi-select toolbar */
+@import './components/bulk-operations.css';
+
+/* Attachments - File upload and management */
+@import './components/attachments.css';
+
+/* v0.6.0 Design Refinements - Enhanced clarity */
+@import './design-refinements.css';
+
+/* ============================================================================
+   TAILWIND DIRECTIVES
+   ============================================================================ */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================================
+   DESIGN SYSTEM FOUNDATION
+   Mathematical scales for typography, spacing, colors, and timing
+   ============================================================================ */
+
+:root {
+  /* ========== TYPOGRAPHY SCALE ========== */
+  /* Mathematical progression: 10, 12, 14, 16, 20, 24, 32, 48 */
+  --font-2xs: 10px;      /* Micro text: metadata, caps labels */
+  --font-xs: 12px;       /* Secondary text: captions, hints */
+  --font-sm: 14px;       /* Body text: descriptions, content */
+  --font-base: 16px;     /* Default: inputs, standard text */
+  --font-lg: 20px;       /* Section titles, emphasis */
+  --font-xl: 24px;       /* Modal titles, headers */
+  --font-2xl: 32px;      /* Hero numbers, big emphasis */
+  --font-3xl: 48px;      /* Marketing, splash screens */
+
+  /* Font weights */
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+
+  /* ========== SPACING SCALE ========== */
+  /* Based on 4px grid system */
+  --space-1: 4px;        /* Micro spacing */
+  --space-2: 8px;        /* Tight spacing */
+  --space-3: 12px;       /* Compact spacing */
+  --space-4: 16px;       /* Base spacing */
+  --space-5: 20px;       /* Comfortable spacing */
+  --space-6: 24px;       /* Generous spacing */
+  --space-8: 32px;       /* Section spacing */
+  --space-10: 40px;      /* Large spacing */
+  --space-12: 48px;      /* Extra large spacing */
+  --space-16: 64px;      /* Hero spacing */
+
+  /* ========== OPACITY SCALE ========== */
+  /* Predictable and mathematical */
+  --opacity-subtle: 0.05;   /* Barely visible borders */
+  --opacity-faint: 0.10;    /* Faint dividers */
+  --opacity-light: 0.20;    /* Light backgrounds */
+  --opacity-medium: 0.40;   /* Medium backgrounds */
+  --opacity-strong: 0.60;   /* Strong backgrounds */
+  --opacity-opaque: 0.80;   /* Almost solid */
+  --opacity-full: 1.0;      /* Solid */
+
+  /* ========== BORDER RADIUS SCALE ========== */
+  /* Only 4 radios: small, medium, large, full */
+  --radius-sm: 6px;      /* Small elements: badges, tags */
+  --radius-md: 10px;     /* Medium elements: buttons, inputs */
+  --radius-lg: 16px;     /* Large elements: cards, modals */
+  --radius-xl: 24px;     /* Hero elements */
+  --radius-full: 9999px; /* Pills, circles */
+
+  /* ========== SHADOW SYSTEM ========== */
+  /* 4 levels of elevation */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0 24px 64px rgba(0, 0, 0, 0.6);
+
+  /* Glass shadows (with subtle border) */
+  --shadow-glass-sm: 0 4px 12px rgba(0, 0, 0, 0.4),
+                      0 0 0 1px rgba(255, 255, 255, var(--opacity-subtle));
+  --shadow-glass-lg: 0 24px 64px rgba(0, 0, 0, 0.5),
+                      0 0 0 1px rgba(255, 255, 255, var(--opacity-faint));
+
+  /* ========== ANIMATION TIMING ========== */
+  --duration-instant: 100ms;    /* Micro-interactions */
+  --duration-fast: 200ms;       /* Button hovers, toggles */
+  --duration-base: 300ms;       /* Standard transitions */
+  --duration-slow: 500ms;       /* Modal entrances */
+  --duration-deliberate: 700ms; /* Complex animations */
+
+  /* Easing functions */
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);  /* Material smooth */
+  --ease-bounce: cubic-bezier(0.16, 1, 0.3, 1); /* Springy */
+  --ease-sharp: cubic-bezier(0.4, 0, 0.6, 1);   /* Quick & precise */
+
+  /* ========== Z-INDEX HIERARCHY ========== */
+  --z-base: 0;        /* Normal flow */
+  --z-dropdown: 100;  /* Dropdowns, tooltips */
+  --z-sticky: 200;    /* Sticky headers */
+  --z-fixed: 300;     /* Fixed toolbars */
+  --z-overlay: 400;   /* Modal overlays */
+  --z-modal: 500;     /* Modal content */
+  --z-popover: 600;   /* Popovers above modals */
+  --z-toast: 700;     /* Notifications */
+  --z-tooltip: 800;   /* Tooltips (always on top) */
+
+  /* ========== COLOR SYSTEM ========== */
+  /* v0.5.0: Theme-aware colors - fallback to dark theme if ThemeProvider not used */
+  --color-bg-primary: var(--theme-bg-primary, #0a0a0a);
+  --color-bg-secondary: var(--theme-bg-secondary, #141414);
+  --color-bg-tertiary: var(--theme-bg-tertiary, #1a1a1a);
+
+  --color-text-primary: var(--theme-text-primary, #ffffff);
+  --color-text-secondary: var(--theme-text-secondary, #a3a3a3);
+  --color-text-tertiary: var(--theme-text-tertiary, #737373);
+
+  /* Accent colors - use theme accent or fallback to blue */
+  --color-blue: var(--theme-accent-primary, #3b82f6);
+  --color-blue-dark: var(--theme-accent-hover, #2563eb);
+  --color-red: var(--theme-error, #ef4444);
+  --color-red-dark: #dc2626;
+  --color-orange: var(--theme-warning, #f59e0b);
+  --color-yellow: #fbbf24;
+  --color-green: var(--theme-success, #10b981);
+  --color-purple: #8b5cf6;
+
+  /* Semantic colors */
+  --color-error: var(--color-red);
+  --color-warning: var(--color-orange);
+  --color-success: var(--color-green);
+  --color-info: var(--color-blue);
+
+  /* Border colors from theme */
+  --color-border-primary: var(--theme-border-primary, rgba(255, 255, 255, 0.1));
+  --color-border-secondary: var(--theme-border-secondary, rgba(255, 255, 255, 0.05));
+
+  /* ========== COMPONENT SIZES ========== */
+  --column-width: 340px;
+  --column-width-compact: 300px;
+  --card-height-estimate: 120px;
+  --header-height: 64px;
+  --toolbar-height: 56px;
+}
+
+/* ============================================================================
+   BASE STYLES
+   ============================================================================ */
+
+@layer base {
+  * {
+    border-color: rgba(255, 255, 255, var(--opacity-faint));
+  }
+
+  body {
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* ============================================================================
+   COMPONENTS
+   ============================================================================ */
+
+@layer components {
+
+  /* ==========================================================================
+     BOARD CONTAINER
+     ========================================================================== */
+
+  .asakaa-board {
+    @apply relative flex overflow-x-auto overflow-y-hidden min-h-screen;
+    gap: var(--space-6);
+    padding: var(--space-6);
+    background: var(--color-bg-primary);
+  }
+
+  /* Theme-aware horizontal scrollbar */
+  .asakaa-board::-webkit-scrollbar {
+    height: 10px;
+  }
+
+  .asakaa-board::-webkit-scrollbar-track {
+    background: var(--theme-bg-secondary, rgba(20, 20, 20, 0.4));
+    border-radius: var(--radius-sm);
+  }
+
+  .asakaa-board::-webkit-scrollbar-thumb {
+    background: var(--theme-border-primary, rgba(255, 255, 255, 0.2));
+    border-radius: var(--radius-sm);
+    border: 2px solid var(--theme-bg-secondary, rgba(20, 20, 20, 0.4));
+  }
+
+  .asakaa-board::-webkit-scrollbar-thumb:hover {
+    background: var(--theme-border-secondary, rgba(255, 255, 255, 0.3));
+  }
+
+  /* ==========================================================================
+     COLUMN
+     ========================================================================== */
+
+  .asakaa-column {
+    @apply flex flex-col;
+    min-width: var(--column-width);
+    max-width: var(--column-width);
+    height: fit-content;
+    max-height: calc(100vh - var(--header-height) - var(--space-16));
+    padding: var(--space-4);
+    background: var(--color-bg-tertiary);
+    border: 1px solid rgba(255, 255, 255, var(--opacity-subtle));
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    transition: all var(--duration-base) var(--ease-smooth);
+  }
+
+  .asakaa-column:hover {
+    border-color: rgba(59, 130, 246, var(--opacity-light));
+    box-shadow: var(--shadow-lg);
+    /* NO transform - columns are structural elements */
+  }
+
+  .asakaa-column-header {
+    @apply flex items-center justify-between;
+    gap: var(--space-2);
+    padding-bottom: var(--space-3);
+    margin-bottom: var(--space-2);
+    border-bottom: 1px solid rgba(255, 255, 255, var(--opacity-subtle));
+  }
+
+  .asakaa-column-title {
+    font-size: var(--font-sm);
+    font-weight: var(--font-bold);
+    color: var(--color-text-primary);
+    letter-spacing: 0.3px;
+  }
+
+  .asakaa-column-count {
+    font-size: var(--font-2xs);
+    font-weight: var(--font-semibold);
+    padding: 0;
+    color: var(--color-text-tertiary);
+    background: none;
+    border: none;
+  }
+
+  .asakaa-column-cards {
+    @apply flex flex-col;
+    gap: var(--space-3);
+    padding-top: var(--space-1);
+    padding-bottom: var(--space-1);
+    padding-right: var(--space-1);
+    overflow-y: auto;
+    overflow-x: hidden;
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* Unified scrollbar styling */
+  .asakaa-column-cards::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .asakaa-column-cards::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .asakaa-column-cards::-webkit-scrollbar-thumb {
+    background: var(--theme-text-tertiary);
+    opacity: 0.3;
+    border-radius: var(--radius-sm);
+  }
+
+  .asakaa-column-cards::-webkit-scrollbar-thumb:hover {
+    opacity: 0.5;
+  }
+
+  /* ==========================================================================
+     CARD
+     ========================================================================== */
+
+  .asakaa-card {
+    @apply cursor-pointer;
+    position: relative;
+    width: 100%;
+    padding: var(--space-4);
+    background: var(--color-bg-secondary);
+    border: 1px solid rgba(255, 255, 255, var(--opacity-subtle));
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    transition: all var(--duration-fast) var(--ease-smooth);
+  }
+
+  .asakaa-card:hover {
+    border-color: rgba(59, 130, 246, var(--opacity-medium));
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);  /* Subtle 1px, not 2px */
+  }
+
+  .asakaa-card:active {
+    @apply cursor-grabbing;
+    transform: scale(0.98);
+  }
+
+  .asakaa-card-dragging {
+    opacity: var(--opacity-opaque);
+    transform: rotate(2deg) scale(1.03);  /* Subtle rotation and scale */
+    box-shadow: var(--shadow-xl), 0 0 0 2px rgba(59, 130, 246, var(--opacity-strong));
+  }
+
+  .asakaa-card-title {
+    font-size: var(--font-sm);
+    font-weight: var(--font-semibold);
+    margin-bottom: var(--space-2);
+    line-height: 1.4;
+    color: var(--color-text-primary);
+  }
+
+  .asakaa-card-description {
+    @apply line-clamp-2;
+    font-size: var(--font-xs);
+    line-height: 1.5;
+    color: var(--color-text-secondary);
+  }
+
+  .asakaa-card-footer {
+    @apply flex items-center;
+    gap: var(--space-2);
+    margin-top: var(--space-3);
+    padding-top: var(--space-3);
+    border-top: 1px solid rgba(255, 255, 255, var(--opacity-subtle));
+  }
+
+  /* ==========================================================================
+     PRIORITY BADGES
+     ========================================================================== */
+
+  .asakaa-priority {
+    font-size: var(--font-2xs);
+    font-weight: var(--font-bold);
+    padding: var(--space-1) var(--space-3);
+    border-radius: var(--radius-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .asakaa-priority-low {
+    background: rgba(59, 130, 246, var(--opacity-light));
+    color: #60a5fa;
+    border: 1px solid rgba(59, 130, 246, var(--opacity-medium));
+  }
+
+  .asakaa-priority-medium {
+    background: rgba(245, 158, 11, var(--opacity-light));
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, var(--opacity-medium));
+  }
+
+  .asakaa-priority-high {
+    background: rgba(239, 68, 68, var(--opacity-light));
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, var(--opacity-medium));
+  }
+
+  .asakaa-priority-urgent {
+    background: var(--color-red);
+    color: white;
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% {
+      box-shadow: 0 0 16px rgba(239, 68, 68, var(--opacity-strong));
+    }
+    50% {
+      box-shadow: 0 0 24px rgba(239, 68, 68, var(--opacity-opaque));
+    }
+  }
+
+  /* ==========================================================================
+     LABELS - v0.6.0 Enhanced: Pure text, no backgrounds
+     ========================================================================== */
+
+  .asakaa-label {
+    font-size: var(--font-xs);
+    font-weight: var(--font-medium);
+    padding: 0;
+    margin-right: var(--space-2);
+    background: none;
+    border: none;
+    color: var(--color-text-tertiary);
+    transition: color var(--duration-fast) var(--ease-smooth);
+  }
+
+  .asakaa-label:hover {
+    color: var(--color-text-secondary);
+  }
+
+  /* ==========================================================================
+     DROP ZONES
+     ========================================================================== */
+
+  .asakaa-drop-zone {
+    min-height: 120px;
+    border: 2px dashed rgba(255, 255, 255, var(--opacity-faint));
+    border-radius: var(--radius-lg);
+    background: rgba(255, 255, 255, var(--opacity-subtle));
+    transition: all var(--duration-base) var(--ease-smooth);
+  }
+
+  .asakaa-drop-zone-active {
+    border-color: rgba(59, 130, 246, var(--opacity-strong));
+    background: rgba(59, 130, 246, var(--opacity-faint));
+    box-shadow: inset 0 0 16px rgba(59, 130, 246, var(--opacity-light));
+    animation: pulse-border 1.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse-border {
+    0%, 100% {
+      border-color: rgba(59, 130, 246, var(--opacity-strong));
+    }
+    50% {
+      border-color: rgba(59, 130, 246, var(--opacity-opaque));
+    }
+  }
+
+  /* ==========================================================================
+     LOADING STATES
+     ========================================================================== */
+
+  .asakaa-skeleton {
+    border-radius: var(--radius-md);
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, var(--opacity-subtle)) 0%,
+      rgba(255, 255, 255, var(--opacity-faint)) 50%,
+      rgba(255, 255, 255, var(--opacity-subtle)) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  /* ==========================================================================
+     EMPTY STATES
+     ========================================================================== */
+
+  .asakaa-empty {
+    @apply flex flex-col items-center justify-center;
+    padding: var(--space-8);
+    font-size: var(--font-sm);
+    color: var(--color-text-tertiary);
+  }
+
+  /* ==========================================================================
+     AI BADGE
+     ========================================================================== */
+
+  .asakaa-ai-badge {
+    @apply inline-flex items-center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--font-2xs);
+    font-weight: var(--font-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: var(--color-blue);
+    border: 1px solid rgba(59, 130, 246, var(--opacity-medium));
+    border-radius: var(--radius-md);
+    color: white;
+    box-shadow: 0 0 12px rgba(59, 130, 246, var(--opacity-medium));
+  }
+
+  /* ==========================================================================
+     SWIMLANES
+     ========================================================================== */
+
+  .asakaa-swimlane-view {
+    @apply w-full;
+    padding: var(--space-6);
+    background: var(--color-bg-primary);
+    min-height: 100vh;
+  }
+
+  .asakaa-swimlane {
+    @apply relative overflow-hidden;
+    background: rgba(20, 20, 20, var(--opacity-medium));
+    transition: all var(--duration-base) var(--ease-smooth);
+  }
+
+  .asakaa-swimlane:hover {
+    background: rgba(20, 20, 20, var(--opacity-strong));
+  }
+
+  .asakaa-swimlane-header {
+    @apply flex items-center justify-between;
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid rgba(255, 255, 255, var(--opacity-subtle));
+    transition: background var(--duration-fast) var(--ease-smooth);
+  }
+
+  .asakaa-swimlane-header:hover {
+    background: rgba(255, 255, 255, var(--opacity-subtle));
+  }
+
+  .asakaa-swimlane-content {
+    @apply relative;
+  }
+
+  .asakaa-swimlane-content .asakaa-board {
+    padding: var(--space-4);
+    min-height: auto;
+    background: transparent;
+  }
+
+  .asakaa-swimlane-content .asakaa-column {
+    min-width: var(--column-width-compact);
+    max-width: var(--column-width-compact);
+    max-height: 500px;
+  }
+}
+
+/* ============================================================================
+   UTILITIES
+   ============================================================================ */
+
+@layer utilities {
+
+  /* Unified scrollbar utility for all components */
+  .scrollbar-custom {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, var(--opacity-light)) transparent;
+  }
+
+  .scrollbar-custom::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .scrollbar-custom::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-custom::-webkit-scrollbar-thumb {
+    background: var(--theme-text-tertiary);
+    opacity: 0.3;
+    border-radius: var(--radius-sm);
+  }
+
+  .scrollbar-custom::-webkit-scrollbar-thumb:hover {
+    opacity: 0.5;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Focus ring with system colors */
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2;
+  }
+
+  .focus-ring:focus-visible {
+    --tw-ring-color: var(--color-blue);
+    --tw-ring-offset-color: var(--color-bg-primary);
+  }
+
+  /* Line clamp utility */
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Glassmorphism - ONLY for floating elements */
+  .glass {
+    backdrop-filter: blur(20px) saturate(180%);
+    background: rgba(20, 20, 20, var(--opacity-opaque));
+    border: 1px solid rgba(255, 255, 255, var(--opacity-faint));
+    box-shadow: var(--shadow-glass-lg);
+  }
+}

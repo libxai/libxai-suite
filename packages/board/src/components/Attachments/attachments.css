@@ -1,0 +1,325 @@
+/**
+ * Attachment Uploader Styles
+ * Premium glassmorphism design
+ */
+
+.attachment-uploader {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Drop zone */
+.attachment-dropzone {
+  position: relative;
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.03) 0%,
+    rgba(255, 255, 255, 0.01) 100%
+  );
+  backdrop-filter: blur(10px);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.attachment-dropzone:hover {
+  border-color: rgba(59, 130, 246, 0.5);
+  background: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.05) 0%,
+    rgba(59, 130, 246, 0.02) 100%
+  );
+  transform: translateY(-2px);
+}
+
+.attachment-dropzone.dragging {
+  border-color: rgba(59, 130, 246, 0.8);
+  background: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.1) 0%,
+    rgba(59, 130, 246, 0.05) 100%
+  );
+  transform: scale(1.02);
+}
+
+.attachment-dropzone.uploading {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.attachment-dropzone-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 32px;
+  text-align: center;
+}
+
+.attachment-dropzone-icon {
+  color: rgba(255, 255, 255, 0.4);
+  transition: color 0.3s ease;
+}
+
+.attachment-dropzone:hover .attachment-dropzone-icon {
+  color: rgba(59, 130, 246, 0.8);
+}
+
+.attachment-dropzone-text {
+  font-size: 16px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0;
+}
+
+.attachment-dropzone-subtext {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0;
+}
+
+.attachment-dropzone-info {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
+  margin: 0;
+  margin-top: 4px;
+}
+
+/* Spinner */
+.attachment-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-top-color: rgba(59, 130, 246, 0.8);
+  border-radius: 50%;
+  animation: attachment-spin 0.8s linear infinite;
+}
+
+@keyframes attachment-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Error message */
+.attachment-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: linear-gradient(
+    135deg,
+    rgba(239, 68, 68, 0.15) 0%,
+    rgba(239, 68, 68, 0.08) 100%
+  );
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  backdrop-filter: blur(10px);
+  animation: attachment-error-slide-in 0.3s ease;
+}
+
+@keyframes attachment-error-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.attachment-error-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.attachment-error-text {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.9);
+  flex: 1;
+}
+
+/* Attachment list */
+.attachment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.attachment-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.02) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  backdrop-filter: blur(10px);
+  transition: all 0.2s ease;
+}
+
+.attachment-item:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0.04) 100%
+  );
+  border-color: rgba(255, 255, 255, 0.12);
+  transform: translateX(4px);
+}
+
+/* Preview */
+.attachment-preview {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0.04) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.attachment-thumbnail {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.attachment-icon {
+  font-size: 24px;
+  user-select: none;
+}
+
+/* Info */
+.attachment-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.attachment-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color 0.2s ease;
+}
+
+.attachment-name:hover {
+  color: rgba(59, 130, 246, 0.9);
+  text-decoration: underline;
+}
+
+.attachment-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.attachment-size,
+.attachment-date {
+  white-space: nowrap;
+}
+
+.attachment-separator {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+/* Delete button */
+.attachment-delete {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.attachment-delete:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: rgba(239, 68, 68, 0.9);
+}
+
+.attachment-delete:active {
+  transform: scale(0.95);
+}
+
+.attachment-delete svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .attachment-dropzone {
+    min-height: 140px;
+  }
+
+  .attachment-dropzone-content {
+    padding: 24px;
+    gap: 8px;
+  }
+
+  .attachment-dropzone-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .attachment-dropzone-text {
+    font-size: 14px;
+  }
+
+  .attachment-dropzone-subtext {
+    font-size: 12px;
+  }
+
+  .attachment-item {
+    padding: 10px;
+    gap: 10px;
+  }
+
+  .attachment-preview {
+    width: 40px;
+    height: 40px;
+  }
+
+  .attachment-name {
+    font-size: 13px;
+  }
+
+  .attachment-meta {
+    font-size: 11px;
+  }
+}

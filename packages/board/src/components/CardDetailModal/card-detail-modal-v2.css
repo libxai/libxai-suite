@@ -1,0 +1,1019 @@
+/**
+ * CardDetailModal V2.0 - World-Class Task Detail View
+ *
+ * Design Philosophy:
+ * - Hybrid: ClickUp's information density + Linear's speed and flow
+ * - Speed above all: <100ms open time
+ * - Keyboard-first interaction
+ * - Single vertical flow (no sidebars)
+ * - Instant inline editing
+ * - Zero friction UX
+ */
+
+/* ============================================================================
+   TOKENS & VARIABLES - Exact Specification
+   ============================================================================ */
+
+:root {
+  /* Layout */
+  --modal-v2-backdrop-blur: 8px;
+  --modal-v2-transition: 80ms cubic-bezier(0.16, 1, 0.3, 1);
+  --modal-v2-border-radius: 16px;
+  --modal-v2-padding: 24px;
+  --modal-v2-max-width: 800px;
+
+  /* Typography - Exact specification */
+  --modal-v2-title-size: 32px;
+  --modal-v2-title-weight: 700;
+  --modal-v2-label-size: 12px;
+  --modal-v2-label-weight: 500;
+  --modal-v2-body-size: 16px;
+  --modal-v2-body-weight: 400;
+  --modal-v2-body-line-height: 1.6;
+}
+
+/* Dark Theme - Exact #222326 */
+[data-theme="dark"] {
+  --modal-v2-bg: #222326;
+  --modal-v2-text-primary: #F4F5F8;
+  --modal-v2-text-secondary: #AEB6C0;
+  --modal-v2-text-tertiary: #6B7280;
+  --modal-v2-border: rgba(255, 255, 255, 0.08);
+  --modal-v2-border-hover: rgba(255, 255, 255, 0.15);
+  --modal-v2-bg-secondary: rgba(255, 255, 255, 0.03);
+  --modal-v2-bg-tertiary: rgba(255, 255, 255, 0.05);
+  --modal-v2-comment-bg: #2A2B2E;
+  --modal-v2-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  --modal-v2-backdrop: rgba(0, 0, 0, 0.7);
+}
+
+/* Light Theme - Exact #FFFFFF */
+[data-theme="light"] {
+  --modal-v2-bg: #FFFFFF;
+  --modal-v2-text-primary: #1A1A1A;
+  --modal-v2-text-secondary: #6B6B6B;
+  --modal-v2-text-tertiary: #9CA3AF;
+  --modal-v2-border: rgba(0, 0, 0, 0.08);
+  --modal-v2-border-hover: rgba(0, 0, 0, 0.15);
+  --modal-v2-bg-secondary: rgba(0, 0, 0, 0.02);
+  --modal-v2-bg-tertiary: rgba(0, 0, 0, 0.04);
+  --modal-v2-comment-bg: #F7F7F8;
+  --modal-v2-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
+  --modal-v2-backdrop: rgba(0, 0, 0, 0.4);
+}
+
+/* Neutral Theme - Exact #F5F5F5 */
+[data-theme="neutral"] {
+  --modal-v2-bg: #F5F5F5;
+  --modal-v2-text-primary: #1A1A1A;
+  --modal-v2-text-secondary: #6B6B6B;
+  --modal-v2-text-tertiary: #9CA3AF;
+  --modal-v2-border: rgba(0, 0, 0, 0.1);
+  --modal-v2-border-hover: rgba(0, 0, 0, 0.18);
+  --modal-v2-bg-secondary: rgba(0, 0, 0, 0.03);
+  --modal-v2-bg-tertiary: rgba(0, 0, 0, 0.05);
+  --modal-v2-comment-bg: #EBEBEB;
+  --modal-v2-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
+  --modal-v2-backdrop: rgba(0, 0, 0, 0.35);
+}
+
+/* ============================================================================
+   BACKDROP & CONTAINER
+   ============================================================================ */
+
+.modal-v2-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--modal-v2-backdrop);
+  backdrop-filter: blur(var(--modal-v2-backdrop-blur));
+  animation: backdropFadeIn var(--modal-v2-transition) ease-out;
+}
+
+@keyframes backdropFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-v2-container {
+  position: relative;
+  width: 90%;
+  max-width: var(--modal-v2-max-width);
+  max-height: 92vh;
+  padding: var(--modal-v2-padding);
+  background: var(--modal-v2-bg);
+  border-radius: var(--modal-v2-border-radius);
+  box-shadow: var(--modal-v2-shadow);
+  overflow-y: auto;
+  animation: modalSlideIn 90ms cubic-bezier(0.16, 1, 0.3, 1);
+  /* Removed will-change to fix popover positioning with scroll */
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Custom scrollbar */
+.modal-v2-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.modal-v2-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.modal-v2-container::-webkit-scrollbar-thumb {
+  background: var(--modal-v2-border);
+  border-radius: 4px;
+}
+
+.modal-v2-container::-webkit-scrollbar-thumb:hover {
+  background: var(--modal-v2-border-hover);
+}
+
+/* ============================================================================
+   HEADER - Title & AI Prompt
+   ============================================================================ */
+
+.modal-v2-header {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.modal-v2-title {
+  font-size: var(--modal-v2-title-size);
+  font-weight: var(--modal-v2-title-weight);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--modal-v2-text-primary);
+  margin: 0 40px 12px 0;
+  outline: none;
+  transition: all 80ms ease;
+  cursor: text;
+}
+
+.modal-v2-title:hover {
+  color: var(--color-accent-primary);
+}
+
+.modal-v2-title:focus {
+  outline: 2px solid var(--color-accent-primary);
+  outline-offset: 4px;
+  border-radius: 6px;
+}
+
+.modal-v2-ai-prompt {
+  font-size: 14px;
+  font-weight: var(--modal-v2-body-weight);
+  color: var(--modal-v2-text-secondary);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 80ms ease;
+}
+
+.modal-v2-ai-prompt:hover {
+  color: var(--modal-v2-text-primary);
+}
+
+.modal-v2-ai-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.modal-v2-close {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--modal-v2-text-secondary);
+  cursor: pointer;
+  transition: all 80ms ease;
+}
+
+.modal-v2-close:hover {
+  background: var(--modal-v2-bg-tertiary);
+  color: var(--modal-v2-text-primary);
+}
+
+/* ============================================================================
+   METADATA GRID - 2x3 Control Panel
+   ============================================================================ */
+
+.modal-v2-metadata {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 24px 0;
+  padding: 24px 0;
+  border-top: 1px solid var(--modal-v2-border);
+  border-bottom: 1px solid var(--modal-v2-border);
+}
+
+.modal-v2-field-wrapper {
+  position: relative;
+  /* Ensure dropdowns appear above other content */
+  z-index: 1;
+}
+
+.modal-v2-field-wrapper:has(.modal-v2-popover) {
+  /* Increase z-index when dropdown is open */
+  z-index: 100;
+}
+
+.modal-v2-field {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 14px;
+  width: 100%;
+  background: transparent;
+  border: 1px solid var(--modal-v2-border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 80ms cubic-bezier(0.16, 1, 0.3, 1);
+  text-align: left;
+}
+
+.modal-v2-field:hover {
+  background: var(--modal-v2-bg-secondary);
+  border-color: var(--modal-v2-border-hover);
+  transform: translateY(-1px);
+}
+
+.modal-v2-field:active {
+  transform: translateY(0);
+}
+
+.modal-v2-field-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  font-size: var(--modal-v2-label-size);
+  font-weight: var(--modal-v2-label-weight);
+  color: var(--modal-v2-text-secondary);
+}
+
+.modal-v2-field-label svg {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  color: var(--modal-v2-text-tertiary);
+}
+
+.modal-v2-shortcut {
+  margin-left: auto;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--modal-v2-text-tertiary);
+  background: var(--modal-v2-bg-tertiary);
+  border-radius: 4px;
+  border: 1px solid var(--modal-v2-border);
+}
+
+.modal-v2-field-value {
+  font-size: 14px;
+  font-weight: var(--modal-v2-body-weight);
+  color: var(--modal-v2-text-primary);
+  min-height: 22px;
+  line-height: 1.5;
+}
+
+.modal-v2-empty {
+  color: var(--modal-v2-text-tertiary);
+  font-style: italic;
+}
+
+.modal-v2-avatars {
+  display: flex;
+  gap: 4px;
+}
+
+.modal-v2-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  font-size: 10px;
+  font-weight: 600;
+  color: white;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ============================================================================
+   SECTIONS - Description, Subtasks, Activity
+   ============================================================================ */
+
+.modal-v2-section {
+  margin: 28px 0;
+}
+
+.modal-v2-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.modal-v2-section-header svg {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  color: var(--modal-v2-text-secondary);
+}
+
+.modal-v2-section-header h2 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--modal-v2-text-primary);
+  margin: 0;
+  flex: 1;
+}
+
+.modal-v2-count {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--modal-v2-text-tertiary);
+  padding: 2px 8px;
+  background: var(--modal-v2-bg-tertiary);
+  border-radius: 12px;
+}
+
+.modal-v2-ai-button,
+.modal-v2-add-button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--modal-v2-text-secondary);
+  background: transparent;
+  border: 1px solid var(--modal-v2-border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 80ms ease;
+  margin-left: auto;
+}
+
+.modal-v2-ai-button:hover,
+.modal-v2-add-button:hover {
+  color: var(--color-accent-primary);
+  border-color: var(--color-accent-primary);
+  background: var(--modal-v2-bg-secondary);
+}
+
+/* ============================================================================
+   DESCRIPTION - Inline Markdown Editor
+   ============================================================================ */
+
+.modal-v2-content {
+  min-height: 100px;
+  padding: 14px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: text;
+  transition: all 80ms ease;
+}
+
+.modal-v2-content:hover {
+  border-color: var(--modal-v2-border);
+  background: var(--modal-v2-bg-secondary);
+}
+
+.modal-v2-content p {
+  margin: 0;
+  font-size: var(--modal-v2-body-size);
+  font-weight: var(--modal-v2-body-weight);
+  line-height: var(--modal-v2-body-line-height);
+  color: var(--modal-v2-text-primary);
+}
+
+.modal-v2-placeholder {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--modal-v2-text-tertiary);
+  font-style: italic;
+  font-size: var(--modal-v2-body-size);
+}
+
+.modal-v2-placeholder svg {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+}
+
+.modal-v2-editor {
+  border: 1px solid var(--color-accent-primary);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--modal-v2-bg);
+}
+
+.modal-v2-textarea {
+  width: 100%;
+  min-height: 150px;
+  padding: 14px;
+  font-size: var(--modal-v2-body-size);
+  font-weight: var(--modal-v2-body-weight);
+  line-height: var(--modal-v2-body-line-height);
+  color: var(--modal-v2-text-primary);
+  background: transparent;
+  border: none;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.modal-v2-textarea:focus {
+  outline: none;
+}
+
+.modal-v2-textarea::placeholder {
+  color: var(--modal-v2-text-tertiary);
+}
+
+.modal-v2-editor-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: var(--modal-v2-bg-secondary);
+  border-top: 1px solid var(--modal-v2-border);
+}
+
+.modal-v2-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--modal-v2-text-tertiary);
+}
+
+.modal-v2-hint svg {
+  width: 14px;
+  height: 14px;
+}
+
+.modal-v2-editor-action {
+  padding: 4px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-accent-primary);
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 80ms ease;
+}
+
+.modal-v2-editor-action:hover {
+  background: var(--modal-v2-bg-tertiary);
+}
+
+/* ============================================================================
+   SUBTASKS - Minimal Table Design
+   ============================================================================ */
+
+.modal-v2-subtasks {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.modal-v2-subtask {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  transition: background 80ms ease;
+}
+
+.modal-v2-subtask:hover {
+  background: var(--modal-v2-bg-secondary);
+}
+
+.modal-v2-subtask.completed .modal-v2-subtask-title {
+  text-decoration: line-through;
+  color: var(--modal-v2-text-tertiary);
+}
+
+.modal-v2-subtask-checkbox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--modal-v2-text-secondary);
+  transition: color 80ms ease;
+  padding: 0;
+}
+
+.modal-v2-subtask-checkbox:hover {
+  color: var(--color-accent-primary);
+}
+
+.modal-v2-subtask-title {
+  flex: 1;
+  font-size: 14px;
+  font-weight: var(--modal-v2-body-weight);
+  color: var(--modal-v2-text-primary);
+}
+
+.modal-v2-subtask-delete {
+  display: flex;
+  padding: 4px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--modal-v2-text-tertiary);
+  transition: all 80ms ease;
+  opacity: 0;
+}
+
+.modal-v2-subtask:hover .modal-v2-subtask-delete {
+  opacity: 1;
+}
+
+.modal-v2-subtask-delete:hover {
+  color: var(--color-error, #EF4444);
+}
+
+.modal-v2-subtask-input-row {
+  padding: 10px 12px;
+}
+
+.modal-v2-subtask-input {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: var(--modal-v2-body-weight);
+  color: var(--modal-v2-text-primary);
+  background: var(--modal-v2-bg-secondary);
+  border: 1px solid var(--modal-v2-border);
+  border-radius: 6px;
+  font-family: inherit;
+  transition: border-color 80ms ease;
+}
+
+.modal-v2-subtask-input:focus {
+  outline: none;
+  border-color: var(--color-accent-primary);
+}
+
+.modal-v2-subtask-input::placeholder {
+  color: var(--modal-v2-text-tertiary);
+}
+
+/* ============================================================================
+   ACTIVITY & COMMENTS - Vertical Chronological Flow
+   ============================================================================ */
+
+.modal-v2-filters {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.modal-v2-filter {
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--modal-v2-text-secondary);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 80ms ease;
+}
+
+.modal-v2-filter:hover {
+  background: var(--modal-v2-bg-tertiary);
+}
+
+.modal-v2-filter.active {
+  color: var(--color-accent-primary);
+  border-color: var(--color-accent-primary);
+  background: var(--modal-v2-bg-secondary);
+}
+
+.modal-v2-comment-input {
+  display: flex;
+  gap: 12px;
+  margin: 16px 0;
+  padding: 16px;
+  background: var(--modal-v2-bg-secondary);
+  border: 1px solid var(--modal-v2-border);
+  border-radius: 8px;
+}
+
+.modal-v2-comment-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.modal-v2-comment-textarea {
+  width: 100%;
+  min-height: 40px;
+  max-height: 200px;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: var(--modal-v2-body-weight);
+  line-height: 1.5;
+  color: var(--modal-v2-text-primary);
+  background: transparent;
+  border: 1px solid var(--modal-v2-border);
+  border-radius: 6px;
+  resize: none;
+  transition: border-color 80ms ease;
+  font-family: inherit;
+}
+
+.modal-v2-comment-textarea:focus {
+  outline: none;
+  border-color: var(--color-accent-primary);
+}
+
+.modal-v2-comment-textarea::placeholder {
+  color: var(--modal-v2-text-tertiary);
+}
+
+.modal-v2-comment-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-v2-toolbar-left {
+  display: flex;
+  gap: 4px;
+}
+
+.modal-v2-toolbar-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: var(--modal-v2-text-secondary);
+  cursor: pointer;
+  transition: all 80ms ease;
+}
+
+.modal-v2-toolbar-button:hover {
+  background: var(--modal-v2-bg-tertiary);
+  color: var(--modal-v2-text-primary);
+}
+
+.modal-v2-send-button {
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: white;
+  background: var(--color-accent-primary);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 80ms ease;
+}
+
+.modal-v2-send-button:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+  transform: translateY(-1px);
+}
+
+.modal-v2-send-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.modal-v2-timeline {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.modal-v2-activity-item {
+  display: flex;
+  gap: 12px;
+}
+
+.modal-v2-activity-item.comment-item .modal-v2-avatar {
+  width: 32px;
+  height: 32px;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.modal-v2-activity-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.modal-v2-activity-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.modal-v2-activity-user {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--modal-v2-text-primary);
+}
+
+.modal-v2-activity-time {
+  font-size: 12px;
+  font-weight: var(--modal-v2-body-weight);
+  color: var(--modal-v2-text-tertiary);
+}
+
+.modal-v2-comment-body {
+  padding: 12px 14px;
+  font-size: 14px;
+  line-height: var(--modal-v2-body-line-height);
+  color: var(--modal-v2-text-primary);
+  background: var(--modal-v2-comment-bg);
+  border-radius: 8px;
+  border: 1px solid var(--modal-v2-border);
+}
+
+.modal-v2-history-item {
+  padding: 12px;
+  border-radius: 8px;
+  transition: background 80ms ease;
+}
+
+.modal-v2-history-item:hover {
+  background: var(--modal-v2-bg-secondary);
+}
+
+.modal-v2-history-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--modal-v2-bg-tertiary);
+  color: var(--modal-v2-text-secondary);
+  font-size: 14px;
+}
+
+.modal-v2-history-text {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--modal-v2-text-secondary);
+  margin-bottom: 4px;
+}
+
+.modal-v2-history-text .modal-v2-activity-user {
+  color: var(--modal-v2-text-primary);
+  font-weight: 600;
+}
+
+.modal-v2-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--modal-v2-text-tertiary);
+}
+
+.modal-v2-empty p {
+  margin: 8px 0 4px;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--modal-v2-text-secondary);
+}
+
+.modal-v2-empty span {
+  font-size: 14px;
+  color: var(--modal-v2-text-tertiary);
+}
+
+/* ============================================================================
+   POPOVERS - Dropdown Menus
+   ============================================================================ */
+
+.modal-v2-popover {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  padding: 6px;
+  background: var(--modal-v2-bg);
+  border: 1px solid var(--modal-v2-border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  max-height: 300px;
+  overflow-y: auto;
+  animation: popoverSlideIn 100ms ease-out;
+}
+
+@keyframes popoverSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.modal-v2-popover::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modal-v2-popover::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.modal-v2-popover::-webkit-scrollbar-thumb {
+  background: var(--modal-v2-border);
+  border-radius: 3px;
+}
+
+.modal-v2-popover-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-weight: var(--modal-v2-body-weight);
+  color: var(--modal-v2-text-primary);
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 80ms ease;
+}
+
+.modal-v2-popover-item:hover {
+  background: var(--modal-v2-bg-tertiary);
+}
+
+.modal-v2-popover-item.active {
+  background: var(--modal-v2-bg-secondary);
+  color: var(--color-accent-primary);
+  font-weight: 500;
+}
+
+/* Priority colors */
+.modal-v2-popover-item.priority-low {
+  color: var(--color-success, #10B981);
+}
+
+.modal-v2-popover-item.priority-medium {
+  color: var(--color-warning, #F59E0B);
+}
+
+.modal-v2-popover-item.priority-high {
+  color: var(--color-error, #EF4444);
+}
+
+.modal-v2-popover-item.priority-urgent {
+  color: var(--color-error, #DC2626);
+  font-weight: 600;
+}
+
+.modal-v2-avatar-small {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  font-size: 9px;
+  font-weight: 600;
+  color: white;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.modal-v2-time-input {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-weight: var(--modal-v2-body-weight);
+  color: var(--modal-v2-text-primary);
+  background: var(--modal-v2-bg-secondary);
+  border: 1px solid var(--modal-v2-border);
+  border-radius: 6px;
+  font-family: inherit;
+  transition: border-color 80ms ease;
+}
+
+.modal-v2-time-input:focus {
+  outline: none;
+  border-color: var(--color-accent-primary);
+}
+
+.modal-v2-time-input::placeholder {
+  color: var(--modal-v2-text-tertiary);
+}
+
+/* ============================================================================
+   MARKDOWN RENDERING
+   ============================================================================ */
+
+.modal-v2-markdown {
+  font-size: var(--modal-v2-body-size);
+  line-height: var(--modal-v2-body-line-height);
+  color: var(--modal-v2-text-primary);
+}
+
+.modal-v2-markdown strong {
+  font-weight: 600;
+}
+
+.modal-v2-markdown em {
+  font-style: italic;
+}
+
+.modal-v2-markdown code {
+  padding: 2px 6px;
+  font-size: 14px;
+  font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+  background: var(--modal-v2-bg-tertiary);
+  border: 1px solid var(--modal-v2-border);
+  border-radius: 4px;
+  color: var(--color-accent-primary);
+}
+
+.modal-v2-markdown a {
+  color: var(--color-accent-primary);
+  text-decoration: none;
+  transition: color 80ms ease;
+}
+
+.modal-v2-markdown a:hover {
+  color: var(--color-accent-hover);
+  text-decoration: underline;
+}
+
+/* ============================================================================
+   RESPONSIVE
+   ============================================================================ */
+
+@media (max-width: 768px) {
+  .modal-v2-container {
+    width: 100%;
+    max-width: 100%;
+    height: 100vh;
+    max-height: 100vh;
+    margin: 0;
+    border-radius: 0;
+    padding: 20px;
+  }
+
+  .modal-v2-metadata {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-v2-title {
+    font-size: 24px;
+  }
+}
+
+/* ============================================================================
+   THEME SPECIFIC OVERRIDES
+   ============================================================================ */
+
+/* Neutral theme grayscale filter removed - let colors breathe */

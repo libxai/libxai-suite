@@ -1,0 +1,28 @@
+Business Source License 1.1
+
+License text copyright (c) 2017 MariaDB Corporation Ab, All Rights Reserved.
+"Business Source License" is a trademark of MariaDB Corporation Ab.
+
+Parameters
+
+Licensor:             Asakaa
+Licensed Work:        ASAKAA v0.4.0
+                      The Licensed Work is (c) 2025 Asakaa
+
+Additional Use Grant: You may use the Licensed Work for non-production purposes
+                      such as development, testing, and evaluation.
+
+Change Date:          2027-10-12 (2 years from release date)
+
+Change License:       Apache License 2.0
+
+For information about alternative licensing arrangements, please contact:
+licensing@asakaa.com
+
+Notice
+
+The Business Source License (this document, or the "License") is not an Open
+Source license. However, the Licensed Work will eventually be made available
+under an Open Source License, as stated in this License.
+
+Full License Text: https://mariadb.com/bsl11/

@@ -1,0 +1,12 @@
+{
+  "buildCommand": "npm run build:core && npm run build:board && cd packages/board/examples/demo && npm install && npm run build",
+  "outputDirectory": "packages/board/examples/demo/dist",
+  "installCommand": "npm install",
+  "framework": null,
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

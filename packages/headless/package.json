@@ -1,0 +1,60 @@
+{
+  "name": "@libxai/headless",
+  "version": "0.8.0",
+  "type": "module",
+  "description": "Framework-agnostic headless UI hooks for LibXAI Suite - Use with React, Vue, Svelte, or Vanilla JS",
+  "author": "LibXAI <hello@libxai.com>",
+  "license": "BUSL-1.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/libxai/libxai-suite.git",
+    "directory": "packages/headless"
+  },
+  "keywords": [
+    "libxai",
+    "headless",
+    "hooks",
+    "framework-agnostic",
+    "project-management",
+    "gantt",
+    "kanban",
+    "react",
+    "vue",
+    "svelte"
+  ],
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@libxai/core": "file:../core"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "tsup": "^8.0.1",
+    "typescript": "^5.3.3",
+    "vitest": "^1.0.4"
+  },
+  "peerDependencies": {},
+  "publishConfig": {
+    "access": "public"
+  }
+}

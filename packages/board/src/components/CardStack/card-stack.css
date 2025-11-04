@@ -1,0 +1,277 @@
+/**
+ * CardStack Styles
+ * Visual grouping with smooth animations
+ */
+
+.card-stack {
+  position: relative;
+  margin: 8px 0;
+  border-radius: 8px;
+  border: 2px solid var(--stack-color, var(--color-accent-primary));
+  background: var(--color-bg-primary);
+  transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+.card-stack:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Header */
+.card-stack-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--color-border-primary);
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.card-stack-header:hover {
+  background: var(--color-bg-tertiary);
+}
+
+.card-stack-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+/* Toggle Button */
+.card-stack-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  background: transparent;
+  border: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.card-stack-toggle:hover {
+  color: var(--color-text-primary);
+  background: var(--color-bg-tertiary);
+  border-radius: 4px;
+}
+
+.card-stack-chevron {
+  transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.card-stack-chevron.expanded {
+  transform: rotate(180deg);
+}
+
+/* Title */
+.card-stack-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0;
+  flex: 1;
+}
+
+/* Badge */
+.card-stack-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: white;
+  background: var(--stack-color, var(--color-accent-primary));
+  border-radius: 12px;
+}
+
+/* Strategy Badge */
+.card-stack-strategy {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-tertiary);
+  padding: 4px 8px;
+  background: var(--color-bg-tertiary);
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+/* Actions */
+.card-stack-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+}
+
+.card-stack-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.card-stack-action:hover {
+  background: var(--color-bg-tertiary);
+  color: var(--color-error);
+}
+
+/* Summary (collapsed state) */
+.card-stack-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.card-stack-summary-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.card-stack-confidence {
+  font-weight: 600;
+  color: var(--color-accent-primary);
+}
+
+/* Content (expanded state) */
+.card-stack-content {
+  padding: 8px;
+  animation: expandStack 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes expandStack {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Cards container */
+.card-stack-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.card-stack-card-wrapper {
+  position: relative;
+}
+
+.card-stack-card-wrapper:hover .card-stack-unstack-btn {
+  opacity: 1;
+}
+
+/* Unstack button */
+.card-stack-unstack-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: 4px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  opacity: 0;
+  transition: all 150ms ease;
+  z-index: 10;
+}
+
+.card-stack-unstack-btn:hover {
+  background: var(--color-error);
+  border-color: var(--color-error);
+  color: white;
+}
+
+/* Default card (fallback) */
+.card-stack-default-card {
+  padding: 12px;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.card-stack-default-card:hover {
+  background: var(--color-bg-tertiary);
+  border-color: var(--color-accent-primary);
+}
+
+.card-stack-default-card h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0 0 4px 0;
+}
+
+.card-stack-default-card p {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+/* Empty state */
+.card-stack-empty {
+  padding: 24px;
+  text-align: center;
+  color: var(--color-text-tertiary);
+}
+
+.card-stack-empty p {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  margin: 0 0 4px 0;
+}
+
+.card-stack-empty span {
+  font-size: 12px;
+}
+
+/* Collapsed state */
+.card-stack-collapsed {
+  border-width: 1px;
+}
+
+.card-stack-collapsed:hover {
+  border-width: 2px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .card-stack-strategy {
+    display: none;
+  }
+
+  .card-stack-summary {
+    flex-wrap: wrap;
+  }
+}

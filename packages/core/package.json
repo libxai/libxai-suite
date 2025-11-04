@@ -1,0 +1,65 @@
+{
+  "name": "@libxai/core",
+  "version": "0.8.0",
+  "type": "module",
+  "description": "Framework-agnostic core logic for LibXAI Suite - Pure TypeScript business logic with 0 UI dependencies",
+  "author": "LibXAI <hello@libxai.com>",
+  "license": "BUSL-1.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/libxai/libxai-suite.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://libxai.com",
+  "bugs": {
+    "url": "https://github.com/libxai/libxai-suite/issues"
+  },
+  "keywords": [
+    "libxai",
+    "typescript",
+    "framework-agnostic",
+    "core-logic",
+    "project-management",
+    "task-management",
+    "gantt",
+    "kanban",
+    "agile",
+    "scrum"
+  ],
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts",
+    "format": "prettier --write \"src/**/*.ts\""
+  },
+  "dependencies": {
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^24.7.2",
+    "@vitest/coverage-v8": "^2.1.9",
+    "jsdom": "^25.0.1",
+    "tsup": "^8.3.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  }
+}

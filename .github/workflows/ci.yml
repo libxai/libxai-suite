@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  test:
+    name: Test & Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript check
+        run: npm run typecheck --workspace=@asakaa/board
+
+      - name: Run tests
+        run: npm test --workspace=@asakaa/board
+
+      - name: Build library
+        run: npm run build --workspace=@asakaa/board
+
+      - name: Check bundle size
+        run: |
+          cd packages/board/dist
+          BUNDLE_SIZE=$(stat -f%z index.js 2>/dev/null || stat -c%s index.js)
+          echo "Bundle size: $BUNDLE_SIZE bytes"
+          if [ $BUNDLE_SIZE -gt 102400 ]; then
+            echo "❌ Bundle size exceeds 100KB limit!"
+            exit 1
+          fi
+          echo "✅ Bundle size OK"
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint --workspace=@asakaa/board

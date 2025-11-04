@@ -1,0 +1,374 @@
+/**
+ * Command Palette Styles
+ * Using ASAKAA Design System v2.0
+ */
+
+/* ==========================================================================
+   OVERLAY
+   ========================================================================== */
+
+.command-palette-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, var(--opacity-strong));
+  backdrop-filter: blur(8px);
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 20vh;
+  animation: overlay-in var(--duration-fast) var(--ease-smooth);
+}
+
+@keyframes overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ==========================================================================
+   COMMAND PALETTE CONTAINER
+   ========================================================================== */
+
+.command-palette {
+  width: 640px;
+  max-width: 90vw;
+  max-height: 60vh;
+  background: rgba(20, 20, 20, var(--opacity-opaque));
+  border: 1px solid rgba(255, 255, 255, var(--opacity-faint));
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-glass-lg);
+  backdrop-filter: blur(20px) saturate(180%);
+  overflow: hidden;
+  animation: palette-in var(--duration-normal) var(--ease-bounce);
+  display: flex;
+  flex-direction: column;
+}
+
+@keyframes palette-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* ==========================================================================
+   HEADER
+   ========================================================================== */
+
+.command-palette-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid rgba(255, 255, 255, var(--opacity-subtle));
+  color: rgba(255, 255, 255, var(--opacity-medium));
+}
+
+.command-palette-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--color-text-primary);
+  font-size: var(--font-base);
+  font-weight: var(--font-regular);
+  font-family: var(--font-sans);
+}
+
+.command-palette-input::placeholder {
+  color: rgba(255, 255, 255, var(--opacity-medium));
+}
+
+.command-palette-shortcut {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.command-palette-shortcut kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 var(--space-2);
+  background: rgba(255, 255, 255, var(--opacity-subtle));
+  border: 1px solid rgba(255, 255, 255, var(--opacity-faint));
+  border-radius: var(--radius-sm);
+  font-size: var(--font-2xs);
+  font-weight: var(--font-medium);
+  color: rgba(255, 255, 255, var(--opacity-strong));
+  text-transform: uppercase;
+  font-family: var(--font-sans);
+}
+
+/* ==========================================================================
+   LIST
+   ========================================================================== */
+
+.command-palette-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--space-2);
+  min-height: 200px;
+  max-height: calc(60vh - 120px);
+}
+
+.command-palette-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.command-palette-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.command-palette-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, var(--opacity-light));
+  border-radius: var(--radius-sm);
+}
+
+.command-palette-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, var(--opacity-medium));
+}
+
+/* ==========================================================================
+   GROUP
+   ========================================================================== */
+
+.command-palette-group {
+  margin-bottom: var(--space-2);
+}
+
+.command-palette-group [cmdk-group-heading] {
+  display: block;
+  padding: var(--space-2) var(--space-3) var(--space-1);
+  font-size: var(--font-2xs);
+  font-weight: var(--font-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: rgba(255, 255, 255, var(--opacity-medium));
+}
+
+/* ==========================================================================
+   ITEM
+   ========================================================================== */
+
+.command-palette-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-smooth);
+  color: rgba(255, 255, 255, var(--opacity-opaque));
+  font-size: var(--font-sm);
+  position: relative;
+}
+
+.command-palette-item:hover,
+.command-palette-item[aria-selected='true'] {
+  background: rgba(59, 130, 246, var(--opacity-light));
+  color: var(--color-text-primary);
+}
+
+.command-palette-item svg {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.command-palette-item span {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ==========================================================================
+   ITEM VARIANTS
+   ========================================================================== */
+
+.command-palette-item-ai {
+  background: rgba(59, 130, 246, var(--opacity-faint));
+  border: 1px solid rgba(59, 130, 246, var(--opacity-light));
+}
+
+.command-palette-item-ai:hover,
+.command-palette-item-ai[aria-selected='true'] {
+  background: rgba(59, 130, 246, var(--opacity-light));
+  border-color: rgba(59, 130, 246, var(--opacity-medium));
+}
+
+/* ==========================================================================
+   ITEM DECORATIONS
+   ========================================================================== */
+
+.command-palette-item-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.command-palette-item-shortcut {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 var(--space-2);
+  background: rgba(255, 255, 255, var(--opacity-subtle));
+  border-radius: var(--radius-sm);
+  font-size: var(--font-2xs);
+  font-weight: var(--font-medium);
+  color: rgba(255, 255, 255, var(--opacity-strong));
+  margin-left: auto;
+}
+
+.command-palette-item-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 20px;
+  padding: 0 var(--space-2);
+  background: #3B82F6;
+  border-radius: var(--radius-full);
+  font-size: var(--font-2xs);
+  font-weight: var(--font-semibold);
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-left: auto;
+}
+
+.command-palette-item-count {
+  font-size: var(--font-xs);
+  color: rgba(255, 255, 255, var(--opacity-medium));
+  margin-left: auto;
+}
+
+.command-palette-item-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.command-palette-item-content > div:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.command-palette-item-meta {
+  font-size: var(--font-xs);
+  color: rgba(255, 255, 255, var(--opacity-medium));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.command-palette-item-labels {
+  display: flex;
+  gap: var(--space-1);
+  margin-left: auto;
+}
+
+.command-palette-item-label {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 var(--space-2);
+  background: rgba(255, 255, 255, var(--opacity-faint));
+  border-radius: var(--radius-sm);
+  font-size: var(--font-2xs);
+  color: rgba(255, 255, 255, var(--opacity-strong));
+  font-weight: var(--font-medium);
+  white-space: nowrap;
+}
+
+/* ==========================================================================
+   EMPTY STATE
+   ========================================================================== */
+
+.command-palette-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-8);
+  color: rgba(255, 255, 255, var(--opacity-medium));
+  font-size: var(--font-sm);
+}
+
+/* ==========================================================================
+   FOOTER
+   ========================================================================== */
+
+.command-palette-footer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-5);
+  border-top: 1px solid rgba(255, 255, 255, var(--opacity-subtle));
+  background: rgba(0, 0, 0, var(--opacity-light));
+}
+
+.command-palette-footer-hint {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-xs);
+  color: rgba(255, 255, 255, var(--opacity-medium));
+}
+
+.command-palette-footer-hint kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 var(--space-2);
+  background: rgba(255, 255, 255, var(--opacity-subtle));
+  border: 1px solid rgba(255, 255, 255, var(--opacity-faint));
+  border-radius: var(--radius-sm);
+  font-size: var(--font-2xs);
+  font-weight: var(--font-medium);
+  color: rgba(255, 255, 255, var(--opacity-strong));
+  font-family: var(--font-sans);
+}
+
+/* ==========================================================================
+   RESPONSIVE
+   ========================================================================== */
+
+@media (max-width: 640px) {
+  .command-palette {
+    width: 100%;
+    max-width: 100vw;
+    margin: 0 var(--space-2);
+  }
+
+  .command-palette-header {
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .command-palette-list {
+    padding: var(--space-1);
+  }
+
+  .command-palette-footer {
+    padding: var(--space-2) var(--space-4);
+  }
+}

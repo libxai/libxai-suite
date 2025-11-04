@@ -1,0 +1,189 @@
+/**
+ * Charts Styles
+ * Premium glassmorphism design for analytics charts
+ */
+
+.chart-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.02) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+}
+
+.chart-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+  margin: 0;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Tooltip */
+.chart-tooltip {
+  padding: 12px 16px;
+  background: linear-gradient(
+    135deg,
+    rgba(0, 0, 0, 0.95) 0%,
+    rgba(0, 0, 0, 0.9) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.chart-tooltip-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0 0 8px 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.chart-tooltip-value {
+  font-size: 12px;
+  margin: 4px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Stats section */
+.chart-stats {
+  display: flex;
+  gap: 24px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  flex-wrap: wrap;
+}
+
+.chart-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 120px;
+}
+
+.chart-stat-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.chart-stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.95);
+  line-height: 1;
+}
+
+.chart-stat-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  width: fit-content;
+}
+
+/* Recharts overrides for dark theme */
+.recharts-surface {
+  background: transparent;
+}
+
+.recharts-legend-wrapper {
+  padding-top: 12px !important;
+}
+
+.recharts-default-legend {
+  display: flex !important;
+  justify-content: center !important;
+  gap: 24px !important;
+  flex-wrap: wrap !important;
+}
+
+.recharts-legend-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.recharts-legend-item-text {
+  color: rgba(255, 255, 255, 0.7) !important;
+  font-size: 12px !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .chart-container {
+    padding: 20px;
+  }
+
+  .chart-title {
+    font-size: 16px;
+  }
+
+  .chart-stats {
+    gap: 16px;
+  }
+
+  .chart-stat {
+    min-width: 100px;
+  }
+
+  .chart-stat-value {
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 640px) {
+  .chart-container {
+    padding: 16px;
+    gap: 16px;
+  }
+
+  .chart-title {
+    font-size: 15px;
+    padding-bottom: 12px;
+  }
+
+  .chart-stats {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .chart-stat {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    min-width: unset;
+  }
+
+  .chart-stat-label {
+    font-size: 11px;
+  }
+
+  .chart-stat-value {
+    font-size: 18px;
+  }
+
+  .recharts-wrapper {
+    font-size: 10px !important;
+  }
+}
