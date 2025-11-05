@@ -16,6 +16,7 @@ export type {
   TimeScale,
   Theme,
   GanttConfig,
+  GanttPermissions, // v0.8.2: Permissions for authorization
   GanttColumn,
   ColumnType,
   Assignee,

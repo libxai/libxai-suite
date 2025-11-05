@@ -158,6 +158,44 @@ export interface GanttTemplates {
   progressFormat?: (progress: number) => string;
 }
 
+/**
+ * Permissions interface for controlling Gantt operations
+ * Useful for integrating with authorization libraries like CASL
+ * @example
+ * 
+ * // With CASL integration
+ * const ability = useAbility();
+ *
+ * <GanttBoard
+ *   tasks={tasks}
+ *   config={{
+ *     permissions: {
+ *       canCreateTask: ability.can('create', 'Task'),
+ *       canUpdateTask: ability.can('update', 'Task'),
+ *       canDeleteTask: ability.can('delete', 'Task'),
+ *       canCreateDependency: ability.can('create', 'Dependency'),
+ *       canUpdateProgress: ability.can('update', 'TaskProgress'),
+ *     }
+ *   }}
+ * />
+ *  
+ */
+export interface GanttPermissions {
+  canCreateTask?: boolean;
+  canUpdateTask?: boolean;
+  canDeleteTask?: boolean;
+  canCreateDependency?: boolean;
+  canDeleteDependency?: boolean;
+  canUpdateProgress?: boolean;
+  canAssignUsers?: boolean;
+  canModifyHierarchy?: boolean;
+  canDuplicateTask?: boolean;
+  canReorderTasks?: boolean;
+  canExport?: boolean;
+  canToggleExpansion?: boolean;
+  canPerformAction?: (task: Task, action: 'create' | 'update' | 'delete' | 'assign' | 'progress') => boolean;
+}
+
 export interface GanttConfig {
   theme?: Theme;
   timeScale?: TimeScale;
@@ -167,6 +205,9 @@ export interface GanttConfig {
 
   // v0.8.0: Customizable templates (similar to DHTMLX gantt.templates.*)
   templates?: GanttTemplates;
+
+  // v0.8.2: Permissions system for authorization integration (CASL, etc.)
+  permissions?: GanttPermissions;
 
   // ==================== Basic Events ====================
   onTaskClick?: (task: Task) => void;
