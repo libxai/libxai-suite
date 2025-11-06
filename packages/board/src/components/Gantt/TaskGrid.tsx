@@ -11,6 +11,7 @@ import { DateRangePicker } from '../Card/DateRangePicker';
 import { UserAssignmentSelector } from '../Card/UserAssignmentSelector';
 import { StatusSelector } from '../Card/StatusSelector';
 import type { User } from '../Card/UserAssignmentSelector';
+import { parentTaskUtils } from './parentTaskUtils';
 
 interface TaskGridProps {
   tasks: Task[];
@@ -211,6 +212,43 @@ export function TaskGrid({
 
         return (
           <div className="flex items-center gap-2 flex-1 min-w-0 relative" style={{ paddingLeft: `${level * 24}px` }}>
+            {/* Hierarchy Guide Lines */}
+            {level > 0 && (
+              <svg
+                className="absolute left-0 top-0 pointer-events-none"
+                style={{
+                  width: `${level * 24}px`,
+                  height: '100%',
+                  overflow: 'visible',
+                }}
+              >
+                {/* Draw vertical lines for each parent level */}
+                {Array.from({ length: level }).map((_, i) => (
+                  <line
+                    key={`vertical-${i}`}
+                    x1={i * 24 + 12}
+                    y1={0}
+                    x2={i * 24 + 12}
+                    y2="100%"
+                    stroke={theme.borderLight}
+                    strokeWidth="1"
+                    opacity="0.3"
+                  />
+                ))}
+
+                {/* Horizontal connecting line (elbow) */}
+                <line
+                  x1={(level - 1) * 24 + 12}
+                  y1="50%"
+                  x2={level * 24}
+                  y2="50%"
+                  stroke={theme.borderLight}
+                  strokeWidth="1"
+                  opacity="0.3"
+                />
+              </svg>
+            )}
+
             {/* Expand/Collapse Button */}
             {task.subtasks && task.subtasks.length > 0 && (
               <button
@@ -325,20 +363,57 @@ export function TaskGrid({
                   {task.name}
                 </span>
 
-                {/* Hover Action Buttons */}
+                {/* Subtask Counter Badge (3/5) */}
+                {task.subtasks && task.subtasks.length > 0 && (
+                  <span
+                    style={{
+                      marginLeft: '8px',
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      fontFamily: 'Inter, sans-serif',
+                      backgroundColor: theme.accent + '20', // 20% opacity
+                      color: theme.accent,
+                      whiteSpace: 'nowrap',
+                      flexShrink: 0,
+                    }}
+                    title={`${task.subtasks.filter(st => st.progress === 100).length} of ${task.subtasks.length} subtasks completed`}
+                  >
+                    {task.subtasks.filter(st => st.progress === 100).length}/{task.subtasks.length}
+                  </span>
+                )}
+
+                {/* Hover Action Buttons - Enhanced Visibility */}
                 {isHovered && !isEditing && (
-                  <div className="flex items-center gap-1 ml-2" onClick={(e) => e.stopPropagation()}>
-                    {/* Create Subtask Button */}
+                  <div
+                    className="flex items-center gap-1 ml-2"
+                    onClick={(e) => e.stopPropagation()}
+                    style={{
+                      padding: '2px',
+                      borderRadius: '6px',
+                      backgroundColor: `${theme.bgSecondary}80`, // Semi-transparent background for visibility
+                    }}
+                  >
+                    {/* Create Subtask Button - Enhanced with accent color */}
                     <button
                       onClick={(e) => handleCreateSubtaskClick(task, e)}
-                      className="p-1 rounded hover:bg-opacity-20 transition-colors"
+                      className="p-1 rounded transition-all duration-200"
                       style={{
-                        color: theme.textTertiary,
-                        backgroundColor: 'transparent'
+                        color: theme.accent, // Use accent color for better visibility
+                        backgroundColor: 'transparent',
                       }}
-                      title="Create subtask"
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = `${theme.accent}20`;
+                        e.currentTarget.style.transform = 'scale(1.1)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                        e.currentTarget.style.transform = 'scale(1)';
+                      }}
+                      title="Create subtask (Click to add)"
                     >
-                      <Plus className="w-3.5 h-3.5" />
+                      <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />
                     </button>
 
                     {/* Rename Button */}
@@ -347,10 +422,18 @@ export function TaskGrid({
                         e.stopPropagation();
                         handleRenameStart(task);
                       }}
-                      className="p-1 rounded hover:bg-opacity-20 transition-colors"
+                      className="p-1 rounded transition-all duration-200"
                       style={{
                         color: theme.textTertiary,
                         backgroundColor: 'transparent'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = `${theme.textTertiary}20`;
+                        e.currentTarget.style.transform = 'scale(1.1)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                        e.currentTarget.style.transform = 'scale(1)';
                       }}
                       title="Rename (F2)"
                     >
@@ -444,30 +527,53 @@ export function TaskGrid({
           </div>
         );
       
-      case 'progress':
+      case 'progress': {
+        // Auto-calculate progress for parent tasks
+        const isParent = task.subtasks && task.subtasks.length > 0;
+        const displayProgress = isParent
+          ? parentTaskUtils.calculateParentProgress(task)
+          : task.progress;
+
         return (
           <div className="flex items-center gap-2">
             <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: theme.bgSecondary }}>
               <div
                 className="h-full rounded-full transition-all"
                 style={{
-                  width: `${task.progress}%`,
-                  backgroundColor: task.progress === 100 ? theme.statusCompleted : theme.accent,
+                  width: `${displayProgress}%`,
+                  backgroundColor: displayProgress === 100 ? theme.statusCompleted : theme.accent,
                 }}
               />
             </div>
-            <span
-              className="text-xs tabular-nums min-w-[35px] text-right"
-              style={{
-                color: theme.textTertiary,
-                fontFamily: 'Inter, sans-serif',
-                fontWeight: 600,
-              }}
-            >
-              {task.progress}%
-            </span>
+            <div className="flex items-center gap-1">
+              <span
+                className="text-xs tabular-nums min-w-[35px] text-right"
+                style={{
+                  color: theme.textTertiary,
+                  fontFamily: 'Inter, sans-serif',
+                  fontWeight: 600,
+                }}
+              >
+                {displayProgress}%
+              </span>
+              {/* Auto-calculation indicator for parent tasks */}
+              {isParent && (
+                <span
+                  style={{
+                    fontSize: '10px',
+                    color: theme.accent,
+                    opacity: 0.7,
+                    fontWeight: 600,
+                  }}
+                  title="Progress automatically calculated from subtasks"
+                >
+                  ∑
+                </span>
+              )}
+            </div>
           </div>
         );
+      }
       
       default:
         return null;
@@ -698,8 +804,8 @@ export function TaskGrid({
                         <kbd className="px-2 py-0.5 rounded font-mono text-xs" style={{ backgroundColor: theme.bgGrid, color: theme.textPrimary }}>Shift + Tab</kbd>
                       </div>
                       <div className="flex justify-between">
-                        <span style={{ color: theme.textTertiary }}>Expand/Collapse</span>
-                        <kbd className="px-2 py-0.5 rounded font-mono text-xs" style={{ backgroundColor: theme.bgGrid, color: theme.textPrimary }}>→ / ←</kbd>
+                        <span style={{ color: theme.textTertiary }}>Expand/Collapse parent</span>
+                        <kbd className="px-2 py-0.5 rounded font-mono text-xs" style={{ backgroundColor: theme.bgGrid, color: theme.textPrimary }}>→ / ← / Enter</kbd>
                       </div>
                     </div>
                   </div>
@@ -709,7 +815,7 @@ export function TaskGrid({
                     <div className="font-semibold mb-1.5" style={{ color: theme.textSecondary }}>Editing</div>
                     <div className="space-y-1">
                       <div className="flex justify-between">
-                        <span style={{ color: theme.textTertiary }}>Create task below</span>
+                        <span style={{ color: theme.textTertiary }}>Create task below (leaf tasks)</span>
                         <kbd className="px-2 py-0.5 rounded font-mono text-xs" style={{ backgroundColor: theme.bgGrid, color: theme.textPrimary }}>Enter</kbd>
                       </div>
                       <div className="flex justify-between">

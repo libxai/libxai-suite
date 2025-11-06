@@ -15,6 +15,13 @@ export { useKeyboardShortcuts, DEFAULT_SHORTCUTS } from './keyboard/useKeyboardS
 export { useCardStacking } from './useCardStacking'
 export { useClickOutside } from './useClickOutside'
 export { useKeyboardNav } from './useKeyboardNav'
+export {
+  useKanbanGanttSync,
+  cardToTask,
+  taskToCard,
+  cardsToTasks,
+  tasksToCards,
+} from './useKanbanGanttSync'
 export type { UseCardStackingOptions, UseCardStackingResult } from './useCardStacking'
 export type { UseKeyboardNavOptions, UseKeyboardNavReturn } from './useKeyboardNav'
 
@@ -27,3 +34,7 @@ export type {
   UseKeyboardShortcutsOptions,
   UseKeyboardShortcutsReturn,
 } from './keyboard/useKeyboardShortcuts'
+export type {
+  UseKanbanGanttSyncOptions,
+  UseKanbanGanttSyncReturn,
+} from './useKanbanGanttSync'

@@ -3,6 +3,7 @@ import { TimeScale, Task, GanttTemplates } from './types';
 import { TaskBar } from './TaskBar';
 import { DependencyLine } from './DependencyLine';
 import { Milestone } from './Milestone';
+import { SummaryBar } from './SummaryBar';
 
 interface TimelineProps {
   tasks: Task[];
@@ -418,50 +419,19 @@ export function Timeline({
           }
 
           if (isContainer) {
-            // Render container as bracket bar
+            // Render parent task as summary bar (Bryntum/DHTMLX style)
             return (
-              <g key={task.id} onClick={() => onTaskClick?.(task)} style={{ cursor: 'pointer' }}>
-                {/* Top bracket line */}
-                <line
-                  x1={x}
-                  y1={y}
-                  x2={x + width}
-                  y2={y}
-                  stroke={theme.borderLight}
-                  strokeWidth={2}
-                  opacity={0.6}
-                />
-                {/* Left vertical */}
-                <line
-                  x1={x}
-                  y1={y}
-                  x2={x}
-                  y2={y + 32}
-                  stroke={theme.borderLight}
-                  strokeWidth={2}
-                  opacity={0.6}
-                />
-                {/* Right vertical */}
-                <line
-                  x1={x + width}
-                  y1={y}
-                  x2={x + width}
-                  y2={y + 32}
-                  stroke={theme.borderLight}
-                  strokeWidth={2}
-                  opacity={0.6}
-                />
-                {/* Bottom bracket line */}
-                <line
-                  x1={x}
-                  y1={y + 32}
-                  x2={x + width}
-                  y2={y + 32}
-                  stroke={theme.borderLight}
-                  strokeWidth={2}
-                  opacity={0.6}
-                />
-              </g>
+              <SummaryBar
+                key={task.id}
+                task={task}
+                x={x}
+                y={y}
+                width={width}
+                theme={theme}
+                dayWidth={dayWidth * zoom}
+                startDate={startDate}
+                onClick={onTaskClick}
+              />
             );
           }
 

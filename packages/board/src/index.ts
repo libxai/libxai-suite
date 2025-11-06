@@ -144,6 +144,11 @@ export {
   useKeyboardShortcuts,
   DEFAULT_SHORTCUTS,
   useCardStacking,
+  useKanbanGanttSync, // v0.8.1 - Kanban-Gantt synchronization
+  cardToTask,
+  taskToCard,
+  cardsToTasks,
+  tasksToCards,
 } from './hooks'
 export type {
   UseKanbanStateOptions,
@@ -164,6 +169,8 @@ export type {
   UseKeyboardShortcutsReturn,
   UseCardStackingOptions,
   UseCardStackingResult,
+  UseKanbanGanttSyncOptions, // v0.8.1
+  UseKanbanGanttSyncReturn, // v0.8.1
 } from './hooks'
 
 // React Adapters (@libxai/core integration - v0.7.0)

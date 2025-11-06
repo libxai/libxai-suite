@@ -170,11 +170,19 @@ export function useGanttKeyboard({
         return;
       }
 
-      // Create below: Enter
+      // Enter key behavior:
+      // - If task has subtasks: toggle expand/collapse
+      // - If task has no subtasks: create task below
       if (e.key === 'Enter' && !e.shiftKey && !ctrlOrCmd) {
         if (selectedTask) {
           e.preventDefault();
-          onTaskCreate(selectedTask.id, 'below');
+          // Priority: Expand/collapse parent tasks
+          if (selectedTask.subtasks && selectedTask.subtasks.length > 0) {
+            onTaskToggleExpand(selectedTask.id);
+          } else {
+            // No subtasks: create task below
+            onTaskCreate(selectedTask.id, 'below');
+          }
         }
         return;
       }

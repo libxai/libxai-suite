@@ -61,8 +61,8 @@ export function TaskBar({
     resetDragState
   } = dragState;
 
-  const height = 32;
-  const borderRadius = 8;
+  const height = 24; // Reduced from 32px to 24px for minimalist design
+  const borderRadius = 6; // Slightly reduced border radius to match new height
 
   // Detect task states for neutral theme visualization
   const isOverdue = task.endDate && task.endDate < new Date() && task.progress < 100;
