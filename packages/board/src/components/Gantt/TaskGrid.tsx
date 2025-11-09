@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { ChevronDown, ChevronRight, Keyboard, Plus, Edit3 } from 'lucide-react';
+import { ChevronDown, ChevronRight, Keyboard, Plus, Edit3, Palette, Code, Calendar, FileText, Rocket, CheckCircle2 } from 'lucide-react';
 import { Task, GanttColumn, ColumnType, GanttTemplates } from './types';
 import { motion } from 'framer-motion';
 import { ColumnManager } from './ColumnManager';
@@ -12,6 +12,8 @@ import { UserAssignmentSelector } from '../Card/UserAssignmentSelector';
 import { StatusSelector } from '../Card/StatusSelector';
 import type { User } from '../Card/UserAssignmentSelector';
 import { parentTaskUtils } from './parentTaskUtils';
+import { typography, getTypographyStyle, getTaskTypography } from './typography';
+import { SPACING, PADDING, INDENT_SIZE, BORDER_RADIUS } from './designSystem';
 
 interface TaskGridProps {
   tasks: Task[];
@@ -39,6 +41,20 @@ interface TaskGridProps {
   onTaskRename?: (taskId: string, newName: string) => void;
   onCreateSubtask?: (parentTaskId: string) => void;
   onOpenTaskModal?: (task: Task) => void;
+}
+
+/**
+ * 🎨 Get task icon based on task name/type
+ * Provides visual categorization for task types
+ */
+function getTaskIcon(taskName: string) {
+  const name = taskName.toLowerCase();
+  if (name.includes('design') || name.includes('ui') || name.includes('ux')) return Palette;
+  if (name.includes('develop') || name.includes('code') || name.includes('implement')) return Code;
+  if (name.includes('plan') || name.includes('schedule')) return Calendar;
+  if (name.includes('launch') || name.includes('deploy')) return Rocket;
+  if (name.includes('review') || name.includes('test') || name.includes('qa')) return CheckCircle2;
+  return FileText; // Default
 }
 
 export function TaskGrid({
@@ -211,13 +227,13 @@ export function TaskGrid({
         const isHovered = hoveredTaskId === task.id;
 
         return (
-          <div className="flex items-center gap-2 flex-1 min-w-0 relative" style={{ paddingLeft: `${level * 24}px` }}>
+          <div className="flex items-center gap-2 flex-1 min-w-0 relative" style={{ paddingLeft: `${level * INDENT_SIZE}px` }}>
             {/* Hierarchy Guide Lines */}
             {level > 0 && (
               <svg
                 className="absolute left-0 top-0 pointer-events-none"
                 style={{
-                  width: `${level * 24}px`,
+                  width: `${level * INDENT_SIZE}px`,
                   height: '100%',
                   overflow: 'visible',
                 }}
@@ -337,28 +353,40 @@ export function TaskGrid({
                   backgroundColor: theme.bgPrimary,
                   borderColor: theme.accent,
                   color: theme.textPrimary,
-                  fontFamily: 'Inter, sans-serif',
-                  fontSize: '13px',
-                  fontWeight: 500,
+                  ...getTypographyStyle(typography.taskRegular),
                 }}
                 onClick={(e) => e.stopPropagation()}
               />
             ) : (
               <>
+                {/* 🎨 Task Type Icon */}
+                {(() => {
+                  const IconComponent = getTaskIcon(task.name);
+                  return (
+                    <IconComponent
+                      size={14}
+                      style={{
+                        marginRight: '6px',
+                        opacity: 0.7,
+                        flexShrink: 0,
+                        color: theme.textSecondary
+                      }}
+                    />
+                  );
+                })()}
+
                 <span
                   className="truncate flex-1"
                   style={{
                     color: theme.textPrimary,
-                    fontFamily: 'Inter, sans-serif',
-                    fontSize: level === 0 ? '14px' : level === 1 ? '13px' : '12px',
-                    // World-class hierarchy: Containers (with subtasks) have more weight
-                    fontWeight: task.isMilestone
-                      ? 600  // Milestones: Semibold (most important)
-                      : (task.subtasks && task.subtasks.length > 0)
-                      ? 500  // Containers: Medium (guide the eye)
-                      : 400,  // Regular tasks: Normal
+                    ...getTypographyStyle(
+                      task.isMilestone
+                        ? typography.milestone
+                        : getTaskTypography(level, !!(task.subtasks && task.subtasks.length > 0))
+                    ),
                     opacity: level === 0 ? 1 : level === 1 ? 0.95 : 0.88,
                   }}
+                  title={task.name} // Add full text tooltip for truncated names
                 >
                   {task.name}
                 </span>
@@ -367,12 +395,10 @@ export function TaskGrid({
                 {task.subtasks && task.subtasks.length > 0 && (
                   <span
                     style={{
-                      marginLeft: '8px',
-                      padding: '2px 6px',
-                      borderRadius: '4px',
-                      fontSize: '11px',
-                      fontWeight: 600,
-                      fontFamily: 'Inter, sans-serif',
+                      marginLeft: `${SPACING.sm}px`,
+                      padding: `${PADDING.badge.y}px ${PADDING.badge.x}px`,
+                      borderRadius: `${BORDER_RADIUS.small}px`,
+                      ...getTypographyStyle(typography.badge),
                       backgroundColor: theme.accent + '20', // 20% opacity
                       color: theme.accent,
                       whiteSpace: 'nowrap',
@@ -447,6 +473,24 @@ export function TaskGrid({
         );
       
       case 'startDate':
+        // ClickUp-style: Show only start date (e.g., "Nov 15")
+        return (
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              ...getTypographyStyle(typography.caption),
+              color: theme.textSecondary,
+            }}
+          >
+            {task.startDate
+              ? new Date(task.startDate).toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                })
+              : '—'}
+          </div>
+        );
+
       case 'endDate':
         return (
           <div onClick={(e) => e.stopPropagation()}>
@@ -478,11 +522,10 @@ export function TaskGrid({
       case 'duration':
         return (
           <span
-            className="text-xs tabular-nums"
+            className="tabular-nums"
             style={{
+              ...getTypographyStyle(typography.caption),
               color: theme.textSecondary,
-              fontFamily: 'Inter, sans-serif',
-              fontWeight: 600,
             }}
           >
             {getDuration(task)}
@@ -547,11 +590,10 @@ export function TaskGrid({
             </div>
             <div className="flex items-center gap-1">
               <span
-                className="text-xs tabular-nums min-w-[35px] text-right"
+                className="tabular-nums min-w-[35px] text-right"
                 style={{
+                  ...getTypographyStyle(typography.percentage),
                   color: theme.textTertiary,
-                  fontFamily: 'Inter, sans-serif',
-                  fontWeight: 600,
                 }}
               >
                 {displayProgress}%
@@ -560,10 +602,9 @@ export function TaskGrid({
               {isParent && (
                 <span
                   style={{
-                    fontSize: '10px',
+                    ...getTypographyStyle(typography.badge),
                     color: theme.accent,
                     opacity: 0.7,
-                    fontWeight: 600,
                   }}
                   title="Progress automatically calculated from subtasks"
                 >
@@ -675,7 +716,7 @@ export function TaskGrid({
 
   return (
     <div
-      className="h-full overflow-auto"
+      className="h-full overflow-hidden"
       style={{
         backgroundColor: theme.bgPrimary,
         borderRight: `1px solid ${theme.border}`,
@@ -717,11 +758,10 @@ export function TaskGrid({
             }}
           >
             <span
-              className="text-xs uppercase tracking-wider"
+              className="uppercase"
               style={{
+                ...getTypographyStyle(typography.columnHeader),
                 color: theme.textTertiary,
-                fontFamily: 'Inter, sans-serif',
-                fontWeight: 600,
               }}
             >
               {column.label}
@@ -862,6 +902,8 @@ export function TaskGrid({
       {flatTasks.map(({ task, level }, index) => {
         const isSelected = isTaskSelected(task.id);
 
+        const isHovered = hoveredTaskId === task.id;
+
         return (
           <motion.div
             key={task.id}
@@ -874,7 +916,10 @@ export function TaskGrid({
               borderLeft: isSelected ? `3px solid ${theme.accent}` : '3px solid transparent',
               backgroundColor: isSelected
                 ? theme.accentLight
+                : isHovered
+                ? theme.bgSecondary
                 : (index % 2 === 0 ? theme.bgPrimary : theme.bgGrid),
+              transition: 'background-color 0.15s ease-in-out',
             }}
             onMouseEnter={() => setHoveredTaskId(task.id)}
             onMouseLeave={() => setHoveredTaskId(null)}

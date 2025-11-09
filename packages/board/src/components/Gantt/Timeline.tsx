@@ -1,9 +1,12 @@
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useState, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { TimeScale, Task, GanttTemplates } from './types';
 import { TaskBar } from './TaskBar';
 import { DependencyLine } from './DependencyLine';
 import { Milestone } from './Milestone';
 import { SummaryBar } from './SummaryBar';
+import { ganttUtils } from './ganttUtils';
+import { typography, getSVGTextProps } from './typography';
 
 interface TimelineProps {
   tasks: Task[];
@@ -47,6 +50,14 @@ export function Timeline({
   onDependencyDelete,
 }: TimelineProps) {
   const HEADER_HEIGHT = 48; // Must match TaskGrid's HEADER_HEIGHT for alignment
+
+  // Pan/drag state for canvas navigation (ClickUp-style with space key)
+  const [isPanning, setIsPanning] = useState(false);
+  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+  const timelineContainerRef = useRef<HTMLDivElement>(null);
+
+  // 🎯 Ghost bars state for predictive dependency visualization
+  const [ghostBars, setGhostBars] = useState<Map<string, { startDate: Date; endDate: Date }>>(new Map());
 
   // Calculate dimensions
   const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -101,6 +112,52 @@ export function Timeline({
     // Call the date change handler to create the task bar
     onTaskDateChange?.(task, clickedDate, endDate);
   }, [pixelToDate, onTaskDateChange]);
+
+  // Pan handlers for canvas navigation (ClickUp-style: Click + Drag on empty space)
+  const handlePanMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    // Simple strategy: Always allow pan to start
+    // Interactive elements (TaskBar, etc.) will call e.stopPropagation() to prevent this
+    // If we reach here, it means no interactive element captured the event = empty space
+    if (timelineContainerRef.current) {
+      setIsPanning(true);
+      setPanStart({ x: e.clientX, y: e.clientY });
+      e.preventDefault(); // Prevent text selection while panning
+    }
+  }, []);
+
+  const handlePanMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (isPanning && timelineContainerRef.current) {
+      const deltaX = panStart.x - e.clientX;
+      const deltaY = panStart.y - e.clientY;
+
+      timelineContainerRef.current.scrollLeft += deltaX;
+      timelineContainerRef.current.scrollTop += deltaY;
+
+      setPanStart({ x: e.clientX, y: e.clientY });
+    }
+  }, [isPanning, panStart]);
+
+  const handlePanMouseUp = useCallback(() => {
+    setIsPanning(false);
+  }, []);
+
+  const handlePanMouseLeave = useCallback(() => {
+    // Stop panning if mouse leaves the container
+    setIsPanning(false);
+  }, []);
+
+  // Note: Pan mode is now always active (ClickUp-style)
+  // No need for Space key - just click and drag on empty space
+
+  // 🎯 Ghost bar callbacks - called by TaskBar during drag to show predictive positions
+  const handleGhostBarUpdate = useCallback((taskId: string, newEndDate: Date) => {
+    const ghostPositions = ganttUtils.calculateGhostPositions(tasks, taskId, newEndDate);
+    setGhostBars(ghostPositions);
+  }, [tasks]);
+
+  const handleGhostBarClear = useCallback(() => {
+    setGhostBars(new Map());
+  }, []);
 
   // Flatten tasks for rendering
   const flattenTasks = (tasks: Task[], result: Task[] = []): Task[] => {
@@ -203,7 +260,20 @@ export function Timeline({
   }, [startDate, dayWidth, zoom]);
 
   return (
-    <div className="flex-1 overflow-auto" data-gantt-chart style={{ backgroundColor: theme.bgPrimary }}>
+    <div
+      ref={timelineContainerRef}
+      className="w-full h-full overflow-auto"
+      data-gantt-chart
+      style={{
+        backgroundColor: theme.bgPrimary,
+        cursor: isPanning ? 'grabbing' : 'grab',
+        userSelect: 'none', // Always prevent text selection in timeline
+      }}
+      onMouseDown={handlePanMouseDown}
+      onMouseMove={handlePanMouseMove}
+      onMouseUp={handlePanMouseUp}
+      onMouseLeave={handlePanMouseLeave}
+    >
       <svg
         width={Math.max(timelineWidth, 1000)}
         height={Math.max(flatTasks.length * ROW_HEIGHT + HEADER_HEIGHT, 600)}
@@ -226,6 +296,7 @@ export function Timeline({
           width={Math.max(timelineWidth, 1000)}
           height={Math.max(flatTasks.length * ROW_HEIGHT + HEADER_HEIGHT, 600)}
           fill={theme.bgPrimary}
+          data-background="true"
         />
 
         {/* Header Background */}
@@ -272,8 +343,7 @@ export function Timeline({
                 x={header.x + 8}
                 y={HEADER_HEIGHT / 2}
                 fill={theme.textTertiary}
-                fontSize="11"
-                fontFamily="Inter, sans-serif"
+                {...getSVGTextProps(typography.dateLabel)}
                 dominantBaseline="middle"
               >
                 {header.label}
@@ -282,7 +352,7 @@ export function Timeline({
           );
         })}
 
-        {/* Today Line - Solid, prominent indicator */}
+        {/* Today Line - Solid, prominent indicator with pulse animation */}
         {todayX >= 0 && todayX <= timelineWidth && (
           <g>
             {/* Solid line - more prominent */}
@@ -295,7 +365,26 @@ export function Timeline({
               strokeWidth={2}
               opacity={1}
             />
-            <circle cx={todayX} cy={HEADER_HEIGHT - 10} r={6} fill={theme.today} opacity={1} />
+            {/* Pulsing circle - elite UX detail that makes the app feel "alive" */}
+            <motion.circle
+              cx={todayX}
+              cy={HEADER_HEIGHT - 10}
+              r={6}
+              fill={theme.today}
+              opacity={1}
+              animate={{
+                filter: [
+                  'drop-shadow(0 0 4px rgba(220, 38, 38, 0.6))',
+                  'drop-shadow(0 0 12px rgba(220, 38, 38, 0.8))',
+                  'drop-shadow(0 0 4px rgba(220, 38, 38, 0.6))',
+                ],
+              }}
+              transition={{
+                duration: 2.5,
+                repeat: Infinity,
+                ease: 'easeInOut',
+              }}
+            />
           </g>
         )}
 
@@ -347,8 +436,7 @@ export function Timeline({
                     x={todayX > 0 ? todayX : 100}
                     y={HEADER_HEIGHT + index * ROW_HEIGHT + ROW_HEIGHT / 2}
                     fill={theme.textTertiary}
-                    fontSize="12"
-                    fontFamily="Inter, sans-serif"
+                    {...getSVGTextProps(typography.caption)}
                     fontStyle="italic"
                     dominantBaseline="middle"
                     opacity={0.4}
@@ -452,7 +540,51 @@ export function Timeline({
               onDateChange={onTaskDateChange}
               onDependencyCreate={onDependencyCreate}
               allTaskPositions={taskPositions}
+              onGhostBarUpdate={handleGhostBarUpdate} // 🎯 Ghost bars
+              onGhostBarClear={handleGhostBarClear} // 🎯 Ghost bars
             />
+          );
+        })}
+
+        {/* 🎯 ELITE UX: Ghost bars - show WHERE dependent tasks will land during drag */}
+        {ghostBars.size > 0 && Array.from(ghostBars.entries()).map(([taskId, ghostPos]) => {
+          const taskIndex = flatTasks.findIndex(t => t.id === taskId);
+          if (taskIndex === -1) return null;
+
+          const ghostX = ((ghostPos.startDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) * (dayWidth * zoom);
+          const ghostWidth = ((ghostPos.endDate.getTime() - ghostPos.startDate.getTime()) / (1000 * 60 * 60 * 24)) * (dayWidth * zoom);
+          const ghostY = HEADER_HEIGHT + taskIndex * ROW_HEIGHT + 12;
+
+          return (
+            <g key={`ghost-${taskId}`}>
+              {/* Ghost bar - semi-transparent with dashed border */}
+              <rect
+                x={ghostX}
+                y={ghostY}
+                width={ghostWidth}
+                height={24}
+                fill={theme.taskBarPrimary}
+                opacity={0.3}
+                stroke={theme.accent}
+                strokeWidth={2}
+                strokeDasharray="5,5"
+                rx={6}
+                style={{ pointerEvents: 'none' }}
+              />
+              {/* Arrow indicator showing "will move here" */}
+              <path
+                d={`M ${ghostX + ghostWidth / 2 - 8} ${ghostY - 8}
+                    L ${ghostX + ghostWidth / 2} ${ghostY - 2}
+                    L ${ghostX + ghostWidth / 2 + 8} ${ghostY - 8}`}
+                stroke={theme.accent}
+                strokeWidth={2}
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                opacity={0.7}
+                style={{ pointerEvents: 'none' }}
+              />
+            </g>
           );
         })}
       </svg>

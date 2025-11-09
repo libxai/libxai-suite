@@ -3,6 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Task, GanttTemplates } from './types';
 import { TaskPosition } from './Timeline';
 import { useDragState } from './hooks/useDragState';
+import { calculateHealthStatus, lightenColor, getPhaseColors } from './colorUtils';
+import { typography, getSVGTextProps } from './typography';
+import { BORDER_RADIUS, SHADOWS } from './designSystem';
 
 interface TaskBarProps {
   task: Task;
@@ -19,6 +22,8 @@ interface TaskBarProps {
   onDateChange?: (task: Task, newStart: Date, newEnd: Date) => void;
   onDependencyCreate?: (fromTask: Task, toTaskId: string) => void;
   allTaskPositions?: TaskPosition[];
+  onGhostBarUpdate?: (taskId: string, newEndDate: Date) => void; // 🎯 Ghost bars
+  onGhostBarClear?: () => void; // 🎯 Ghost bars
 }
 
 type DragMode = 'none' | 'move' | 'resize-start' | 'resize-end' | 'connect';
@@ -37,11 +42,14 @@ export function TaskBar({
   onContextMenu, // v0.8.0
   onDateChange,
   onDependencyCreate,
-  allTaskPositions = []
+  allTaskPositions = [],
+  onGhostBarUpdate, // 🎯 Ghost bars
+  onGhostBarClear // 🎯 Ghost bars
 }: TaskBarProps) {
   // v0.8.1: Centralized drag state management for better modularity
   const dragState = useDragState(x, width);
   const svgRef = useRef<SVGGElement>(null);
+  const hasDragged = useRef(false); // Track if actual drag occurred
 
   // Destructure for easier access (keeps existing code readable)
   const {
@@ -62,12 +70,22 @@ export function TaskBar({
   } = dragState;
 
   const height = 24; // Reduced from 32px to 24px for minimalist design
-  const borderRadius = 6; // Slightly reduced border radius to match new height
+  const borderRadius = BORDER_RADIUS.medium; // 6px - consistent across all task bars
 
   // Detect task states for neutral theme visualization
   const isOverdue = task.endDate && task.endDate < new Date() && task.progress < 100;
   const isAtRisk = task.isCriticalPath;  // Critical path tasks are "at risk"
   const isNeutralTheme = theme.name === 'neutral' || theme.today === '#1C1917';  // Detect neutral theme
+
+  // Phase-based color system: automatically categorizes tasks by project phase
+  // Planning (Purple), Design (Blue), Development (Green), Testing (Amber), Deployment (Red)
+  const healthStatus = calculateHealthStatus(task.startDate || null, task.endDate || null, task.progress);
+  const phaseColors = getPhaseColors(task.name, healthStatus);
+
+  // Apply phase colors, with red border for critical path tasks
+  const taskFillColor = phaseColors.base;
+  const taskBorderColor = task.isCriticalPath ? '#DC2626' : phaseColors.accent;
+  const progressColor = phaseColors.dark;
 
   // Dynamic resize zones based on bar width for better UX
   const getResizeZone = (barWidth: number): number => {
@@ -150,6 +168,7 @@ export function TaskBar({
   // v0.8.1: Added segmentX parameter for split tasks - allows segments to calculate their own offset
   const handleMouseDown = useCallback((e: React.MouseEvent, mode?: DragMode, segmentX?: number) => {
     e.stopPropagation();
+    hasDragged.current = false; // Reset drag flag on mouse down
 
     const svgElement = svgRef.current?.ownerSVGElement;
     if (!svgElement) return;
@@ -229,6 +248,8 @@ export function TaskBar({
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (dragMode === 'none') return;
 
+    hasDragged.current = true; // Mark that drag movement occurred
+
     const svgElement = svgRef.current?.ownerSVGElement;
     if (!svgElement) return;
 
@@ -250,6 +271,19 @@ export function TaskBar({
       const snappedX = snapToDay(rawNewX);
       setGhostX(snappedX);
       setGhostWidth(width);
+
+      // 🎯 Ghost bars: Calculate predicted end date and notify Timeline
+      if (task.endDate && onGhostBarUpdate) {
+        const daysFromStart = Math.round(snappedX / dayWidth);
+        const newStart = new Date(startDate);
+        newStart.setDate(newStart.getDate() + daysFromStart);
+
+        const duration = Math.ceil((task.endDate.getTime() - task.startDate!.getTime()) / (1000 * 60 * 60 * 24));
+        const newEnd = new Date(newStart);
+        newEnd.setDate(newEnd.getDate() + duration);
+
+        onGhostBarUpdate(task.id, newEnd);
+      }
 
       // v0.8.1: For split tasks, calculate offset relative to the DRAGGED SEGMENT position
       if (task.segments && task.segments.length > 0 && draggedSegmentIndex !== null) {
@@ -367,9 +401,12 @@ export function TaskBar({
       }
     }
 
+    // 🎯 Ghost bars: Clear ghost bars when drag operation completes
+    onGhostBarClear?.();
+
     // v0.8.1: Use centralized reset function from useDragState hook
     resetDragState(x, width);
-  }, [dragMode, ghostX, ghostWidth, task, onDateChange, hoveredTaskId, onDependencyCreate, x, width, dayWidth, pixelToDate, segmentDragOffsetX, draggedSegmentIndex, resetDragState]);
+  }, [dragMode, ghostX, ghostWidth, task, onDateChange, hoveredTaskId, onDependencyCreate, x, width, dayWidth, pixelToDate, segmentDragOffsetX, draggedSegmentIndex, resetDragState, onGhostBarClear]);
 
   // Setup global mouse listeners for smooth dragging
   useEffect(() => {
@@ -396,6 +433,12 @@ export function TaskBar({
   const tooltipText = typeof tooltipContent === 'string' ? tooltipContent : '';
   const customClass = templates.taskClass(task);
 
+  // 🎨 Premium gradients for depth
+  const gradientIdFill = `taskGradient-${task.id}`;
+  const gradientIdProgress = `progressGradient-${task.id}`;
+  const lighterFill = lightenColor(taskFillColor, 12);
+  const lighterProgress = lightenColor(progressColor, 8);
+
   return (
     <g
       ref={svgRef}
@@ -406,7 +449,12 @@ export function TaskBar({
           setActiveZone(null);
         }
       }}
-      onClick={() => !isDragging && onClick?.(task)}
+      onClick={() => {
+        // Only trigger click if there was no drag movement
+        if (!hasDragged.current && !isDragging) {
+          onClick?.(task);
+        }
+      }}
       onDoubleClick={(e) => {
         // v0.8.0: Double-click event
         if (!isDragging) {
@@ -420,6 +468,18 @@ export function TaskBar({
         onContextMenu?.(task, e as any);
       }}
     >
+      {/* 🎨 Gradient Definitions for premium depth */}
+      <defs>
+        <linearGradient id={gradientIdFill} x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor={lighterFill} stopOpacity="1" />
+          <stop offset="100%" stopColor={taskFillColor} stopOpacity="1" />
+        </linearGradient>
+        <linearGradient id={gradientIdProgress} x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor={lighterProgress} stopOpacity="1" />
+          <stop offset="100%" stopColor={progressColor} stopOpacity="1" />
+        </linearGradient>
+      </defs>
+
       {/* v0.8.0: Tooltip using taskTooltip template */}
       {tooltipText && <title dangerouslySetInnerHTML={{ __html: tooltipText }} />}
       {/* Zone Indicators with hover feedback - v0.8.1: Disabled for split tasks (segments are independent) */}
@@ -520,9 +580,9 @@ export function TaskBar({
           width={ghostWidth}
           height={height}
           rx={borderRadius}
-          fill={task.isCriticalPath ? '#DC2626' : theme.taskBarPrimary}
+          fill={taskFillColor}
           opacity={0.3}
-          stroke={task.isCriticalPath ? '#EF4444' : theme.accent}
+          stroke={taskBorderColor}
           strokeWidth={2}
           strokeDasharray="4 4"
           initial={{ opacity: 0 }}
@@ -541,16 +601,20 @@ export function TaskBar({
           width={displayWidth}
           height={height}
           rx={borderRadius}
-          fill={task.isCriticalPath ? '#DC2626' : theme.taskBarPrimary}
+          fill={`url(#${gradientIdFill})`}
           data-task-class={customClass}
+          filter={SHADOWS.taskBar}
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{
             opacity: isDragging && !isConnecting ? 0.15 : isHovered ? 0.25 : 0.2,  // Much lighter background
-            scale: isHovered && !isDragging ? 1.02 : 1,
+            scale: isHovered && !isDragging ? 1.03 : 1,
           }}
           transition={{
-            duration: 0.2,
+            duration: 0.15,
             ease: [0.4, 0, 0.2, 1],
+            type: 'spring',
+            stiffness: 400,
+            damping: 30,
           }}
           onMouseDown={(e) => handleMouseDown(e as any)}
           style={{
@@ -562,15 +626,24 @@ export function TaskBar({
 
       {/* Progress Fill - Solid color for instant visual scanning */}
       {/* Eye processes shape/color faster than text */}
+      {/* UX Rule: Progress NEVER uses red - red reserved for "at risk" state */}
       {!task.segments && (
-        <rect
+        <motion.rect
           x={displayX}
           y={y}
           width={displayWidth * (task.progress / 100)}
           height={height}
           rx={borderRadius}
-          fill={theme.taskBarProgress}
+          fill={`url(#${gradientIdProgress})`}
           opacity={1}
+          filter={SHADOWS.taskBarProgress}
+          initial={{ scaleX: 0, originX: 0 }}
+          animate={{ scaleX: 1 }}
+          transition={{
+            duration: 0.6,
+            delay: 0.1,
+            ease: [0.4, 0, 0.2, 1],
+          }}
           style={{ pointerEvents: 'none' }}
         />
       )}
@@ -599,15 +672,19 @@ export function TaskBar({
               width={segmentWidth}
               height={height}
               rx={borderRadius}
-              fill={task.isCriticalPath ? '#DC2626' : theme.taskBarPrimary}
+              fill={taskFillColor}
+              filter={SHADOWS.taskBar}
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{
                 opacity: isThisSegmentDragging ? 0.6 : isThisSegmentHovered ? 0.9 : 0.8,
-                scale: isThisSegmentHovered && !isDragging ? 1.02 : 1,
+                scale: isThisSegmentHovered && !isDragging ? 1.03 : 1,
               }}
               transition={{
-                duration: 0.2,
+                duration: 0.15,
                 ease: [0.4, 0, 0.2, 1],
+                type: 'spring',
+                stiffness: 400,
+                damping: 30,
               }}
               onMouseDown={(e) => {
                 // v0.8.1: Capture which segment is being dragged and pass its position
@@ -622,14 +699,22 @@ export function TaskBar({
               }}
             />
             {/* Segment progress */}
-            <rect
+            <motion.rect
               x={displaySegmentX}
               y={y}
               width={segmentWidth * (task.progress / 100)}
               height={height}
               rx={borderRadius}
-              fill={theme.taskBarProgress}
+              fill={progressColor}
               opacity={1}
+              filter={SHADOWS.taskBarProgress}
+              initial={{ scaleX: 0, originX: 0 }}
+              animate={{ scaleX: 1 }}
+              transition={{
+                duration: 0.6,
+                delay: 0.1 + (idx * 0.05),
+                ease: [0.4, 0, 0.2, 1],
+              }}
               style={{ pointerEvents: 'none' }}
             />
           </g>
@@ -675,22 +760,21 @@ export function TaskBar({
 
       {/* Task Name Text - v0.8.0: Using taskLabel template */}
       {/* v0.8.1: Hide text for split tasks to avoid blocking segment clicks */}
-      {displayWidth > 60 && !task.segments && (() => {
+      {/* Hide text during drag to prevent visual confusion with other task labels */}
+      {displayWidth > 60 && !task.segments && !isDragging && (() => {
         const label = templates.taskLabel(task);
         const labelText = typeof label === 'string' ? label : task.name;
-        const truncated = labelText.length > Math.floor(displayWidth / 8)
-          ? `${labelText.substring(0, Math.floor(displayWidth / 8))}...`
+        const truncated = labelText.length > Math.floor(width / 8)
+          ? `${labelText.substring(0, Math.floor(width / 8))}...`
           : labelText;
 
         return (
           <text
-            x={displayX + 12}
+            x={x + 12}
             y={y + height / 2}
             dominantBaseline="middle"
             fill="#FFFFFF"
-            fontSize="13"
-            fontWeight="500"
-            fontFamily="Inter, sans-serif"
+            {...getSVGTextProps(typography.taskRegular)}
             style={{ pointerEvents: 'none', userSelect: 'none' }}
           >
             {truncated}
@@ -707,42 +791,18 @@ export function TaskBar({
           dominantBaseline="middle"
           textAnchor="end"
           fill="rgba(255, 255, 255, 0.9)"
-          fontSize="11"
-          fontWeight="600"
-          fontFamily="Inter, sans-serif"
+          {...getSVGTextProps(typography.percentage)}
           style={{ pointerEvents: 'none', userSelect: 'none' }}
         >
           {task.progress}%
         </text>
       )}
 
-      {/* Status Indicator Badge */}
-      {/* v0.8.1: Hide status badge for split tasks to avoid blocking segment clicks */}
-      {task.status && displayWidth > 80 && !isDragging && !task.segments && (
-        <g style={{ pointerEvents: 'none' }}>
-          {task.status === 'completed' && (
-            <circle
-              cx={displayX + displayWidth - 8}
-              cy={y + 8}
-              r={4}
-              fill={theme.statusCompleted}
-              stroke="#FFFFFF"
-              strokeWidth={1.5}
-            />
-          )}
-          {task.status === 'in-progress' && (
-            <circle
-              cx={displayX + displayWidth - 8}
-              cy={y + 8}
-              r={4}
-              fill={theme.statusInProgress}
-              stroke="#FFFFFF"
-              strokeWidth={1.5}
-              opacity={0.8}
-            />
-          )}
-        </g>
-      )}
+      {/* Status Indicator Badge - REMOVED */}
+      {/* UX Design Rule: Redundant icons create visual noise. The task bar itself already represents the task. */}
+      {/* Icons should only appear in the left panel (task list), NOT in the timeline. */}
+      {/* Status is already communicated through: 1) Progress bar fill, 2) Task name in left panel */}
+      {/* Removed as per elite UX feedback: Circles in timeline are unnecessary visual clutter */}
 
       {/* Enhanced Resize Handles (larger, easier to grab) */}
       {/* v0.8.1: Hide resize handles for split tasks */}
@@ -766,7 +826,7 @@ export function TaskBar({
               y={y + 6}
               width={isSmallBar ? 8 : 6}
               height={isSmallBar ? height - 12 : height - 16}
-              rx={3}
+              rx={BORDER_RADIUS.small}
               fill={dragMode === 'resize-start' ? theme.accent : theme.taskBarHandle}
               stroke={theme.taskBarPrimary}
               strokeWidth={1.5}
@@ -803,7 +863,7 @@ export function TaskBar({
               y={y + 6}
               width={isSmallBar ? 8 : 6}
               height={isSmallBar ? height - 12 : height - 16}
-              rx={3}
+              rx={BORDER_RADIUS.small}
               fill={dragMode === 'resize-end' ? theme.accent : theme.taskBarHandle}
               stroke={theme.taskBarPrimary}
               strokeWidth={1.5}
@@ -930,9 +990,17 @@ export function TaskBar({
           stroke={isDragging ? theme.accent : theme.taskBarPrimary}
           strokeWidth={2}
           opacity={isDragging ? 0.6 : 0.4}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: isDragging ? 0.6 : 0.4 }}
-          transition={{ duration: 0.2 }}
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{
+            opacity: isDragging ? 0.6 : 0.4,
+            scale: 1,
+          }}
+          transition={{
+            duration: 0.15,
+            type: 'spring',
+            stiffness: 400,
+            damping: 30,
+          }}
           style={{ pointerEvents: 'none' }}
         />
       )}
@@ -981,11 +1049,11 @@ export function TaskBar({
               y={y - 95}
               width={240}
               height={82}
-              rx={8}
+              rx={BORDER_RADIUS.large}
               fill={theme.bgSecondary}
               stroke={theme.border}
               strokeWidth={1}
-              filter="drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15))"
+              filter={SHADOWS.tooltip}
             />
 
             {/* Tooltip Arrow */}
@@ -1014,8 +1082,7 @@ export function TaskBar({
               x={displayX + displayWidth / 2 - 110}
               y={y - 55}
               fill={theme.textTertiary}
-              fontSize="11"
-              fontFamily="Inter, sans-serif"
+              {...getSVGTextProps(typography.caption)}
             >
               Start:
             </text>
@@ -1034,8 +1101,7 @@ export function TaskBar({
               x={displayX + displayWidth / 2 - 110}
               y={y - 40}
               fill={theme.textTertiary}
-              fontSize="11"
-              fontFamily="Inter, sans-serif"
+              {...getSVGTextProps(typography.caption)}
             >
               End:
             </text>
@@ -1055,8 +1121,7 @@ export function TaskBar({
               x={displayX + displayWidth / 2 + 10}
               y={y - 55}
               fill={theme.textTertiary}
-              fontSize="11"
-              fontFamily="Inter, sans-serif"
+              {...getSVGTextProps(typography.caption)}
             >
               Duration:
             </text>
@@ -1076,8 +1141,7 @@ export function TaskBar({
               x={displayX + displayWidth / 2 + 10}
               y={y - 40}
               fill={theme.textTertiary}
-              fontSize="11"
-              fontFamily="Inter, sans-serif"
+              {...getSVGTextProps(typography.caption)}
             >
               Progress:
             </text>

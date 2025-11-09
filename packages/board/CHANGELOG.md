@@ -7,6 +7,66 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.8.2] - 2025-11-08
+
+### Added
+
+#### Gantt Visual System Enhancements
+- **Phase-based Color System**: Automatic task categorization by project phase with keyword detection
+  - Planning tasks → Purple (#8B5CF6)
+  - Design tasks → Blue (#3B82F6)
+  - Development tasks → Green (#10B981)
+  - Testing/QA tasks → Amber (#F59E0B)
+  - Deployment tasks → Red (#EF4444)
+  - Health status (at-risk, off-track) overrides phase colors when applicable
+- **Typography System**: Professional Inter font family with strict weight hierarchy (400/500/600)
+  - Parent task levels (L0: 500/14px, L1: 500/13px)
+  - Regular tasks (500/13px) and small tasks (400/12px)
+  - Milestone labels (600/11px) and badges (600/10px)
+  - Helper functions: `getTypographyStyle()`, `getSVGTextProps()`, `getTaskTypography()`
+- **Design System Constants**: 8pt grid system with centralized spacing, padding, and shadow values
+  - Border radius scale (small: 4px, medium: 6px, large: 8px)
+  - Spacing system (xs: 4px, sm: 8px, md: 16px, lg: 24px, xl: 32px)
+  - Shadow definitions for task bars, progress, summaries, and tooltips
+  - Consistent indentation (24px per hierarchy level)
+- **Task Type Icons**: Visual categorization with Lucide React icons
+  - Palette (design/ui/ux), Code (develop/implement), Calendar (plan/schedule)
+  - Rocket (launch/deploy), CheckCircle2 (review/test), FileText (default)
+
+#### Gantt Interaction Improvements
+- **Click Handler Fix**: Modal now opens only on clean clicks, not after drag operations
+  - Uses `useRef` flag to track actual drag movement
+  - Prevents false onClick triggers when releasing from drag-and-drop
+
+### Technical
+
+#### New Modules
+- `colorUtils.ts`: Phase detection, color schemes, health status calculation
+  - `detectProjectPhase()`: Keyword-based phase categorization
+  - `getPhaseColors()`: Returns PhaseColorScheme based on task name and health status
+  - `calculateHealthStatus()`: Timeline-based health tracking (on-track/at-risk/off-track)
+  - `lightenColor()`, `darkenColor()`: Gradient color transformations
+- `designSystem.ts`: Centralized design tokens
+  - `BORDER_RADIUS`, `SPACING`, `PADDING`, `SHADOWS`, `INDENT_SIZE` constants
+  - `ROW_HEIGHTS` for task rows (32px) and headers (48px)
+- `typography.ts`: Font system definitions
+  - Typography scale with size, weight, line height specifications
+  - SVG text props converter for consistent rendering
+
+#### Enhanced Components
+- `TaskBar.tsx`: Phase color application, click-drag separation logic
+- `SummaryBar.tsx`: Phase colors for parent tasks with gradient fills
+- `Milestone.tsx`: Phase-based milestone colors
+- `TaskGrid.tsx`: Icon rendering, typography system, 8pt grid spacing
+- `Timeline.tsx`: Typography application to SVG date labels
+
+#### Demo Updates
+- `App.tsx`: Task click handler with Task→Card conversion for modal reuse
+  - Bidirectional sync: updates both Gantt tasks and Kanban cards from modal
+  - Prevents modal opening after drag operations
+
+---
+
 ## [0.8.1] - 2025-11-06
 
 ### Added
@@ -25,13 +85,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Enhanced Keyboard Navigation**: Enter toggles expand/collapse for parent tasks, creates new task below for leaf tasks
 - **Improved Hover Actions**: Semi-transparent background container with accent color highlighting and scale transform (1.1x)
 - **Hierarchy Guide Lines**: SVG tree-structure visualization with vertical lines and horizontal elbows at 30% opacity
+- **Critical Path Color Fix**: Progress bars now use darker shade of base color (25%) instead of red to avoid confusion with "at risk" state. Red reserved for borders only.
+- **Status Icons Removed**: Eliminated redundant circle icons from timeline bars to reduce visual clutter. Status communicated through progress fill and left panel.
 
 ### Technical
 - New hook: `useKanbanGanttSync` (268 lines)
 - New utility: `parentTaskUtils` module for parent task calculations
+- New utility: `colorUtils.ts` with `darkenColor()`, `getCriticalPathColors()`, `getProgressColor()`
 - Enhanced: `TaskGrid` with SVG guide lines and progress indicators
-- Enhanced: `TaskBar` and `SummaryBar` height optimizations
+- Enhanced: `TaskBar` with color management system: critical path uses red border + theme fill, progress uses 25% darker shade
+- Enhanced: `SummaryBar` height optimizations
 - Updated: `useGanttKeyboard` Enter key logic for context-aware behavior
+- Removed: Status indicator circle badges from task bars (reduced visual noise)
 - Exports: Added sync utilities to public API (`hooks/index.ts`)
 
 ---

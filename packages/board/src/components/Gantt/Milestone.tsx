@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Task } from './types';
+import { typography, getSVGTextProps } from './typography';
+import { calculateHealthStatus, getPhaseColors } from './colorUtils';
+import { BORDER_RADIUS, SHADOWS } from './designSystem';
 
 interface MilestoneProps {
   task: Task;
@@ -13,6 +16,15 @@ interface MilestoneProps {
 export function Milestone({ task, x, y, theme, onClick }: MilestoneProps) {
   const [isHovered, setIsHovered] = useState(false);
   const size = 16;
+
+  // 🎯 ELITE UX: Phase-based color system for milestones
+  // Automatically categorizes by project phase from task name
+  const healthStatus = calculateHealthStatus(task.startDate || null, task.endDate || task.startDate || null, task.progress);
+  const phaseColors = getPhaseColors(task.name, healthStatus);
+
+  // Use phase-based colors for automatic categorization
+  const milestoneColor = phaseColors.base;
+  const milestoneBorder = task.isCriticalPath ? '#DC2626' : phaseColors.accent;
 
   // Format date for tooltip
   const formatDate = (date: Date) => {
@@ -27,16 +39,16 @@ export function Milestone({ task, x, y, theme, onClick }: MilestoneProps) {
     <g
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      onClick={() => onClick?.(task)}
+      onClick={(e) => { e.stopPropagation(); onClick?.(task); }}
       style={{ cursor: 'pointer' }}
     >
-      {/* Critical Path Glow (if applicable) */}
-      {task.isCriticalPath && (
+      {/* Health-based Glow */}
+      {(task.isCriticalPath || healthStatus !== 'on-track') && (
         <motion.circle
           cx={x}
           cy={y + 16}
           r={size + 4}
-          fill={theme.criticalPathLight}
+          fill={`${milestoneColor}33`}
           initial={{ scale: 0 }}
           animate={{ scale: isHovered ? 1.2 : 1 }}
           transition={{ duration: 0.3 }}
@@ -49,20 +61,20 @@ export function Milestone({ task, x, y, theme, onClick }: MilestoneProps) {
         y={y + 16 - size / 2}
         width={size}
         height={size}
-        fill={task.isCriticalPath ? theme.criticalPath : theme.milestone}
+        fill={milestoneColor}
         stroke={theme.bgGrid}
         strokeWidth={2}
         transform={`rotate(45 ${x} ${y + 16})`}
         initial={{ scale: 0, rotate: 0 }}
         animate={{
-          scale: isHovered ? 1.15 : 1,
-          rotate: 45,
+          scale: isHovered ? 1.2 : 1,
+          rotate: isHovered ? 50 : 45,
         }}
         transition={{
-          duration: 0.3,
+          duration: 0.25,
           type: 'spring',
-          stiffness: 300,
-          damping: 20,
+          stiffness: 400,
+          damping: 22,
         }}
       />
 
@@ -74,7 +86,7 @@ export function Milestone({ task, x, y, theme, onClick }: MilestoneProps) {
           width={size + 4}
           height={size + 4}
           fill="none"
-          stroke={task.isCriticalPath ? theme.criticalPath : theme.milestone}
+          stroke={milestoneBorder}
           strokeWidth={2}
           opacity={0.5}
           transform={`rotate(45 ${x} ${y + 16})`}
@@ -99,11 +111,11 @@ export function Milestone({ task, x, y, theme, onClick }: MilestoneProps) {
               y={y - 50}
               width={160}
               height={44}
-              rx={8}
+              rx={BORDER_RADIUS.large}
               fill={theme.bgSecondary}
               stroke={theme.border}
               strokeWidth={1}
-              filter="drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15))"
+              filter={SHADOWS.tooltip}
             />
 
             {/* Tooltip Arrow */}
@@ -120,7 +132,7 @@ export function Milestone({ task, x, y, theme, onClick }: MilestoneProps) {
               y={y - 38}
               width={8}
               height={8}
-              fill={task.isCriticalPath ? theme.criticalPath : theme.milestone}
+              fill={milestoneColor}
               transform={`rotate(45 ${x - 66} ${y - 34})`}
             />
 
@@ -129,9 +141,7 @@ export function Milestone({ task, x, y, theme, onClick }: MilestoneProps) {
               x={x - 55}
               y={y - 32}
               fill={theme.textPrimary}
-              fontSize="12"
-              fontWeight="600"
-              fontFamily="Inter, sans-serif"
+              {...getSVGTextProps(typography.milestone)}
             >
               {task.name.length > 18 ? `${task.name.substring(0, 18)}...` : task.name}
             </text>
@@ -141,34 +151,31 @@ export function Milestone({ task, x, y, theme, onClick }: MilestoneProps) {
               x={x - 55}
               y={y - 18}
               fill={theme.textTertiary}
-              fontSize="10"
-              fontFamily="Inter, sans-serif"
+              {...getSVGTextProps(typography.caption)}
             >
               {formatDate(task.startDate!)}
             </text>
 
-            {/* Critical Path Badge */}
-            {task.isCriticalPath && (
+            {/* Health Status Badge */}
+            {(healthStatus !== 'on-track' || task.isCriticalPath) && (
               <g>
                 <rect
                   x={x + 10}
                   y={y - 40}
                   width={60}
                   height={16}
-                  rx={4}
-                  fill={theme.criticalPathLight}
+                  rx={BORDER_RADIUS.small}
+                  fill={`${milestoneColor}33`}
                 />
                 <text
                   x={x + 40}
                   y={y - 30}
                   textAnchor="middle"
-                  fill={theme.criticalPath}
-                  fontSize="9"
-                  fontWeight="700"
-                  fontFamily="Inter, sans-serif"
+                  fill={milestoneBorder}
+                  {...getSVGTextProps(typography.badge)}
                   letterSpacing="0.5"
                 >
-                  CRITICAL
+                  {task.isCriticalPath ? 'CRITICAL' : healthStatus === 'off-track' ? 'OVERDUE' : 'AT RISK'}
                 </text>
               </g>
             )}
