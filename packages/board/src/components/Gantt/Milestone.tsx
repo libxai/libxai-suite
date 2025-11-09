@@ -17,12 +17,12 @@ export function Milestone({ task, x, y, theme, onClick }: MilestoneProps) {
   const [isHovered, setIsHovered] = useState(false);
   const size = 16;
 
-  // 🎯 ELITE UX: Phase-based color system for milestones
+  // Phase-based color system for milestones
   // Automatically categorizes by project phase from task name
   const healthStatus = calculateHealthStatus(task.startDate || null, task.endDate || task.startDate || null, task.progress);
   const phaseColors = getPhaseColors(task.name, healthStatus);
 
-  // Use phase-based colors for automatic categorization
+  // Apply phase colors with red border for critical path
   const milestoneColor = phaseColors.base;
   const milestoneBorder = task.isCriticalPath ? '#DC2626' : phaseColors.accent;
 

@@ -52,12 +52,12 @@ export function SummaryBar({
   const bracketWidth = 2; // Thin stroke for brackets (2-3px)
   const bracketDepth = 8; // How far brackets extend from the bar (ClickUp standard: 6-8px)
 
-  // 🎯 ELITE UX: Phase-based color system for parent tasks
+  // Phase-based color system for parent tasks
   // Automatically categorizes by project phase from task name
   const healthStatus = calculateHealthStatus(parentDates?.startDate || null, parentDates?.endDate || null, progress, true);
   const phaseColors = getPhaseColors(task.name, healthStatus);
 
-  // Use phase-based colors for automatic categorization
+  // Apply phase colors with red border for critical path
   const baseColor = phaseColors.base;
   const progressColor = phaseColors.dark;
   const bracketColor = task.isCriticalPath ? '#DC2626' : phaseColors.accent;
