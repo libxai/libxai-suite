@@ -8,6 +8,7 @@ export { DependencyLine } from './DependencyLine';
 export { Milestone } from './Milestone';
 export { ColumnManager } from './ColumnManager';
 export { ContextMenu, MenuIcons } from './ContextMenu';
+export { TaskFormModal } from './TaskFormModal'; // v0.9.0: Task CRUD modal
 
 // Types
 export type {
@@ -16,12 +17,16 @@ export type {
   TimeScale,
   Theme,
   GanttConfig,
+  GanttPermissions, // v0.8.2: Permissions for authorization
   GanttColumn,
   ColumnType,
   Assignee,
   GanttTheme,
   GanttTemplates, // v0.8.0
 } from './types';
+
+// Task Form Types (v0.9.0)
+export type { TaskFormModalProps, TaskFormData } from './TaskFormModal';
 
 // Imperative API (v0.8.0)
 export type { GanttBoardRef } from './GanttBoardRef';

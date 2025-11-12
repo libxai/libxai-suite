@@ -63,6 +63,7 @@ export {
   ColumnManager,
   ContextMenu,
   MenuIcons,
+  TaskFormModal, // v0.9.0 - Task CRUD modal
   themes as ganttThemes,
   cardToGanttTask,
   ganttTaskToCardUpdate,
@@ -74,12 +75,15 @@ export type {
   TimeScale,
   Theme as GanttTheme,
   GanttConfig as GanttBoardConfig,
+  GanttPermissions, // v0.8.2 - Permissions for authorization
   GanttColumn,
   ColumnType as GanttColumnType,
   Assignee as GanttAssignee,
   GanttTheme as GanttThemeConfig,
   GanttBoardRef, // v0.8.0 - Imperative API
   GanttTemplates, // v0.8.0 - Customizable templates
+  TaskFormModalProps, // v0.9.0 - Task form props
+  TaskFormData, // v0.9.0 - Task form data
 } from './components/Gantt'
 
 // v0.6.0: Smart Card Stacking
@@ -130,8 +134,8 @@ export type {
 // export type { SkeletonProps } from './components/Skeleton'
 
 // AI Components
-export { GeneratePlanModal, AIUsageDashboard } from './components/AI'
-export type { GeneratePlanModalProps, AIUsageDashboardProps } from './components/AI'
+export { GeneratePlanModal, AIUsageDashboard, GenerateGanttTasksDialog } from './components/AI'
+export type { GeneratePlanModalProps, AIUsageDashboardProps, GenerateGanttTasksDialogProps, GanttTask as AIGanttTask, GeneratedTasksResponse } from './components/AI'
 
 // Hooks (Jotai-based - legacy, will be deprecated in v0.8.0)
 export {
