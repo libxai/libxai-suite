@@ -158,6 +158,107 @@ export interface GanttTemplates {
   progressFormat?: (progress: number) => string;
 }
 
+/**
+ * Permissions interface for controlling Gantt operations
+ * Useful for integrating with authorization libraries like CASL
+ * @example
+ * 
+ * // With CASL integration
+ * const ability = useAbility();
+ *
+ * <GanttBoard
+ *   tasks={tasks}
+ *   config={{
+ *     permissions: {
+ *       canCreateTask: ability.can('create', 'Task'),
+ *       canUpdateTask: ability.can('update', 'Task'),
+ *       canDeleteTask: ability.can('delete', 'Task'),
+ *       canCreateDependency: ability.can('create', 'Dependency'),
+ *       canUpdateProgress: ability.can('update', 'TaskProgress'),
+ *     }
+ *   }}
+ * />
+ *  
+ */
+export interface GanttPermissions {
+  canCreateTask?: boolean;
+  canUpdateTask?: boolean;
+  canDeleteTask?: boolean;
+  canCreateDependency?: boolean;
+  canDeleteDependency?: boolean;
+  canUpdateProgress?: boolean;
+  canAssignUsers?: boolean;
+  canModifyHierarchy?: boolean;
+  canDuplicateTask?: boolean;
+  canReorderTasks?: boolean;
+  canExport?: boolean;
+  canToggleExpansion?: boolean;
+  canPerformAction?: (task: Task, action: 'create' | 'update' | 'delete' | 'assign' | 'progress') => boolean;
+}
+
+/**
+ * Scroll behavior configuration for timeline interactions
+ * Controls how the Gantt chart viewport behaves during user interactions
+ *
+ * @example
+ * // Disable all automatic scrolling during drag operations
+ * <GanttBoard
+ *   config={{
+ *     scrollBehavior: {
+ *       preventAutoScroll: true,
+ *       axis: 'horizontal'
+ *     }
+ *   }}
+ * />
+ *
+ * @example
+ * // Allow vertical auto-scroll but prevent horizontal
+ * <GanttBoard
+ *   config={{
+ *     scrollBehavior: {
+ *       preventAutoScroll: true,
+ *       axis: 'horizontal',
+ *       onScrollPrevented: (axis, scrollDelta) => {
+ *         console.log(`Prevented ${axis} scroll by ${scrollDelta}px`);
+ *       }
+ *     }
+ *   }}
+ * />
+ */
+export interface GanttScrollBehavior {
+  /**
+   * Prevent automatic viewport scrolling during drag operations
+   * When true, the viewport will not automatically center on dragged tasks
+   * Users can still manually scroll using scrollbars or mouse wheel
+   * @default false
+   */
+  preventAutoScroll?: boolean;
+
+  /**
+   * Which axis to prevent auto-scroll on
+   * - 'horizontal': Only prevent horizontal auto-scroll (recommended for Gantt charts)
+   * - 'vertical': Only prevent vertical auto-scroll
+   * - 'both': Prevent both horizontal and vertical auto-scroll
+   * @default 'horizontal'
+   */
+  axis?: 'horizontal' | 'vertical' | 'both';
+
+  /**
+   * Callback fired when auto-scroll is prevented
+   * Useful for debugging or showing user feedback
+   * @param axis - Which axis was prevented ('x' or 'y')
+   * @param scrollDelta - How many pixels of scroll were prevented
+   */
+  onScrollPrevented?: (axis: 'x' | 'y', scrollDelta: number) => void;
+
+  /**
+   * Allow auto-scroll if task would go out of viewport bounds
+   * When true, auto-scroll is only prevented if task remains visible
+   * @default false
+   */
+  allowScrollWhenOutOfBounds?: boolean;
+}
+
 export interface GanttConfig {
   theme?: Theme;
   timeScale?: TimeScale;
@@ -167,6 +268,23 @@ export interface GanttConfig {
 
   // v0.8.0: Customizable templates (similar to DHTMLX gantt.templates.*)
   templates?: GanttTemplates;
+
+  // v0.8.2: Permissions system for authorization integration (CASL, etc.)
+  permissions?: GanttPermissions;
+
+  // v0.9.1: Disable automatic scroll synchronization during drag operations
+  disableScrollSync?: boolean; // When true, prevents automatic viewport centering during task drag (default: false)
+
+  /**
+   * v0.9.2: Advanced scroll behavior configuration
+   * Controls how the timeline viewport behaves during drag operations
+   * Provides fine-grained control over auto-scroll prevention with events
+   * @see GanttScrollBehavior
+   */
+  scrollBehavior?: GanttScrollBehavior;
+
+  // ==================== UI Events ====================
+  onThemeChange?: (theme: Theme) => void; // v0.9.0: Theme change event
 
   // ==================== Basic Events ====================
   onTaskClick?: (task: Task) => void;

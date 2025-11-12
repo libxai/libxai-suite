@@ -202,7 +202,11 @@ export function Timeline({
   }, [startDate, dayWidth, zoom]);
 
   return (
-    <div className="flex-1 overflow-auto" data-gantt-chart style={{ backgroundColor: theme.bgPrimary }}>
+    <div
+      className="flex-1 overflow-auto"
+      data-gantt-chart
+      style={{ backgroundColor: theme.bgPrimary }}
+    >
       <svg
         width={Math.max(timelineWidth, 1000)}
         height={Math.max(flatTasks.length * ROW_HEIGHT + HEADER_HEIGHT, 600)}

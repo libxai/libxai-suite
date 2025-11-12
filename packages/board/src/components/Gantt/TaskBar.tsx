@@ -149,6 +149,7 @@ export function TaskBar({
   // Handle mouse down for dragging
   // v0.8.1: Added segmentX parameter for split tasks - allows segments to calculate their own offset
   const handleMouseDown = useCallback((e: React.MouseEvent, mode?: DragMode, segmentX?: number) => {
+    e.preventDefault();
     e.stopPropagation();
 
     const svgElement = svgRef.current?.ownerSVGElement;
@@ -375,8 +376,13 @@ export function TaskBar({
   useEffect(() => {
     if (dragMode === 'none') return;
 
-    const handleGlobalMouseMove = (e: MouseEvent) => handleMouseMove(e);
-    const handleGlobalMouseUp = () => handleMouseUp();
+    const handleGlobalMouseMove = (e: MouseEvent) => {
+      handleMouseMove(e);
+    };
+
+    const handleGlobalMouseUp = () => {
+      handleMouseUp();
+    };
 
     window.addEventListener('mousemove', handleGlobalMouseMove);
     window.addEventListener('mouseup', handleGlobalMouseUp);

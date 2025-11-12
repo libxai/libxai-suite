@@ -56,6 +56,8 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     showThemeSelector = true,
     availableUsers = [],
     templates,
+    // UI events
+    onThemeChange, // v0.9.0
     // Basic events
     onTaskClick,
     onTaskDblClick, // v0.8.0
@@ -101,6 +103,15 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       setCurrentTheme(globalTheme);
     }
   }, [globalTheme]);
+
+  // v0.9.0: Handle theme change with callback
+  const handleThemeChange = useCallback(
+    (newTheme: Theme) => {
+      setCurrentTheme(newTheme);
+      onThemeChange?.(newTheme);
+    },
+    [onThemeChange]
+  );
 
   // Use undo/redo hook for task management
   const {
@@ -805,7 +816,15 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
 
     if (!gridScroll || !timelineScroll) return;
 
+    // v0.9.1: Respect disableScrollSync config to prevent auto-scroll during drag
+    const disableSync = config.disableScrollSync || false;
+
     const handleGridScroll = () => {
+      if (disableSync) {
+        // Only update scroll position state, don't sync to timeline
+        setScrollTop(gridScroll.scrollTop);
+        return;
+      }
       if (timelineScroll.scrollTop !== gridScroll.scrollTop) {
         timelineScroll.scrollTop = gridScroll.scrollTop;
       }
@@ -813,6 +832,11 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     };
 
     const handleTimelineScroll = () => {
+      if (disableSync) {
+        // Only update scroll position state, don't sync to grid
+        setScrollTop(timelineScroll.scrollTop);
+        return;
+      }
       if (gridScroll.scrollTop !== timelineScroll.scrollTop) {
         gridScroll.scrollTop = timelineScroll.scrollTop;
       }
@@ -843,7 +867,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isResizing]);
+  }, [isResizing, config.disableScrollSync]);
 
   return (
     <div
@@ -852,6 +876,11 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       style={{
         backgroundColor: theme.bgPrimary,
         fontFamily: 'Inter, sans-serif',
+        // v0.9.1: Prevent browser auto-scroll when disableScrollSync is enabled
+        ...(config.disableScrollSync && {
+          scrollBehavior: 'auto',
+          overflowAnchor: 'none',
+        }),
       }}
     >
       {/* Toolbar */}
@@ -862,7 +891,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         zoom={zoom}
         onZoomChange={setZoom}
         currentTheme={currentTheme}
-        onThemeChange={setCurrentTheme}
+        onThemeChange={handleThemeChange}
         rowDensity={rowDensity}
         onRowDensityChange={setRowDensity}
         showThemeSelector={showThemeSelector}
@@ -871,7 +900,17 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
         {/* Task Grid */}
-        <div ref={gridScrollRef} style={{ width: gridWidth }}>
+        <div
+          ref={gridScrollRef}
+          style={{
+            width: gridWidth,
+            // v0.9.1: Prevent browser auto-scroll when disableScrollSync is enabled
+            ...(config.disableScrollSync && {
+              scrollBehavior: 'auto',
+              overflowAnchor: 'none',
+            }),
+          }}
+        >
           <TaskGrid
             tasks={tasksWithCriticalPath}
             theme={theme}
@@ -922,7 +961,17 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         </div>
 
         {/* Timeline */}
-        <div ref={timelineScrollRef} className="flex-1 overflow-hidden">
+        <div
+          ref={timelineScrollRef}
+          className="flex-1 overflow-hidden"
+          style={{
+            // v0.9.1: Prevent browser auto-scroll when disableScrollSync is enabled
+            ...(config.disableScrollSync && {
+              scrollBehavior: 'auto',
+              overflowAnchor: 'none',
+            }),
+          }}
+        >
           <Timeline
             tasks={tasksWithCriticalPath}
             theme={theme}
