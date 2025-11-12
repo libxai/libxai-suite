@@ -37,6 +37,12 @@
     "npm": ">=9.0.0"
   },
   "dependencies": {
-    "@floating-ui/react": "^0.27.16"
+    "@floating-ui/react": "^0.27.16",
+    "@tiptap/extension-link": "^3.10.4",
+    "@tiptap/extension-mention": "^3.10.4",
+    "@tiptap/extension-placeholder": "^3.10.4",
+    "@tiptap/react": "^3.10.4",
+    "@tiptap/starter-kit": "^3.10.4",
+    "react-dropzone": "^14.3.8"
   }
 }

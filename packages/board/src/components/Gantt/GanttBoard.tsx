@@ -746,17 +746,18 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   }, [localTasks, onDependencyDelete]);
 
   // Calculate date range (memoized)
+  // ClickUp-style: Always provide 1 year buffer to the right for future planning
   const { startDate, endDate } = useMemo(() => {
     // Filter tasks that have dates
     const tasksWithDates = localTasks.filter(t => t.startDate && t.endDate);
 
     if (tasksWithDates.length === 0) {
-      // Default range if no tasks have dates
+      // Default range if no tasks have dates: show 1 month back, 1 year forward
       const today = new Date();
       const start = new Date(today);
       start.setDate(start.getDate() - 30);
       const end = new Date(today);
-      end.setDate(end.getDate() + 60);
+      end.setFullYear(end.getFullYear() + 1); // 1 year forward
       return { startDate: start, endDate: end };
     }
 
@@ -764,11 +765,15 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     const minDate = new Date(Math.min(...allDates.map((d) => d.getTime())));
     const maxDate = new Date(Math.max(...allDates.map((d) => d.getTime())));
 
-    const padding = timeScale === 'day' ? 7 : timeScale === 'week' ? 14 : 30;
-    minDate.setDate(minDate.getDate() - padding);
-    maxDate.setDate(maxDate.getDate() + padding);
+    // ClickUp-style padding: small on left, 1 year on right for future planning
+    const leftPadding = timeScale === 'day' ? 7 : timeScale === 'week' ? 14 : 30;
+    minDate.setDate(minDate.getDate() - leftPadding);
 
-    return { startDate: minDate, endDate: maxDate };
+    // Always provide 1 year of empty space to the right (ClickUp style)
+    const rightBuffer = new Date(maxDate);
+    rightBuffer.setFullYear(rightBuffer.getFullYear() + 1);
+
+    return { startDate: minDate, endDate: rightBuffer };
   }, [localTasks, timeScale]);
 
   // Handlers (future implementation - currently unused but kept for future features)

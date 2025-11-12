@@ -20,6 +20,10 @@ export interface Task {
   // v0.8.1: Split task support - multiple time segments with gaps
   segments?: TaskSegment[]; // When task is split, contains multiple date ranges
 
+  // v0.8.3: Color pipeline system (sequential rendering)
+  color?: string;     // Manual color override (Hex: #8B5CF6). Highest priority in pipeline.
+  category?: 'planning' | 'design' | 'development' | 'testing' | 'deployment' | string; // Explicit category for color mapping
+
   // Hierarchy properties
   parentId?: string;  // ID of parent task (undefined for root-level tasks)
   level?: number;     // Indentation level (0 for root, 1 for first level children, etc.)

@@ -368,6 +368,7 @@ export default function App() {
     {
       id: 'task-1',
       name: 'Project Planning Phase',
+      category: 'planning', // v0.8.3: Purple color
       startDate: new Date('2025-10-20'),
       endDate: new Date('2025-10-27'),
       progress: 100,
@@ -375,6 +376,7 @@ export default function App() {
       assignedUsers: ['user-1', 'user-2'],
       status: 'completed',
       isMilestone: false,
+      isExpanded: true,
       subtasks: [
         {
           id: 'task-1-1',
@@ -399,6 +401,7 @@ export default function App() {
     {
       id: 'task-2',
       name: 'Design Phase',
+      category: 'design', // v0.8.3: Blue color
       startDate: new Date('2025-10-27'),
       endDate: new Date('2025-11-10'),
       progress: 75,
@@ -406,6 +409,7 @@ export default function App() {
       assignedUsers: ['user-2', 'user-4'],
       status: 'in-progress',
       priority: 'HIGH',
+      isExpanded: true,
       subtasks: [
         {
           id: 'task-2-1',
@@ -431,6 +435,7 @@ export default function App() {
     {
       id: 'task-3',
       name: 'Development Sprint 1',
+      category: 'development', // v0.8.3: Green color
       startDate: new Date('2025-11-10'),
       endDate: new Date('2025-11-24'),
       progress: 30,
@@ -438,6 +443,7 @@ export default function App() {
       assignedUsers: ['user-1', 'user-3', 'user-5'],
       status: 'in-progress',
       priority: 'URGENT',
+      isExpanded: true,
       subtasks: [
         {
           id: 'task-3-1',
@@ -483,6 +489,7 @@ export default function App() {
     {
       id: 'task-4',
       name: 'Testing & QA',
+      category: 'testing', // v0.8.3: Orange color
       startDate: new Date('2025-11-24'),
       endDate: new Date('2025-12-05'),
       progress: 0,
@@ -504,6 +511,7 @@ export default function App() {
     {
       id: 'milestone-2',
       name: 'Production Release',
+      category: 'deployment', // v0.8.3: Cyan color
       startDate: new Date('2025-12-05'),
       endDate: new Date('2025-12-05'),
       progress: 0,
@@ -633,6 +641,30 @@ export default function App() {
     setIsCardDetailModalOpen(true)
   }
 
+  // Handler for task click (Gantt) - convert to card and open same modal
+  const handleTaskClick = (task: Task) => {
+    // Convert Task to Card format to reuse the same modal
+    const cardFromTask: Card = {
+      id: task.id,
+      title: task.name,
+      description: task.description || '',
+      columnId: task.status || 'col-todo',
+      position: 0,
+      priority: (task.priority as 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT') || undefined,
+      assignees: task.assignees || [],
+      labels: task.labels || [],
+      dueDate: task.endDate?.toISOString(),
+      estimatedTime: task.duration,
+      startDate: task.startDate?.toISOString(),
+      progress: task.progress,
+      // Additional fields
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+    setSelectedCard(cardFromTask)
+    setIsCardDetailModalOpen(true)
+  }
+
   // Handler for card update from modal
   const handleCardUpdateFromModal = (cardId: string, updates: Partial<Card>) => {
     board.callbacks.onCardUpdate?.(cardId, updates)
@@ -640,6 +672,26 @@ export default function App() {
     if (selectedCard && selectedCard.id === cardId) {
       const updatedCard = { ...selectedCard, ...updates }
       setSelectedCard(updatedCard)
+    }
+
+    // Also update Gantt task if it exists
+    const taskIndex = ganttTasks.findIndex(t => t.id === cardId)
+    if (taskIndex !== -1) {
+      const updatedTasks = [...ganttTasks]
+      updatedTasks[taskIndex] = {
+        ...updatedTasks[taskIndex],
+        name: updates.title || updatedTasks[taskIndex].name,
+        description: updates.description || updatedTasks[taskIndex].description,
+        status: updates.columnId || updatedTasks[taskIndex].status,
+        priority: updates.priority || updatedTasks[taskIndex].priority,
+        assignees: updates.assignees || updatedTasks[taskIndex].assignees,
+        labels: updates.labels || updatedTasks[taskIndex].labels,
+        startDate: updates.startDate ? new Date(updates.startDate) : updatedTasks[taskIndex].startDate,
+        endDate: updates.dueDate ? new Date(updates.dueDate) : updatedTasks[taskIndex].endDate,
+        duration: updates.estimatedTime || updatedTasks[taskIndex].duration,
+        progress: updates.progress !== undefined ? updates.progress : updatedTasks[taskIndex].progress,
+      }
+      setGanttTasks(updatedTasks)
     }
   }
 
@@ -1104,6 +1156,7 @@ export default function App() {
                 priority: false,
               },
               // v0.8.0: New event callbacks (DHTMLX-equivalent)
+              onTaskClick: handleTaskClick, // Open task properties modal
               onTaskDblClick: (task) => {
                 console.log('Task double-clicked:', task.name);
                 // Could open a modal, edit inline, etc.

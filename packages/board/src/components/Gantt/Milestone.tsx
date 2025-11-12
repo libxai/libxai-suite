@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Task } from './types';
 import { typography, getSVGTextProps } from './typography';
-import { calculateHealthStatus, getPhaseColors } from './colorUtils';
+import { calculateHealthStatus, getTaskColors } from './colorUtils';
 import { BORDER_RADIUS, SHADOWS } from './designSystem';
 
 interface MilestoneProps {
@@ -17,10 +17,9 @@ export function Milestone({ task, x, y, theme, onClick }: MilestoneProps) {
   const [isHovered, setIsHovered] = useState(false);
   const size = 16;
 
-  // Phase-based color system for milestones
-  // Automatically categorizes by project phase from task name
+  // v0.8.3: Sequential color pipeline for milestones
   const healthStatus = calculateHealthStatus(task.startDate || null, task.endDate || task.startDate || null, task.progress);
-  const phaseColors = getPhaseColors(task.name, healthStatus);
+  const phaseColors = getTaskColors(task, healthStatus);
 
   // Apply phase colors with red border for critical path
   const milestoneColor = phaseColors.base;

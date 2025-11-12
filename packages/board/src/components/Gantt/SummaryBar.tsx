@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { Task, GanttTheme } from './types';
 import { parentTaskUtils } from './parentTaskUtils';
-import { darkenColor, calculateHealthStatus, getHealthColors, lightenColor, getPhaseColors } from './colorUtils';
+import { darkenColor, calculateHealthStatus, getHealthColors, lightenColor, getTaskColors } from './colorUtils';
 import { typography, getSVGTextProps } from './typography';
 import { SHADOWS } from './designSystem';
 
@@ -52,10 +52,9 @@ export function SummaryBar({
   const bracketWidth = 2; // Thin stroke for brackets (2-3px)
   const bracketDepth = 8; // How far brackets extend from the bar (ClickUp standard: 6-8px)
 
-  // Phase-based color system for parent tasks
-  // Automatically categorizes by project phase from task name
+  // v0.8.3: Sequential color pipeline for parent tasks
   const healthStatus = calculateHealthStatus(parentDates?.startDate || null, parentDates?.endDate || null, progress, true);
-  const phaseColors = getPhaseColors(task.name, healthStatus);
+  const phaseColors = getTaskColors(task, healthStatus);
 
   // Apply phase colors with red border for critical path
   const baseColor = phaseColors.base;

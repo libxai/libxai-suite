@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Task, GanttTemplates } from './types';
 import { TaskPosition } from './Timeline';
 import { useDragState } from './hooks/useDragState';
-import { calculateHealthStatus, lightenColor, getPhaseColors } from './colorUtils';
+import { calculateHealthStatus, lightenColor, getTaskColors } from './colorUtils';
 import { typography, getSVGTextProps } from './typography';
 import { BORDER_RADIUS, SHADOWS } from './designSystem';
 
@@ -77,10 +77,9 @@ export function TaskBar({
   const isAtRisk = task.isCriticalPath;  // Critical path tasks are "at risk"
   const isNeutralTheme = theme.name === 'neutral' || theme.today === '#1C1917';  // Detect neutral theme
 
-  // Phase-based color system: automatically categorizes tasks by project phase
-  // Planning (Purple), Design (Blue), Development (Green), Testing (Amber), Deployment (Red)
+  // v0.8.3: Sequential color pipeline (health → manual → category → semantic → default)
   const healthStatus = calculateHealthStatus(task.startDate || null, task.endDate || null, task.progress);
-  const phaseColors = getPhaseColors(task.name, healthStatus);
+  const phaseColors = getTaskColors(task, healthStatus);
 
   // Apply phase colors, with red border for critical path tasks
   const taskFillColor = phaseColors.base;

@@ -19,6 +19,7 @@ export interface PhaseColorScheme {
 
 /**
  * Phase-based color palette (professional, accessible)
+ * v0.8.3: Testing changed from Amber to Orange to avoid conflict with at-risk health status
  */
 export const PHASE_COLORS: Record<ProjectPhase, PhaseColorScheme> = {
   planning: {
@@ -40,16 +41,16 @@ export const PHASE_COLORS: Record<ProjectPhase, PhaseColorScheme> = {
     accent: '#047857',   // Green-700
   },
   testing: {
-    base: '#F59E0B',     // Amber-500 - Testing/QA
-    light: '#FBBF24',    // Amber-400
-    dark: '#D97706',     // Amber-600
-    accent: '#B45309',   // Amber-700
+    base: '#F97316',     // Orange-500 - Testing/QA (changed from Amber to avoid at-risk conflict)
+    light: '#FB923C',    // Orange-400
+    dark: '#EA580C',     // Orange-600
+    accent: '#C2410C',   // Orange-700
   },
   deployment: {
-    base: '#EF4444',     // Red-500 - Deployment/Launch
-    light: '#F87171',    // Red-400
-    dark: '#DC2626',     // Red-600
-    accent: '#B91C1C',   // Red-700
+    base: '#06B6D4',     // Cyan-500 - Deployment/Launch (changed from Red)
+    light: '#22D3EE',    // Cyan-400
+    dark: '#0891B2',     // Cyan-600
+    accent: '#0E7490',   // Cyan-700
   },
   default: {
     base: '#6B7280',     // Gray-500 - Default/Other
@@ -103,6 +104,7 @@ export function detectProjectPhase(taskName: string): ProjectPhase {
 /**
  * Get phase colors for a task (with health status override)
  * Health status (at-risk, off-track) takes precedence over phase colors
+ * @deprecated Use getTaskColors() for full pipeline support (v0.8.3+)
  */
 export function getPhaseColors(
   taskName: string,
@@ -129,6 +131,69 @@ export function getPhaseColors(
 
   // On-track: use phase-based colors
   const phase = detectProjectPhase(taskName);
+  return PHASE_COLORS[phase];
+}
+
+/**
+ * Sequential Color Pipeline (v0.8.3+)
+ * Determines task bar color through predictable, testable steps
+ *
+ * Pipeline Steps:
+ * 1. Health Status Override (highest priority - off-track/at-risk)
+ * 2. Manual Color Override (task.color)
+ * 3. Explicit Category (task.category)
+ * 4. Semantic Detection (keyword matching on task.name)
+ * 5. Default Fallback (gray)
+ *
+ * @param task - Full task object with color/category properties
+ * @param healthStatus - Calculated health status
+ * @returns Color scheme with base, light, dark, and accent shades
+ */
+export function getTaskColors(
+  task: { name: string; color?: string; category?: string },
+  healthStatus: 'on-track' | 'at-risk' | 'off-track'
+): PhaseColorScheme {
+  // Step 1: Health status override (highest priority)
+  if (healthStatus === 'off-track') {
+    return {
+      base: '#EF4444',    // Red-500
+      light: '#F87171',   // Red-400
+      dark: '#DC2626',    // Red-600
+      accent: '#B91C1C',  // Red-700
+    };
+  }
+
+  if (healthStatus === 'at-risk') {
+    return {
+      base: '#F59E0B',    // Amber-500
+      light: '#FBBF24',   // Amber-400
+      dark: '#D97706',    // Amber-600
+      accent: '#B45309',  // Amber-700
+    };
+  }
+
+  // Step 2: Manual color override
+  if (task.color) {
+    return {
+      base: task.color,
+      light: lightenColor(task.color, 15),
+      dark: darkenColor(task.color, 20),
+      accent: darkenColor(task.color, 30),
+    };
+  }
+
+  // Step 3: Explicit category
+  if (task.category) {
+    const category = task.category.toLowerCase() as ProjectPhase;
+    if (PHASE_COLORS[category]) {
+      return PHASE_COLORS[category];
+    }
+    // Custom category: use hash-based color from curated palette (future: Fase 2)
+    // For now, fall through to semantic detection
+  }
+
+  // Step 4: Semantic detection from task name
+  const phase = detectProjectPhase(task.name);
   return PHASE_COLORS[phase];
 }
 

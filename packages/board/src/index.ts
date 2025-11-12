@@ -36,20 +36,77 @@ export {
   FilterBar,
   ConfigMenu,
   ThemeModal,
+  CoverImageManager,
   // LazyLoadWrapper,
   // withLazyLoad,
 } from './components'
 
-// Skeleton Loaders
-// export {
-//   Skeleton,
-//   BoardSkeleton,
-//   ColumnSkeleton,
-//   CardSkeleton,
-//   ChartSkeleton,
-//   ModalSkeleton,
-//   TableSkeleton,
-// } from './components/Skeleton'
+// Loading Skeletons (v0.8.2 - shimmer effects for loading states)
+export {
+  LoadingSkeleton,
+  CardSkeleton,
+  ColumnSkeleton,
+  BoardSkeleton,
+  ListSkeleton,
+  TableSkeleton,
+  GanttSkeleton,
+  SkeletonGroup,
+} from './components/LoadingSkeleton'
+export type { LoadingSkeletonProps } from './components/LoadingSkeleton'
+
+// Framer Motion Animations (v0.8.2 - declarative animations)
+export {
+  // Animated components
+  AnimatedCard,
+  FadeInCard,
+  StaggeredCardList,
+} from './animations'
+export type { AnimatedCardProps } from './animations'
+
+// Drag Physics (v0.8.2 - physics-based drag interactions)
+export {
+  DragPhysics,
+  useDragPhysics,
+  dragPhysicsPresets,
+} from './components'
+export type { DragPhysicsProps, DragPhysicsPreset } from './components'
+
+// Card Flip Animations (v0.8.2 - 3D card flips)
+export {
+  FlipCard,
+  StackedFlipCards,
+  CarouselFlipCard,
+  useFlipCard,
+  flipCardPresets,
+} from './components'
+export type { FlipCardProps, FlipCardPreset } from './components'
+
+// Animation variants (for custom animations)
+export {
+  easing as animationEasing,
+  transitions as animationTransitions,
+  cardEnter,
+  cardHover,
+  cardDrag,
+  cardFlip,
+  cardSwipe,
+  columnEnter,
+  columnCollapse,
+  modalBackdrop,
+  modalContent,
+  buttonPress,
+  buttonShimmer,
+  listContainer,
+  listItem,
+  skeletonPulse,
+  shimmer,
+  toastSlide,
+  progressFill,
+  fade,
+  slide,
+  scale,
+  rotate,
+} from './animations/motion-variants'
 
 // Gantt Components (v0.8.0)
 export {
@@ -125,6 +182,7 @@ export type {
   // GanttTimelineProps,
   ConfigMenuProps,
   ThemeModalProps,
+  CoverImageManagerProps,
   // LazyLoadWrapperProps,
 } from './components'
 
@@ -262,6 +320,25 @@ export { VirtualList, useVirtualList } from './components/VirtualList'
 export type { VirtualListProps } from './components/VirtualList'
 export { VirtualGrid, useVirtualGrid, shouldVirtualizeGrid } from './components/VirtualGrid'
 export type { VirtualGridProps } from './components/VirtualGrid'
+
+// Enterprise Virtual Scrolling (v0.8.2 - 10K+ items optimization)
+export {
+  EnterpriseVirtualGrid,
+  useEnterpriseVirtualGrid,
+  shouldUseEnterpriseVirtualization,
+} from './components/VirtualGrid'
+export type {
+  EnterpriseVirtualGridProps,
+  PerformanceMetrics,
+} from './components/VirtualGrid'
+
+export {
+  EnterpriseVirtualList,
+  useEnterpriseVirtualList,
+} from './components/VirtualList'
+export type {
+  EnterpriseVirtualListProps,
+} from './components/VirtualList'
 
 // Design Tokens (v0.7.0)
 export {

@@ -6,6 +6,14 @@ export {
   DateRangePicker,
   UserAssignmentSelector,
   DependenciesSelector,
+  DragPhysics,
+  useDragPhysics,
+  dragPhysicsPresets,
+  FlipCard,
+  StackedFlipCards,
+  CarouselFlipCard,
+  useFlipCard,
+  flipCardPresets,
 } from './Card'
 export { ErrorBoundary, withErrorBoundary } from './ErrorBoundary'
 export { CommandPalette } from './CommandPalette'
@@ -26,6 +34,10 @@ export type {
   DateRangePickerProps,
   UserAssignmentSelectorProps,
   DependenciesSelectorProps,
+  DragPhysicsProps,
+  DragPhysicsPreset,
+  FlipCardProps,
+  FlipCardPreset,
   User,
 } from './Card'
 export type { ErrorBoundaryProps } from './ErrorBoundary'
@@ -48,12 +60,14 @@ export type { ExportImportModalProps } from './ExportImport'
 export type { FilterBarProps } from './FilterBar'
 export { ConfigMenu } from './ConfigMenu'
 export { ThemeModal } from './ThemeModal'
+export { CoverImageManager } from './CoverImage'
 
 // Lazy Load Wrapper
 // export { LazyLoadWrapper, withLazyLoad } from './LazyLoadWrapper'
 // export type { LazyLoadWrapperProps } from './LazyLoadWrapper'
 export type { ConfigMenuProps } from './ConfigMenu'
 export type { ThemeModalProps } from './ThemeModal'
+export type { CoverImageManagerProps } from './CoverImage'
 
 // Gantt Components (v0.8.0 - coming soon)
 // export { GanttView, GanttTimeline } from './Gantt'

@@ -1,0 +1,142 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`CoverImageManager > Visual Regression Tests > should match snapshot for button styles 1`] = `
+<div
+  class="cover-image-actions"
+>
+  <button
+    class="cover-image-button"
+  >
+    <svg
+      fill="none"
+      height="16"
+      stroke="currentColor"
+      stroke-width="2"
+      viewBox="0 0 24 24"
+      width="16"
+    >
+      <polyline
+        points="7 13 12 8 17 13"
+      />
+      <polyline
+        points="7 17 12 12 17 17"
+      />
+    </svg>
+    Reposition
+  </button>
+  <button
+    class="cover-image-button"
+  >
+    <svg
+      fill="none"
+      height="16"
+      stroke="currentColor"
+      stroke-width="2"
+      viewBox="0 0 24 24"
+      width="16"
+    >
+      <path
+        d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"
+      />
+    </svg>
+    Change
+  </button>
+  <button
+    class="cover-image-button cover-image-button-danger"
+  >
+    <svg
+      fill="none"
+      height="16"
+      stroke="currentColor"
+      stroke-width="2"
+      viewBox="0 0 24 24"
+      width="16"
+    >
+      <polyline
+        points="3 6 5 6 21 6"
+      />
+      <path
+        d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+      />
+    </svg>
+    Remove
+  </button>
+</div>
+`;
+
+exports[`CoverImageManager > Visual Regression Tests > should match snapshot for preview mode with buttons 1`] = `
+<div
+  class="cover-image-preview"
+>
+  <div
+    class="cover-image-preview-container"
+  >
+    <img
+      alt="Cover"
+      src="https://example.com/image.jpg"
+      style="transform: translateY(0%);"
+    />
+  </div>
+  <div
+    class="cover-image-actions"
+  >
+    <button
+      class="cover-image-button"
+    >
+      <svg
+        fill="none"
+        height="16"
+        stroke="currentColor"
+        stroke-width="2"
+        viewBox="0 0 24 24"
+        width="16"
+      >
+        <polyline
+          points="7 13 12 8 17 13"
+        />
+        <polyline
+          points="7 17 12 12 17 17"
+        />
+      </svg>
+      Reposition
+    </button>
+    <button
+      class="cover-image-button"
+    >
+      <svg
+        fill="none"
+        height="16"
+        stroke="currentColor"
+        stroke-width="2"
+        viewBox="0 0 24 24"
+        width="16"
+      >
+        <path
+          d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"
+        />
+      </svg>
+      Change
+    </button>
+    <button
+      class="cover-image-button cover-image-button-danger"
+    >
+      <svg
+        fill="none"
+        height="16"
+        stroke="currentColor"
+        stroke-width="2"
+        viewBox="0 0 24 24"
+        width="16"
+      >
+        <polyline
+          points="3 6 5 6 21 6"
+        />
+        <path
+          d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+        />
+      </svg>
+      Remove
+    </button>
+  </div>
+</div>
+`;

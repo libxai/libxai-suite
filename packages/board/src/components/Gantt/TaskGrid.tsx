@@ -44,7 +44,7 @@ interface TaskGridProps {
 }
 
 /**
- * 🎨 Get task icon based on task name/type
+ * Get task icon based on task name/type
  * Provides visual categorization for task types
  */
 function getTaskIcon(taskName: string) {
@@ -283,56 +283,6 @@ export function TaskGrid({
               </button>
             )}
 
-            {/* Type Icon: Milestone (diamond), Task (circle), or Subtask (small filled dot) */}
-            <div className="flex-shrink-0" style={{ opacity: level === 0 ? 0.7 : level === 1 ? 0.6 : 0.5 }}>
-              {task.isMilestone ? (
-                // Diamond icon for milestones
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                  <path
-                    d="M7 1L12 7L7 13L2 7L7 1Z"
-                    stroke={theme.accent}
-                    strokeWidth="1.5"
-                    fill="none"
-                  />
-                </svg>
-              ) : level >= 2 ? (
-                // Small filled circle for subtasks (level 2+)
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                  <circle
-                    cx="7"
-                    cy="7"
-                    r="2.5"
-                    fill={theme.textTertiary}
-                    opacity="0.5"
-                  />
-                </svg>
-              ) : level === 1 ? (
-                // Regular circle for tasks (level 1)
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                  <circle
-                    cx="7"
-                    cy="7"
-                    r="5"
-                    stroke={theme.textTertiary}
-                    strokeWidth="1.5"
-                    fill="none"
-                  />
-                </svg>
-              ) : (
-                // Larger circle with thicker stroke for parent tasks (level 0)
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                  <circle
-                    cx="7"
-                    cy="7"
-                    r="5"
-                    stroke={theme.textSecondary}
-                    strokeWidth="2"
-                    fill="none"
-                  />
-                </svg>
-              )}
-            </div>
-
             {/* Task Name or Input */}
             {isEditing ? (
               <input
@@ -359,7 +309,7 @@ export function TaskGrid({
               />
             ) : (
               <>
-                {/* 🎨 Task Type Icon */}
+                {/* Task Type Icon */}
                 {(() => {
                   const IconComponent = getTaskIcon(task.name);
                   return (

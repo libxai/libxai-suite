@@ -843,6 +843,63 @@ export const ganttUtils = {
   },
 
   /**
+   * 🎯 ELITE UX FEATURE: Calculate ghost bar positions for dependent tasks during drag
+   * Shows WHERE dependent tasks will land BEFORE user releases mouse
+   * This is predictive intelligence that most tools don't implement smoothly
+   * @param tasks - All tasks
+   * @param draggedTaskId - Task being dragged
+   * @param newEndDate - Predicted end date of dragged task
+   * @returns Map of task IDs to their ghost positions {taskId: {startDate, endDate}}
+   */
+  calculateGhostPositions: (
+    tasks: Task[],
+    draggedTaskId: string,
+    newEndDate: Date
+  ): Map<string, { startDate: Date; endDate: Date }> => {
+    const ghostPositions = new Map<string, { startDate: Date; endDate: Date }>();
+    const draggedTask = ganttUtils.findTaskById(tasks, draggedTaskId);
+
+    if (!draggedTask) return ghostPositions;
+
+    // Get all tasks that depend on the dragged task
+    const dependents = ganttUtils.getDependentTasks(tasks, draggedTaskId);
+    if (dependents.length === 0) return ghostPositions;
+
+    // Calculate ghost positions recursively (cascade effect)
+    const calculateForDependents = (predecessorId: string, predecessorEndDate: Date) => {
+      const deps = ganttUtils.getDependentTasks(tasks, predecessorId);
+
+      for (const dependent of deps) {
+        if (!dependent.startDate || !dependent.endDate) continue;
+
+        // Calculate duration of dependent task
+        const duration = ganttUtils.calculateDuration(dependent.startDate, dependent.endDate);
+
+        // Ghost start date = predecessor end date + 1 day
+        const ghostStartDate = new Date(predecessorEndDate);
+        ghostStartDate.setDate(ghostStartDate.getDate() + 1);
+
+        // Ghost end date based on duration
+        const ghostEndDate = ganttUtils.calculateEndDate(ghostStartDate, duration);
+
+        // Store ghost position
+        ghostPositions.set(dependent.id, {
+          startDate: ghostStartDate,
+          endDate: ghostEndDate,
+        });
+
+        // Recursively calculate for tasks that depend on this one
+        calculateForDependents(dependent.id, ghostEndDate);
+      }
+    };
+
+    // Start cascade from the dragged task's new end date
+    calculateForDependents(draggedTaskId, newEndDate);
+
+    return ghostPositions;
+  },
+
+  /**
    * 🚀 KILLER FEATURE #3: Split a task (create GAP in the middle, like Bryntum/DHTMLX)
    * Same task, but work is paused for some days then continues
    * Example: Jan 1-10 → Split at Jan 5 with 3 day gap → Jan 1-4 [GAP] Jan 8-13
