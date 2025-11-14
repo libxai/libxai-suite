@@ -313,7 +313,21 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
 
     createSubtask: (parentId: string) => {
       setLocalTasks((prev) => {
-        const { tasks } = createSubtask(prev, parentId);
+        const { tasks, newTask } = createSubtask(prev, parentId);
+
+        // v0.8.0: Before event (cancelable)
+        if (onBeforeTaskAdd) {
+          const shouldContinue = onBeforeTaskAdd({ ...newTask, parentId });
+          if (shouldContinue === false) {
+            return prev; // Cancel creation
+          }
+        }
+
+        // v0.8.0: After event (non-cancelable)
+        if (onAfterTaskAdd) {
+          onAfterTaskAdd({ ...newTask, parentId });
+        }
+
         return tasks;
       });
     },
