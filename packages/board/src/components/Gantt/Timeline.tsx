@@ -101,18 +101,87 @@ export function Timeline({
     onTaskDateChange?.(task, clickedDate, endDate);
   }, [pixelToDate, onTaskDateChange]);
 
-  // Flatten tasks for rendering
-  const flattenTasks = (tasks: Task[], result: Task[] = []): Task[] => {
-    for (const task of tasks) {
-      result.push(task);
-      if (task.subtasks && task.subtasks.length > 0 && task.isExpanded) {
-        flattenTasks(task.subtasks, result);
-      }
-    }
-    return result;
-  };
+  // Calculate parent task dates from subtasks and flatten for rendering
+  const flatTasks = useMemo(() => {
+    console.log('🔥 Timeline: Calculating parent dates for', tasks.length, 'tasks');
 
-  const flatTasks = flattenTasks(tasks);
+    // Helper function to calculate parent dates from subtasks
+    const calculateParentDates = (tasks: Task[]): Task[] => {
+      return tasks.map(task => {
+        // If task has subtasks, calculate dates from them
+        if (task.subtasks && task.subtasks.length > 0) {
+          // First, recursively calculate dates for nested subtasks
+          const updatedSubtasks = calculateParentDates(task.subtasks);
+
+          // Filter subtasks that have dates
+          const subtasksWithDates = updatedSubtasks.filter(st => st.startDate && st.endDate);
+
+          if (subtasksWithDates.length > 0) {
+            // Calculate earliest start and latest end from subtasks
+            const startDates = subtasksWithDates.map(st => st.startDate!.getTime());
+            const endDates = subtasksWithDates.map(st => st.endDate!.getTime());
+
+            const earliestStart = new Date(Math.min(...startDates));
+            const latestEnd = new Date(Math.max(...endDates));
+
+            console.log('✅ Parent task dates calculated:', {
+              taskName: task.name,
+              earliestStart: earliestStart.toISOString(),
+              latestEnd: latestEnd.toISOString(),
+              subtasksCount: subtasksWithDates.length
+            });
+
+            return {
+              ...task,
+              subtasks: updatedSubtasks,
+              startDate: earliestStart,
+              endDate: latestEnd,
+            };
+          }
+
+          return { ...task, subtasks: updatedSubtasks };
+        }
+
+        return task;
+      });
+    };
+
+    // Helper function to flatten tasks for rendering
+    const flattenTasks = (tasks: Task[], result: Task[] = []): Task[] => {
+      for (const task of tasks) {
+        result.push(task);
+        // Only include subtasks if parent is expanded (or if isExpanded is undefined, default to true)
+        if (task.subtasks && task.subtasks.length > 0 && (task.isExpanded === undefined || task.isExpanded)) {
+          flattenTasks(task.subtasks, result);
+        }
+      }
+      return result;
+    };
+
+    // Apply parent date calculation before flattening
+    const tasksWithCalculatedDates = calculateParentDates(tasks);
+
+    console.log('🔍 Tasks BEFORE flattening:', tasksWithCalculatedDates.map(t => ({
+      name: t.name,
+      hasSubtasks: !!(t.subtasks && t.subtasks.length > 0),
+      subtasksCount: t.subtasks?.length || 0,
+      isExpanded: t.isExpanded,
+      hasStartDate: !!t.startDate,
+      hasEndDate: !!t.endDate,
+    })));
+
+    const flattened = flattenTasks(tasksWithCalculatedDates);
+
+    console.log('📋 Flattened tasks:', flattened.map(t => ({
+      name: t.name,
+      hasStartDate: !!t.startDate,
+      hasEndDate: !!t.endDate,
+      startDate: t.startDate?.toISOString(),
+      endDate: t.endDate?.toISOString(),
+    })));
+
+    return flattened;
+  }, [tasks]);
 
   // Calculate task position
   const getTaskPosition = useCallback((task: Task) => {
@@ -255,7 +324,7 @@ export function Timeline({
                   width={nextX - header.x}
                   height={flatTasks.length * ROW_HEIGHT}
                   fill={theme.bgWeekend}
-                  opacity={0.6}
+                  opacity={1}
                 />
               )}
 
@@ -422,18 +491,29 @@ export function Timeline({
           }
 
           if (isContainer) {
-            // Render container as bracket bar
+            // Render container as elegant bracket bar with task name
             return (
               <g key={task.id} onClick={() => onTaskClick?.(task)} style={{ cursor: 'pointer' }}>
+                {/* Background fill - elegant and visible */}
+                <rect
+                  x={x}
+                  y={y}
+                  width={width}
+                  height={32}
+                  fill={theme.primary}
+                  opacity={0.25}
+                  rx={6}
+                />
                 {/* Top bracket line */}
                 <line
                   x1={x}
                   y1={y}
                   x2={x + width}
                   y2={y}
-                  stroke={theme.borderLight}
-                  strokeWidth={2}
-                  opacity={0.6}
+                  stroke={theme.primary}
+                  strokeWidth={3}
+                  opacity={0.9}
+                  strokeLinecap="round"
                 />
                 {/* Left vertical */}
                 <line
@@ -441,9 +521,10 @@ export function Timeline({
                   y1={y}
                   x2={x}
                   y2={y + 32}
-                  stroke={theme.borderLight}
-                  strokeWidth={2}
-                  opacity={0.6}
+                  stroke={theme.primary}
+                  strokeWidth={3}
+                  opacity={0.9}
+                  strokeLinecap="round"
                 />
                 {/* Right vertical */}
                 <line
@@ -451,9 +532,10 @@ export function Timeline({
                   y1={y}
                   x2={x + width}
                   y2={y + 32}
-                  stroke={theme.borderLight}
-                  strokeWidth={2}
-                  opacity={0.6}
+                  stroke={theme.primary}
+                  strokeWidth={3}
+                  opacity={0.9}
+                  strokeLinecap="round"
                 />
                 {/* Bottom bracket line */}
                 <line
@@ -461,10 +543,22 @@ export function Timeline({
                   y1={y + 32}
                   x2={x + width}
                   y2={y + 32}
-                  stroke={theme.borderLight}
-                  strokeWidth={2}
-                  opacity={0.6}
+                  stroke={theme.primary}
+                  strokeWidth={3}
+                  opacity={0.9}
+                  strokeLinecap="round"
                 />
+                {/* Task name text */}
+                <text
+                  x={x + 8}
+                  y={y + 20}
+                  fill={theme.text}
+                  fontSize="13"
+                  fontWeight="600"
+                  opacity={0.95}
+                >
+                  {task.name}
+                </text>
               </g>
             );
           }
