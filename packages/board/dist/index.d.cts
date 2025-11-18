@@ -1570,6 +1570,7 @@ interface GanttConfig {
     onAfterTaskDelete?: (taskId: string) => void;
     onTaskCreate?: (parentId: string | undefined, position: number) => void;
     onTaskDelete?: (taskId: string) => void;
+    onMultiTaskDelete?: (taskIds: string[]) => void;
     onTaskDuplicate?: (taskId: string) => void;
     onTaskMove?: (taskId: string, direction: 'up' | 'down') => void;
     onTaskIndent?: (taskId: string) => void;
@@ -1798,7 +1799,6 @@ interface TaskGridProps {
     columns: GanttColumn[];
     onToggleColumn: (columnType: ColumnType) => void;
     onTaskUpdate?: (taskId: string, updates: Partial<Task>) => void;
-    onTaskDelete?: (taskId: string) => void;
     onTaskIndent?: (taskIds: string[]) => void;
     onTaskOutdent?: (taskIds: string[]) => void;
     onTaskMove?: (taskIds: string[], direction: 'up' | 'down') => void;
@@ -1812,7 +1812,7 @@ interface TaskGridProps {
 declare function TaskGrid({ tasks, theme, rowHeight: ROW_HEIGHT, availableUsers, templates: _templates, // TODO: Use templates for custom rendering
 onTaskClick, onTaskDblClick, // v0.8.0
 onTaskContextMenu, // v0.8.0
-onTaskToggle, scrollTop: _scrollTop, columns, onToggleColumn, onTaskUpdate, onTaskDelete, onTaskIndent, onTaskOutdent, onTaskMove, onMultiTaskDelete, onTaskDuplicate, onTaskCreate, onTaskRename, onCreateSubtask, onOpenTaskModal, }: TaskGridProps): react_jsx_runtime.JSX.Element;
+onTaskToggle, scrollTop: _scrollTop, columns, onToggleColumn, onTaskUpdate, onTaskIndent, onTaskOutdent, onTaskMove, onMultiTaskDelete, onTaskDuplicate, onTaskCreate, onTaskRename, onCreateSubtask, onOpenTaskModal, }: TaskGridProps): react_jsx_runtime.JSX.Element;
 
 interface TimelineProps {
     tasks: Task[];
