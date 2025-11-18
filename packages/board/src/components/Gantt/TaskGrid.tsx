@@ -26,7 +26,6 @@ interface TaskGridProps {
   columns: GanttColumn[];
   onToggleColumn: (columnType: ColumnType) => void;
   onTaskUpdate?: (taskId: string, updates: Partial<Task>) => void;
-  onTaskDelete?: (taskId: string) => void;
 
   // Hierarchy handlers
   onTaskIndent?: (taskIds: string[]) => void;
@@ -54,7 +53,6 @@ export function TaskGrid({
   columns,
   onToggleColumn,
   onTaskUpdate,
-  onTaskDelete,
   onTaskIndent,
   onTaskOutdent,
   onTaskMove,
@@ -558,7 +556,7 @@ export function TaskGrid({
         icon: MenuIcons.Delete,
         onClick: () => {
           if (window.confirm(`Delete task "${task.name}"?`)) {
-            onTaskDelete?.(task.id);
+            onMultiTaskDelete?.([task.id]);
           }
         },
       },

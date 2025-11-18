@@ -310,6 +310,7 @@ export interface GanttConfig {
   // ==================== Hierarchy Callbacks ====================
   onTaskCreate?: (parentId: string | undefined, position: number) => void;
   onTaskDelete?: (taskId: string) => void;
+  onMultiTaskDelete?: (taskIds: string[]) => void; // Batch delete multiple tasks
   onTaskDuplicate?: (taskId: string) => void;
   onTaskMove?: (taskId: string, direction: 'up' | 'down') => void;
   onTaskIndent?: (taskId: string) => void;

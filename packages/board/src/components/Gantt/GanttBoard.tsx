@@ -72,8 +72,6 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     onAfterTaskAdd,
     onBeforeTaskUpdate,
     onAfterTaskUpdate,
-    onBeforeTaskDelete,
-    onAfterTaskDelete,
   } = config;
 
   // Try to get global theme from ThemeProvider (will return undefined if not in ThemeProvider)
@@ -123,6 +121,12 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     canRedo,
     clearHistory,
   } = useUndoRedo<Task[]>(tasks, 50);
+
+  // Sync parent tasks prop changes to local state (e.g., after external DB operations)
+  useEffect(() => {
+    console.log('📥 GanttBoard: Parent tasks prop changed, syncing to localTasks', tasks.length);
+    setLocalTasks(tasks);
+  }, [tasks, setLocalTasks]);
 
   // Sync local tasks with parent when they change
   useEffect(() => {
@@ -527,31 +531,6 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     }
   }, [localTasks, onTaskUpdate, onBeforeTaskUpdate, onAfterTaskUpdate, onProgressChange]);
 
-  // Handle task deletion (memoized)
-  const handleTaskDelete = useCallback((taskId: string) => {
-    // v0.8.0: Before event (cancelable)
-    if (onBeforeTaskDelete) {
-      const shouldContinue = onBeforeTaskDelete(taskId);
-      if (shouldContinue === false) {
-        return; // Cancel the deletion
-      }
-    }
-
-    const deleteTask = (tasks: Task[]): Task[] => {
-      return tasks.filter(task => {
-        if (task.id === taskId) return false;
-        if (task.subtasks) {
-          task.subtasks = deleteTask(task.subtasks);
-        }
-        return true;
-      });
-    };
-    setLocalTasks(deleteTask(localTasks));
-
-    // v0.8.0: After event
-    onAfterTaskDelete?.(taskId);
-  }, [localTasks, onBeforeTaskDelete, onAfterTaskDelete]);
-
   // Hierarchy handlers
   const handleTaskIndent = useCallback((taskIds: string[]) => {
     if (taskIds.length === 0) return;
@@ -572,8 +551,16 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   }, [config]);
 
   const handleMultiTaskDelete = useCallback((taskIds: string[]) => {
-    setLocalTasks((prev) => deleteTasks(prev, taskIds));
-    taskIds.forEach(id => config.onTaskDelete?.(id));
+    console.log('📦 GanttBoard handleMultiTaskDelete called:', taskIds);
+
+    // Call the SaaS onMultiTaskDelete handler if provided
+    if (config.onMultiTaskDelete) {
+      config.onMultiTaskDelete(taskIds);
+    } else {
+      // Fallback: update local state and call individual delete handlers
+      setLocalTasks((prev) => deleteTasks(prev, taskIds));
+      taskIds.forEach(id => config.onTaskDelete?.(id));
+    }
   }, [config]);
 
   const handleTaskDuplicate = useCallback((taskIds: string[]) => {
@@ -939,7 +926,6 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
             columns={columns}
             onToggleColumn={handleToggleColumn}
             onTaskUpdate={handleTaskUpdate}
-            onTaskDelete={handleTaskDelete}
             onTaskIndent={handleTaskIndent}
             onTaskOutdent={handleTaskOutdent}
             onTaskMove={handleTaskMove}

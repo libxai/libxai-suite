@@ -492,6 +492,8 @@ export function Timeline({
 
           if (isContainer) {
             // Render container as elegant bracket bar with task name
+            console.log('🎨 Rendering container task:', task.name, 'at', { x, y, width });
+
             return (
               <g key={task.id} onClick={() => onTaskClick?.(task)} style={{ cursor: 'pointer' }}>
                 {/* Background fill - elegant and visible */}
@@ -548,17 +550,21 @@ export function Timeline({
                   opacity={0.9}
                   strokeLinecap="round"
                 />
-                {/* Task name text */}
-                <text
-                  x={x + 8}
-                  y={y + 20}
-                  fill={theme.text}
-                  fontSize="13"
-                  fontWeight="600"
-                  opacity={0.95}
-                >
-                  {task.name}
-                </text>
+                {/* Task name text - Matching TaskBar pattern */}
+                {width > 60 && (
+                  <text
+                    x={x + 12}
+                    y={y + 16}
+                    dominantBaseline="middle"
+                    fill="#FFFFFF"
+                    fontSize="13"
+                    fontWeight="500"
+                    fontFamily="Inter, sans-serif"
+                    style={{ pointerEvents: 'none', userSelect: 'none' }}
+                  >
+                    {task.name}
+                  </text>
+                )}
               </g>
             );
           }
