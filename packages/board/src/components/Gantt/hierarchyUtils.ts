@@ -274,11 +274,17 @@ export function createTask(
   direction: 'above' | 'below'
 ): { tasks: Task[]; newTask: Task } {
   const result = [...tasks];
+  const today = new Date();
+  const weekFromNow = new Date(today);
+  weekFromNow.setDate(weekFromNow.getDate() + 7);
+
   const newTask: Task = {
     id: `task-${Date.now()}`,
     name: 'New Task',
     progress: 0,
     status: 'todo',
+    startDate: today,
+    endDate: weekFromNow,
   };
 
   const insertTask = (tasks: Task[]): boolean => {
@@ -339,11 +345,17 @@ export function createSubtask(
   tasks: Task[],
   parentTaskId: string
 ): { tasks: Task[]; newTask: Task } {
+  const today = new Date();
+  const weekFromNow = new Date(today);
+  weekFromNow.setDate(weekFromNow.getDate() + 7);
+
   const newTask: Task = {
     id: `task-${Date.now()}`,
     name: 'New Subtask',
     progress: 0,
     status: 'todo',
+    startDate: today,
+    endDate: weekFromNow,
   };
 
   const addSubtask = (tasks: Task[]): Task[] => {

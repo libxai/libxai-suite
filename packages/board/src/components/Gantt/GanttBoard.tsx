@@ -133,7 +133,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
 
   // Column configuration - Default: Only show task name
   const [columns, setColumns] = useState<GanttColumn[]>([
-    { id: 'name', label: 'Task Name', width: 240, visible: true, sortable: true },
+    { id: 'name', label: 'TASK NAME', width: 240, visible: true, sortable: true },
     { id: 'startDate', label: 'Start Date', width: 110, visible: false, sortable: true },
     { id: 'endDate', label: 'End Date', width: 110, visible: false, sortable: true },
     { id: 'duration', label: 'Duration', width: 80, visible: false, sortable: true },

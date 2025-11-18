@@ -57,6 +57,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsup",
+    "build:watch": "tsup --watch",
+    "build:dev": "tsup --config tsup.config.dev.ts --watch",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
