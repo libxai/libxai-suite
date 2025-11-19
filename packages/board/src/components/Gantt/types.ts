@@ -300,11 +300,11 @@ export interface GanttConfig {
 
   // ==================== Lifecycle Events (Before/After) ====================
   // v0.8.0: Cancelable "before" events return false to cancel the operation
-  onBeforeTaskAdd?: (task: Task) => boolean | void; // Return false to cancel
+  onBeforeTaskAdd?: (task: Task) => boolean | void | Promise<boolean | void>; // Return false to cancel, supports async
   onAfterTaskAdd?: (task: Task) => void;
-  onBeforeTaskUpdate?: (taskId: string, newData: Partial<Task>) => boolean | void; // Return false to cancel
+  onBeforeTaskUpdate?: (taskId: string, newData: Partial<Task>) => boolean | void | Promise<boolean | void>; // Return false to cancel, supports async
   onAfterTaskUpdate?: (task: Task) => void;
-  onBeforeTaskDelete?: (taskId: string) => boolean | void; // Return false to cancel
+  onBeforeTaskDelete?: (taskId: string) => boolean | void | Promise<boolean | void>; // Return false to cancel, supports async
   onAfterTaskDelete?: (taskId: string) => void;
 
   // ==================== Hierarchy Callbacks ====================

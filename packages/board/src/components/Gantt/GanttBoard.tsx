@@ -315,25 +315,27 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       setLocalTasks((prev) => moveTasks(prev, [taskId], direction));
     },
 
-    createSubtask: (parentId: string) => {
-      setLocalTasks((prev) => {
-        const { tasks, newTask } = createSubtask(prev, parentId);
+    createSubtask: async (parentId: string) => {
+      // Create subtask first
+      const { tasks: newTasks, newTask } = createSubtask(localTasks, parentId);
 
-        // v0.8.0: Before event (cancelable)
-        if (onBeforeTaskAdd) {
-          const shouldContinue = onBeforeTaskAdd({ ...newTask, parentId });
-          if (shouldContinue === false) {
-            return prev; // Cancel creation
-          }
+      // v0.8.0: Before event (cancelable, supports async)
+      if (onBeforeTaskAdd) {
+        const result = onBeforeTaskAdd({ ...newTask, parentId });
+        // Handle both sync and async callbacks
+        const shouldContinue = result instanceof Promise ? await result : result;
+        if (shouldContinue === false) {
+          return; // Cancel creation
         }
+      }
 
-        // v0.8.0: After event (non-cancelable)
-        if (onAfterTaskAdd) {
-          onAfterTaskAdd({ ...newTask, parentId });
-        }
+      // Only update state if not cancelled
+      setLocalTasks(newTasks);
 
-        return tasks;
-      });
+      // v0.8.0: After event (non-cancelable)
+      if (onAfterTaskAdd) {
+        onAfterTaskAdd({ ...newTask, parentId });
+      }
     },
 
     // ==================== UI Methods ====================
