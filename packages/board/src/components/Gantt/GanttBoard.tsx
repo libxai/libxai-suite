@@ -57,6 +57,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     showThemeSelector = true,
     availableUsers = [],
     templates,
+    enableAutoCriticalPath = true, // v0.11.1: Allow disabling automatic CPM calculation
     // UI events
     onThemeChange, // v0.9.0
     // Basic events
@@ -176,7 +177,13 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
 
   // 🚀 KILLER FEATURE #1: Calculate Critical Path (auto-updates when tasks change)
   // This is BETTER than DHTMLX - we recalculate CPM automatically on every change
+  // v0.11.1: Can be disabled via enableAutoCriticalPath prop to preserve custom colors
   const tasksWithCriticalPath = useMemo(() => {
+    // If auto critical path is disabled, return tasks as-is (preserve custom colors)
+    if (!enableAutoCriticalPath) {
+      return localTasks;
+    }
+
     const criticalPathIds = ganttUtils.calculateCriticalPath(localTasks);
 
     const markCritical = (tasks: Task[]): Task[] => {
@@ -188,7 +195,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     };
 
     return markCritical(localTasks);
-  }, [localTasks]);
+  }, [localTasks, enableAutoCriticalPath]);
 
   // Calculate row height based on density
   const rowHeight = getRowHeight(rowDensity);
