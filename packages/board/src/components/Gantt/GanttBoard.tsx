@@ -5,6 +5,7 @@ import { GanttToolbar } from './GanttToolbar';
 import { TaskGrid } from './TaskGrid';
 import { Timeline } from './Timeline';
 import { ContextMenu, MenuIcons } from './ContextMenu'; // v0.8.0: Split task context menu
+import { TaskFormModal } from './TaskFormModal'; // v0.10.0: Task edit modal
 import { motion } from 'framer-motion';
 import { useUndoRedo } from './useUndoRedo';
 import { useGanttUndoRedoKeys } from './useGanttUndoRedoKeys';
@@ -94,6 +95,9 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     y: 0,
     task: null,
   });
+
+  // v0.10.0: Task form modal state for editing
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   // Sync with global theme changes
   useEffect(() => {
@@ -665,6 +669,15 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     setContextMenu({ isOpen: false, x: 0, y: 0, task: null });
   }, [localTasks]);
 
+  // v0.10.0: Handle task double click - open edit modal
+  const handleTaskDblClickInternal = useCallback((task: Task) => {
+    // Call user's custom handler if provided
+    onTaskDblClick?.(task);
+
+    // Open built-in edit modal
+    setEditingTask(task);
+  }, [onTaskDblClick]);
+
   // Helper function to detect circular dependencies using DFS
   const wouldCreateCircularDependency = useCallback((fromTaskId: string, toTaskId: string, tasks: Task[]): boolean => {
     // Build dependency map
@@ -921,7 +934,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
             availableUsers={availableUsers}
             templates={mergedTemplates}
             onTaskClick={onTaskClick}
-            onTaskDblClick={onTaskDblClick} // v0.8.0
+            onTaskDblClick={handleTaskDblClickInternal} // v0.10.0: Use internal handler that opens modal
             onTaskContextMenu={onTaskContextMenu} // v0.8.0
             onTaskToggle={handleTaskToggle}
             scrollTop={scrollTop}
@@ -984,7 +997,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
             zoom={zoom}
             templates={mergedTemplates}
             onTaskClick={onTaskClick}
-            onTaskDblClick={onTaskDblClick} // v0.8.0
+            onTaskDblClick={handleTaskDblClickInternal} // v0.10.0: Use internal handler that opens modal
             onTaskContextMenu={handleTaskContextMenu} // v0.8.0: Now uses our handler for Split feature
             onTaskDateChange={handleTaskDateChange}
             onDependencyCreate={handleDependencyCreate}
@@ -1024,6 +1037,21 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
               disabled: !contextMenu.task?.startDate || !contextMenu.task?.endDate,
             },
           ]}
+        />
+      )}
+
+      {/* v0.10.0: Task Edit Modal */}
+      {editingTask && (
+        <TaskFormModal
+          isOpen={true}
+          onClose={() => setEditingTask(null)}
+          task={editingTask}
+          onSubmit={(updates) => {
+            handleTaskUpdate(editingTask.id, updates);
+            setEditingTask(null);
+          }}
+          mode="edit"
+          theme={currentTheme}
         />
       )}
     </div>
