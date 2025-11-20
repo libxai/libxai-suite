@@ -267,6 +267,7 @@ export function duplicateTasks(tasks: Task[], taskIds: string[]): Task[] {
 
 /**
  * Create a new task
+ * v0.11.0: New tasks start with default blue color
  */
 export function createTask(
   tasks: Task[],
@@ -285,6 +286,7 @@ export function createTask(
     status: 'todo',
     startDate: today,
     endDate: weekFromNow,
+    color: '#6366F1', // v0.11.0: Default blue pastel color
   };
 
   const insertTask = (tasks: Task[]): boolean => {
@@ -340,6 +342,7 @@ export function toggleTaskExpansion(tasks: Task[], taskId: string): Task[] {
 
 /**
  * Create a subtask for a parent task
+ * v0.11.0: Subtasks inherit parent color
  */
 export function createSubtask(
   tasks: Task[],
@@ -349,6 +352,20 @@ export function createSubtask(
   const weekFromNow = new Date(today);
   weekFromNow.setDate(weekFromNow.getDate() + 7);
 
+  // Find parent task to inherit color
+  const findParent = (tasks: Task[]): Task | null => {
+    for (const task of tasks) {
+      if (task.id === parentTaskId) return task;
+      if (task.subtasks) {
+        const found = findParent(task.subtasks);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+
+  const parentTask = findParent(tasks);
+
   const newTask: Task = {
     id: `task-${Date.now()}`,
     name: 'New Subtask',
@@ -356,6 +373,7 @@ export function createSubtask(
     status: 'todo',
     startDate: today,
     endDate: weekFromNow,
+    color: parentTask?.color || '#6366F1', // v0.11.0: Inherit parent color
   };
 
   const addSubtask = (tasks: Task[]): Task[] => {

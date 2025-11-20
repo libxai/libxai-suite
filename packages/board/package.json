@@ -1,6 +1,6 @@
 {
   "name": "@libxai/board",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "type": "module",
   "description": "Professional Gantt Chart + Kanban Board for React - Part of LibXAI Suite - TypeScript - Production-Ready - Zero Config",
   "author": "LibXAI <hello@libxai.com>",

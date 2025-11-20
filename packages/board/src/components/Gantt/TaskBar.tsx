@@ -540,6 +540,7 @@ export function TaskBar({
 
       {/* Main Task Bar - Background (light for contrast with progress) - v0.8.0: With custom class */}
       {/* v0.8.1: Hide main bar when task has segments (split task) */}
+      {/* v0.11.0: Custom task colors with parent/subtask opacity */}
       {!task.segments && (
         <motion.rect
           x={displayX}
@@ -547,11 +548,23 @@ export function TaskBar({
           width={displayWidth}
           height={height}
           rx={borderRadius}
-          fill={task.isCriticalPath ? '#DC2626' : theme.taskBarPrimary}
+          fill={
+            task.isCriticalPath
+              ? '#DC2626' // Critical path always red
+              : task.color
+              ? task.color // v0.11.0: Custom color
+              : theme.taskBarPrimary // Fallback to theme
+          }
           data-task-class={customClass}
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{
-            opacity: isDragging && !isConnecting ? 0.15 : isHovered ? 0.25 : 0.2,  // Much lighter background
+            opacity: isDragging && !isConnecting
+              ? 0.15
+              : task.parentId
+              ? 0.6 // v0.11.0: Subtasks more transparent (60%)
+              : isHovered
+              ? 0.9 // Parent tasks more opaque on hover
+              : 0.8, // Parent tasks base opacity (80%)
             scale: isHovered && !isDragging ? 1.02 : 1,
           }}
           transition={{
@@ -599,16 +612,29 @@ export function TaskBar({
             onMouseLeave={() => !isDragging && setHoveredSegmentIndex(null)}
           >
             {/* Segment background - interactive */}
+            {/* v0.11.0: Custom task colors for segments */}
             <motion.rect
               x={displaySegmentX}
               y={y}
               width={segmentWidth}
               height={height}
               rx={borderRadius}
-              fill={task.isCriticalPath ? '#DC2626' : theme.taskBarPrimary}
+              fill={
+                task.isCriticalPath
+                  ? '#DC2626' // Critical path always red
+                  : task.color
+                  ? task.color // v0.11.0: Custom color
+                  : theme.taskBarPrimary // Fallback to theme
+              }
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{
-                opacity: isThisSegmentDragging ? 0.6 : isThisSegmentHovered ? 0.9 : 0.8,
+                opacity: isThisSegmentDragging
+                  ? 0.6
+                  : task.parentId
+                  ? 0.6 // v0.11.0: Subtask segments more transparent
+                  : isThisSegmentHovered
+                  ? 0.9
+                  : 0.8,
                 scale: isThisSegmentHovered && !isDragging ? 1.02 : 1,
               }}
               transition={{

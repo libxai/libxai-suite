@@ -1329,6 +1329,7 @@ interface Task {
     isExpanded?: boolean;
     isMilestone?: boolean;
     isCriticalPath?: boolean;
+    color?: string;
     segments?: TaskSegment[];
     parentId?: string;
     level?: number;
@@ -1562,11 +1563,11 @@ interface GanttConfig {
     onProgressChange?: (taskId: string, oldProgress: number, newProgress: number) => void;
     onDependencyCreate?: (fromTaskId: string, toTaskId: string) => void;
     onDependencyDelete?: (taskId: string, dependencyId: string) => void;
-    onBeforeTaskAdd?: (task: Task) => boolean | void;
+    onBeforeTaskAdd?: (task: Task) => boolean | void | Promise<boolean | void>;
     onAfterTaskAdd?: (task: Task) => void;
-    onBeforeTaskUpdate?: (taskId: string, newData: Partial<Task>) => boolean | void;
+    onBeforeTaskUpdate?: (taskId: string, newData: Partial<Task>) => boolean | void | Promise<boolean | void>;
     onAfterTaskUpdate?: (task: Task) => void;
-    onBeforeTaskDelete?: (taskId: string) => boolean | void;
+    onBeforeTaskDelete?: (taskId: string) => boolean | void | Promise<boolean | void>;
     onAfterTaskDelete?: (taskId: string) => void;
     onTaskCreate?: (parentId: string | undefined, position: number) => void;
     onTaskDelete?: (taskId: string) => void;
@@ -1928,6 +1929,7 @@ interface TaskFormData {
     progress: number;
     status: 'todo' | 'in-progress' | 'completed';
     isMilestone: boolean;
+    color?: string;
     assignees?: Array<{
         name: string;
         avatar?: string;
