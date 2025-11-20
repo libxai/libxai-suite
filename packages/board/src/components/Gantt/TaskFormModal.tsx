@@ -142,7 +142,30 @@ export function TaskFormModal({
   }
 
   const handleChange = (field: keyof TaskFormData, value: any) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
+    setFormData((prev) => {
+      const updated = { ...prev, [field]: value }
+
+      // Smart status updates based on progress
+      if (field === 'progress') {
+        const progressValue = typeof value === 'number' ? value : parseInt(value, 10)
+
+        // Auto-complete task when progress reaches 100%
+        if (progressValue === 100 && prev.status !== 'completed') {
+          updated.status = 'completed'
+        }
+        // Auto-start task when progress > 0 and status is still 'todo'
+        else if (progressValue > 0 && progressValue < 100 && prev.status === 'todo') {
+          updated.status = 'in-progress'
+        }
+        // Auto-reset to todo when progress is 0 and status is in-progress
+        else if (progressValue === 0 && prev.status === 'in-progress') {
+          updated.status = 'todo'
+        }
+      }
+
+      return updated
+    })
+
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors((prev) => {
@@ -297,23 +320,74 @@ export function TaskFormModal({
                       <Clock className="w-4 h-4" />
                       Progreso
                     </span>
-                    <span className="font-semibold" style={{ color: themeColors.accent }}>{formData.progress}%</span>
+                    <span
+                      className="font-semibold px-2 py-0.5 rounded text-sm"
+                      style={{
+                        color: formData.progress < 30 ? '#EF4444' : formData.progress < 70 ? '#F59E0B' : '#10B981',
+                        backgroundColor: formData.progress < 30 ? 'rgba(239, 68, 68, 0.1)' : formData.progress < 70 ? 'rgba(245, 158, 11, 0.1)' : 'rgba(16, 185, 129, 0.1)',
+                      }}
+                    >
+                      {formData.progress}%
+                    </span>
                   </label>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    step="5"
-                    value={formData.progress}
-                    onChange={(e) => handleChange('progress', parseInt(e.target.value))}
-                    className="w-full h-2 rounded-lg appearance-none cursor-pointer"
-                    style={{
-                      backgroundColor: themeColors.bgSecondary,
-                      accentColor: themeColors.accent,
-                    }}
-                    disabled={isLoading}
-                  />
-                  <div className="flex justify-between text-xs mt-1" style={{ color: themeColors.textTertiary }}>
+
+                  {/* Progress Slider with Color Gradient */}
+                  <div className="relative">
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      step="5"
+                      value={formData.progress}
+                      onChange={(e) => handleChange('progress', parseInt(e.target.value))}
+                      className="w-full h-2 rounded-lg appearance-none cursor-pointer"
+                      style={{
+                        backgroundColor: themeColors.bgSecondary,
+                        accentColor: formData.progress < 30 ? '#EF4444' : formData.progress < 70 ? '#F59E0B' : '#10B981',
+                      }}
+                      disabled={isLoading}
+                    />
+                    {/* Visual progress bar underneath */}
+                    <div
+                      className="absolute top-0 left-0 h-2 rounded-lg pointer-events-none transition-all duration-300"
+                      style={{
+                        width: `${formData.progress}%`,
+                        backgroundColor: formData.progress < 30 ? 'rgba(239, 68, 68, 0.3)' : formData.progress < 70 ? 'rgba(245, 158, 11, 0.3)' : 'rgba(16, 185, 129, 0.3)',
+                      }}
+                    />
+                  </div>
+
+                  {/* Quick Progress Buttons */}
+                  <div className="flex items-center justify-between mt-3 gap-2">
+                    <span className="text-xs" style={{ color: themeColors.textTertiary }}>Accesos rápidos:</span>
+                    <div className="flex gap-1.5">
+                      {[0, 25, 50, 75, 100].map((value) => (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => handleChange('progress', value)}
+                          disabled={isLoading}
+                          className="px-3 py-1 text-xs font-medium rounded-md transition-all duration-200 hover:scale-105 active:scale-95"
+                          style={{
+                            backgroundColor: formData.progress === value
+                              ? (value < 30 ? '#EF4444' : value < 70 ? '#F59E0B' : '#10B981')
+                              : themeColors.bgSecondary,
+                            color: formData.progress === value
+                              ? '#FFFFFF'
+                              : themeColors.textSecondary,
+                            border: `1px solid ${formData.progress === value
+                              ? (value < 30 ? '#EF4444' : value < 70 ? '#F59E0B' : '#10B981')
+                              : themeColors.borderLight}`,
+                          }}
+                        >
+                          {value}%
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Progress Labels */}
+                  <div className="flex justify-between text-xs mt-2" style={{ color: themeColors.textTertiary }}>
                     <span>0%</span>
                     <span>25%</span>
                     <span>50%</span>
