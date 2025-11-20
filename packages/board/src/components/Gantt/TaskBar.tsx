@@ -581,6 +581,7 @@ export function TaskBar({
 
       {/* Progress Fill - Solid color for instant visual scanning */}
       {/* Eye processes shape/color faster than text */}
+      {/* v0.11.0: Use custom task color for progress fill */}
       {!task.segments && (
         <rect
           x={displayX}
@@ -588,7 +589,13 @@ export function TaskBar({
           width={displayWidth * (task.progress / 100)}
           height={height}
           rx={borderRadius}
-          fill={theme.taskBarProgress}
+          fill={
+            task.isCriticalPath
+              ? '#DC2626' // Critical path always red
+              : task.color
+              ? task.color // v0.11.0: Custom color
+              : theme.taskBarProgress // Fallback to theme
+          }
           opacity={1}
           style={{ pointerEvents: 'none' }}
         />
@@ -653,14 +660,20 @@ export function TaskBar({
                 pointerEvents: 'all'
               }}
             />
-            {/* Segment progress */}
+            {/* Segment progress - v0.11.0: Use custom task color */}
             <rect
               x={displaySegmentX}
               y={y}
               width={segmentWidth * (task.progress / 100)}
               height={height}
               rx={borderRadius}
-              fill={theme.taskBarProgress}
+              fill={
+                task.isCriticalPath
+                  ? '#DC2626' // Critical path always red
+                  : task.color
+                  ? task.color // v0.11.0: Custom color
+                  : theme.taskBarProgress // Fallback to theme
+              }
               opacity={1}
               style={{ pointerEvents: 'none' }}
             />
