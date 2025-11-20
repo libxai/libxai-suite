@@ -15,9 +15,11 @@ import {
   Clock,
   AlertCircle,
   Milestone as MilestoneIcon,
+  Palette,
 } from 'lucide-react'
 import { Task, Theme } from './types'
 import { themes } from './themes'
+import { ColorPicker } from './ColorPicker'
 
 export interface TaskFormData {
   name: string
@@ -26,6 +28,7 @@ export interface TaskFormData {
   progress: number
   status: 'todo' | 'in-progress' | 'completed'
   isMilestone: boolean
+  color?: string // v0.11.0: Custom task color
   assignees?: Array<{ name: string; avatar?: string; initials: string; color: string }>
   dependencies?: string[]
 }
@@ -81,6 +84,7 @@ export function TaskFormModal({
     progress: 0,
     status: 'todo',
     isMilestone: false,
+    color: '#6366F1', // v0.11.0: Default blue pastel color
     assignees: [],
     dependencies: [],
   })
@@ -97,6 +101,7 @@ export function TaskFormModal({
         progress: task.progress,
         status: task.status || 'todo',
         isMilestone: task.isMilestone || false,
+        color: task.color || '#6366F1', // v0.11.0: Use task color or default
         assignees: task.assignees || [],
         dependencies: task.dependencies || [],
       })
@@ -107,6 +112,7 @@ export function TaskFormModal({
         progress: 0,
         status: 'todo',
         isMilestone: false,
+        color: '#6366F1', // v0.11.0: Default blue pastel color
         assignees: [],
         dependencies: [],
       })
@@ -311,6 +317,27 @@ export function TaskFormModal({
                     <option value="in-progress">En Progreso</option>
                     <option value="completed">Completada</option>
                   </select>
+                </div>
+
+                {/* v0.11.0: Color Picker */}
+                <div>
+                  <label className="block text-sm font-medium mb-3 flex items-center gap-2" style={labelStyle}>
+                    <Palette className="w-4 h-4" />
+                    Color de la Tarea
+                  </label>
+                  <ColorPicker
+                    value={formData.color}
+                    onChange={(color) => handleChange('color', color)}
+                    disabled={isLoading}
+                  />
+                  <p className="text-xs mt-2" style={{ color: themeColors.textTertiary }}>
+                    {task?.parentId
+                      ? 'Esta subtarea hereda el color de su tarea padre'
+                      : task?.subtasks && task.subtasks.length > 0
+                      ? 'Las subtareas heredarán este color con menor opacidad'
+                      : 'Elige un color para organizar visualmente tus tareas'
+                    }
+                  </p>
                 </div>
 
                 {/* Progress */}

@@ -17,6 +17,9 @@ export interface Task {
   isMilestone?: boolean;
   isCriticalPath?: boolean;
 
+  // v0.11.0: Custom task colors - pastel colors for visual organization
+  color?: string; // Hex color (e.g., '#6366F1') - subtasks inherit parent color with reduced opacity
+
   // v0.8.1: Split task support - multiple time segments with gaps
   segments?: TaskSegment[]; // When task is split, contains multiple date ranges
 
