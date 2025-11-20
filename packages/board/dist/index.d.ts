@@ -1554,6 +1554,13 @@ interface GanttConfig {
      * @see GanttScrollBehavior
      */
     scrollBehavior?: GanttScrollBehavior;
+    /**
+     * v0.11.1: Enable automatic Critical Path Method (CPM) calculation
+     * When true (default), tasks with zero slack are automatically marked as critical (red)
+     * When false, preserves custom task colors and disables automatic CPM marking
+     * @default true
+     */
+    enableAutoCriticalPath?: boolean;
     onThemeChange?: (theme: Theme$1) => void;
     onTaskClick?: (task: Task) => void;
     onTaskDblClick?: (task: Task) => void;
