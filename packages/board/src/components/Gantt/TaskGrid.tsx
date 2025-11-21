@@ -63,6 +63,11 @@ export function TaskGrid({
   onCreateSubtask,
   onOpenTaskModal,
 }: TaskGridProps) {
+  // DEBUG: Log availableUsers received in TaskGrid
+  console.log('🟦 TaskGrid received availableUsers:', availableUsers);
+  console.log('🟦 TaskGrid availableUsers.length:', availableUsers?.length);
+  console.log('🟦 TaskGrid availableUsers sample:', availableUsers?.[0]);
+
   const [hoveredTaskId, setHoveredTaskId] = useState<string | null>(null);
   const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
@@ -370,6 +375,12 @@ export function TaskGrid({
         const taskAssignedUsers: User[] = availableUsers.filter(user =>
           task.assignees?.some(a => a.name === user.name || a.initials === user.initials)
         );
+
+        // DEBUG: Log before passing to UserAssignmentSelector
+        console.log('🟨 Passing to UserAssignmentSelector for task:', task.name);
+        console.log('🟨 availableUsers:', availableUsers);
+        console.log('🟨 taskAssignedUsers:', taskAssignedUsers);
+
         return (
           <div onClick={(e) => e.stopPropagation()}>
             <UserAssignmentSelector

@@ -29,6 +29,11 @@ export function UserAssignmentSelector({
   className,
   maxVisibleAvatars = 3,
 }: UserAssignmentSelectorProps) {
+  // DEBUG: Log what UserAssignmentSelector receives
+  console.log('🟩 UserAssignmentSelector received availableUsers:', availableUsers);
+  console.log('🟩 UserAssignmentSelector availableUsers.length:', availableUsers?.length);
+  console.log('🟩 UserAssignmentSelector assignedUsers:', assignedUsers);
+
   const [isOpen, setIsOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 })
