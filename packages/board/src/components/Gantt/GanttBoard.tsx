@@ -82,6 +82,10 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
 
   // Use global theme if available, otherwise fall back to initialTheme or 'dark'
   const [currentTheme, setCurrentTheme] = useState<Theme>(globalTheme || initialTheme || 'dark');
+  // DEBUG: Log availableUsers received in GanttBoard
+  console.log('🔵 GanttBoard received availableUsers:', availableUsers);
+  console.log('🔵 GanttBoard availableUsers.length:', availableUsers?.length);
+
   const [timeScale, setTimeScale] = useState<TimeScale>(initialTimeScale);
   const [rowDensity, setRowDensity] = useState<RowDensity>(initialRowDensity);
   const [zoom, setZoom] = useState(1);
