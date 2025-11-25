@@ -82,9 +82,6 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
 
   // Use global theme if available, otherwise fall back to initialTheme or 'dark'
   const [currentTheme, setCurrentTheme] = useState<Theme>(globalTheme || initialTheme || 'dark');
-  // DEBUG: Log availableUsers received in GanttBoard
-  console.log('🔵 GanttBoard received availableUsers:', availableUsers);
-  console.log('🔵 GanttBoard availableUsers.length:', availableUsers?.length);
 
   const [timeScale, setTimeScale] = useState<TimeScale>(initialTimeScale);
   const [rowDensity, setRowDensity] = useState<RowDensity>(initialRowDensity);
@@ -133,7 +130,6 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
 
   // Sync parent tasks prop changes to local state (e.g., after external DB operations)
   useEffect(() => {
-    console.log('📥 GanttBoard: Parent tasks prop changed, syncing to localTasks', tasks.length);
     setLocalTasks(tasks);
   }, [tasks, setLocalTasks]);
 
@@ -369,8 +365,9 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     },
 
     highlightTask: (id: string, duration = 2000) => {
-      // TODO: Implement visual highlighting
-      console.log(`Highlighting task ${id} for ${duration}ms`);
+      // TODO: Implement visual highlighting - currently a no-op
+      void id;
+      void duration;
     },
 
     expandTask: (id: string) => {
@@ -568,8 +565,6 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   }, [config]);
 
   const handleMultiTaskDelete = useCallback((taskIds: string[]) => {
-    console.log('📦 GanttBoard handleMultiTaskDelete called:', taskIds);
-
     // Call the SaaS onMultiTaskDelete handler if provided
     if (config.onMultiTaskDelete) {
       config.onMultiTaskDelete(taskIds);
