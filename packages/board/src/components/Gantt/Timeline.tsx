@@ -103,8 +103,6 @@ export function Timeline({
 
   // Calculate parent task dates from subtasks and flatten for rendering
   const flatTasks = useMemo(() => {
-    console.log('🔥 Timeline: Calculating parent dates for', tasks.length, 'tasks');
-
     // Helper function to calculate parent dates from subtasks
     const calculateParentDates = (tasks: Task[]): Task[] => {
       return tasks.map(task => {
@@ -123,13 +121,6 @@ export function Timeline({
 
             const earliestStart = new Date(Math.min(...startDates));
             const latestEnd = new Date(Math.max(...endDates));
-
-            console.log('✅ Parent task dates calculated:', {
-              taskName: task.name,
-              earliestStart: earliestStart.toISOString(),
-              latestEnd: latestEnd.toISOString(),
-              subtasksCount: subtasksWithDates.length
-            });
 
             return {
               ...task,
@@ -160,25 +151,7 @@ export function Timeline({
 
     // Apply parent date calculation before flattening
     const tasksWithCalculatedDates = calculateParentDates(tasks);
-
-    console.log('🔍 Tasks BEFORE flattening:', tasksWithCalculatedDates.map(t => ({
-      name: t.name,
-      hasSubtasks: !!(t.subtasks && t.subtasks.length > 0),
-      subtasksCount: t.subtasks?.length || 0,
-      isExpanded: t.isExpanded,
-      hasStartDate: !!t.startDate,
-      hasEndDate: !!t.endDate,
-    })));
-
     const flattened = flattenTasks(tasksWithCalculatedDates);
-
-    console.log('📋 Flattened tasks:', flattened.map(t => ({
-      name: t.name,
-      hasStartDate: !!t.startDate,
-      hasEndDate: !!t.endDate,
-      startDate: t.startDate?.toISOString(),
-      endDate: t.endDate?.toISOString(),
-    })));
 
     return flattened;
   }, [tasks]);
@@ -492,8 +465,6 @@ export function Timeline({
 
           if (isContainer) {
             // Render container as elegant bracket bar with task name
-            console.log('🎨 Rendering container task:', task.name, 'at', { x, y, width });
-
             return (
               <g key={task.id} onClick={() => onTaskClick?.(task)} style={{ cursor: 'pointer' }}>
                 {/* Background fill - elegant and visible */}

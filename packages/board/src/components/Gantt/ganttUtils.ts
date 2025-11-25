@@ -493,29 +493,19 @@ export const ganttUtils = {
    */
   exportToPDF: async (tasks: Task[], filename = 'gantt-chart.pdf'): Promise<void> => {
     try {
-      // v0.8.1: Validation
-      console.log('[PDF Export] Starting export...');
-      console.log('[PDF Export] Tasks count:', tasks?.length || 0);
-
       if (!tasks || tasks.length === 0) {
-        console.warn('[PDF Export] No tasks provided');
         alert('No tasks available to export to PDF');
         return;
       }
 
       // v0.8.1: FIXED - Use correct jspdf-autotable v5.0 API
-      // Breaking change in v5.0: autoTable is now imported as a function, not auto-applied to jsPDF
       const { jsPDF } = await import('jspdf');
       const { default: autoTable } = await import('jspdf-autotable');
-      console.log('[PDF Export] Modules loaded');
 
       const doc = new jsPDF();
       const flat = ganttUtils.flattenTasks(tasks);
 
-      console.log('[PDF Export] Flattened tasks count:', flat.length);
-
       if (flat.length === 0) {
-        console.warn('[PDF Export] No tasks after flattening');
         alert('No tasks found to export');
         return;
       }
@@ -542,7 +532,6 @@ export const ganttUtils = {
       });
 
       // v0.8.1: Use autoTable function (v5.0 API) instead of doc.autoTable() (old API)
-      console.log('[PDF Export] Generating table with autoTable function...');
       autoTable(doc, {
         head: headers,
         body: data,
@@ -568,14 +557,10 @@ export const ganttUtils = {
           5: { cellWidth: 25 }, // Status
         },
       });
-      console.log('[PDF Export] Table generated successfully');
 
       // Save the PDF
-      console.log('[PDF Export] Saving PDF:', filename);
       doc.save(filename);
-      console.log('[PDF Export] PDF saved successfully');
     } catch (error) {
-      console.error('Error exporting to PDF:', error);
       throw error;
     }
   },

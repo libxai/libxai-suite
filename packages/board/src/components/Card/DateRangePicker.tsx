@@ -1,10 +1,11 @@
 /**
- * Date Range Picker Component
+ * Date Range Picker V2
  * Quick selection buttons + interactive calendar
+ * Uses world-class Dropdown system for perfect positioning
  */
 
-import { useState, useRef, useEffect } from 'react'
-import { Portal } from '../Portal'
+import { useState } from 'react'
+import { Dropdown } from '../Dropdown'
 
 export interface DateRangePickerProps {
   startDate?: string
@@ -28,73 +29,26 @@ export function DateRangePicker({
   onChange,
   className,
 }: DateRangePickerProps) {
-  const [isOpen, setIsOpen] = useState(false)
-  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 })
-  const menuRef = useRef<HTMLDivElement>(null)
-  const buttonRef = useRef<HTMLButtonElement>(null)
+  const [tempStartDate, setTempStartDate] = useState<string>(startDate || '')
+  const [tempEndDate, setTempEndDate] = useState<string>(endDate || '')
 
-  useEffect(() => {
-    if (isOpen && buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect()
-      setMenuPosition({
-        top: rect.bottom + window.scrollY + 8,
-        left: rect.left + window.scrollX,
-      })
-    }
-  }, [isOpen])
+  const handleQuickSelect = (days: number, close: () => void) => {
+    const today = new Date()
+    const end = new Date(today)
+    end.setDate(end.getDate() + days)
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        menuRef.current &&
-        !menuRef.current.contains(event.target as Node) &&
-        !buttonRef.current?.contains(event.target as Node)
-      ) {
-        setIsOpen(false)
-      }
-    }
+    const startStr = today.toISOString().split('T')[0] || ''
+    const endStr = end.toISOString().split('T')[0] || ''
 
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside)
-      return () => document.removeEventListener('mousedown', handleClickOutside)
-    }
-    return undefined
-  }, [isOpen])
+    setTempStartDate(startStr)
+    setTempEndDate(endStr)
+    onChange(startStr, endStr)
+    close()
+  }
 
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setIsOpen(false)
-      }
-    }
-
-    if (isOpen) {
-      document.addEventListener('keydown', handleEscape)
-      return () => document.removeEventListener('keydown', handleEscape)
-    }
-    return undefined
-  }, [isOpen])
-
-  const handleQuickSelect = (days: number) => {
-    const now = new Date()
-
-    // Format date as YYYY-MM-DD in LOCAL timezone (not UTC)
-    // This prevents timezone offset issues where selecting "Today" assigns tomorrow's date
-    const formatLocalDate = (date: Date) => {
-      const year = date.getFullYear()
-      const month = String(date.getMonth() + 1).padStart(2, '0')
-      const day = String(date.getDate()).padStart(2, '0')
-      return `${year}-${month}-${day}`
-    }
-
-    const todayStr = formatLocalDate(now)
-
-    const endDate = new Date(now)
-    endDate.setDate(endDate.getDate() + days)
-    const endStr = formatLocalDate(endDate)
-
-    onChange(todayStr, endStr)
-    setIsOpen(false)
+  const handleApply = (close: () => void) => {
+    onChange(tempStartDate || undefined, tempEndDate || undefined)
+    close()
   }
 
   const formatDateRange = () => {
@@ -147,78 +101,70 @@ export function DateRangePicker({
   const overdue = isOverdue()
 
   return (
-    <div className={`relative ${className || ''}`}>
-      {/* Date button - plain text with color only if overdue */}
-      <button
-        ref={buttonRef}
-        onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-xs transition-all hover:bg-white/5 ${
-          overdue ? 'asakaa-date-overdue' : 'asakaa-date'
-        }`}
-        title={hasDateSet ? `${formatDateRange()}` : 'Set date range'}
-      >
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 16 16"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
+    <Dropdown
+      trigger={({ isOpen }) => (
+        <button
+          className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-xs transition-all hover:bg-white/5 ${
+            overdue ? 'asakaa-date-overdue' : 'asakaa-date'
+          } ${className || ''}`}
+          style={{
+            transform: isOpen ? 'scale(1.05)' : 'scale(1)',
+          }}
+          title={hasDateSet ? `${formatDateRange()}` : 'Set date range'}
+          aria-label="Select date range"
+          aria-expanded={isOpen}
+          aria-haspopup="menu"
         >
-          <rect
-            x="2"
-            y="3"
-            width="12"
-            height="11"
-            rx="2"
-            stroke="currentColor"
-            strokeWidth="1.5"
-          />
-          <path d="M2 6H14" stroke="currentColor" strokeWidth="1.5" />
-          <path d="M5 2V4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          <path d="M11 2V4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-        </svg>
-        {startDate && endDate && (
-          <span className="whitespace-nowrap">{formatDateRange()}</span>
-        )}
-      </button>
-
-      {/* Date picker menu - Using Portal to escape stacking context */}
-      {isOpen && (
-        <Portal>
-          <div
-            ref={menuRef}
-            className="date-picker-menu absolute rounded-xl shadow-2xl border min-w-[320px]"
-            style={{
-              top: `${menuPosition.top}px`,
-              left: `${menuPosition.left}px`,
-              background: 'var(--modal-v2-bg, #1f1f1f)',
-              border: '1px solid var(--modal-v2-border, rgba(255, 255, 255, 0.15))',
-              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1)',
-              zIndex: 99999,
-            }}
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 16 16"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
           >
+            <rect
+              x="2"
+              y="3"
+              width="12"
+              height="11"
+              rx="2"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            />
+            <path d="M2 6H14" stroke="currentColor" strokeWidth="1.5" />
+            <path d="M5 2V4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            <path d="M11 2V4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
+          {startDate && endDate && (
+            <span className="whitespace-nowrap">{formatDateRange()}</span>
+          )}
+        </button>
+      )}
+      placement="bottom-start"
+      minWidth={320}
+      maxHeight={480}
+      itemCount={QUICK_OPTIONS.length}
+      onOpen={() => {
+        setTempStartDate(startDate || '')
+        setTempEndDate(endDate || '')
+      }}
+    >
+      {({ activeIndex, close }) => (
+        <div className="date-range-picker-dropdown">
           {/* Quick selection */}
-          <div className="p-4 border-b" style={{ borderColor: 'var(--modal-v2-border, rgba(255, 255, 255, 0.1))' }}>
-            <span className="text-xs font-bold uppercase tracking-wider block mb-3" style={{ color: 'var(--modal-v2-text-secondary, rgba(255, 255, 255, 0.8))' }}>
+          <div className="dropdown-button-wrapper">
+            <div className="dropdown-section-header" style={{ marginBottom: '12px' }}>
               Quick Select
-            </span>
-            <div className="grid grid-cols-2 gap-2">
-              {QUICK_OPTIONS.map((option) => (
+            </div>
+            <div className="dropdown-quick-grid">
+              {QUICK_OPTIONS.map((option, index) => (
                 <button
                   key={option.label}
-                  onClick={() => handleQuickSelect(option.days)}
-                  className="px-3 py-2.5 rounded-lg text-xs font-semibold transition-all active:scale-95 border"
-                  style={{
-                    color: 'var(--modal-v2-text-primary, #60a5fa)',
-                    borderColor: 'var(--modal-v2-border, rgba(96, 165, 250, 0.3))',
-                    background: 'var(--modal-v2-bg-secondary, rgba(96, 165, 250, 0.08))',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'var(--modal-v2-bg-tertiary, rgba(96, 165, 250, 0.15))'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'var(--modal-v2-bg-secondary, rgba(96, 165, 250, 0.08))'
-                  }}
+                  onClick={() => handleQuickSelect(option.days, close)}
+                  className="dropdown-quick-button"
+                  data-active={activeIndex === index}
+                  data-index={index}
+                  role="option"
                 >
                   {option.label}
                 </button>
@@ -227,56 +173,60 @@ export function DateRangePicker({
           </div>
 
           {/* Manual date inputs */}
-          <div className="p-4">
-            <span className="text-xs font-bold uppercase tracking-wider block mb-3" style={{ color: 'var(--modal-v2-text-secondary, rgba(255, 255, 255, 0.8))' }}>
+          <div className="dropdown-button-wrapper">
+            <div className="dropdown-section-header" style={{ marginBottom: '12px' }}>
               Custom Range
-            </span>
-            <div className="space-y-3">
-              <input
-                type="date"
-                value={startDate || ''}
-                onChange={(e) => onChange(e.target.value, endDate)}
-                className="w-full px-3 py-2.5 rounded-lg text-sm border focus:outline-none transition-all"
-                style={{
-                  background: 'var(--modal-v2-bg-secondary, rgba(255, 255, 255, 0.05))',
-                  borderColor: 'var(--modal-v2-border, rgba(255, 255, 255, 0.2))',
-                  color: 'var(--modal-v2-text-primary, #ffffff)',
-                }}
-              />
-              <input
-                type="date"
-                value={endDate || ''}
-                onChange={(e) => onChange(startDate, e.target.value)}
-                className="w-full px-3 py-2.5 rounded-lg text-sm border focus:outline-none transition-all"
-                style={{
-                  background: 'var(--modal-v2-bg-secondary, rgba(255, 255, 255, 0.05))',
-                  borderColor: 'var(--modal-v2-border, rgba(255, 255, 255, 0.2))',
-                  color: 'var(--modal-v2-text-primary, #ffffff)',
-                }}
-              />
             </div>
+            <div className="dropdown-form-actions">
+              <div className="dropdown-form-group">
+                <label className="dropdown-label">
+                  Start Date
+                </label>
+                <input
+                  type="date"
+                  value={tempStartDate}
+                  onChange={(e) => setTempStartDate(e.target.value)}
+                  className="dropdown-input"
+                />
+              </div>
+              <div className="dropdown-form-group">
+                <label className="dropdown-label">
+                  End Date
+                </label>
+                <input
+                  type="date"
+                  value={tempEndDate}
+                  onChange={(e) => setTempEndDate(e.target.value)}
+                  className="dropdown-input"
+                />
+              </div>
 
-            {/* Clear button */}
-            {(startDate || endDate) && (
+              {/* Apply button */}
               <button
-                onClick={() => {
-                  onChange(undefined, undefined)
-                  setIsOpen(false)
-                }}
-                className="mt-4 w-full px-3 py-2.5 rounded-lg text-sm font-semibold transition-all hover:bg-red-600/30 active:scale-95 border"
-                style={{
-                  color: '#f87171',
-                  borderColor: 'rgba(248, 113, 113, 0.3)',
-                  background: 'rgba(248, 113, 113, 0.08)',
-                }}
+                onClick={() => handleApply(close)}
+                className="dropdown-primary-button"
               >
-                Clear Dates
+                Apply
               </button>
-            )}
+
+              {/* Clear button */}
+              {(startDate || endDate) && (
+                <button
+                  onClick={() => {
+                    setTempStartDate('')
+                    setTempEndDate('')
+                    onChange(undefined, undefined)
+                    close()
+                  }}
+                  className="dropdown-danger-button"
+                >
+                  Clear Dates
+                </button>
+              )}
+            </div>
           </div>
-          </div>
-        </Portal>
+        </div>
       )}
-    </div>
+    </Dropdown>
   )
 }

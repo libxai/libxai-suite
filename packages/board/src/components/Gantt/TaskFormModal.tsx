@@ -65,11 +65,6 @@ export function TaskFormModal({
   mode = task ? 'edit' : 'create',
   theme = 'dark',
 }: TaskFormModalProps) {
-  // DEBUG: Log availableUsers
-  console.log('🔷 TaskFormModal received availableUsers:', availableUsers);
-  console.log('🔷 availableUsers.length:', availableUsers?.length);
-  console.log('🔷 availableUsers type:', typeof availableUsers, Array.isArray(availableUsers));
-
   // Get theme colors (with fallback to dark theme)
   const themeColors = (themes[theme] || themes.dark)!
 
