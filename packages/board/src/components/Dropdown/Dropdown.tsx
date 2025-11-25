@@ -5,7 +5,7 @@
  * @module components/Dropdown
  */
 
-import { useRef, useState, useCallback, ReactNode, CSSProperties } from 'react'
+import { useRef, useState, useCallback, ReactNode } from 'react'
 import {
   useFloating,
   autoUpdate,
@@ -16,6 +16,7 @@ import {
   arrow,
   FloatingArrow,
   Placement,
+  useMergeRefs,
 } from '@floating-ui/react'
 import { Portal } from '../Portal'
 import { useClickOutside } from '../../hooks/useClickOutside'
@@ -111,7 +112,7 @@ export function Dropdown({
   onSelectItem,
   onOpen,
   onClose,
-  animationDuration = 200,
+  animationDuration: _animationDuration = 200,
   zIndex = 1000,
 }: DropdownProps) {
   // Internal state for uncontrolled mode
@@ -147,7 +148,7 @@ export function Dropdown({
   }, [setIsOpen])
 
   // Refs
-  const triggerRef = useRef<HTMLDivElement>(null)
+  const localTriggerRef = useRef<HTMLDivElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const arrowRef = useRef<SVGSVGElement>(null)
 
@@ -176,9 +177,12 @@ export function Dropdown({
     whileElementsMounted: autoUpdate,
   })
 
+  // Merge refs - connects local ref with Floating UI reference for positioning
+  const triggerRef = useMergeRefs([localTriggerRef, refs.setReference])
+
   // Click outside to close
   useClickOutside(
-    [triggerRef, dropdownRef],
+    [localTriggerRef, dropdownRef],
     close,
     isOpen && !disableClickOutside
   )
@@ -209,14 +213,6 @@ export function Dropdown({
     return children
   }
 
-  // Animation styles
-  const animationStyle: CSSProperties = {
-    transition: `opacity ${animationDuration}ms ease-in-out, transform ${animationDuration}ms ease-in-out`,
-    opacity: isOpen ? 1 : 0,
-    transform: isOpen ? 'scale(1)' : 'scale(0.95)',
-    pointerEvents: isOpen ? 'auto' : 'none',
-  }
-
   return (
     <>
       {/* Trigger */}
@@ -228,34 +224,35 @@ export function Dropdown({
         {renderTrigger()}
       </div>
 
-      {/* Dropdown Content */}
-      <Portal>
-        <div
-          ref={refs.setFloating}
-          style={{
-            ...floatingStyles,
-            zIndex,
-            ...animationStyle,
-          }}
-          className={`dropdown-content ${className}`}
-          role="menu"
-          aria-orientation="vertical"
-          onKeyDown={handleKeyDown}
-        >
-          <div ref={dropdownRef} className="dropdown-inner">
-            {renderChildren()}
-          </div>
+      {/* Dropdown Content - Only render when open to ensure proper positioning */}
+      {isOpen && (
+        <Portal>
+          <div
+            ref={refs.setFloating}
+            style={{
+              ...floatingStyles,
+              zIndex,
+            }}
+            className={`dropdown-content ${className}`}
+            role="menu"
+            aria-orientation="vertical"
+            onKeyDown={handleKeyDown}
+          >
+            <div ref={dropdownRef} className="dropdown-inner">
+              {renderChildren()}
+            </div>
 
-          {/* Arrow */}
-          {showArrow && (
-            <FloatingArrow
-              ref={arrowRef}
-              context={context}
-              className="dropdown-arrow"
-            />
-          )}
-        </div>
-      </Portal>
+            {/* Arrow */}
+            {showArrow && (
+              <FloatingArrow
+                ref={arrowRef}
+                context={context}
+                className="dropdown-arrow"
+              />
+            )}
+          </div>
+        </Portal>
+      )}
     </>
   )
 }

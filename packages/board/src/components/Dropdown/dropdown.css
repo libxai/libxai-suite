@@ -375,9 +375,16 @@
   align-items: center;
   justify-content: center;
   transition: all 150ms ease-in-out;
-  background: var(--asakaa-color-interactive-primaryBackground);
-  border: 1.5px solid var(--asakaa-color-interactive-primaryBorder);
-  color: var(--asakaa-color-interactive-primary);
+  /* Color azul fijo que se ve bien en todos los temas */
+  background: rgba(59, 130, 246, 0.15);
+  border: 2px solid #3b82f6;
+  color: #3b82f6;
+}
+
+.dropdown-avatar-empty-trigger:hover {
+  background: rgba(59, 130, 246, 0.3);
+  border-color: #2563eb;
+  color: #2563eb;
 }
 
 .dropdown-avatar-overflow {
