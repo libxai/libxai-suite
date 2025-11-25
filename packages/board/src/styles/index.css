@@ -10,6 +10,9 @@
    @import must precede all other statements (besides @charset)
    ============================================================================ */
 
+/* Dropdown - Base dropdown component */
+@import '../components/Dropdown/dropdown.css';
+
 /* FilterBar - Advanced filtering and sorting UI */
 @import './components/filter-bar.css';
 

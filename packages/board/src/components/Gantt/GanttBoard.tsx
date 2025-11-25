@@ -10,6 +10,7 @@ import { motion } from 'framer-motion';
 import { useUndoRedo } from './useUndoRedo';
 import { useGanttUndoRedoKeys } from './useGanttUndoRedoKeys';
 import { ThemeContext } from '../../theme/ThemeProvider';
+import { GanttThemeContext } from './GanttThemeContext';
 import { GanttBoardRef } from './GanttBoardRef';
 import { ganttUtils } from './ganttUtils';
 import { mergeTemplates } from './defaultTemplates';
@@ -169,6 +170,12 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   const theme = useMemo(() => {
     return deriveThemeFromCSS(currentTheme);
   }, [currentTheme]);
+
+  // Crear valor del contexto del tema para componentes hijos (Portal, etc.)
+  const ganttThemeContextValue = useMemo(() => ({
+    theme,
+    themeName: currentTheme,
+  }), [theme, currentTheme]);
 
   // Merge user templates with defaults
   const mergedTemplates = useMemo(() => {
@@ -892,6 +899,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   }, [isResizing, config.disableScrollSync]);
 
   return (
+    <GanttThemeContext.Provider value={ganttThemeContextValue}>
     <div
       ref={ganttContainerRef}
       className="flex flex-col h-screen overflow-hidden"
@@ -1061,5 +1069,6 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         />
       )}
     </div>
+    </GanttThemeContext.Provider>
   );
 })

@@ -7,7 +7,6 @@ import { ContextMenu, ContextMenuItem, MenuIcons } from './ContextMenu';
 import { useGanttKeyboard } from './useGanttKeyboard';
 import { useGanttSelection } from './useGanttSelection';
 import { flattenTasks as flattenTasksUtil } from './hierarchyUtils';
-import { DateRangePicker } from '../Card/DateRangePicker';
 import { UserAssignmentSelector } from '../Card/UserAssignmentSelector';
 import { StatusSelector } from '../Card/StatusSelector';
 import type { User } from '../Card/UserAssignmentSelector';
@@ -324,29 +323,56 @@ export function TaskGrid({
         );
       
       case 'startDate':
-      case 'endDate':
+        const startDateValue = task.startDate
+          ? typeof task.startDate === 'string'
+            ? task.startDate
+            : task.startDate.toISOString().split('T')[0]
+          : undefined;
         return (
-          <div onClick={(e) => e.stopPropagation()}>
-            <DateRangePicker
-              startDate={
-                task.startDate
-                  ? typeof task.startDate === 'string'
-                    ? task.startDate
-                    : task.startDate.toISOString().split('T')[0]
-                  : undefined
-              }
-              endDate={
-                task.endDate
-                  ? typeof task.endDate === 'string'
-                    ? task.endDate
-                    : task.endDate.toISOString().split('T')[0]
-                  : undefined
-              }
-              onChange={(startDate, endDate) => {
+          <div
+            className="flex items-center justify-center w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <input
+              type="date"
+              value={startDateValue || ''}
+              onChange={(e) => {
                 onTaskUpdate?.(task.id, {
-                  startDate: startDate ? new Date(startDate) : undefined,
-                  endDate: endDate ? new Date(endDate) : undefined
+                  startDate: e.target.value ? new Date(e.target.value) : undefined
                 });
+              }}
+              className="bg-transparent border-none text-xs cursor-pointer outline-none text-center"
+              style={{
+                color: theme.textSecondary,
+                fontFamily: 'Inter, sans-serif',
+              }}
+            />
+          </div>
+        );
+
+      case 'endDate':
+        const endDateValue = task.endDate
+          ? typeof task.endDate === 'string'
+            ? task.endDate
+            : task.endDate.toISOString().split('T')[0]
+          : undefined;
+        return (
+          <div
+            className="flex items-center justify-center w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <input
+              type="date"
+              value={endDateValue || ''}
+              onChange={(e) => {
+                onTaskUpdate?.(task.id, {
+                  endDate: e.target.value ? new Date(e.target.value) : undefined
+                });
+              }}
+              className="bg-transparent border-none text-xs cursor-pointer outline-none text-center"
+              style={{
+                color: theme.textSecondary,
+                fontFamily: 'Inter, sans-serif',
               }}
             />
           </div>
@@ -354,16 +380,18 @@ export function TaskGrid({
       
       case 'duration':
         return (
-          <span
-            className="text-xs tabular-nums"
-            style={{
-              color: theme.textSecondary,
-              fontFamily: 'Inter, sans-serif',
-              fontWeight: 600,
-            }}
-          >
-            {getDuration(task)}
-          </span>
+          <div className="flex items-center justify-center w-full">
+            <span
+              className="text-xs tabular-nums"
+              style={{
+                color: theme.textSecondary,
+                fontFamily: 'Inter, sans-serif',
+                fontWeight: 600,
+              }}
+            >
+              {getDuration(task)}
+            </span>
+          </div>
         );
       
       case 'assignees':
@@ -372,7 +400,10 @@ export function TaskGrid({
         );
 
         return (
-          <div onClick={(e) => e.stopPropagation()}>
+          <div
+            className="flex items-center justify-center w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
             <UserAssignmentSelector
               assignedUsers={taskAssignedUsers}
               availableUsers={availableUsers}
@@ -392,7 +423,10 @@ export function TaskGrid({
       
       case 'status':
         return (
-          <div onClick={(e) => e.stopPropagation()}>
+          <div
+            className="flex items-center justify-center w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
             <StatusSelector
               status={task.status || 'todo'}
               onChange={(status) => {
@@ -407,8 +441,8 @@ export function TaskGrid({
       
       case 'progress':
         return (
-          <div className="flex items-center gap-2">
-            <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: theme.bgSecondary }}>
+          <div className="flex items-center justify-center gap-2 w-full">
+            <div className="flex-1 h-1.5 rounded-full overflow-hidden max-w-[60px]" style={{ backgroundColor: theme.bgSecondary }}>
               <div
                 className="h-full rounded-full transition-all"
                 style={{
@@ -543,16 +577,22 @@ export function TaskGrid({
           backgroundColor: theme.bgGrid,
           borderColor: theme.border,
           height: `${HEADER_HEIGHT}px`,
+          marginLeft: '3px', // Alinear con el borderLeft de las filas
         }}
       >
         {visibleColumns.map((column) => (
           <div
             key={column.id}
-            className="flex items-center px-4 border-r cursor-pointer hover:bg-opacity-50 transition-colors relative"
+            className={`flex items-center px-4 border-r cursor-pointer hover:bg-opacity-50 transition-colors relative ${
+              column.id === 'name' ? 'justify-start' : 'justify-center'
+            }`}
             style={{
               width: `${column.width}px`,
+              minWidth: `${column.width}px`,
+              maxWidth: `${column.width}px`,
               borderColor: theme.borderLight,
               height: '100%',
+              boxSizing: 'border-box',
             }}
             onContextMenu={(e) => {
               e.preventDefault();
@@ -770,11 +810,16 @@ export function TaskGrid({
           {visibleColumns.map((column) => (
             <div
               key={`${task.id}-${column.id}`}
-              className="px-4 border-r flex items-center"
+              className={`px-4 border-r flex items-center ${
+                column.id === 'name' ? 'justify-start' : 'justify-center'
+              }`}
               style={{
                 width: `${column.width}px`,
+                minWidth: `${column.width}px`,
+                maxWidth: `${column.width}px`,
                 borderColor: hoveredTaskId === task.id ? theme.border : theme.borderLight,
                 height: '100%',
+                boxSizing: 'border-box',
               }}
             >
               {renderCellContent(column, task, column.id === 'name' ? level : 0)}
