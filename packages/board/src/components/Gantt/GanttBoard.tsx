@@ -102,12 +102,19 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   // v0.10.0: Task form modal state for editing
   const [editingTask, setEditingTask] = useState<Task | null>(null);
 
-  // Sync with global theme changes
+  // Sync with global theme changes (from ThemeContext)
   useEffect(() => {
     if (globalTheme && globalTheme !== currentTheme) {
       setCurrentTheme(globalTheme);
     }
   }, [globalTheme]);
+
+  // v0.11.6: Sync with initialTheme prop changes (for external theme control)
+  useEffect(() => {
+    if (initialTheme && initialTheme !== currentTheme) {
+      setCurrentTheme(initialTheme);
+    }
+  }, [initialTheme]);
 
   // v0.9.0: Handle theme change with callback
   const handleThemeChange = useCallback(
