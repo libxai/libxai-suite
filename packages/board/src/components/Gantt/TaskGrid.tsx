@@ -409,6 +409,7 @@ export function TaskGrid({
               availableUsers={availableUsers}
               onChange={(users: User[]) => {
                 const newAssignees = users.map(u => ({
+                  id: u.id,
                   name: u.name,
                   initials: u.initials,
                   color: u.color
