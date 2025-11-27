@@ -909,10 +909,11 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     <GanttThemeContext.Provider value={ganttThemeContextValue}>
     <div
       ref={ganttContainerRef}
-      className="flex flex-col h-screen overflow-hidden"
+      className="flex flex-col h-full w-full"
       style={{
         backgroundColor: theme.bgPrimary,
         fontFamily: 'Inter, sans-serif',
+        minHeight: 0, // Critical for flex children to shrink
         // v0.9.1: Prevent browser auto-scroll when disableScrollSync is enabled
         ...(config.disableScrollSync && {
           scrollBehavior: 'auto',
@@ -935,12 +936,14 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       />
 
       {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex min-h-0">
         {/* Task Grid */}
         <div
           ref={gridScrollRef}
+          className="gantt-grid-scroll overflow-y-auto overflow-x-hidden"
           style={{
             width: gridWidth,
+            minHeight: 0,
             // v0.9.1: Prevent browser auto-scroll when disableScrollSync is enabled
             ...(config.disableScrollSync && {
               scrollBehavior: 'auto',
@@ -999,8 +1002,9 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         {/* Timeline */}
         <div
           ref={timelineScrollRef}
-          className="flex-1 overflow-hidden"
+          className="gantt-timeline-scroll flex-1 overflow-auto"
           style={{
+            minHeight: 0,
             // v0.9.1: Prevent browser auto-scroll when disableScrollSync is enabled
             ...(config.disableScrollSync && {
               scrollBehavior: 'auto',

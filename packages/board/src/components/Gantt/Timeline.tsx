@@ -245,7 +245,7 @@ export function Timeline({
 
   return (
     <div
-      className="flex-1 overflow-auto"
+      className="w-full h-full"
       data-gantt-chart
       style={{ backgroundColor: theme.bgPrimary }}
     >
