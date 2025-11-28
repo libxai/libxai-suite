@@ -916,15 +916,25 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     setIsResizing(true);
   };
 
-  // v0.13.9: Unified vertical scroll - parent container handles both TaskGrid and Timeline
-  // Only need to track scrollTop for virtual scrolling in TaskGrid
+  // v0.13.9: Timeline has the scrollbar, TaskGrid syncs via CSS transform
+  // This ensures only ONE scrollbar on the right side of the entire component
   useEffect(() => {
-    const scrollContainer = gridScrollRef.current;
+    const timelineScroll = timelineScrollRef.current;
+    const gridContainer = gridScrollRef.current;
 
-    if (!scrollContainer) return;
+    if (!timelineScroll || !gridContainer) return;
 
-    const handleScroll = () => {
-      setScrollTop(scrollContainer.scrollTop);
+    // Find the TaskGrid inner container to apply transform
+    const taskGridContainer = gridContainer.querySelector('.gantt-grid-scroll');
+
+    const handleTimelineScroll = () => {
+      const scrollY = timelineScroll.scrollTop;
+      setScrollTop(scrollY);
+
+      // Sync TaskGrid position via CSS transform (no scrollbar needed)
+      if (taskGridContainer) {
+        (taskGridContainer as HTMLElement).style.transform = `translateY(-${scrollY}px)`;
+      }
     };
 
     const handleMouseMove = (e: MouseEvent) => {
@@ -940,12 +950,12 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       setIsResizing(false);
     };
 
-    scrollContainer.addEventListener('scroll', handleScroll);
+    timelineScroll.addEventListener('scroll', handleTimelineScroll);
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
 
     return () => {
-      scrollContainer.removeEventListener('scroll', handleScroll);
+      timelineScroll.removeEventListener('scroll', handleTimelineScroll);
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
@@ -988,23 +998,20 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         onExportMSProject={showExportButton ? handleExportMSProject : undefined}
       />
 
-      {/* Main Content - v0.13.9: Single vertical scroll container for TaskGrid + Timeline */}
+      {/* Main Content - v0.13.9: TaskGrid has no scroll, Timeline has the unified vertical scroll */}
       <div
         ref={gridScrollRef}
-        className="flex-1 flex min-h-0 overflow-y-auto"
+        className="flex-1 flex min-h-0"
         style={{
-          // v0.9.1: Prevent browser auto-scroll when disableScrollSync is enabled
-          ...(config.disableScrollSync && {
-            scrollBehavior: 'auto',
-            overflowAnchor: 'none',
-          }),
+          overflow: 'hidden',
         }}
       >
-        {/* Task Grid - no vertical scroll, follows parent */}
+        {/* Task Grid - v0.13.9: No scroll at all, content syncs with Timeline scroll */}
         <div
-          className="gantt-grid-scroll overflow-x-hidden flex-shrink-0"
+          className="gantt-grid-scroll flex-shrink-0"
           style={{
             width: gridWidth,
+            overflow: 'hidden',
           }}
         >
           <TaskGrid
@@ -1056,10 +1063,10 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
           />
         </div>
 
-        {/* Timeline - v0.13.9: Only horizontal scroll, vertical handled by parent */}
+        {/* Timeline - v0.13.9: Has both scrolls, TaskGrid syncs to this scroll */}
         <div
           ref={timelineScrollRef}
-          className="gantt-timeline-scroll flex-1 overflow-x-auto overflow-y-hidden"
+          className="gantt-timeline-scroll flex-1 overflow-auto"
           style={{
             minHeight: 0,
             // v0.9.1: Prevent browser auto-scroll when disableScrollSync is enabled
