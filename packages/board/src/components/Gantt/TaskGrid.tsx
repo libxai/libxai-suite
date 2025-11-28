@@ -819,7 +819,8 @@ export function TaskGrid({
         </div>
       </div>
 
-      {/* Task Rows */}
+      {/* Task Rows Container - v0.13.11: This container is targeted by CSS transform for scroll sync */}
+      <div className="gantt-taskgrid-content">
       {flatTasks.map(({ task, level }, index) => {
         const isSelected = isTaskSelected(task.id);
 
@@ -894,6 +895,7 @@ export function TaskGrid({
           </motion.div>
         );
       })}
+      </div>
 
       {/* Context Menu */}
       <ContextMenu

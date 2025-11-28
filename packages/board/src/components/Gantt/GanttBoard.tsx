@@ -924,16 +924,17 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
 
     if (!timelineScroll || !gridContainer) return;
 
-    // Find the TaskGrid inner container to apply transform
-    const taskGridContainer = gridContainer.querySelector('.gantt-grid-scroll');
+    // v0.13.11: Find the TaskGrid CONTENT container (not the whole grid) to apply transform
+    // This keeps the header fixed while only the task rows move
+    const taskGridContent = gridContainer.querySelector('.gantt-taskgrid-content');
 
     const handleTimelineScroll = () => {
       const scrollY = timelineScroll.scrollTop;
       setScrollTop(scrollY);
 
-      // Sync TaskGrid position via CSS transform (no scrollbar needed)
-      if (taskGridContainer) {
-        (taskGridContainer as HTMLElement).style.transform = `translateY(-${scrollY}px)`;
+      // Sync TaskGrid content position via CSS transform (header stays fixed)
+      if (taskGridContent) {
+        (taskGridContent as HTMLElement).style.transform = `translateY(-${scrollY}px)`;
       }
     };
 
