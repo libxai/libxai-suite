@@ -203,6 +203,36 @@ export function parseNaturalDate(text: string, referenceDate = new Date()): Date
     return new Date(year, month, day);
   }
 
+  // Spanish date format: "1 de diciembre de 2025", "15 de enero", "20 de marzo de 2024"
+  const spanishMonths: Record<string, number> = {
+    enero: 0, febrero: 1, marzo: 2, abril: 3, mayo: 4, junio: 5,
+    julio: 6, agosto: 7, septiembre: 8, octubre: 9, noviembre: 10, diciembre: 11,
+  };
+  const spanishDateMatch = normalized.match(/(\d{1,2})\s+de\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)(?:\s+de\s+(\d{4}))?/i);
+  if (spanishDateMatch && spanishDateMatch[1] && spanishDateMatch[2]) {
+    const day = parseInt(spanishDateMatch[1], 10);
+    const month = spanishMonths[spanishDateMatch[2].toLowerCase()];
+    const year = spanishDateMatch[3] ? parseInt(spanishDateMatch[3], 10) : today.getFullYear();
+    if (month !== undefined) {
+      return new Date(year, month, day);
+    }
+  }
+
+  // English date format: "December 1, 2025", "January 15", "March 20 2024"
+  const englishMonths: Record<string, number> = {
+    january: 0, february: 1, march: 2, april: 3, may: 4, june: 5,
+    july: 6, august: 7, september: 8, october: 9, november: 10, december: 11,
+  };
+  const englishDateMatch = normalized.match(/(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2})(?:,?\s+(\d{4}))?/i);
+  if (englishDateMatch && englishDateMatch[1] && englishDateMatch[2]) {
+    const month = englishMonths[englishDateMatch[1].toLowerCase()];
+    const day = parseInt(englishDateMatch[2], 10);
+    const year = englishDateMatch[3] ? parseInt(englishDateMatch[3], 10) : today.getFullYear();
+    if (month !== undefined) {
+      return new Date(year, month, day);
+    }
+  }
+
   return null;
 }
 
@@ -268,8 +298,9 @@ export function parseStatus(text: string): 'todo' | 'in-progress' | 'completed' 
 export function parseLocalCommand(command: string, tasks: Task[]): AICommandResult | null {
   const normalized = command.toLowerCase().trim();
 
-  // Move task pattern: "move X to Y"
-  const moveMatch = normalized.match(/(?:move|mover|mueve)\s+["""]?(.+?)["""]?\s+(?:to|a|para)\s+(.+)/i);
+  // Move task pattern: "move X to Y" or "mueve la tarea X a la fecha Y"
+  // Handles: "move Task to Monday", "mover Diseño a próximo lunes", "mueve la tarea Fase 1 a la fecha 1 de diciembre"
+  const moveMatch = normalized.match(/(?:move|mover|mueve)\s+(?:la\s+tarea\s+)?["""]?(.+?)["""]?\s+(?:to|a|para)\s+(?:la\s+fecha\s+)?(.+)/i);
   if (moveMatch && moveMatch[1] && moveMatch[2]) {
     const taskName = moveMatch[1].trim();
     const dateText = moveMatch[2].trim();
