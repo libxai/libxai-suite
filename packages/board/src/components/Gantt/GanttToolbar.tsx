@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Calendar, ZoomIn, ZoomOut, Sun, Moon, Palette, AlignJustify, Download, FileImage, FileSpreadsheet, FileText, FileJson, ChevronDown, FolderKanban } from 'lucide-react';
+import { Calendar, ZoomIn, ZoomOut, Sun, Moon, Palette, AlignJustify, Download, FileImage, FileSpreadsheet, FileText, FileJson, ChevronDown, FolderKanban, Plus } from 'lucide-react';
 import { TimeScale, Theme, RowDensity } from './types';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -23,6 +23,10 @@ interface GanttToolbarProps {
   rowDensity: RowDensity;
   onRowDensityChange: (density: RowDensity) => void;
   showThemeSelector?: boolean;
+  // v0.14.3: Create task button
+  showCreateTaskButton?: boolean;
+  createTaskLabel?: string;
+  onCreateTask?: () => void;
   // Export handlers
   onExportPNG?: () => Promise<void>;
   onExportPDF?: () => Promise<void>;
@@ -300,6 +304,9 @@ export function GanttToolbar({
   rowDensity,
   onRowDensityChange,
   showThemeSelector = true,
+  showCreateTaskButton = false,
+  createTaskLabel = 'Crear tarea',
+  onCreateTask,
   onExportPNG,
   onExportPDF,
   onExportExcel,
@@ -412,8 +419,39 @@ export function GanttToolbar({
         />
       </div>
 
-      {/* Right Section - Export + Theme Selector */}
+      {/* Right Section - Create Task + Export + Theme Selector */}
       <div className="flex items-center gap-3">
+        {/* v0.14.3: Create Task Button */}
+        {showCreateTaskButton && onCreateTask && (
+          <>
+            <motion.button
+              onClick={onCreateTask}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-all"
+              style={{
+                background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                color: '#FFFFFF',
+                fontFamily: 'Inter, sans-serif',
+                fontWeight: 500,
+                boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)',
+              }}
+              whileHover={{
+                scale: 1.02,
+                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.4)',
+              }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>{createTaskLabel}</span>
+            </motion.button>
+            {(hasExport || showThemeSelector) && (
+              <div
+                className="w-px h-6"
+                style={{ backgroundColor: theme.borderLight }}
+              />
+            )}
+          </>
+        )}
+
         {hasExport && (
           <>
             <ExportDropdown

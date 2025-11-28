@@ -298,10 +298,6 @@ export interface GanttAIAssistantConfig {
   suggestions?: string[];
   /** Maximum messages to keep in history */
   maxHistory?: number;
-  /** Show quick add task button (default: true) */
-  showQuickAdd?: boolean;
-  /** Callback when quick add button is clicked */
-  onQuickAddClick?: () => void;
 }
 
 /**
@@ -331,6 +327,11 @@ export interface GanttConfig {
 
   // v0.14.0: AI Assistant for natural language task editing
   aiAssistant?: GanttAIAssistantConfig;
+
+  // v0.14.3: Create Task button in toolbar
+  showCreateTaskButton?: boolean;
+  createTaskLabel?: string;
+  onCreateTask?: () => void;
 
   // v0.8.0: Customizable templates (similar to DHTMLX gantt.templates.*)
   templates?: GanttTemplates;

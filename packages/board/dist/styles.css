@@ -8064,11 +8064,6 @@ body {
 }
 
 
-.h-12 {
-  height: 3rem;
-}
-
-
 .h-14 {
   height: 3.5rem;
 }
@@ -8201,11 +8196,6 @@ body {
 
 .w-1 {
   width: 0.25rem;
-}
-
-
-.w-12 {
-  width: 3rem;
 }
 
 
@@ -8452,11 +8442,6 @@ body {
 
 .items-start {
   align-items: flex-start;
-}
-
-
-.items-end {
-  align-items: flex-end;
 }
 
 

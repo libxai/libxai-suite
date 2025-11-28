@@ -62,6 +62,10 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     templates,
     enableAutoCriticalPath = true, // v0.11.1: Allow disabling automatic CPM calculation
     aiAssistant, // v0.14.0: AI Assistant configuration
+    // v0.14.3: Create Task button in toolbar
+    showCreateTaskButton = false,
+    createTaskLabel,
+    onCreateTask,
     // UI events
     onThemeChange, // v0.9.0
     // Basic events
@@ -992,6 +996,10 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         rowDensity={rowDensity}
         onRowDensityChange={setRowDensity}
         showThemeSelector={showThemeSelector}
+        // v0.14.3: Create Task button
+        showCreateTaskButton={showCreateTaskButton}
+        createTaskLabel={createTaskLabel}
+        onCreateTask={onCreateTask}
         // v0.12.0: Export handlers
         onExportPNG={showExportButton ? handleExportPNG : undefined}
         onExportPDF={showExportButton ? handleExportPDF : undefined}
