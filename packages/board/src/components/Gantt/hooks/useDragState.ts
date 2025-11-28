@@ -3,7 +3,7 @@
  * Manages all drag-related state in one place
  *
  * @version 0.8.1
- * @version 0.13.5 - Added dragDaysDelta for direction-based ghost bar color
+ * @version 0.13.6 - Removed dragDaysDelta (direction-based colors removed)
  */
 
 import { useState } from 'react';
@@ -52,10 +52,6 @@ export interface DragState {
   isHovered: boolean;
   setIsHovered: (hovered: boolean) => void;
 
-  // v0.13.5: Days delta for direction-based ghost bar color
-  dragDaysDelta: number;
-  setDragDaysDelta: (delta: number) => void;
-
   // Computed state
   isDragging: boolean;
   isResizing: boolean;
@@ -81,9 +77,6 @@ export function useDragState(initialX: number, initialWidth: number): DragState 
   const [hoveredSegmentIndex, setHoveredSegmentIndex] = useState<number | null>(null);
   const [isHovered, setIsHovered] = useState(false);
 
-  // v0.13.5: Days delta for direction-based ghost bar color
-  const [dragDaysDelta, setDragDaysDelta] = useState(0);
-
   // Computed state
   const isDragging = dragMode !== 'none';
   const isResizing = dragMode === 'resize-start' || dragMode === 'resize-end';
@@ -99,7 +92,6 @@ export function useDragState(initialX: number, initialWidth: number): DragState 
     setSegmentDragOffsetX(0);
     setDraggedSegmentIndex(null);
     setDraggedSegmentStartX(0);
-    setDragDaysDelta(0); // v0.13.5: Reset delta
   };
 
   return {
@@ -127,8 +119,6 @@ export function useDragState(initialX: number, initialWidth: number): DragState 
     setHoveredSegmentIndex,
     isHovered,
     setIsHovered,
-    dragDaysDelta,
-    setDragDaysDelta,
     isDragging,
     isResizing,
     isConnecting,
