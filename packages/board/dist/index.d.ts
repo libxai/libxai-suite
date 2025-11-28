@@ -1541,6 +1541,10 @@ interface GanttAIAssistantConfig$1 {
     suggestions?: string[];
     /** Maximum messages to keep in history */
     maxHistory?: number;
+    /** Show quick add task button (default: true) */
+    showQuickAdd?: boolean;
+    /** Callback when quick add button is clicked */
+    onQuickAddClick?: () => void;
 }
 /**
  * AI Command result interface
@@ -2032,6 +2036,10 @@ interface GanttAIAssistantConfig {
     suggestions?: string[];
     /** Maximum messages to keep in history */
     maxHistory?: number;
+    /** Show quick add task button (default: true) */
+    showQuickAdd?: boolean;
+    /** Callback when quick add button is clicked */
+    onQuickAddClick?: () => void;
 }
 interface GanttAIAssistantProps {
     /** All current tasks in the Gantt */
