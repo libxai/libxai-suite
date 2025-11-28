@@ -392,9 +392,9 @@ export function GanttAIAssistant({
             whileTap={{ scale: 0.95 }}
             className={`fixed ${positionClasses[position]} z-[99999] flex items-center gap-2 px-4 py-3 rounded-full shadow-lg transition-colors`}
             style={{
-              background: 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)',
+              background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)',
               color: 'white',
-              boxShadow: '0 4px 20px rgba(99, 102, 241, 0.4)',
+              boxShadow: '0 4px 20px rgba(59, 130, 246, 0.4)',
             }}
             onClick={() => setIsOpen(true)}
           >
@@ -432,7 +432,7 @@ export function GanttAIAssistant({
             <div
               className="flex items-center justify-between px-4 py-3"
               style={{
-                background: 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)',
+                background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)',
               }}
             >
               <div className="flex items-center gap-2 text-white">
