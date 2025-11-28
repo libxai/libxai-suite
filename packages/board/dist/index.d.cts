@@ -2208,14 +2208,17 @@ declare const ganttUtils: {
     isOnCriticalPath: (tasks: Task[], taskId: string) => boolean;
     /**
      * Auto-schedule dependent tasks when a task changes
+     * v0.13.3: Now takes optional daysDelta to shift dependents by same amount (preserves gap)
      * @param tasks - All tasks
      * @param changedTaskId - Task that was changed
+     * @param daysDelta - Optional: days the parent moved (for preserving relative gaps)
      * @returns Updated tasks with rescheduled dependencies
      */
-    autoScheduleDependents: (tasks: Task[], changedTaskId: string) => Task[];
+    autoScheduleDependents: (tasks: Task[], changedTaskId: string, daysDelta?: number) => Task[];
     /**
      * v0.13.0: Calculate cascade preview positions for dependent tasks during drag
-     * Returns preview positions showing where dependent tasks will move
+     * v0.13.3: FIXED - Preview shows ONLY actual movement needed (keeps same relative gap)
+     * Dependents shift by the same daysDelta as their parent, preserving the original gap
      * @param tasks - All tasks (nested structure)
      * @param draggedTaskId - Task being dragged
      * @param daysDelta - How many days the dragged task is being moved

@@ -1061,11 +1061,13 @@ export const ganttUtils = {
 
   /**
    * Auto-schedule dependent tasks when a task changes
+   * v0.13.3: Now takes optional daysDelta to shift dependents by same amount (preserves gap)
    * @param tasks - All tasks
    * @param changedTaskId - Task that was changed
+   * @param daysDelta - Optional: days the parent moved (for preserving relative gaps)
    * @returns Updated tasks with rescheduled dependencies
    */
-  autoScheduleDependents: (tasks: Task[], changedTaskId: string): Task[] => {
+  autoScheduleDependents: (tasks: Task[], changedTaskId: string, daysDelta?: number): Task[] => {
     const changedTask = ganttUtils.findTaskById(tasks, changedTaskId);
     if (!changedTask || !changedTask.endDate) return tasks;
 
@@ -1074,16 +1076,24 @@ export const ganttUtils = {
 
     let updatedTasks = [...tasks];
 
-    // For each dependent, shift start date to be after the changed task
+    // For each dependent, shift by the same daysDelta (preserves relative gap)
     for (const dependent of dependents) {
       if (!dependent.startDate || !dependent.endDate) continue;
 
       // Calculate duration of dependent task
       const duration = ganttUtils.calculateDuration(dependent.startDate, dependent.endDate);
 
-      // New start date = changed task end date + 1 day
-      const newStartDate = new Date(changedTask.endDate);
-      newStartDate.setDate(newStartDate.getDate() + 1);
+      let newStartDate: Date;
+
+      if (daysDelta !== undefined) {
+        // v0.13.3: Shift by same delta as parent (preserves relative gap)
+        newStartDate = new Date(dependent.startDate);
+        newStartDate.setDate(newStartDate.getDate() + daysDelta);
+      } else {
+        // Legacy behavior: New start date = changed task end date + 1 day
+        newStartDate = new Date(changedTask.endDate);
+        newStartDate.setDate(newStartDate.getDate() + 1);
+      }
 
       // Calculate new end date based on duration
       const newEndDate = ganttUtils.calculateEndDate(newStartDate, duration);
@@ -1103,8 +1113,8 @@ export const ganttUtils = {
 
       updatedTasks = updateTaskRec(updatedTasks);
 
-      // Recursively update dependents of this task
-      updatedTasks = ganttUtils.autoScheduleDependents(updatedTasks, dependent.id);
+      // Recursively update dependents of this task (pass same delta)
+      updatedTasks = ganttUtils.autoScheduleDependents(updatedTasks, dependent.id, daysDelta);
     }
 
     return updatedTasks;
@@ -1112,7 +1122,8 @@ export const ganttUtils = {
 
   /**
    * v0.13.0: Calculate cascade preview positions for dependent tasks during drag
-   * Returns preview positions showing where dependent tasks will move
+   * v0.13.3: FIXED - Preview shows ONLY actual movement needed (keeps same relative gap)
+   * Dependents shift by the same daysDelta as their parent, preserving the original gap
    * @param tasks - All tasks (nested structure)
    * @param draggedTaskId - Task being dragged
    * @param daysDelta - How many days the dragged task is being moved
@@ -1160,12 +1171,17 @@ export const ganttUtils = {
     const rangeStart = timelineStartDate.getTime();
     const msPerDay = 1000 * 60 * 60 * 24;
 
-    // Get all tasks that will be affected (recursively)
-    const getAffectedTasks = (taskId: string, accumulatedDelta: number, visited = new Set<string>()): void => {
-      if (visited.has(taskId)) return; // Prevent infinite loops
-      visited.add(taskId);
+    // Get dragged task info
+    const draggedTask = ganttUtils.findTaskById(tasks, draggedTaskId);
+    if (!draggedTask || !draggedTask.endDate) return [];
 
-      const dependents = ganttUtils.getDependentTasks(tasks, taskId);
+    // v0.13.3: Dependents move by the SAME daysDelta as their parent
+    // This preserves the relative gap between tasks, making preview accurate
+    const getAffectedTasks = (parentTaskId: string, parentDelta: number, visited = new Set<string>()): void => {
+      if (visited.has(parentTaskId)) return; // Prevent infinite loops
+      visited.add(parentTaskId);
+
+      const dependents = ganttUtils.getDependentTasks(tasks, parentTaskId);
 
       for (const dependent of dependents) {
         if (!dependent.startDate || !dependent.endDate) continue;
@@ -1174,19 +1190,22 @@ export const ganttUtils = {
         const rowIndex = flatTasks.findIndex(t => t.id === dependent.id);
         if (rowIndex === -1) continue;
 
-        // Calculate current positions (same formula as getTaskPosition in Timeline.tsx)
+        // Calculate task duration and current position
         const taskStart = dependent.startDate.getTime();
         const taskEnd = dependent.endDate.getTime();
-
-        const daysFromStart = (taskStart - rangeStart) / msPerDay;
         const durationDays = (taskEnd - taskStart) / msPerDay;
 
-        // Original position - uses scaledDayWidth which already has zoom applied
+        // Original X position
+        const daysFromStart = (taskStart - rangeStart) / msPerDay;
         const originalX = daysFromStart * scaledDayWidth;
+
+        // v0.13.3: Preview X = Original X + daysDelta (same shift as parent)
+        // This shows the task moving exactly with its parent, preserving the gap
+        const previewX = originalX + (parentDelta * scaledDayWidth);
+
         // Width calculation - minimum 1 day width for visibility
         const width = Math.max(durationDays * scaledDayWidth, scaledDayWidth);
-        // Preview position - shift by days delta
-        const previewX = originalX + (accumulatedDelta * scaledDayWidth);
+
         // Y position - same formula as Timeline.tsx: HEADER_HEIGHT + index * ROW_HEIGHT + 12
         const y = headerHeight + rowIndex * rowHeight + 12;
 
@@ -1198,12 +1217,12 @@ export const ganttUtils = {
           width,
           y,
           rowIndex,
-          daysDelta: accumulatedDelta,
+          daysDelta: parentDelta,
           color: dependent.color,
         });
 
         // Recursively get dependents of this task (same delta propagates)
-        getAffectedTasks(dependent.id, accumulatedDelta, visited);
+        getAffectedTasks(dependent.id, parentDelta, visited);
       }
     };
 

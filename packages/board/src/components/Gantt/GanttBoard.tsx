@@ -633,6 +633,11 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   // When you move a task, all dependent tasks are automatically rescheduled
   // This is BETTER than DHTMLX - they require manual configuration
   const handleTaskDateChange = useCallback((task: Task, newStart: Date, newEnd: Date) => {
+    // v0.13.3: Calculate daysDelta to preserve relative gaps in cascade
+    const daysDelta = task.startDate
+      ? Math.round((newStart.getTime() - task.startDate.getTime()) / (1000 * 60 * 60 * 24))
+      : 0;
+
     const updateTaskDates = (tasks: Task[]): Task[] => {
       return tasks.map((t) => {
         if (t.id === task.id) {
@@ -656,7 +661,8 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     let updatedTasks = updateTaskDates(localTasks);
 
     // Then, auto-schedule all dependent tasks (cascade effect)
-    updatedTasks = ganttUtils.autoScheduleDependents(updatedTasks, task.id);
+    // v0.13.3: Pass daysDelta to preserve relative gaps between tasks
+    updatedTasks = ganttUtils.autoScheduleDependents(updatedTasks, task.id, daysDelta);
 
     setLocalTasks(updatedTasks);
 
