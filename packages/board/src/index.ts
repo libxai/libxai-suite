@@ -69,6 +69,17 @@ export {
   ganttTaskToCardUpdate,
   cardsToGanttTasks,
   ganttUtils, // v0.8.0 - Public utilities
+  GanttAIAssistant, // v0.14.0 - AI Assistant for natural language task editing
+  // AI Command Parser utilities (v0.14.0)
+  GANTT_AI_SYSTEM_PROMPT,
+  generateTasksContext,
+  findTaskByName,
+  parseNaturalDate,
+  parseNaturalDuration,
+  parseProgress,
+  parseStatus,
+  parseLocalCommand,
+  validateAIResponse,
 } from './components/Gantt'
 export type {
   Task as GanttTask,
@@ -84,6 +95,8 @@ export type {
   GanttTemplates, // v0.8.0 - Customizable templates
   TaskFormModalProps, // v0.9.0 - Task form props
   TaskFormData, // v0.9.0 - Task form data
+  GanttAIAssistantConfig, // v0.14.0 - AI Assistant config
+  AICommandResult, // v0.14.0 - AI command result
 } from './components/Gantt'
 
 // v0.6.0: Smart Card Stacking
