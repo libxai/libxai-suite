@@ -6,7 +6,7 @@ export const themes: Record<string, GanttTheme> = {
     bgPrimary: '#1A1D21',
     bgSecondary: '#23272E',
     bgGrid: '#1E2228',
-    bgWeekend: 'rgba(139, 92, 246, 0.03)',
+    bgWeekend: 'rgba(59, 130, 246, 0.03)',
 
     // Borders
     border: '#2D3139',
@@ -17,14 +17,14 @@ export const themes: Record<string, GanttTheme> = {
     textSecondary: '#B4B9C5',
     textTertiary: '#7C8394',
 
-    // Accent & Interactive
-    accent: '#8B5CF6',
-    accentHover: '#9D72F8',
-    accentLight: 'rgba(139, 92, 246, 0.12)',
+    // Accent & Interactive - Electric Blue brand color
+    accent: '#3B82F6',
+    accentHover: '#60A5FA',
+    accentLight: 'rgba(59, 130, 246, 0.12)',
 
-    // Task Elements - More vibrant colors like ClickUp
-    taskBarPrimary: '#8B5CF6',
-    taskBarProgress: '#7C3AED',
+    // Task Elements - Electric Blue brand color
+    taskBarPrimary: '#3B82F6',
+    taskBarProgress: '#2563EB',
     taskBarHandle: '#FFFFFF',
 
     // Dependencies & Critical Path
@@ -41,12 +41,12 @@ export const themes: Record<string, GanttTheme> = {
 
     // Status Colors
     statusTodo: '#7C8394',
-    statusInProgress: '#8B5CF6',
+    statusInProgress: '#3B82F6',
     statusCompleted: '#10B981',
 
     // Hover & Focus States
     hoverBg: 'rgba(255, 255, 255, 0.05)',
-    focusRing: '#8B5CF6',
+    focusRing: '#3B82F6',
   },
   
   light: {
