@@ -24,6 +24,7 @@ interface TaskGridProps {
   scrollTop: number;
   columns: GanttColumn[];
   onToggleColumn: (columnType: ColumnType) => void;
+  onColumnResize?: (columnId: ColumnType, newWidth: number) => void; // v0.13.8
   onTaskUpdate?: (taskId: string, updates: Partial<Task>) => void;
 
   // Hierarchy handlers
@@ -51,6 +52,7 @@ export function TaskGrid({
   scrollTop: _scrollTop,
   columns,
   onToggleColumn,
+  onColumnResize,
   onTaskUpdate,
   onTaskIndent,
   onTaskOutdent,
@@ -68,6 +70,11 @@ export function TaskGrid({
   const [editingTaskName, setEditingTaskName] = useState('');
   const keyboardHelpRef = useRef<HTMLDivElement>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
+
+  // v0.13.8: Column resize state
+  const [resizingColumn, setResizingColumn] = useState<ColumnType | null>(null);
+  const [resizeStartX, setResizeStartX] = useState(0);
+  const [resizeStartWidth, setResizeStartWidth] = useState(0);
   const [contextMenu, setContextMenu] = useState<{
     isOpen: boolean;
     x: number;
@@ -104,6 +111,35 @@ export function TaskGrid({
       editInputRef.current.select();
     }
   }, [editingTaskId]);
+
+  // v0.13.8: Handle column resize mouse events
+  useEffect(() => {
+    if (!resizingColumn) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const deltaX = e.clientX - resizeStartX;
+      const newWidth = resizeStartWidth + deltaX;
+      onColumnResize?.(resizingColumn, newWidth);
+    };
+
+    const handleMouseUp = () => {
+      setResizingColumn(null);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [resizingColumn, resizeStartX, resizeStartWidth, onColumnResize]);
 
   // Multi-selection hook
   const {
@@ -283,6 +319,7 @@ export function TaskGrid({
                       : 400,  // Regular tasks: Normal
                     opacity: level === 0 ? 1 : level === 1 ? 0.95 : 0.88,
                   }}
+                  title={task.name} // v0.13.8: Show full name on hover tooltip
                 >
                   {task.name}
                 </span>
@@ -625,6 +662,30 @@ export function TaskGrid({
             >
               {column.label}
             </span>
+
+            {/* v0.13.8: Resize handle for resizable columns */}
+            {column.resizable && (
+              <div
+                className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-blue-500 transition-colors group"
+                style={{
+                  backgroundColor: resizingColumn === column.id ? theme.accent : 'transparent',
+                }}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setResizingColumn(column.id);
+                  setResizeStartX(e.clientX);
+                  setResizeStartWidth(column.width);
+                }}
+                title="Drag to resize column"
+              >
+                {/* Visual indicator line on hover */}
+                <div
+                  className="absolute right-0 top-2 bottom-2 w-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                  style={{ backgroundColor: theme.accent }}
+                />
+              </div>
+            )}
           </div>
         ))}
         

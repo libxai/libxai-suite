@@ -1331,8 +1331,11 @@ interface GanttColumn {
     id: ColumnType;
     label: string;
     width: number;
+    minWidth?: number;
+    maxWidth?: number;
     visible: boolean;
     sortable?: boolean;
+    resizable?: boolean;
 }
 interface Assignee {
     name: string;
@@ -1801,6 +1804,7 @@ interface TaskGridProps {
     scrollTop: number;
     columns: GanttColumn[];
     onToggleColumn: (columnType: ColumnType) => void;
+    onColumnResize?: (columnId: ColumnType, newWidth: number) => void;
     onTaskUpdate?: (taskId: string, updates: Partial<Task>) => void;
     onTaskIndent?: (taskIds: string[]) => void;
     onTaskOutdent?: (taskIds: string[]) => void;
@@ -1815,7 +1819,7 @@ interface TaskGridProps {
 declare function TaskGrid({ tasks, theme, rowHeight: ROW_HEIGHT, availableUsers, templates: _templates, // TODO: Use templates for custom rendering
 onTaskClick, onTaskDblClick, // v0.8.0
 onTaskContextMenu, // v0.8.0
-onTaskToggle, scrollTop: _scrollTop, columns, onToggleColumn, onTaskUpdate, onTaskIndent, onTaskOutdent, onTaskMove, onMultiTaskDelete, onTaskDuplicate, onTaskCreate, onTaskRename, onCreateSubtask, onOpenTaskModal, }: TaskGridProps): react_jsx_runtime.JSX.Element;
+onTaskToggle, scrollTop: _scrollTop, columns, onToggleColumn, onColumnResize, onTaskUpdate, onTaskIndent, onTaskOutdent, onTaskMove, onMultiTaskDelete, onTaskDuplicate, onTaskCreate, onTaskRename, onCreateSubtask, onOpenTaskModal, }: TaskGridProps): react_jsx_runtime.JSX.Element;
 
 interface TimelineProps {
     tasks: Task[];
