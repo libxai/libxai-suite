@@ -55,8 +55,11 @@ export interface GanttColumn {
   id: ColumnType;
   label: string;
   width: number;
+  minWidth?: number;  // v0.13.8: Minimum width for resizable columns
+  maxWidth?: number;  // v0.13.8: Maximum width for resizable columns
   visible: boolean;
   sortable?: boolean;
+  resizable?: boolean; // v0.13.8: Whether column can be resized
 }
 
 export interface Assignee {
