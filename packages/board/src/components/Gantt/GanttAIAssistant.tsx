@@ -83,6 +83,10 @@ export interface GanttAIAssistantConfig {
   suggestions?: string[];
   /** Maximum messages to keep in history */
   maxHistory?: number;
+  /** Show quick add task button (default: true) */
+  showQuickAdd?: boolean;
+  /** Callback when quick add button is clicked */
+  onQuickAddClick?: () => void;
 }
 
 export interface GanttAIAssistantProps {
@@ -147,6 +151,13 @@ const MinimizeIcon = () => (
   </svg>
 );
 
+// Plus icon for quick add
+const PlusIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+    <path d="M12 5v14M5 12h14" />
+  </svg>
+);
+
 // Loading dots animation
 const LoadingDots = () => (
   <div className="flex gap-1 items-center">
@@ -198,6 +209,8 @@ export function GanttAIAssistant({
     onCommand,
     suggestions = DEFAULT_SUGGESTIONS,
     maxHistory = 50,
+    showQuickAdd = true,
+    onQuickAddClick,
   } = config;
 
   // Auto-scroll to bottom on new messages
@@ -381,29 +394,53 @@ export function GanttAIAssistant({
 
   return (
     <Portal>
-      {/* Floating AI Button */}
+      {/* Floating Action Buttons - Professional stacked design */}
       <AnimatePresence>
         {!isOpen && (
-          <motion.button
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0, opacity: 0 }}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95 }}
-            className={`fixed ${positionClasses[position]} z-[99999] flex items-center gap-2 px-4 py-3 rounded-full shadow-lg transition-colors`}
-            style={{
-              background: 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)',
-              color: 'white',
-              boxShadow: '0 4px 20px rgba(99, 102, 241, 0.4)',
-            }}
-            onClick={() => setIsOpen(true)}
-          >
-            <AIIcon />
-            <span className="text-sm font-medium">AI Assistant</span>
-            <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-mono rounded bg-white/20">
-              ⌘K
-            </kbd>
-          </motion.button>
+          <div className={`fixed ${positionClasses[position]} z-[99999] flex flex-col items-end gap-3`}>
+            {/* Quick Add Task Button - Only if enabled and handler provided */}
+            {showQuickAdd && onQuickAddClick && (
+              <motion.button
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0, opacity: 0 }}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+                className="flex items-center justify-center w-12 h-12 rounded-full shadow-lg transition-colors"
+                style={{
+                  background: theme.accent || '#10B981',
+                  color: 'white',
+                  boxShadow: '0 4px 15px rgba(16, 185, 129, 0.4)',
+                }}
+                onClick={onQuickAddClick}
+                title="Create new task"
+              >
+                <PlusIcon />
+              </motion.button>
+            )}
+
+            {/* AI Assistant Button - Main action */}
+            <motion.button
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0, opacity: 0 }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="flex items-center gap-2 px-4 py-3 rounded-full shadow-lg transition-colors"
+              style={{
+                background: 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)',
+                color: 'white',
+                boxShadow: '0 4px 20px rgba(99, 102, 241, 0.4)',
+              }}
+              onClick={() => setIsOpen(true)}
+            >
+              <AIIcon />
+              <span className="text-sm font-medium">AI Assistant</span>
+              <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-mono rounded bg-white/20">
+                ⌘K
+              </kbd>
+            </motion.button>
+          </div>
         )}
       </AnimatePresence>
 

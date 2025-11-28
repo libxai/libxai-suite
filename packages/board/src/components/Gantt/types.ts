@@ -298,6 +298,10 @@ export interface GanttAIAssistantConfig {
   suggestions?: string[];
   /** Maximum messages to keep in history */
   maxHistory?: number;
+  /** Show quick add task button (default: true) */
+  showQuickAdd?: boolean;
+  /** Callback when quick add button is clicked */
+  onQuickAddClick?: () => void;
 }
 
 /**
