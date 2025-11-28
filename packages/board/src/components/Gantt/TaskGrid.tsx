@@ -207,9 +207,9 @@ export function TaskGrid({
         const isHovered = hoveredTaskId === task.id;
 
         return (
-          <div className="flex items-center gap-2 flex-1 min-w-0 relative" style={{ paddingLeft: `${level * 24}px` }}>
-            {/* Expand/Collapse Button */}
-            {task.subtasks && task.subtasks.length > 0 && (
+          <div className="flex items-center gap-2 flex-1 min-w-0 relative" style={{ paddingLeft: `${level * 20}px` }}>
+            {/* Expand/Collapse Button - Always show space for alignment */}
+            {task.subtasks && task.subtasks.length > 0 ? (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -224,6 +224,9 @@ export function TaskGrid({
                   <ChevronRight className="w-4 h-4" />
                 )}
               </button>
+            ) : (
+              /* Spacer for tasks without subtasks to maintain alignment */
+              <div className="w-5 h-5 flex-shrink-0" />
             )}
 
             {/* v0.11.0: Color Indicator - Simple dot showing task color */}

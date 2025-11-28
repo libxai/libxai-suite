@@ -626,6 +626,289 @@ export const ganttUtils = {
   },
 
   /**
+   * Export tasks to Microsoft Project XML format
+   * Compatible with MS Project 2010+ and other project management tools
+   * @param tasks - Tasks to export
+   * @param projectName - Project name (default: 'Gantt Project')
+   * @param filename - Optional filename (default: 'project.xml')
+   * @returns void - Downloads the XML file
+   */
+  exportToMSProject: (tasks: Task[], projectName = 'Gantt Project', filename = 'project.xml'): void => {
+    const flat = ganttUtils.flattenTasks(tasks);
+
+    // Generate unique UIDs for tasks (MS Project requires numeric UIDs)
+    const taskUIDMap = new Map<string, number>();
+    flat.forEach((task, index) => {
+      taskUIDMap.set(task.id, index + 1); // UID starts at 1
+    });
+
+    // Format date for MS Project XML (ISO 8601)
+    const formatMSDate = (date: Date): string => {
+      return date.toISOString().replace('Z', '');
+    };
+
+    // Calculate project start and end dates
+    const projectStart = ganttUtils.getEarliestStartDate(tasks) || new Date();
+    const projectEnd = ganttUtils.getLatestEndDate(tasks) || new Date();
+
+    // Build XML structure
+    const xmlTasks = flat.map((task, index) => {
+      const uid = taskUIDMap.get(task.id)!;
+      const duration = task.startDate && task.endDate
+        ? ganttUtils.calculateDuration(task.startDate, task.endDate)
+        : 0;
+
+      // Build predecessor links (dependencies)
+      const predecessorLinks = (task.dependencies || [])
+        .filter(depId => taskUIDMap.has(depId))
+        .map(depId => `
+        <PredecessorLink>
+          <PredecessorUID>${taskUIDMap.get(depId)}</PredecessorUID>
+          <Type>1</Type>
+          <CrossProject>0</CrossProject>
+          <LinkLag>0</LinkLag>
+          <LagFormat>7</LagFormat>
+        </PredecessorLink>`).join('');
+
+      return `
+    <Task>
+      <UID>${uid}</UID>
+      <ID>${index + 1}</ID>
+      <Name>${task.name.replace(/[<>&'"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' })[c] || c)}</Name>
+      <Type>0</Type>
+      <IsNull>0</IsNull>
+      <CreateDate>${formatMSDate(new Date())}</CreateDate>
+      <WBS>${index + 1}</WBS>
+      <OutlineNumber>${index + 1}</OutlineNumber>
+      <OutlineLevel>${task.level || 0}</OutlineLevel>
+      <Priority>500</Priority>
+      <Start>${task.startDate ? formatMSDate(task.startDate) : ''}</Start>
+      <Finish>${task.endDate ? formatMSDate(task.endDate) : ''}</Finish>
+      <Duration>PT${duration * 8}H0M0S</Duration>
+      <DurationFormat>7</DurationFormat>
+      <Work>PT${duration * 8}H0M0S</Work>
+      <Stop>${task.endDate ? formatMSDate(task.endDate) : ''}</Stop>
+      <Resume>${task.startDate ? formatMSDate(task.startDate) : ''}</Resume>
+      <ResumeValid>0</ResumeValid>
+      <EffortDriven>1</EffortDriven>
+      <Recurring>0</Recurring>
+      <OverAllocated>0</OverAllocated>
+      <Estimated>0</Estimated>
+      <Milestone>${task.isMilestone ? '1' : '0'}</Milestone>
+      <Summary>${(task.subtasks && task.subtasks.length > 0) ? '1' : '0'}</Summary>
+      <Critical>${task.isCriticalPath ? '1' : '0'}</Critical>
+      <IsSubproject>0</IsSubproject>
+      <IsSubprojectReadOnly>0</IsSubprojectReadOnly>
+      <ExternalTask>0</ExternalTask>
+      <EarlyStart>${task.startDate ? formatMSDate(task.startDate) : ''}</EarlyStart>
+      <EarlyFinish>${task.endDate ? formatMSDate(task.endDate) : ''}</EarlyFinish>
+      <LateStart>${task.startDate ? formatMSDate(task.startDate) : ''}</LateStart>
+      <LateFinish>${task.endDate ? formatMSDate(task.endDate) : ''}</LateFinish>
+      <StartVariance>0</StartVariance>
+      <FinishVariance>0</FinishVariance>
+      <WorkVariance>0</WorkVariance>
+      <FreeSlack>0</FreeSlack>
+      <TotalSlack>0</TotalSlack>
+      <FixedCost>0</FixedCost>
+      <FixedCostAccrual>3</FixedCostAccrual>
+      <PercentComplete>${task.progress}</PercentComplete>
+      <PercentWorkComplete>${task.progress}</PercentWorkComplete>
+      <Cost>0</Cost>
+      <OvertimeCost>0</OvertimeCost>
+      <OvertimeWork>PT0H0M0S</OvertimeWork>
+      <ActualStart>${task.progress > 0 && task.startDate ? formatMSDate(task.startDate) : ''}</ActualStart>
+      <ActualFinish>${task.progress === 100 && task.endDate ? formatMSDate(task.endDate) : ''}</ActualFinish>
+      <ActualDuration>PT${Math.round(duration * task.progress / 100) * 8}H0M0S</ActualDuration>
+      <ActualCost>0</ActualCost>
+      <ActualOvertimeCost>0</ActualOvertimeCost>
+      <ActualWork>PT${Math.round(duration * task.progress / 100) * 8}H0M0S</ActualWork>
+      <ActualOvertimeWork>PT0H0M0S</ActualOvertimeWork>
+      <RegularWork>PT${duration * 8}H0M0S</RegularWork>
+      <RemainingDuration>PT${Math.round(duration * (100 - task.progress) / 100) * 8}H0M0S</RemainingDuration>
+      <RemainingCost>0</RemainingCost>
+      <RemainingWork>PT${Math.round(duration * (100 - task.progress) / 100) * 8}H0M0S</RemainingWork>
+      <RemainingOvertimeCost>0</RemainingOvertimeCost>
+      <RemainingOvertimeWork>PT0H0M0S</RemainingOvertimeWork>
+      <ACWP>0</ACWP>
+      <CV>0</CV>
+      <ConstraintType>0</ConstraintType>
+      <CalendarUID>-1</CalendarUID>
+      <LevelAssignments>1</LevelAssignments>
+      <LevelingCanSplit>1</LevelingCanSplit>
+      <LevelingDelay>0</LevelingDelay>
+      <LevelingDelayFormat>8</LevelingDelayFormat>
+      <IgnoreResourceCalendar>0</IgnoreResourceCalendar>
+      <HideBar>0</HideBar>
+      <Rollup>0</Rollup>
+      <BCWS>0</BCWS>
+      <BCWP>0</BCWP>
+      <PhysicalPercentComplete>0</PhysicalPercentComplete>
+      <EarnedValueMethod>0</EarnedValueMethod>
+      <IsPublished>1</IsPublished>
+      <CommitmentType>0</CommitmentType>${predecessorLinks}
+    </Task>`;
+    }).join('');
+
+    // Complete MS Project XML structure
+    const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Project xmlns="http://schemas.microsoft.com/project">
+  <SaveVersion>14</SaveVersion>
+  <Name>${projectName.replace(/[<>&'"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' })[c] || c)}</Name>
+  <Title>${projectName.replace(/[<>&'"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' })[c] || c)}</Title>
+  <CreationDate>${formatMSDate(new Date())}</CreationDate>
+  <LastSaved>${formatMSDate(new Date())}</LastSaved>
+  <ScheduleFromStart>1</ScheduleFromStart>
+  <StartDate>${formatMSDate(projectStart)}</StartDate>
+  <FinishDate>${formatMSDate(projectEnd)}</FinishDate>
+  <FYStartDate>1</FYStartDate>
+  <CriticalSlackLimit>0</CriticalSlackLimit>
+  <CurrencyDigits>2</CurrencyDigits>
+  <CurrencySymbol>$</CurrencySymbol>
+  <CurrencyCode>USD</CurrencyCode>
+  <CurrencySymbolPosition>0</CurrencySymbolPosition>
+  <CalendarUID>1</CalendarUID>
+  <DefaultStartTime>08:00:00</DefaultStartTime>
+  <DefaultFinishTime>17:00:00</DefaultFinishTime>
+  <MinutesPerDay>480</MinutesPerDay>
+  <MinutesPerWeek>2400</MinutesPerWeek>
+  <DaysPerMonth>20</DaysPerMonth>
+  <DefaultTaskType>1</DefaultTaskType>
+  <DefaultFixedCostAccrual>3</DefaultFixedCostAccrual>
+  <DefaultStandardRate>0</DefaultStandardRate>
+  <DefaultOvertimeRate>0</DefaultOvertimeRate>
+  <DurationFormat>7</DurationFormat>
+  <WorkFormat>2</WorkFormat>
+  <EditableActualCosts>0</EditableActualCosts>
+  <HonorConstraints>1</HonorConstraints>
+  <InsertedProjectsLikeSummary>1</InsertedProjectsLikeSummary>
+  <MultipleCriticalPaths>0</MultipleCriticalPaths>
+  <NewTasksEffortDriven>1</NewTasksEffortDriven>
+  <NewTasksEstimated>1</NewTasksEstimated>
+  <SplitsInProgressTasks>1</SplitsInProgressTasks>
+  <SpreadActualCost>0</SpreadActualCost>
+  <SpreadPercentComplete>0</SpreadPercentComplete>
+  <TaskUpdatesResource>1</TaskUpdatesResource>
+  <FiscalYearStart>0</FiscalYearStart>
+  <WeekStartDay>1</WeekStartDay>
+  <MoveCompletedEndsBack>0</MoveCompletedEndsBack>
+  <MoveRemainingStartsBack>0</MoveRemainingStartsBack>
+  <MoveRemainingStartsForward>0</MoveRemainingStartsForward>
+  <MoveCompletedEndsForward>0</MoveCompletedEndsForward>
+  <BaselineForEarnedValue>0</BaselineForEarnedValue>
+  <AutoAddNewResourcesAndTasks>1</AutoAddNewResourcesAndTasks>
+  <CurrentDate>${formatMSDate(new Date())}</CurrentDate>
+  <MicrosoftProjectServerURL>1</MicrosoftProjectServerURL>
+  <Autolink>1</Autolink>
+  <NewTaskStartDate>0</NewTaskStartDate>
+  <DefaultTaskEVMethod>0</DefaultTaskEVMethod>
+  <ProjectExternallyEdited>0</ProjectExternallyEdited>
+  <ExtendedCreationDate>${formatMSDate(new Date())}</ExtendedCreationDate>
+  <ActualsInSync>0</ActualsInSync>
+  <RemoveFileProperties>0</RemoveFileProperties>
+  <AdminProject>0</AdminProject>
+  <Calendars>
+    <Calendar>
+      <UID>1</UID>
+      <Name>Standard</Name>
+      <IsBaseCalendar>1</IsBaseCalendar>
+      <IsBaselineCalendar>0</IsBaselineCalendar>
+      <BaseCalendarUID>-1</BaseCalendarUID>
+      <WeekDays>
+        <WeekDay>
+          <DayType>1</DayType>
+          <DayWorking>0</DayWorking>
+        </WeekDay>
+        <WeekDay>
+          <DayType>2</DayType>
+          <DayWorking>1</DayWorking>
+          <WorkingTimes>
+            <WorkingTime>
+              <FromTime>08:00:00</FromTime>
+              <ToTime>12:00:00</ToTime>
+            </WorkingTime>
+            <WorkingTime>
+              <FromTime>13:00:00</FromTime>
+              <ToTime>17:00:00</ToTime>
+            </WorkingTime>
+          </WorkingTimes>
+        </WeekDay>
+        <WeekDay>
+          <DayType>3</DayType>
+          <DayWorking>1</DayWorking>
+          <WorkingTimes>
+            <WorkingTime>
+              <FromTime>08:00:00</FromTime>
+              <ToTime>12:00:00</ToTime>
+            </WorkingTime>
+            <WorkingTime>
+              <FromTime>13:00:00</FromTime>
+              <ToTime>17:00:00</ToTime>
+            </WorkingTime>
+          </WorkingTimes>
+        </WeekDay>
+        <WeekDay>
+          <DayType>4</DayType>
+          <DayWorking>1</DayWorking>
+          <WorkingTimes>
+            <WorkingTime>
+              <FromTime>08:00:00</FromTime>
+              <ToTime>12:00:00</ToTime>
+            </WorkingTime>
+            <WorkingTime>
+              <FromTime>13:00:00</FromTime>
+              <ToTime>17:00:00</ToTime>
+            </WorkingTime>
+          </WorkingTimes>
+        </WeekDay>
+        <WeekDay>
+          <DayType>5</DayType>
+          <DayWorking>1</DayWorking>
+          <WorkingTimes>
+            <WorkingTime>
+              <FromTime>08:00:00</FromTime>
+              <ToTime>12:00:00</ToTime>
+            </WorkingTime>
+            <WorkingTime>
+              <FromTime>13:00:00</FromTime>
+              <ToTime>17:00:00</ToTime>
+            </WorkingTime>
+          </WorkingTimes>
+        </WeekDay>
+        <WeekDay>
+          <DayType>6</DayType>
+          <DayWorking>1</DayWorking>
+          <WorkingTimes>
+            <WorkingTime>
+              <FromTime>08:00:00</FromTime>
+              <ToTime>12:00:00</ToTime>
+            </WorkingTime>
+            <WorkingTime>
+              <FromTime>13:00:00</FromTime>
+              <ToTime>17:00:00</ToTime>
+            </WorkingTime>
+          </WorkingTimes>
+        </WeekDay>
+        <WeekDay>
+          <DayType>7</DayType>
+          <DayWorking>0</DayWorking>
+        </WeekDay>
+      </WeekDays>
+    </Calendar>
+  </Calendars>
+  <Tasks>${xmlTasks}
+  </Tasks>
+</Project>`;
+
+    // Download the file
+    const blob = new Blob([xml], { type: 'application/xml;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  },
+
+  /**
    * Calculate Critical Path Method (CPM) - identifies tasks with zero slack
    * @param tasks - All tasks
    * @returns Array of task IDs on the critical path
