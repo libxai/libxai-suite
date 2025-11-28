@@ -1,8 +1,10 @@
-import { useMemo, useCallback } from 'react';
-import { TimeScale, Task, GanttTemplates } from './types';
+import { useMemo, useCallback, useState } from 'react';
+import { motion } from 'framer-motion';
+import { TimeScale, Task, GanttTemplates, DependentTaskPreview } from './types';
 import { TaskBar } from './TaskBar';
 import { DependencyLine } from './DependencyLine';
 import { Milestone } from './Milestone';
+import { ganttUtils } from './ganttUtils';
 
 interface TimelineProps {
   tasks: Task[];
@@ -46,6 +48,9 @@ export function Timeline({
   onDependencyDelete,
 }: TimelineProps) {
   const HEADER_HEIGHT = 48; // Must match TaskGrid's HEADER_HEIGHT for alignment
+
+  // v0.13.0: State for dependency cascade preview
+  const [cascadePreviews, setCascadePreviews] = useState<DependentTaskPreview[]>([]);
 
   // Calculate dimensions
   const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -195,6 +200,28 @@ export function Timeline({
         };
       });
   }, [flatTasks, getTaskPosition]);
+
+  // v0.13.0: Handle drag move for dependency cascade preview
+  const handleTaskDragMove = useCallback((taskId: string, daysDelta: number, isDragging: boolean) => {
+    if (!isDragging || daysDelta === 0) {
+      setCascadePreviews([]);
+      return;
+    }
+
+    // Calculate cascade preview positions for all dependent tasks
+    const previews = ganttUtils.calculateCascadePreview(
+      tasks,
+      taskId,
+      daysDelta,
+      flatTasks,
+      startDate,
+      dayWidth * zoom,
+      ROW_HEIGHT,
+      HEADER_HEIGHT
+    );
+
+    setCascadePreviews(previews);
+  }, [tasks, flatTasks, startDate, dayWidth, zoom, ROW_HEIGHT, HEADER_HEIGHT]);
 
   // Generate timeline headers
   const headers = useMemo(() => {
@@ -558,9 +585,67 @@ export function Timeline({
               onDateChange={onTaskDateChange}
               onDependencyCreate={onDependencyCreate}
               allTaskPositions={taskPositions}
+              onDragMove={handleTaskDragMove} // v0.13.0
             />
           );
         })}
+
+        {/* v0.13.0: Dependency Cascade Preview - Ghost bars showing where dependent tasks will move */}
+        {cascadePreviews.map((preview) => (
+          <motion.g
+            key={`cascade-preview-${preview.taskId}`}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.1 }}
+          >
+            {/* Ghost bar showing new position */}
+            <motion.rect
+              x={preview.previewX}
+              y={preview.y}
+              width={preview.width}
+              height={32}
+              rx={8}
+              fill={preview.color || theme.accent}
+              opacity={0.25}
+              stroke={theme.accent}
+              strokeWidth={2}
+              strokeDasharray="6 3"
+              style={{ pointerEvents: 'none' }}
+              initial={{ x: preview.originalX }}
+              animate={{ x: preview.previewX }}
+              transition={{ duration: 0.15, ease: 'easeOut' }}
+            />
+            {/* Label showing days shift */}
+            {Math.abs(preview.daysDelta) > 0 && preview.width > 40 && (
+              <text
+                x={preview.previewX + preview.width / 2}
+                y={preview.y + 16}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                fill={theme.accent}
+                fontSize="11"
+                fontWeight="600"
+                fontFamily="Inter, sans-serif"
+                style={{ pointerEvents: 'none', userSelect: 'none' }}
+              >
+                {preview.daysDelta > 0 ? `+${preview.daysDelta}d` : `${preview.daysDelta}d`}
+              </text>
+            )}
+            {/* Connection line from original to new position */}
+            <line
+              x1={preview.originalX + preview.width / 2}
+              y1={preview.y + 16}
+              x2={preview.previewX + preview.width / 2}
+              y2={preview.y + 16}
+              stroke={theme.accent}
+              strokeWidth={1}
+              strokeDasharray="4 2"
+              opacity={0.4}
+              style={{ pointerEvents: 'none' }}
+            />
+          </motion.g>
+        ))}
       </svg>
     </div>
   );

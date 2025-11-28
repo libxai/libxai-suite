@@ -1859,10 +1859,11 @@ interface TaskBarProps {
     onDateChange?: (task: Task, newStart: Date, newEnd: Date) => void;
     onDependencyCreate?: (fromTask: Task, toTaskId: string) => void;
     allTaskPositions?: TaskPosition[];
+    onDragMove?: (taskId: string, daysDelta: number, isDragging: boolean) => void;
 }
 declare function TaskBar({ task, x, y, width, theme, dayWidth, startDate, templates, onClick, onDoubleClick, // v0.8.0
 onContextMenu, // v0.8.0
-onDateChange, onDependencyCreate, allTaskPositions }: TaskBarProps): react_jsx_runtime.JSX.Element;
+onDateChange, onDependencyCreate, allTaskPositions, onDragMove, }: TaskBarProps): react_jsx_runtime.JSX.Element;
 
 interface DependencyLineProps {
     x1: number;
@@ -2212,6 +2213,30 @@ declare const ganttUtils: {
      * @returns Updated tasks with rescheduled dependencies
      */
     autoScheduleDependents: (tasks: Task[], changedTaskId: string) => Task[];
+    /**
+     * v0.13.0: Calculate cascade preview positions for dependent tasks during drag
+     * Returns preview positions showing where dependent tasks will move
+     * @param tasks - All tasks (flattened)
+     * @param draggedTaskId - Task being dragged
+     * @param daysDelta - How many days the dragged task is being moved
+     * @param flatTasks - Flattened task list with row indices
+     * @param timelineStartDate - Start date of the timeline
+     * @param dayWidth - Width of one day in pixels
+     * @param rowHeight - Height of each row
+     * @param headerHeight - Height of the header
+     * @returns Array of DependentTaskPreview objects
+     */
+    calculateCascadePreview: (tasks: Task[], draggedTaskId: string, daysDelta: number, flatTasks: Task[], timelineStartDate: Date, dayWidth: number, rowHeight: number, headerHeight: number) => Array<{
+        taskId: string;
+        taskName: string;
+        originalX: number;
+        previewX: number;
+        width: number;
+        y: number;
+        rowIndex: number;
+        daysDelta: number;
+        color?: string;
+    }>;
     /**
      * 🚀 KILLER FEATURE #3: Split a task (create GAP in the middle, like Bryntum/DHTMLX)
      * Same task, but work is paused for some days then continues
