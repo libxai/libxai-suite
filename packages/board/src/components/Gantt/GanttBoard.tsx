@@ -151,8 +151,9 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
 
   // Column configuration - Default: Only show task name
   // v0.13.8: Name column is resizable with min/max width constraints
+  // v0.13.9: Increased default width to 320px for better readability of long task names
   const [columns, setColumns] = useState<GanttColumn[]>([
-    { id: 'name', label: 'TASK NAME', width: 240, minWidth: 150, maxWidth: 600, visible: true, sortable: true, resizable: true },
+    { id: 'name', label: 'TASK NAME', width: 320, minWidth: 180, maxWidth: 800, visible: true, sortable: true, resizable: true },
     { id: 'startDate', label: 'Start Date', width: 110, visible: false, sortable: true },
     { id: 'endDate', label: 'End Date', width: 110, visible: false, sortable: true },
     { id: 'duration', label: 'Duration', width: 80, visible: false, sortable: true },
@@ -915,38 +916,15 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     setIsResizing(true);
   };
 
-  // Synchronized scrolling and resizing
+  // v0.13.9: Unified vertical scroll - parent container handles both TaskGrid and Timeline
+  // Only need to track scrollTop for virtual scrolling in TaskGrid
   useEffect(() => {
-    const gridScroll = gridScrollRef.current;
-    const timelineScroll = timelineScrollRef.current;
+    const scrollContainer = gridScrollRef.current;
 
-    if (!gridScroll || !timelineScroll) return;
+    if (!scrollContainer) return;
 
-    // v0.9.1: Respect disableScrollSync config to prevent auto-scroll during drag
-    const disableSync = config.disableScrollSync || false;
-
-    const handleGridScroll = () => {
-      if (disableSync) {
-        // Only update scroll position state, don't sync to timeline
-        setScrollTop(gridScroll.scrollTop);
-        return;
-      }
-      if (timelineScroll.scrollTop !== gridScroll.scrollTop) {
-        timelineScroll.scrollTop = gridScroll.scrollTop;
-      }
-      setScrollTop(gridScroll.scrollTop);
-    };
-
-    const handleTimelineScroll = () => {
-      if (disableSync) {
-        // Only update scroll position state, don't sync to grid
-        setScrollTop(timelineScroll.scrollTop);
-        return;
-      }
-      if (gridScroll.scrollTop !== timelineScroll.scrollTop) {
-        gridScroll.scrollTop = timelineScroll.scrollTop;
-      }
-      setScrollTop(timelineScroll.scrollTop);
+    const handleScroll = () => {
+      setScrollTop(scrollContainer.scrollTop);
     };
 
     const handleMouseMove = (e: MouseEvent) => {
@@ -962,18 +940,16 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       setIsResizing(false);
     };
 
-    gridScroll.addEventListener('scroll', handleGridScroll);
-    timelineScroll.addEventListener('scroll', handleTimelineScroll);
+    scrollContainer.addEventListener('scroll', handleScroll);
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
 
     return () => {
-      gridScroll.removeEventListener('scroll', handleGridScroll);
-      timelineScroll.removeEventListener('scroll', handleTimelineScroll);
+      scrollContainer.removeEventListener('scroll', handleScroll);
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isResizing, config.disableScrollSync]);
+  }, [isResizing]);
 
   return (
     <GanttThemeContext.Provider value={ganttThemeContextValue}>
@@ -1012,20 +988,23 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         onExportMSProject={showExportButton ? handleExportMSProject : undefined}
       />
 
-      {/* Main Content */}
-      <div className="flex-1 flex min-h-0">
-        {/* Task Grid */}
+      {/* Main Content - v0.13.9: Single vertical scroll container for TaskGrid + Timeline */}
+      <div
+        ref={gridScrollRef}
+        className="flex-1 flex min-h-0 overflow-y-auto"
+        style={{
+          // v0.9.1: Prevent browser auto-scroll when disableScrollSync is enabled
+          ...(config.disableScrollSync && {
+            scrollBehavior: 'auto',
+            overflowAnchor: 'none',
+          }),
+        }}
+      >
+        {/* Task Grid - no vertical scroll, follows parent */}
         <div
-          ref={gridScrollRef}
-          className="gantt-grid-scroll overflow-y-auto overflow-x-hidden"
+          className="gantt-grid-scroll overflow-x-hidden flex-shrink-0"
           style={{
             width: gridWidth,
-            minHeight: 0,
-            // v0.9.1: Prevent browser auto-scroll when disableScrollSync is enabled
-            ...(config.disableScrollSync && {
-              scrollBehavior: 'auto',
-              overflowAnchor: 'none',
-            }),
           }}
         >
           <TaskGrid
@@ -1077,10 +1056,10 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
           />
         </div>
 
-        {/* Timeline */}
+        {/* Timeline - v0.13.9: Only horizontal scroll, vertical handled by parent */}
         <div
           ref={timelineScrollRef}
-          className="gantt-timeline-scroll flex-1 overflow-auto"
+          className="gantt-timeline-scroll flex-1 overflow-x-auto overflow-y-hidden"
           style={{
             minHeight: 0,
             // v0.9.1: Prevent browser auto-scroll when disableScrollSync is enabled
