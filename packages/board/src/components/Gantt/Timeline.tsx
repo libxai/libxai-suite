@@ -1,5 +1,4 @@
 import { useMemo, useCallback, useState } from 'react';
-import { motion } from 'framer-motion';
 import { TimeScale, Task, GanttTemplates, DependentTaskPreview } from './types';
 import { TaskBar } from './TaskBar';
 import { DependencyLine } from './DependencyLine';
@@ -591,60 +590,42 @@ export function Timeline({
         })}
 
         {/* v0.13.0: Dependency Cascade Preview - Ghost bars showing where dependent tasks will move */}
+        {/* v0.13.4: Simplified - no conflicting animation, direct position */}
         {cascadePreviews.map((preview) => (
-          <motion.g
+          <g
             key={`cascade-preview-${preview.taskId}`}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.1 }}
+            style={{ pointerEvents: 'none' }}
           >
-            {/* Ghost bar showing new position */}
-            <motion.rect
+            {/* Ghost bar at exact preview position */}
+            <rect
               x={preview.previewX}
               y={preview.y}
               width={preview.width}
               height={32}
               rx={8}
               fill={preview.color || theme.accent}
-              opacity={0.25}
+              opacity={0.3}
               stroke={theme.accent}
               strokeWidth={2}
-              strokeDasharray="6 3"
-              style={{ pointerEvents: 'none' }}
-              initial={{ x: preview.originalX }}
-              animate={{ x: preview.previewX }}
-              transition={{ duration: 0.15, ease: 'easeOut' }}
+              strokeDasharray="4 2"
             />
-            {/* Label showing days shift */}
-            {Math.abs(preview.daysDelta) > 0 && preview.width > 40 && (
+            {/* Days delta label */}
+            {Math.abs(preview.daysDelta) > 0 && (
               <text
                 x={preview.previewX + preview.width / 2}
                 y={preview.y + 16}
                 textAnchor="middle"
                 dominantBaseline="middle"
                 fill={theme.accent}
-                fontSize="11"
+                fontSize="10"
                 fontWeight="600"
                 fontFamily="Inter, sans-serif"
-                style={{ pointerEvents: 'none', userSelect: 'none' }}
+                style={{ userSelect: 'none' }}
               >
                 {preview.daysDelta > 0 ? `+${preview.daysDelta}d` : `${preview.daysDelta}d`}
               </text>
             )}
-            {/* Connection line from original to new position */}
-            <line
-              x1={preview.originalX + preview.width / 2}
-              y1={preview.y + 16}
-              x2={preview.previewX + preview.width / 2}
-              y2={preview.y + 16}
-              stroke={theme.accent}
-              strokeWidth={1}
-              strokeDasharray="4 2"
-              opacity={0.4}
-              style={{ pointerEvents: 'none' }}
-            />
-          </motion.g>
+          </g>
         ))}
       </svg>
     </div>

@@ -60,6 +60,7 @@ export function TaskBar({
     segmentDragOffsetX, setSegmentDragOffsetX,
     hoveredSegmentIndex, setHoveredSegmentIndex,
     isHovered, setIsHovered,
+    dragDaysDelta, setDragDaysDelta, // v0.13.5: Direction-based color
     isDragging, isResizing, isConnecting,
     resetDragState
   } = dragState;
@@ -257,6 +258,7 @@ export function TaskBar({
 
       // v0.13.0: Calculate days delta and notify for cascade preview
       const daysDelta = Math.round((snappedX - x) / dayWidth);
+      setDragDaysDelta(daysDelta); // v0.13.5: Store for direction-based color
       onDragMove?.(task.id, daysDelta, true);
 
       // v0.8.1: For split tasks, calculate offset relative to the DRAGGED SEGMENT position
@@ -529,6 +531,7 @@ export function TaskBar({
 
       {/* Ghost/Preview Bar (shown while dragging) */}
       {/* v0.8.1: Hide ghost bar for split tasks - segments handle their own visualization */}
+      {/* v0.13.5: Direction-based colors - Yellow=same, Red=backward, Blue=forward */}
       {isDragging && !isConnecting && !task.segments && (
         <motion.rect
           x={ghostX}
@@ -536,13 +539,22 @@ export function TaskBar({
           width={ghostWidth}
           height={height}
           rx={borderRadius}
-          fill={task.isCriticalPath ? '#DC2626' : theme.taskBarPrimary}
-          opacity={0.3}
-          stroke={task.isCriticalPath ? '#EF4444' : theme.accent}
+          fill={
+            task.isCriticalPath ? '#DC2626' :
+            dragDaysDelta === 0 ? '#EAB308' : // Yellow - no movement
+            dragDaysDelta < 0 ? '#DC2626' :   // Red - moving backward
+            '#3B82F6'                          // Blue - moving forward
+          }
+          opacity={0.5}
+          stroke={
+            dragDaysDelta === 0 ? '#FACC15' : // Yellow stroke
+            dragDaysDelta < 0 ? '#EF4444' :   // Red stroke
+            '#60A5FA'                          // Blue stroke
+          }
           strokeWidth={2}
           strokeDasharray="4 4"
           initial={{ opacity: 0 }}
-          animate={{ opacity: 0.5 }}
+          animate={{ opacity: 0.6 }}
           transition={{ duration: 0.15 }}
           style={{ pointerEvents: 'none' }}
         />
