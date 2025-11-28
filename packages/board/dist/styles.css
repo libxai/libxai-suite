@@ -2,6 +2,13 @@
  * ASAKAA Design System v2.0
  * Apple-level design consistency
  * Every pixel matters. Every decision is intentional.
+ *
+ * REQUIRED FONTS:
+ * - Inter: UI text (https://fonts.google.com/specimen/Inter)
+ * - JetBrains Mono: Technical/date display (https://fonts.google.com/specimen/JetBrains+Mono)
+ *
+ * Add this to your HTML head:
+ * <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
  */
 
 

@@ -312,13 +312,14 @@ export function Timeline({
                 opacity={0.1}
               />
 
-              {/* Header text */}
+              {/* Header text - JetBrains Mono for technical/date display */}
               <text
                 x={header.x + 8}
                 y={HEADER_HEIGHT / 2}
                 fill={theme.textTertiary}
                 fontSize="11"
-                fontFamily="Inter, sans-serif"
+                fontFamily="'JetBrains Mono', ui-monospace, monospace"
+                fontWeight="500"
                 dominantBaseline="middle"
               >
                 {header.label}
