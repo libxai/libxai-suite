@@ -281,6 +281,42 @@ export interface GanttScrollBehavior {
   allowScrollWhenOutOfBounds?: boolean;
 }
 
+/**
+ * AI Assistant configuration for natural language task editing
+ * @version 0.14.0
+ */
+export interface GanttAIAssistantConfig {
+  /** Enable AI assistant (default: false) */
+  enabled?: boolean;
+  /** Custom placeholder text */
+  placeholder?: string;
+  /** Position of the chat button */
+  position?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
+  /** Handler for AI commands - should return task updates */
+  onCommand?: (command: string, tasks: Task[]) => Promise<AICommandResult>;
+  /** Custom suggestions for the command palette */
+  suggestions?: string[];
+  /** Maximum messages to keep in history */
+  maxHistory?: number;
+}
+
+/**
+ * AI Command result interface
+ * @version 0.14.0
+ */
+export interface AICommandResult {
+  type: 'move_task' | 'resize_task' | 'rename_task' | 'delete_task' | 'create_task' | 'link_tasks' | 'unlink_tasks' | 'assign_task' | 'set_progress' | 'set_status' | 'split_task' | 'group_tasks' | 'unknown';
+  taskId?: string;
+  taskName?: string;
+  updates?: Partial<Task>;
+  newTask?: Task;
+  dependencyFrom?: string;
+  dependencyTo?: string;
+  message: string;
+  success: boolean;
+  error?: string;
+}
+
 export interface GanttConfig {
   theme?: Theme;
   timeScale?: TimeScale;
@@ -288,6 +324,9 @@ export interface GanttConfig {
   showThemeSelector?: boolean; // Show theme selector in toolbar (default: true)
   showExportButton?: boolean; // v0.12.0: Show export dropdown in toolbar (default: true)
   availableUsers?: Array<{ id: string; name: string; initials: string; color: string }>; // Available users for assignment
+
+  // v0.14.0: AI Assistant for natural language task editing
+  aiAssistant?: GanttAIAssistantConfig;
 
   // v0.8.0: Customizable templates (similar to DHTMLX gantt.templates.*)
   templates?: GanttTemplates;

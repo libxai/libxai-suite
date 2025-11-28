@@ -6,6 +6,7 @@ import { TaskGrid } from './TaskGrid';
 import { Timeline } from './Timeline';
 import { ContextMenu, MenuIcons } from './ContextMenu'; // v0.8.0: Split task context menu
 import { TaskFormModal } from './TaskFormModal'; // v0.10.0: Task edit modal
+import { GanttAIAssistant } from './GanttAIAssistant'; // v0.14.0: AI Assistant
 import { motion } from 'framer-motion';
 import { useUndoRedo } from './useUndoRedo';
 import { useGanttUndoRedoKeys } from './useGanttUndoRedoKeys';
@@ -60,6 +61,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     availableUsers = [],
     templates,
     enableAutoCriticalPath = true, // v0.11.1: Allow disabling automatic CPM calculation
+    aiAssistant, // v0.14.0: AI Assistant configuration
     // UI events
     onThemeChange, // v0.9.0
     // Basic events
@@ -1142,6 +1144,30 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
           }}
           mode="edit"
           theme={currentTheme}
+        />
+      )}
+
+      {/* v0.14.0: AI Assistant for natural language task editing */}
+      {aiAssistant?.enabled && (
+        <GanttAIAssistant
+          tasks={localTasks}
+          theme={theme}
+          config={aiAssistant}
+          onTasksUpdate={setLocalTasks}
+          onTaskUpdate={handleTaskUpdate}
+          onTaskCreate={(task) => {
+            setLocalTasks((prev) => [...prev, task]);
+          }}
+          onTaskDelete={(taskId) => {
+            setLocalTasks((prev) => deleteTasks(prev, [taskId]));
+          }}
+          onDependencyCreate={(fromTaskId, toTaskId) => {
+            const fromTask = ganttUtils.findTaskById(localTasks, fromTaskId);
+            if (fromTask) {
+              handleDependencyCreate(fromTask, toTaskId);
+            }
+          }}
+          onDependencyDelete={handleDependencyDelete}
         />
       )}
     </div>

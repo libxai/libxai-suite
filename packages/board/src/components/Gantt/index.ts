@@ -13,6 +13,20 @@ export { Milestone } from './Milestone';
 export { ColumnManager } from './ColumnManager';
 export { ContextMenu, MenuIcons } from './ContextMenu';
 export { TaskFormModal } from './TaskFormModal'; // v0.9.0: Task CRUD modal
+export { GanttAIAssistant } from './GanttAIAssistant'; // v0.14.0: AI Assistant
+
+// AI Command Parser utilities (v0.14.0)
+export {
+  GANTT_AI_SYSTEM_PROMPT,
+  generateTasksContext,
+  findTaskByName,
+  parseNaturalDate,
+  parseNaturalDuration,
+  parseProgress,
+  parseStatus,
+  parseLocalCommand,
+  validateAIResponse,
+} from './aiCommandParser';
 
 // Types
 export type {
@@ -27,6 +41,8 @@ export type {
   Assignee,
   GanttTheme,
   GanttTemplates, // v0.8.0
+  GanttAIAssistantConfig, // v0.14.0: AI Assistant config
+  AICommandResult, // v0.14.0: AI command result
 } from './types';
 
 // Task Form Types (v0.9.0)
