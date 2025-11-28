@@ -1541,10 +1541,6 @@ interface GanttAIAssistantConfig$1 {
     suggestions?: string[];
     /** Maximum messages to keep in history */
     maxHistory?: number;
-    /** Show quick add task button (default: true) */
-    showQuickAdd?: boolean;
-    /** Callback when quick add button is clicked */
-    onQuickAddClick?: () => void;
 }
 /**
  * AI Command result interface
@@ -1575,6 +1571,9 @@ interface GanttConfig {
         color: string;
     }>;
     aiAssistant?: GanttAIAssistantConfig$1;
+    showCreateTaskButton?: boolean;
+    createTaskLabel?: string;
+    onCreateTask?: () => void;
     templates?: GanttTemplates;
     permissions?: GanttPermissions;
     disableScrollSync?: boolean;
@@ -1816,6 +1815,9 @@ interface GanttToolbarProps {
     rowDensity: RowDensity;
     onRowDensityChange: (density: RowDensity) => void;
     showThemeSelector?: boolean;
+    showCreateTaskButton?: boolean;
+    createTaskLabel?: string;
+    onCreateTask?: () => void;
     onExportPNG?: () => Promise<void>;
     onExportPDF?: () => Promise<void>;
     onExportExcel?: () => Promise<void>;
@@ -1823,7 +1825,7 @@ interface GanttToolbarProps {
     onExportJSON?: () => void;
     onExportMSProject?: () => void;
 }
-declare function GanttToolbar({ theme, timeScale, onTimeScaleChange, zoom, onZoomChange, currentTheme, onThemeChange, rowDensity, onRowDensityChange, showThemeSelector, onExportPNG, onExportPDF, onExportExcel, onExportCSV, onExportJSON, onExportMSProject, }: GanttToolbarProps): react_jsx_runtime.JSX.Element;
+declare function GanttToolbar({ theme, timeScale, onTimeScaleChange, zoom, onZoomChange, currentTheme, onThemeChange, rowDensity, onRowDensityChange, showThemeSelector, showCreateTaskButton, createTaskLabel, onCreateTask, onExportPNG, onExportPDF, onExportExcel, onExportCSV, onExportJSON, onExportMSProject, }: GanttToolbarProps): react_jsx_runtime.JSX.Element;
 
 interface TaskGridProps {
     tasks: Task[];
@@ -2036,10 +2038,6 @@ interface GanttAIAssistantConfig {
     suggestions?: string[];
     /** Maximum messages to keep in history */
     maxHistory?: number;
-    /** Show quick add task button (default: true) */
-    showQuickAdd?: boolean;
-    /** Callback when quick add button is clicked */
-    onQuickAddClick?: () => void;
 }
 interface GanttAIAssistantProps {
     /** All current tasks in the Gantt */
