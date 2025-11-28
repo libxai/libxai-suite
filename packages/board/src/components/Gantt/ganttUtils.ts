@@ -1111,6 +1111,102 @@ export const ganttUtils = {
   },
 
   /**
+   * v0.13.0: Calculate cascade preview positions for dependent tasks during drag
+   * Returns preview positions showing where dependent tasks will move
+   * @param tasks - All tasks (flattened)
+   * @param draggedTaskId - Task being dragged
+   * @param daysDelta - How many days the dragged task is being moved
+   * @param flatTasks - Flattened task list with row indices
+   * @param timelineStartDate - Start date of the timeline
+   * @param dayWidth - Width of one day in pixels
+   * @param rowHeight - Height of each row
+   * @param headerHeight - Height of the header
+   * @returns Array of DependentTaskPreview objects
+   */
+  calculateCascadePreview: (
+    tasks: Task[],
+    draggedTaskId: string,
+    daysDelta: number,
+    flatTasks: Task[],
+    timelineStartDate: Date,
+    dayWidth: number,
+    rowHeight: number,
+    headerHeight: number
+  ): Array<{
+    taskId: string;
+    taskName: string;
+    originalX: number;
+    previewX: number;
+    width: number;
+    y: number;
+    rowIndex: number;
+    daysDelta: number;
+    color?: string;
+  }> => {
+    if (daysDelta === 0) return [];
+
+    const previews: Array<{
+      taskId: string;
+      taskName: string;
+      originalX: number;
+      previewX: number;
+      width: number;
+      y: number;
+      rowIndex: number;
+      daysDelta: number;
+      color?: string;
+    }> = [];
+
+    // Get all tasks that will be affected (recursively)
+    const getAffectedTasks = (taskId: string, accumulatedDelta: number, visited = new Set<string>()): void => {
+      if (visited.has(taskId)) return; // Prevent infinite loops
+      visited.add(taskId);
+
+      const dependents = ganttUtils.getDependentTasks(tasks, taskId);
+
+      for (const dependent of dependents) {
+        if (!dependent.startDate || !dependent.endDate) continue;
+
+        // Find row index
+        const rowIndex = flatTasks.findIndex(t => t.id === dependent.id);
+        if (rowIndex === -1) continue;
+
+        // Calculate positions
+        const taskStart = dependent.startDate.getTime();
+        const taskEnd = dependent.endDate.getTime();
+        const rangeStart = timelineStartDate.getTime();
+
+        const daysFromStart = (taskStart - rangeStart) / (1000 * 60 * 60 * 24);
+        const duration = (taskEnd - taskStart) / (1000 * 60 * 60 * 24);
+
+        const originalX = daysFromStart * dayWidth;
+        const width = Math.max(duration * dayWidth, dayWidth);
+        const previewX = originalX + (accumulatedDelta * dayWidth);
+        const y = headerHeight + rowIndex * rowHeight + 12;
+
+        previews.push({
+          taskId: dependent.id,
+          taskName: dependent.name,
+          originalX,
+          previewX,
+          width,
+          y,
+          rowIndex,
+          daysDelta: accumulatedDelta,
+          color: dependent.color,
+        });
+
+        // Recursively get dependents of this task
+        getAffectedTasks(dependent.id, accumulatedDelta, visited);
+      }
+    };
+
+    getAffectedTasks(draggedTaskId, daysDelta);
+
+    return previews;
+  },
+
+  /**
    * 🚀 KILLER FEATURE #3: Split a task (create GAP in the middle, like Bryntum/DHTMLX)
    * Same task, but work is paused for some days then continues
    * Example: Jan 1-10 → Split at Jan 5 with 3 day gap → Jan 1-4 [GAP] Jan 8-13

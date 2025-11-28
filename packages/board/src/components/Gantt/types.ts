@@ -3,6 +3,22 @@ export interface TaskSegment {
   endDate: Date;
 }
 
+/**
+ * v0.13.0: Dependency cascade preview - shows where dependent tasks will move during drag
+ * Used to visualize the impact of moving a task before committing the change
+ */
+export interface DependentTaskPreview {
+  taskId: string;
+  taskName: string;
+  originalX: number;
+  previewX: number;
+  width: number;
+  y: number;
+  rowIndex: number;
+  daysDelta: number; // How many days the task will shift
+  color?: string;
+}
+
 export interface Task {
   id: string;
   name: string;

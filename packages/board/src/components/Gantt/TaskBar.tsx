@@ -19,6 +19,8 @@ interface TaskBarProps {
   onDateChange?: (task: Task, newStart: Date, newEnd: Date) => void;
   onDependencyCreate?: (fromTask: Task, toTaskId: string) => void;
   allTaskPositions?: TaskPosition[];
+  // v0.13.0: Callback for dependency cascade preview during drag
+  onDragMove?: (taskId: string, daysDelta: number, isDragging: boolean) => void;
 }
 
 type DragMode = 'none' | 'move' | 'resize-start' | 'resize-end' | 'connect';
@@ -37,7 +39,8 @@ export function TaskBar({
   onContextMenu, // v0.8.0
   onDateChange,
   onDependencyCreate,
-  allTaskPositions = []
+  allTaskPositions = [],
+  onDragMove, // v0.13.0
 }: TaskBarProps) {
   // v0.8.1: Centralized drag state management for better modularity
   const dragState = useDragState(x, width);
@@ -252,6 +255,10 @@ export function TaskBar({
       setGhostX(snappedX);
       setGhostWidth(width);
 
+      // v0.13.0: Calculate days delta and notify for cascade preview
+      const daysDelta = Math.round((snappedX - x) / dayWidth);
+      onDragMove?.(task.id, daysDelta, true);
+
       // v0.8.1: For split tasks, calculate offset relative to the DRAGGED SEGMENT position
       if (task.segments && task.segments.length > 0 && draggedSegmentIndex !== null) {
         const segmentOffset = snappedX - draggedSegmentStartX; // Use saved segment position
@@ -279,7 +286,7 @@ export function TaskBar({
         setGhostWidth(newWidth);
       }
     }
-  }, [dragMode, x, width, dayWidth, dragOffset, task, snapToDay, draggedSegmentIndex, draggedSegmentStartX, findTaskAtPoint, setHoveredTaskId, setConnectionLine, setGhostX, setGhostWidth, setSegmentDragOffsetX]);
+  }, [dragMode, x, width, dayWidth, dragOffset, task, snapToDay, draggedSegmentIndex, draggedSegmentStartX, findTaskAtPoint, setHoveredTaskId, setConnectionLine, setGhostX, setGhostWidth, setSegmentDragOffsetX, onDragMove]);
 
   // Handle mouse up to finish dragging
   const handleMouseUp = useCallback(() => {
@@ -368,9 +375,12 @@ export function TaskBar({
       }
     }
 
+    // v0.13.0: Notify drag ended to clear cascade previews
+    onDragMove?.(task.id, 0, false);
+
     // v0.8.1: Use centralized reset function from useDragState hook
     resetDragState(x, width);
-  }, [dragMode, ghostX, ghostWidth, task, onDateChange, hoveredTaskId, onDependencyCreate, x, width, dayWidth, pixelToDate, segmentDragOffsetX, draggedSegmentIndex, resetDragState]);
+  }, [dragMode, ghostX, ghostWidth, task, onDateChange, hoveredTaskId, onDependencyCreate, x, width, dayWidth, pixelToDate, segmentDragOffsetX, draggedSegmentIndex, resetDragState, onDragMove]);
 
   // Setup global mouse listeners for smooth dragging
   useEffect(() => {
