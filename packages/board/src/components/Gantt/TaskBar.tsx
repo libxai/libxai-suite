@@ -60,7 +60,6 @@ export function TaskBar({
     segmentDragOffsetX, setSegmentDragOffsetX,
     hoveredSegmentIndex, setHoveredSegmentIndex,
     isHovered, setIsHovered,
-    dragDaysDelta, setDragDaysDelta, // v0.13.5: Direction-based color
     isDragging, isResizing, isConnecting,
     resetDragState
   } = dragState;
@@ -258,7 +257,6 @@ export function TaskBar({
 
       // v0.13.0: Calculate days delta and notify for cascade preview
       const daysDelta = Math.round((snappedX - x) / dayWidth);
-      setDragDaysDelta(daysDelta); // v0.13.5: Store for direction-based color
       onDragMove?.(task.id, daysDelta, true);
 
       // v0.8.1: For split tasks, calculate offset relative to the DRAGGED SEGMENT position
@@ -531,7 +529,7 @@ export function TaskBar({
 
       {/* Ghost/Preview Bar (shown while dragging) */}
       {/* v0.8.1: Hide ghost bar for split tasks - segments handle their own visualization */}
-      {/* v0.13.5: Direction-based colors - Yellow=same, Red=backward, Blue=forward */}
+      {/* v0.13.6: Simplified ghost bar - uses theme accent color */}
       {isDragging && !isConnecting && !task.segments && (
         <motion.rect
           x={ghostX}
@@ -539,18 +537,9 @@ export function TaskBar({
           width={ghostWidth}
           height={height}
           rx={borderRadius}
-          fill={
-            task.isCriticalPath ? '#DC2626' :
-            dragDaysDelta === 0 ? '#EAB308' : // Yellow - no movement
-            dragDaysDelta < 0 ? '#DC2626' :   // Red - moving backward
-            '#3B82F6'                          // Blue - moving forward
-          }
+          fill={theme.accent}
           opacity={0.5}
-          stroke={
-            dragDaysDelta === 0 ? '#FACC15' : // Yellow stroke
-            dragDaysDelta < 0 ? '#EF4444' :   // Red stroke
-            '#60A5FA'                          // Blue stroke
-          }
+          stroke={theme.accent}
           strokeWidth={2}
           strokeDasharray="4 4"
           initial={{ opacity: 0 }}
@@ -563,6 +552,7 @@ export function TaskBar({
       {/* Main Task Bar - Background (light for contrast with progress) - v0.8.0: With custom class */}
       {/* v0.8.1: Hide main bar when task has segments (split task) */}
       {/* v0.11.0: Custom task colors with parent/subtask opacity */}
+      {/* v0.13.6: Overdue tasks (past due + not completed) also shown in red */}
       {!task.segments && (
         <motion.rect
           x={displayX}
@@ -571,8 +561,8 @@ export function TaskBar({
           height={height}
           rx={borderRadius}
           fill={
-            task.isCriticalPath
-              ? '#DC2626' // Critical path always red
+            task.isCriticalPath || isOverdue
+              ? '#DC2626' // Critical path or overdue = red
               : task.color
               ? task.color // v0.11.0: Custom color
               : theme.taskBarPrimary // Fallback to theme
@@ -604,6 +594,7 @@ export function TaskBar({
       {/* Progress Fill - Solid color for instant visual scanning */}
       {/* Eye processes shape/color faster than text */}
       {/* v0.11.0: Use custom task color for progress fill */}
+      {/* v0.13.6: Overdue tasks also shown in red */}
       {!task.segments && (
         <rect
           x={displayX}
@@ -612,8 +603,8 @@ export function TaskBar({
           height={height}
           rx={borderRadius}
           fill={
-            task.isCriticalPath
-              ? '#DC2626' // Critical path always red
+            task.isCriticalPath || isOverdue
+              ? '#DC2626' // Critical path or overdue = red
               : task.color
               ? task.color // v0.11.0: Custom color
               : theme.taskBarProgress // Fallback to theme
@@ -642,6 +633,7 @@ export function TaskBar({
           >
             {/* Segment background - interactive */}
             {/* v0.11.0: Custom task colors for segments */}
+            {/* v0.13.6: Overdue tasks also shown in red */}
             <motion.rect
               x={displaySegmentX}
               y={y}
@@ -649,8 +641,8 @@ export function TaskBar({
               height={height}
               rx={borderRadius}
               fill={
-                task.isCriticalPath
-                  ? '#DC2626' // Critical path always red
+                task.isCriticalPath || isOverdue
+                  ? '#DC2626' // Critical path or overdue = red
                   : task.color
                   ? task.color // v0.11.0: Custom color
                   : theme.taskBarPrimary // Fallback to theme
@@ -683,6 +675,7 @@ export function TaskBar({
               }}
             />
             {/* Segment progress - v0.11.0: Use custom task color */}
+            {/* v0.13.6: Overdue tasks also shown in red */}
             <rect
               x={displaySegmentX}
               y={y}
@@ -690,8 +683,8 @@ export function TaskBar({
               height={height}
               rx={borderRadius}
               fill={
-                task.isCriticalPath
-                  ? '#DC2626' // Critical path always red
+                task.isCriticalPath || isOverdue
+                  ? '#DC2626' // Critical path or overdue = red
                   : task.color
                   ? task.color // v0.11.0: Custom color
                   : theme.taskBarProgress // Fallback to theme
