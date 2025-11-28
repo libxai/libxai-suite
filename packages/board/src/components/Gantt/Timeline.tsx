@@ -183,13 +183,14 @@ export function Timeline({
   }, [startDate, dayWidth, zoom]);
 
   // Build task positions map for collision detection
+  // v0.13.7: Y positions no longer include HEADER_HEIGHT (header is now separate sticky element)
   const taskPositions = useMemo((): TaskPosition[] => {
     return flatTasks
       .filter(task => task.startDate && task.endDate) // Only include tasks with dates
       .map((task) => {
         const { x, width } = getTaskPosition(task);
         const actualIndex = flatTasks.findIndex(t => t.id === task.id);
-        const y = HEADER_HEIGHT + actualIndex * ROW_HEIGHT + 12;
+        const y = actualIndex * ROW_HEIGHT + 12;
         return {
           id: task.id,
           x,
@@ -269,70 +270,49 @@ export function Timeline({
     return daysFromStart * dayWidth * zoom;
   }, [startDate, dayWidth, zoom]);
 
+  // v0.13.7: Content height calculation (without header - header is now separate)
+  const contentHeight = Math.max(flatTasks.length * ROW_HEIGHT, 600 - HEADER_HEIGHT);
+
   return (
     <div
-      className="w-full h-full"
+      className="w-full h-full flex flex-col"
       data-gantt-chart
       style={{ backgroundColor: theme.bgPrimary }}
     >
-      <svg
-        width={Math.max(timelineWidth, 1000)}
-        height={Math.max(flatTasks.length * ROW_HEIGHT + HEADER_HEIGHT, 600)}
+      {/* v0.13.7: Sticky Header - stays visible during vertical scroll */}
+      <div
+        style={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 10,
+          backgroundColor: theme.bgGrid,
+          flexShrink: 0,
+          borderBottom: `1px solid ${theme.border}`,
+        }}
       >
-        <defs>
-          <filter id="shadow">
-            <feDropShadow dx="0" dy="1" stdDeviation="2" floodOpacity="0.1" />
-          </filter>
-
-          {/* Neutral theme: Diagonal stripes pattern for critical/overdue tasks */}
-          <pattern id="diagonal-stripes" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-            <line x1="0" y1="0" x2="0" y2="8" stroke={theme.border} strokeWidth="2" />
-          </pattern>
-        </defs>
-
-        {/* Full SVG Background */}
-        <rect
-          x={0}
-          y={0}
+        <svg
           width={Math.max(timelineWidth, 1000)}
-          height={Math.max(flatTasks.length * ROW_HEIGHT + HEADER_HEIGHT, 600)}
-          fill={theme.bgPrimary}
-        />
-
-        {/* Header Background */}
-        <rect
-          x={0}
-          y={0}
-          width={timelineWidth}
           height={HEADER_HEIGHT}
-          fill={theme.bgGrid}
-        />
+          style={{ display: 'block' }}
+        >
+          {/* Header Background */}
+          <rect
+            x={0}
+            y={0}
+            width={Math.max(timelineWidth, 1000)}
+            height={HEADER_HEIGHT}
+            fill={theme.bgGrid}
+          />
 
-        {/* Grid Lines and Weekend Backgrounds */}
-        {headers.map((header, index) => {
-          const nextX = headers[index + 1]?.x || timelineWidth;
-          const isWeekendDay = isWeekend(header.date);
-
-          return (
-            <g key={index}>
-              {/* Weekend background - subtle highlight */}
-              {isWeekendDay && (
-                <rect
-                  x={header.x}
-                  y={HEADER_HEIGHT}
-                  width={nextX - header.x}
-                  height={flatTasks.length * ROW_HEIGHT}
-                  fill={theme.bgWeekend}
-                  opacity={1}
-                />
-              )}
-
-              {/* Grid line */}
+          {/* Header Grid Lines and Text */}
+          {headers.map((header, index) => (
+            <g key={`header-${index}`}>
+              {/* Grid line in header */}
               <line
                 x1={header.x}
-                y1={HEADER_HEIGHT}
+                y1={0}
                 x2={header.x}
-                y2={flatTasks.length * ROW_HEIGHT + HEADER_HEIGHT}
+                y2={HEADER_HEIGHT}
                 stroke={theme.border}
                 strokeWidth={1}
                 opacity={0.1}
@@ -351,27 +331,88 @@ export function Timeline({
                 {header.label}
               </text>
             </g>
+          ))}
+
+          {/* Today marker in header */}
+          {todayX >= 0 && todayX <= timelineWidth && (
+            <circle cx={todayX} cy={HEADER_HEIGHT - 10} r={6} fill={theme.today} opacity={1} />
+          )}
+        </svg>
+      </div>
+
+      {/* Scrollable Content Area */}
+      <svg
+        width={Math.max(timelineWidth, 1000)}
+        height={contentHeight}
+        style={{ display: 'block', flexShrink: 0 }}
+      >
+        <defs>
+          <filter id="shadow">
+            <feDropShadow dx="0" dy="1" stdDeviation="2" floodOpacity="0.1" />
+          </filter>
+
+          {/* Neutral theme: Diagonal stripes pattern for critical/overdue tasks */}
+          <pattern id="diagonal-stripes" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="8" stroke={theme.border} strokeWidth="2" />
+          </pattern>
+        </defs>
+
+        {/* Full SVG Background */}
+        <rect
+          x={0}
+          y={0}
+          width={Math.max(timelineWidth, 1000)}
+          height={contentHeight}
+          fill={theme.bgPrimary}
+        />
+
+        {/* Grid Lines and Weekend Backgrounds - v0.13.7: Adjusted Y positions (no header offset) */}
+        {headers.map((header, index) => {
+          const nextX = headers[index + 1]?.x || timelineWidth;
+          const isWeekendDay = isWeekend(header.date);
+
+          return (
+            <g key={index}>
+              {/* Weekend background - subtle highlight */}
+              {isWeekendDay && (
+                <rect
+                  x={header.x}
+                  y={0}
+                  width={nextX - header.x}
+                  height={flatTasks.length * ROW_HEIGHT}
+                  fill={theme.bgWeekend}
+                  opacity={1}
+                />
+              )}
+
+              {/* Grid line */}
+              <line
+                x1={header.x}
+                y1={0}
+                x2={header.x}
+                y2={flatTasks.length * ROW_HEIGHT}
+                stroke={theme.border}
+                strokeWidth={1}
+                opacity={0.1}
+              />
+            </g>
           );
         })}
 
-        {/* Today Line - Solid, prominent indicator */}
+        {/* Today Line - Solid, prominent indicator - v0.13.7: Adjusted Y (no header offset) */}
         {todayX >= 0 && todayX <= timelineWidth && (
-          <g>
-            {/* Solid line - more prominent */}
-            <line
-              x1={todayX}
-              y1={HEADER_HEIGHT}
-              x2={todayX}
-              y2={flatTasks.length * ROW_HEIGHT + HEADER_HEIGHT}
-              stroke={theme.today}
-              strokeWidth={2}
-              opacity={1}
-            />
-            <circle cx={todayX} cy={HEADER_HEIGHT - 10} r={6} fill={theme.today} opacity={1} />
-          </g>
+          <line
+            x1={todayX}
+            y1={0}
+            x2={todayX}
+            y2={flatTasks.length * ROW_HEIGHT}
+            stroke={theme.today}
+            strokeWidth={2}
+            opacity={1}
+          />
         )}
 
-        {/* Row Backgrounds with Click-to-Create functionality */}
+        {/* Row Backgrounds with Click-to-Create functionality - v0.13.7: Adjusted Y positions */}
         {flatTasks.map((task, index) => {
           const hasTaskBar = task.startDate && task.endDate;
 
@@ -381,7 +422,7 @@ export function Timeline({
               <rect
                 key={`row-${task.id}`}
                 x={0}
-                y={HEADER_HEIGHT + index * ROW_HEIGHT}
+                y={index * ROW_HEIGHT}
                 width={timelineWidth}
                 height={ROW_HEIGHT}
                 fill={index % 2 === 0 ? 'transparent' : theme.bgSecondary}
@@ -395,7 +436,7 @@ export function Timeline({
                   <rect
                     key={`clickable-${task.id}`}
                     x={0}
-                    y={HEADER_HEIGHT + index * ROW_HEIGHT}
+                    y={index * ROW_HEIGHT}
                     width={timelineWidth}
                     height={ROW_HEIGHT}
                     fill="transparent"
@@ -417,7 +458,7 @@ export function Timeline({
                   <text
                     key={`placeholder-${task.id}`}
                     x={todayX > 0 ? todayX : 100}
-                    y={HEADER_HEIGHT + index * ROW_HEIGHT + ROW_HEIGHT / 2}
+                    y={index * ROW_HEIGHT + ROW_HEIGHT / 2}
                     fill={theme.textTertiary}
                     fontSize="12"
                     fontFamily="Inter, sans-serif"
@@ -434,7 +475,7 @@ export function Timeline({
           );
         })}
 
-        {/* Dependencies */}
+        {/* Dependencies - v0.13.7: Adjusted Y positions */}
         {flatTasks.map((task, toIndex) => {
           if (!task.dependencies || task.dependencies.length === 0) return null;
           // Skip if task doesn't have dates
@@ -454,9 +495,9 @@ export function Timeline({
               <DependencyLine
                 key={`dep-${depId}-${task.id}`}
                 x1={fromPos.x + fromPos.width}
-                y1={HEADER_HEIGHT + fromIndex * ROW_HEIGHT + ROW_HEIGHT / 2}
+                y1={fromIndex * ROW_HEIGHT + ROW_HEIGHT / 2}
                 x2={toPos.x}
-                y2={HEADER_HEIGHT + toIndex * ROW_HEIGHT + ROW_HEIGHT / 2}
+                y2={toIndex * ROW_HEIGHT + ROW_HEIGHT / 2}
                 theme={theme}
                 onDelete={() => onDependencyDelete?.(task.id, depId)}
               />
@@ -464,7 +505,7 @@ export function Timeline({
           });
         })}
 
-        {/* Tasks */}
+        {/* Tasks - v0.13.7: Adjusted Y positions */}
         {flatTasks.map((task, index) => {
           // Don't render task bar if task doesn't have dates
           if (!task.startDate || !task.endDate) {
@@ -472,7 +513,7 @@ export function Timeline({
           }
 
           const { x, width } = getTaskPosition(task);
-          const y = HEADER_HEIGHT + index * ROW_HEIGHT + 12;
+          const y = index * ROW_HEIGHT + 12;
 
           // Container phase (has subtasks): render as bracket bar
           const isContainer = task.subtasks && task.subtasks.length > 0 && !task.isMilestone;
@@ -591,15 +632,16 @@ export function Timeline({
 
         {/* v0.13.0: Dependency Cascade Preview - Ghost bars showing where dependent tasks will move */}
         {/* v0.13.4: Simplified - no conflicting animation, direct position */}
+        {/* v0.13.7: Adjusted Y positions for cascade previews */}
         {cascadePreviews.map((preview) => (
           <g
             key={`cascade-preview-${preview.taskId}`}
             style={{ pointerEvents: 'none' }}
           >
-            {/* Ghost bar at exact preview position */}
+            {/* Ghost bar at exact preview position - v0.13.7: Y adjusted (subtract HEADER_HEIGHT) */}
             <rect
               x={preview.previewX}
-              y={preview.y}
+              y={preview.y - HEADER_HEIGHT}
               width={preview.width}
               height={32}
               rx={8}
@@ -613,7 +655,7 @@ export function Timeline({
             {Math.abs(preview.daysDelta) > 0 && (
               <text
                 x={preview.previewX + preview.width / 2}
-                y={preview.y + 16}
+                y={preview.y - HEADER_HEIGHT + 16}
                 textAnchor="middle"
                 dominantBaseline="middle"
                 fill={theme.accent}
