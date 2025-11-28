@@ -1526,6 +1526,7 @@ interface GanttConfig {
     timeScale?: TimeScale;
     rowDensity?: RowDensity;
     showThemeSelector?: boolean;
+    showExportButton?: boolean;
     availableUsers?: Array<{
         id: string;
         name: string;
@@ -1773,8 +1774,14 @@ interface GanttToolbarProps {
     rowDensity: RowDensity;
     onRowDensityChange: (density: RowDensity) => void;
     showThemeSelector?: boolean;
+    onExportPNG?: () => Promise<void>;
+    onExportPDF?: () => Promise<void>;
+    onExportExcel?: () => Promise<void>;
+    onExportCSV?: () => void;
+    onExportJSON?: () => void;
+    onExportMSProject?: () => void;
 }
-declare function GanttToolbar({ theme, timeScale, onTimeScaleChange, zoom, onZoomChange, currentTheme, onThemeChange, rowDensity, onRowDensityChange, showThemeSelector, }: GanttToolbarProps): react_jsx_runtime.JSX.Element;
+declare function GanttToolbar({ theme, timeScale, onTimeScaleChange, zoom, onZoomChange, currentTheme, onThemeChange, rowDensity, onRowDensityChange, showThemeSelector, onExportPNG, onExportPDF, onExportExcel, onExportCSV, onExportJSON, onExportMSProject, }: GanttToolbarProps): react_jsx_runtime.JSX.Element;
 
 interface TaskGridProps {
     tasks: Task[];
@@ -2169,6 +2176,15 @@ declare const ganttUtils: {
      * @returns Promise<void>
      */
     exportToExcel: (tasks: Task[], filename?: string) => Promise<void>;
+    /**
+     * Export tasks to Microsoft Project XML format
+     * Compatible with MS Project 2010+ and other project management tools
+     * @param tasks - Tasks to export
+     * @param projectName - Project name (default: 'Gantt Project')
+     * @param filename - Optional filename (default: 'project.xml')
+     * @returns void - Downloads the XML file
+     */
+    exportToMSProject: (tasks: Task[], projectName?: string, filename?: string) => void;
     /**
      * Calculate Critical Path Method (CPM) - identifies tasks with zero slack
      * @param tasks - All tasks

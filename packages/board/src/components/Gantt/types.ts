@@ -267,6 +267,7 @@ export interface GanttConfig {
   timeScale?: TimeScale;
   rowDensity?: RowDensity; // Row height density (default: 'comfortable')
   showThemeSelector?: boolean; // Show theme selector in toolbar (default: true)
+  showExportButton?: boolean; // v0.12.0: Show export dropdown in toolbar (default: true)
   availableUsers?: Array<{ id: string; name: string; initials: string; color: string }>; // Available users for assignment
 
   // v0.8.0: Customizable templates (similar to DHTMLX gantt.templates.*)

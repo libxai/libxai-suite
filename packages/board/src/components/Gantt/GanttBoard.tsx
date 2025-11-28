@@ -56,6 +56,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     timeScale: initialTimeScale = 'week',
     rowDensity: initialRowDensity = 'comfortable',
     showThemeSelector = true,
+    showExportButton = true, // v0.12.0: Show export dropdown in toolbar
     availableUsers = [],
     templates,
     enableAutoCriticalPath = true, // v0.11.1: Allow disabling automatic CPM calculation
@@ -839,6 +840,54 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   //   // Placeholder - implement in parent component if needed
   // };
 
+  // v0.12.0: Export handlers for toolbar
+  const handleExportPNG = useCallback(async () => {
+    if (!ganttContainerRef.current) return;
+
+    const canvas = await html2canvas(ganttContainerRef.current, {
+      backgroundColor: theme.bgPrimary,
+      scale: 2,
+    });
+
+    // Create download link
+    const link = document.createElement('a');
+    link.download = 'gantt-chart.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  }, [theme]);
+
+  const handleExportPDF = useCallback(async () => {
+    await ganttUtils.exportToPDF(localTasks);
+  }, [localTasks]);
+
+  const handleExportExcel = useCallback(async () => {
+    await ganttUtils.exportToExcel(localTasks);
+  }, [localTasks]);
+
+  const handleExportCSV = useCallback(() => {
+    const csv = ganttUtils.exportToCSV(localTasks);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'gantt-chart.csv';
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }, [localTasks]);
+
+  const handleExportJSON = useCallback(() => {
+    const json = ganttUtils.exportToJSON(localTasks);
+    const blob = new Blob([json], { type: 'application/json;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'gantt-chart.json';
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }, [localTasks]);
+
+  const handleExportMSProject = useCallback(() => {
+    ganttUtils.exportToMSProject(localTasks, 'Gantt Project', 'project.xml');
+  }, [localTasks]);
+
   // Handle separator resize
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -933,6 +982,13 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         rowDensity={rowDensity}
         onRowDensityChange={setRowDensity}
         showThemeSelector={showThemeSelector}
+        // v0.12.0: Export handlers
+        onExportPNG={showExportButton ? handleExportPNG : undefined}
+        onExportPDF={showExportButton ? handleExportPDF : undefined}
+        onExportExcel={showExportButton ? handleExportExcel : undefined}
+        onExportCSV={showExportButton ? handleExportCSV : undefined}
+        onExportJSON={showExportButton ? handleExportJSON : undefined}
+        onExportMSProject={showExportButton ? handleExportMSProject : undefined}
       />
 
       {/* Main Content */}
