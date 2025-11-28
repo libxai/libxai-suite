@@ -603,9 +603,10 @@ export function TaskGrid({
 
   const visibleColumns = columns.filter(col => col.visible);
 
+  // v0.13.10: TaskGrid no longer has its own scroll - it syncs with Timeline scroll
   return (
     <div
-      className="h-full overflow-auto"
+      className="h-full overflow-hidden"
       style={{
         backgroundColor: theme.bgPrimary,
         borderRight: `1px solid ${theme.border}`,
