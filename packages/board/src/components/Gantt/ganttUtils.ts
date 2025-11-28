@@ -1113,12 +1113,12 @@ export const ganttUtils = {
   /**
    * v0.13.0: Calculate cascade preview positions for dependent tasks during drag
    * Returns preview positions showing where dependent tasks will move
-   * @param tasks - All tasks (flattened)
+   * @param tasks - All tasks (nested structure)
    * @param draggedTaskId - Task being dragged
    * @param daysDelta - How many days the dragged task is being moved
    * @param flatTasks - Flattened task list with row indices
    * @param timelineStartDate - Start date of the timeline
-   * @param dayWidth - Width of one day in pixels
+   * @param scaledDayWidth - Width of one day in pixels (already includes zoom: dayWidth * zoom)
    * @param rowHeight - Height of each row
    * @param headerHeight - Height of the header
    * @returns Array of DependentTaskPreview objects
@@ -1129,7 +1129,7 @@ export const ganttUtils = {
     daysDelta: number,
     flatTasks: Task[],
     timelineStartDate: Date,
-    dayWidth: number,
+    scaledDayWidth: number, // Note: This already includes zoom (dayWidth * zoom)
     rowHeight: number,
     headerHeight: number
   ): Array<{
@@ -1157,6 +1157,9 @@ export const ganttUtils = {
       color?: string;
     }> = [];
 
+    const rangeStart = timelineStartDate.getTime();
+    const msPerDay = 1000 * 60 * 60 * 24;
+
     // Get all tasks that will be affected (recursively)
     const getAffectedTasks = (taskId: string, accumulatedDelta: number, visited = new Set<string>()): void => {
       if (visited.has(taskId)) return; // Prevent infinite loops
@@ -1167,21 +1170,24 @@ export const ganttUtils = {
       for (const dependent of dependents) {
         if (!dependent.startDate || !dependent.endDate) continue;
 
-        // Find row index
+        // Find row index in flattened list
         const rowIndex = flatTasks.findIndex(t => t.id === dependent.id);
         if (rowIndex === -1) continue;
 
-        // Calculate positions
+        // Calculate current positions (same formula as getTaskPosition in Timeline.tsx)
         const taskStart = dependent.startDate.getTime();
         const taskEnd = dependent.endDate.getTime();
-        const rangeStart = timelineStartDate.getTime();
 
-        const daysFromStart = (taskStart - rangeStart) / (1000 * 60 * 60 * 24);
-        const duration = (taskEnd - taskStart) / (1000 * 60 * 60 * 24);
+        const daysFromStart = (taskStart - rangeStart) / msPerDay;
+        const durationDays = (taskEnd - taskStart) / msPerDay;
 
-        const originalX = daysFromStart * dayWidth;
-        const width = Math.max(duration * dayWidth, dayWidth);
-        const previewX = originalX + (accumulatedDelta * dayWidth);
+        // Original position - uses scaledDayWidth which already has zoom applied
+        const originalX = daysFromStart * scaledDayWidth;
+        // Width calculation - minimum 1 day width for visibility
+        const width = Math.max(durationDays * scaledDayWidth, scaledDayWidth);
+        // Preview position - shift by days delta
+        const previewX = originalX + (accumulatedDelta * scaledDayWidth);
+        // Y position - same formula as Timeline.tsx: HEADER_HEIGHT + index * ROW_HEIGHT + 12
         const y = headerHeight + rowIndex * rowHeight + 12;
 
         previews.push({
@@ -1196,7 +1202,7 @@ export const ganttUtils = {
           color: dependent.color,
         });
 
-        // Recursively get dependents of this task
+        // Recursively get dependents of this task (same delta propagates)
         getAffectedTasks(dependent.id, accumulatedDelta, visited);
       }
     };

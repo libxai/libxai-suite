@@ -2216,17 +2216,17 @@ declare const ganttUtils: {
     /**
      * v0.13.0: Calculate cascade preview positions for dependent tasks during drag
      * Returns preview positions showing where dependent tasks will move
-     * @param tasks - All tasks (flattened)
+     * @param tasks - All tasks (nested structure)
      * @param draggedTaskId - Task being dragged
      * @param daysDelta - How many days the dragged task is being moved
      * @param flatTasks - Flattened task list with row indices
      * @param timelineStartDate - Start date of the timeline
-     * @param dayWidth - Width of one day in pixels
+     * @param scaledDayWidth - Width of one day in pixels (already includes zoom: dayWidth * zoom)
      * @param rowHeight - Height of each row
      * @param headerHeight - Height of the header
      * @returns Array of DependentTaskPreview objects
      */
-    calculateCascadePreview: (tasks: Task[], draggedTaskId: string, daysDelta: number, flatTasks: Task[], timelineStartDate: Date, dayWidth: number, rowHeight: number, headerHeight: number) => Array<{
+    calculateCascadePreview: (tasks: Task[], draggedTaskId: string, daysDelta: number, flatTasks: Task[], timelineStartDate: Date, scaledDayWidth: number, rowHeight: number, headerHeight: number) => Array<{
         taskId: string;
         taskName: string;
         originalX: number;
