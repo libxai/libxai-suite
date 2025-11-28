@@ -118,24 +118,12 @@ export function GanttToolbar({
     >
       {/* Left Section - Time Scale Controls */}
       <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2">
-          <span
-            className="text-xs uppercase tracking-wider"
-            style={{
-              color: theme.textTertiary,
-              fontFamily: 'Inter, sans-serif',
-              fontWeight: 600,
-            }}
-          >
-            View
-          </span>
-          <SegmentedControl
-            options={timeScaleOptions}
-            value={timeScale}
-            onChange={(val) => onTimeScaleChange(val as TimeScale)}
-            theme={theme}
-          />
-        </div>
+        <SegmentedControl
+          options={timeScaleOptions}
+          value={timeScale}
+          onChange={(val) => onTimeScaleChange(val as TimeScale)}
+          theme={theme}
+        />
 
         {/* Divider */}
         <div
@@ -144,18 +132,7 @@ export function GanttToolbar({
         />
 
         {/* Zoom Controls */}
-        <div className="flex items-center gap-2">
-          <span
-            className="text-xs uppercase tracking-wider"
-            style={{
-              color: theme.textTertiary,
-              fontFamily: 'Inter, sans-serif',
-              fontWeight: 600,
-            }}
-          >
-            Zoom
-          </span>
-          <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1">
             <motion.button
               onClick={() => onZoomChange(Math.max(0.5, zoom - 0.1))}
               className="p-1.5 rounded-md transition-all"
@@ -200,7 +177,6 @@ export function GanttToolbar({
             >
               <ZoomIn className="w-3.5 h-3.5" style={{ color: theme.textSecondary }} />
             </motion.button>
-          </div>
         </div>
 
         {/* Divider */}
@@ -210,46 +186,22 @@ export function GanttToolbar({
         />
 
         {/* Row Density Controls */}
-        <div className="flex items-center gap-2">
-          <span
-            className="text-xs uppercase tracking-wider"
-            style={{
-              color: theme.textTertiary,
-              fontFamily: 'Inter, sans-serif',
-              fontWeight: 600,
-            }}
-          >
-            Density
-          </span>
-          <SegmentedControl
-            options={densityOptions}
-            value={rowDensity}
-            onChange={(val) => onRowDensityChange(val as RowDensity)}
-            theme={theme}
-          />
-        </div>
+        <SegmentedControl
+          options={densityOptions}
+          value={rowDensity}
+          onChange={(val) => onRowDensityChange(val as RowDensity)}
+          theme={theme}
+        />
       </div>
 
       {/* Right Section - Theme Selector (optional) */}
       {showThemeSelector && (
-        <div className="flex items-center gap-2">
-          <span
-            className="text-xs uppercase tracking-wider"
-            style={{
-              color: theme.textTertiary,
-              fontFamily: 'Inter, sans-serif',
-              fontWeight: 600,
-            }}
-          >
-            Theme
-          </span>
-          <SegmentedControl
-            options={themeOptions}
-            value={currentTheme}
-            onChange={(val) => onThemeChange(val as Theme)}
-            theme={theme}
-          />
-        </div>
+        <SegmentedControl
+          options={themeOptions}
+          value={currentTheme}
+          onChange={(val) => onThemeChange(val as Theme)}
+          theme={theme}
+        />
       )}
     </div>
   );

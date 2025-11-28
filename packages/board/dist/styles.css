@@ -6592,6 +6592,156 @@ html[data-theme="neutral"] .column-manager-menu * {
    ========================================================================== */
 
 
+/* ==========================================================================
+   GANTT CHART SCROLLBARS - Professional dark theme
+   Consistent, subtle, and theme-aware
+   ========================================================================== */
+
+
+/* Dark theme scrollbar colors */
+
+
+[data-theme="dark"] [data-gantt-chart],
+[data-theme="dark"] .gantt-grid-scroll,
+[data-theme="dark"] .gantt-timeline-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #3a3d45 transparent;
+}
+
+
+[data-theme="dark"] [data-gantt-chart]::-webkit-scrollbar,
+[data-theme="dark"] .gantt-grid-scroll::-webkit-scrollbar,
+[data-theme="dark"] .gantt-timeline-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+
+[data-theme="dark"] [data-gantt-chart]::-webkit-scrollbar-track,
+[data-theme="dark"] .gantt-grid-scroll::-webkit-scrollbar-track,
+[data-theme="dark"] .gantt-timeline-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+
+[data-theme="dark"] [data-gantt-chart]::-webkit-scrollbar-thumb,
+[data-theme="dark"] .gantt-grid-scroll::-webkit-scrollbar-thumb,
+[data-theme="dark"] .gantt-timeline-scroll::-webkit-scrollbar-thumb {
+  background: #3a3d45;
+  border-radius: 4px;
+}
+
+
+[data-theme="dark"] [data-gantt-chart]::-webkit-scrollbar-thumb:hover,
+[data-theme="dark"] .gantt-grid-scroll::-webkit-scrollbar-thumb:hover,
+[data-theme="dark"] .gantt-timeline-scroll::-webkit-scrollbar-thumb:hover {
+  background: #4a4d55;
+}
+
+
+[data-theme="dark"] [data-gantt-chart]::-webkit-scrollbar-corner,
+[data-theme="dark"] .gantt-grid-scroll::-webkit-scrollbar-corner,
+[data-theme="dark"] .gantt-timeline-scroll::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+
+/* Light theme scrollbar colors */
+
+
+[data-theme="light"] [data-gantt-chart],
+[data-theme="light"] .gantt-grid-scroll,
+[data-theme="light"] .gantt-timeline-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+}
+
+
+[data-theme="light"] [data-gantt-chart]::-webkit-scrollbar,
+[data-theme="light"] .gantt-grid-scroll::-webkit-scrollbar,
+[data-theme="light"] .gantt-timeline-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+
+[data-theme="light"] [data-gantt-chart]::-webkit-scrollbar-track,
+[data-theme="light"] .gantt-grid-scroll::-webkit-scrollbar-track,
+[data-theme="light"] .gantt-timeline-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+
+[data-theme="light"] [data-gantt-chart]::-webkit-scrollbar-thumb,
+[data-theme="light"] .gantt-grid-scroll::-webkit-scrollbar-thumb,
+[data-theme="light"] .gantt-timeline-scroll::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.5);
+  border-radius: 4px;
+}
+
+
+[data-theme="light"] [data-gantt-chart]::-webkit-scrollbar-thumb:hover,
+[data-theme="light"] .gantt-grid-scroll::-webkit-scrollbar-thumb:hover,
+[data-theme="light"] .gantt-timeline-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.8);
+}
+
+
+[data-theme="light"] [data-gantt-chart]::-webkit-scrollbar-corner,
+[data-theme="light"] .gantt-grid-scroll::-webkit-scrollbar-corner,
+[data-theme="light"] .gantt-timeline-scroll::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+
+/* Neutral theme (same as dark) */
+
+
+[data-theme="neutral"] [data-gantt-chart],
+[data-theme="neutral"] .gantt-grid-scroll,
+[data-theme="neutral"] .gantt-timeline-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #3a3d45 transparent;
+}
+
+
+[data-theme="neutral"] [data-gantt-chart]::-webkit-scrollbar,
+[data-theme="neutral"] .gantt-grid-scroll::-webkit-scrollbar,
+[data-theme="neutral"] .gantt-timeline-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+
+[data-theme="neutral"] [data-gantt-chart]::-webkit-scrollbar-track,
+[data-theme="neutral"] .gantt-grid-scroll::-webkit-scrollbar-track,
+[data-theme="neutral"] .gantt-timeline-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+
+[data-theme="neutral"] [data-gantt-chart]::-webkit-scrollbar-thumb,
+[data-theme="neutral"] .gantt-grid-scroll::-webkit-scrollbar-thumb,
+[data-theme="neutral"] .gantt-timeline-scroll::-webkit-scrollbar-thumb {
+  background: #3a3d45;
+  border-radius: 4px;
+}
+
+
+[data-theme="neutral"] [data-gantt-chart]::-webkit-scrollbar-thumb:hover,
+[data-theme="neutral"] .gantt-grid-scroll::-webkit-scrollbar-thumb:hover,
+[data-theme="neutral"] .gantt-timeline-scroll::-webkit-scrollbar-thumb:hover {
+  background: #4a4d55;
+}
+
+
+[data-theme="neutral"] [data-gantt-chart]::-webkit-scrollbar-corner,
+[data-theme="neutral"] .gantt-grid-scroll::-webkit-scrollbar-corner,
+[data-theme="neutral"] .gantt-timeline-scroll::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+
 /* ============================================================================
    TAILWIND DIRECTIVES
    ============================================================================ */
@@ -7942,11 +8092,6 @@ body {
 }
 
 
-.h-screen {
-  height: 100vh;
-}
-
-
 .max-h-32 {
   max-height: 8rem;
 }
@@ -7989,6 +8134,11 @@ body {
 
 .max-h-\[calc\(80vh-120px\)\] {
   max-height: calc(80vh - 120px);
+}
+
+
+.min-h-0 {
+  min-height: 0px;
 }
 
 
@@ -8129,6 +8279,11 @@ body {
 
 .flex-shrink-0 {
   flex-shrink: 0;
+}
+
+
+.shrink {
+  flex-shrink: 1;
 }
 
 
@@ -8340,6 +8495,11 @@ body {
 
 .overflow-y-auto {
   overflow-y: auto;
+}
+
+
+.overflow-x-hidden {
+  overflow-x: hidden;
 }
 
 
