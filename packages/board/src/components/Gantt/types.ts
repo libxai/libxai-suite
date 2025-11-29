@@ -325,6 +325,21 @@ export interface GanttConfig {
   showExportButton?: boolean; // v0.12.0: Show export dropdown in toolbar (default: true)
   availableUsers?: Array<{ id: string; name: string; initials: string; color: string }>; // Available users for assignment
 
+  /**
+   * v0.15.0: Internationalization (i18n) support
+   * Set the locale for all UI text in the Gantt chart
+   * Built-in support for 'en' (English) and 'es' (Spanish)
+   * @default 'en'
+   */
+  locale?: 'en' | 'es' | string;
+
+  /**
+   * v0.15.0: Custom translations to override default locale strings
+   * Allows partial overrides while keeping defaults for missing keys
+   * @see GanttTranslations in i18n.ts
+   */
+  customTranslations?: Record<string, any>;
+
   // v0.14.0: AI Assistant for natural language task editing
   aiAssistant?: GanttAIAssistantConfig;
 

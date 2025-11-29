@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Calendar, ZoomIn, ZoomOut, Sun, Moon, Palette, AlignJustify, Download, FileImage, FileSpreadsheet, FileText, FileJson, ChevronDown, FolderKanban, Plus } from 'lucide-react';
 import { TimeScale, Theme, RowDensity } from './types';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useGanttI18n } from './GanttI18nContext'; // v0.15.0: i18n
 
 // Export options configuration
 export interface ExportOption {
@@ -51,6 +52,7 @@ function ExportDropdown({ theme, onExportPNG, onExportPDF, onExportExcel, onExpo
   const [isOpen, setIsOpen] = useState(false);
   const [isExporting, setIsExporting] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const t = useGanttI18n(); // v0.15.0: i18n
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -73,22 +75,22 @@ function ExportDropdown({ theme, onExportPNG, onExportPDF, onExportExcel, onExpo
   const exportOptions = [
     {
       id: 'png',
-      label: 'Image',
-      description: 'PNG screenshot',
+      label: 'PNG',
+      description: 'Image',
       icon: <FileImage className="w-4 h-4" />,
       handler: onExportPNG,
     },
     {
       id: 'pdf',
       label: 'PDF',
-      description: 'Document format',
+      description: 'Document',
       icon: <FileText className="w-4 h-4" />,
       handler: onExportPDF,
     },
     {
       id: 'excel',
       label: 'Excel',
-      description: 'Spreadsheet format',
+      description: 'Spreadsheet',
       icon: <FileSpreadsheet className="w-4 h-4" />,
       handler: onExportExcel,
     },
@@ -102,14 +104,14 @@ function ExportDropdown({ theme, onExportPNG, onExportPDF, onExportExcel, onExpo
     {
       id: 'json',
       label: 'JSON',
-      description: 'Data format',
+      description: 'Data',
       icon: <FileJson className="w-4 h-4" />,
       handler: onExportJSON,
     },
     {
       id: 'msproject',
       label: 'MS Project',
-      description: 'Project XML format',
+      description: 'XML',
       icon: <FolderKanban className="w-4 h-4" />,
       handler: onExportMSProject,
     },
@@ -149,7 +151,7 @@ function ExportDropdown({ theme, onExportPNG, onExportPDF, onExportExcel, onExpo
         whileTap={{ scale: 0.98 }}
       >
         <Download className="w-3.5 h-3.5" />
-        <span>Export</span>
+        <span>{t.toolbar.export}</span>
         <ChevronDown
           className="w-3 h-3 transition-transform"
           style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
@@ -305,7 +307,7 @@ export function GanttToolbar({
   onRowDensityChange,
   showThemeSelector = true,
   showCreateTaskButton = false,
-  createTaskLabel = 'Crear tarea',
+  createTaskLabel, // v0.15.0: Will use translations if not provided
   onCreateTask,
   onExportPNG,
   onExportPDF,
@@ -314,11 +316,14 @@ export function GanttToolbar({
   onExportJSON,
   onExportMSProject,
 }: GanttToolbarProps) {
+  const t = useGanttI18n(); // v0.15.0: i18n
   const hasExport = onExportPNG || onExportPDF || onExportExcel || onExportCSV || onExportJSON || onExportMSProject;
+
+  // v0.15.0: Use translations for labels
   const timeScaleOptions = [
-    { value: 'day', label: 'Day', icon: <Calendar className="w-3.5 h-3.5" /> },
-    { value: 'week', label: 'Week', icon: <Calendar className="w-3.5 h-3.5" /> },
-    { value: 'month', label: 'Month', icon: <Calendar className="w-3.5 h-3.5" /> },
+    { value: 'day', label: t.toolbar.day, icon: <Calendar className="w-3.5 h-3.5" /> },
+    { value: 'week', label: t.toolbar.week, icon: <Calendar className="w-3.5 h-3.5" /> },
+    { value: 'month', label: t.toolbar.month, icon: <Calendar className="w-3.5 h-3.5" /> },
   ];
 
   const themeOptions = [
@@ -329,7 +334,7 @@ export function GanttToolbar({
 
   const densityOptions = [
     { value: 'compact', label: 'Compact', icon: <AlignJustify className="w-3.5 h-3.5" /> },
-    { value: 'comfortable', label: 'Comfortable', icon: <AlignJustify className="w-3.5 h-3.5" /> },
+    { value: 'comfortable', label: 'Normal', icon: <AlignJustify className="w-3.5 h-3.5" /> },
     { value: 'spacious', label: 'Spacious', icon: <AlignJustify className="w-3.5 h-3.5" /> },
   ];
 
@@ -441,7 +446,7 @@ export function GanttToolbar({
               whileTap={{ scale: 0.98 }}
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>{createTaskLabel}</span>
+              <span>{createTaskLabel || t.toolbar.createTask}</span>
             </motion.button>
             {(hasExport || showThemeSelector) && (
               <div

@@ -99,6 +99,17 @@ export type {
   AICommandResult, // v0.14.0 - AI command result
 } from './components/Gantt'
 
+// v0.15.0: Internationalization (i18n) for Gantt
+export {
+  getTranslations,
+  mergeTranslations,
+  translations as ganttTranslations,
+  en as ganttEnTranslations,
+  es as ganttEsTranslations,
+} from './components/Gantt/i18n'
+export { useGanttI18n, GanttI18nContext } from './components/Gantt/GanttI18nContext'
+export type { GanttTranslations, SupportedLocale } from './components/Gantt/i18n'
+
 // v0.6.0: Smart Card Stacking
 export { CardStack } from './components/CardStack/CardStack'
 export type { CardStackProps } from './components/CardStack/CardStack'
