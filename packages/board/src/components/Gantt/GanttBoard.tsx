@@ -12,6 +12,8 @@ import { useUndoRedo } from './useUndoRedo';
 import { useGanttUndoRedoKeys } from './useGanttUndoRedoKeys';
 import { ThemeContext } from '../../theme/ThemeProvider';
 import { GanttThemeContext } from './GanttThemeContext';
+import { GanttI18nContext } from './GanttI18nContext'; // v0.15.0: i18n context
+import { mergeTranslations, GanttTranslations } from './i18n'; // v0.15.0: i18n
 import { GanttBoardRef } from './GanttBoardRef';
 import { ganttUtils } from './ganttUtils';
 import { mergeTemplates } from './defaultTemplates';
@@ -62,6 +64,9 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     templates,
     enableAutoCriticalPath = true, // v0.11.1: Allow disabling automatic CPM calculation
     aiAssistant, // v0.14.0: AI Assistant configuration
+    // v0.15.0: Internationalization
+    locale = 'en',
+    customTranslations,
     // v0.14.3: Create Task button in toolbar
     showCreateTaskButton = false,
     createTaskLabel,
@@ -157,18 +162,34 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     }
   }, [localTasks, onTasksChange]);
 
+  // v0.15.0: Compute translations based on locale (must be before columns)
+  const translations: GanttTranslations = useMemo(() => {
+    return mergeTranslations(locale, customTranslations);
+  }, [locale, customTranslations]);
+
   // Column configuration - Default: Only show task name
   // v0.13.8: Name column is resizable with min/max width constraints
   // v0.13.9: Increased default width to 320px for better readability of long task names
-  const [columns, setColumns] = useState<GanttColumn[]>([
-    { id: 'name', label: 'TASK NAME', width: 320, minWidth: 180, maxWidth: 800, visible: true, sortable: true, resizable: true },
-    { id: 'startDate', label: 'Start Date', width: 110, visible: false, sortable: true },
-    { id: 'endDate', label: 'End Date', width: 110, visible: false, sortable: true },
-    { id: 'duration', label: 'Duration', width: 80, visible: false, sortable: true },
-    { id: 'assignees', label: 'Assignees', width: 120, visible: false, sortable: false },
-    { id: 'status', label: 'Status', width: 80, visible: false, sortable: true },
-    { id: 'progress', label: '% Complete', width: 120, visible: false, sortable: true },
-  ]);
+  // v0.15.0: Column labels now use translations
+  const getDefaultColumns = useCallback((t: GanttTranslations): GanttColumn[] => [
+    { id: 'name', label: t.columns.taskName, width: 320, minWidth: 180, maxWidth: 800, visible: true, sortable: true, resizable: true },
+    { id: 'startDate', label: t.columns.startDate, width: 110, visible: false, sortable: true },
+    { id: 'endDate', label: t.columns.endDate, width: 110, visible: false, sortable: true },
+    { id: 'duration', label: t.columns.duration, width: 80, visible: false, sortable: true },
+    { id: 'assignees', label: t.columns.assignees, width: 120, visible: false, sortable: false },
+    { id: 'status', label: t.columns.status, width: 80, visible: false, sortable: true },
+    { id: 'progress', label: t.columns.progress, width: 120, visible: false, sortable: true },
+  ], []);
+
+  const [columns, setColumns] = useState<GanttColumn[]>(() => getDefaultColumns(translations));
+
+  // Update column labels when locale changes
+  useEffect(() => {
+    setColumns(prev => prev.map(col => ({
+      ...col,
+      label: translations.columns[col.id === 'name' ? 'taskName' : col.id as keyof typeof translations.columns] || col.label,
+    })));
+  }, [translations]);
 
   // Calculate grid width based on visible columns (memoized)
   const calculatedGridWidth = useMemo(() =>
@@ -971,6 +992,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   }, [isResizing]);
 
   return (
+    <GanttI18nContext.Provider value={translations}>
     <GanttThemeContext.Provider value={ganttThemeContextValue}>
     <div
       ref={ganttContainerRef}
@@ -1182,5 +1204,6 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       )}
     </div>
     </GanttThemeContext.Provider>
+    </GanttI18nContext.Provider>
   );
 })
