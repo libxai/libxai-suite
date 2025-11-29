@@ -266,10 +266,11 @@ export function TaskGrid({
             )}
 
             {/* v0.11.0: Color Indicator - Simple dot showing task color */}
+            {/* v0.14.7: Changed default from #6366F1 (indigo) to #3B82F6 (electric blue) */}
             <div
               className="w-3 h-3 rounded-full flex-shrink-0 border"
               style={{
-                backgroundColor: task.color || '#6366F1',
+                backgroundColor: task.color || '#3B82F6',
                 opacity: task.parentId ? 0.6 : 1, // Subtasks more transparent
                 borderColor: task.isMilestone ? theme.accent : 'transparent',
                 borderWidth: task.isMilestone ? '2px' : '0px',

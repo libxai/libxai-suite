@@ -181,7 +181,7 @@
   --asakaa-color-gantt-taskBackground: #3b82f6;
   --asakaa-color-gantt-taskBorder: #2563eb;
   --asakaa-color-gantt-criticalPath: #ef4444;
-  --asakaa-color-gantt-milestone: #8b5cf6;
+  --asakaa-color-gantt-milestone: #3B82F6;
   --asakaa-color-gantt-dependency: #6b7280;
   --asakaa-color-gantt-weekend: #2a2a2a;
 
@@ -235,7 +235,7 @@
   --asakaa-color-gantt-taskBackground: #3b82f6;
   --asakaa-color-gantt-taskBorder: #2563eb;
   --asakaa-color-gantt-criticalPath: #ef4444;
-  --asakaa-color-gantt-milestone: #8b5cf6;
+  --asakaa-color-gantt-milestone: #3B82F6;
   --asakaa-color-gantt-dependency: #6b7280;
   --asakaa-color-gantt-weekend: #f9fafb;
 }
@@ -285,7 +285,7 @@
   --asakaa-color-gantt-taskBackground: #3b82f6;
   --asakaa-color-gantt-taskBorder: #2563eb;
   --asakaa-color-gantt-criticalPath: #ef4444;
-  --asakaa-color-gantt-milestone: #8b5cf6;
+  --asakaa-color-gantt-milestone: #3B82F6;
   --asakaa-color-gantt-dependency: #71717a;
   --asakaa-color-gantt-weekend: #27272a;
 }

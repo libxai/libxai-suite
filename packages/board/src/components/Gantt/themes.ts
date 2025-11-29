@@ -3,10 +3,11 @@ import { GanttTheme } from './types';
 export const themes: Record<string, GanttTheme> = {
   dark: {
     // Backgrounds
+    // v0.14.7: Reduced zebra stripe contrast for more sophisticated look
     bgPrimary: '#1A1D21',
     bgSecondary: '#23272E',
-    bgGrid: '#1E2228',
-    bgWeekend: 'rgba(59, 130, 246, 0.03)',
+    bgGrid: '#1C1F24',  // Reduced contrast from #1E2228
+    bgWeekend: 'rgba(59, 130, 246, 0.02)',
 
     // Borders
     border: '#2D3139',
@@ -51,10 +52,11 @@ export const themes: Record<string, GanttTheme> = {
   
   light: {
     // Backgrounds
+    // v0.14.7: Reduced zebra stripe contrast for more sophisticated look
     bgPrimary: '#FFFFFF',
     bgSecondary: '#F9FAFB',
-    bgGrid: '#FCFCFD',
-    bgWeekend: 'rgba(37, 99, 235, 0.03)',
+    bgGrid: '#FDFEFE',  // Reduced contrast from #FCFCFD
+    bgWeekend: 'rgba(37, 99, 235, 0.02)',
 
     // Borders
     border: '#E5E7EB',
@@ -99,10 +101,11 @@ export const themes: Record<string, GanttTheme> = {
   
   neutral: {
     // Backgrounds
+    // v0.14.7: Reduced zebra stripe contrast for more sophisticated look
     bgPrimary: '#FAFAF9',
     bgSecondary: '#F5F5F4',
-    bgGrid: '#FEFEFE',
-    bgWeekend: 'rgba(41, 37, 36, 0.025)',
+    bgGrid: '#FBFBFA',  // Reduced contrast from #FEFEFE
+    bgWeekend: 'rgba(41, 37, 36, 0.015)',
 
     // Borders
     border: '#E7E5E4',

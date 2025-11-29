@@ -145,6 +145,8 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
 
   // Sync parent tasks prop changes to local state (e.g., after external DB operations)
   useEffect(() => {
+    console.log('🔄 GanttBoard: tasks prop changed, syncing to local state');
+    console.log('📥 Incoming tasks:', tasks.length, tasks.map(t => ({ id: t.id, name: t.name, startDate: t.startDate?.toISOString?.() })));
     setLocalTasks(tasks);
   }, [tasks, setLocalTasks]);
 
