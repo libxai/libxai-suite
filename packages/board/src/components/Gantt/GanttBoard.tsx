@@ -747,13 +747,17 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   }, [localTasks]);
 
   // v0.10.0: Handle task double click - open edit modal
+  // v0.16.1: If onTaskEdit is provided, let the user handle editing (don't open built-in modal)
   const handleTaskDblClickInternal = useCallback((task: Task) => {
     // Call user's custom handler if provided
     onTaskDblClick?.(task);
 
-    // Open built-in edit modal
-    setEditingTask(task);
-  }, [onTaskDblClick]);
+    // Only open built-in edit modal if user hasn't provided a custom edit handler
+    // This prevents double modals when user handles editing themselves
+    if (!onTaskEdit) {
+      setEditingTask(task);
+    }
+  }, [onTaskDblClick, onTaskEdit]);
 
   // Helper function to detect circular dependencies using DFS
   const wouldCreateCircularDependency = useCallback((fromTaskId: string, toTaskId: string, tasks: Task[]): boolean => {
