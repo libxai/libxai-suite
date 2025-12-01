@@ -15,6 +15,10 @@ import {
   EyeOff,
   Settings,
   Scissors, // v0.8.0: For Split task
+  Circle, // v0.16.0: For Mark Incomplete
+  PlayCircle, // v0.16.0: For Set In Progress
+  CheckCircle2, // v0.16.0: For Mark Complete
+  Pencil, // v0.16.0: Alias for Edit
 } from 'lucide-react';
 
 export interface ContextMenuItem {
@@ -136,8 +140,10 @@ export function ContextMenu({ isOpen, x, y, items, onClose, theme }: ContextMenu
 // Icon components for menu items
 export const MenuIcons = {
   Edit: <Edit3 className="w-4 h-4" />,
+  Pencil: <Pencil className="w-4 h-4" />, // v0.16.0: Alias for Edit
   Delete: <Trash2 className="w-4 h-4" />,
   Add: <Plus className="w-4 h-4" />,
+  AddSubtask: <Plus className="w-4 h-4" />, // v0.16.0: Add subtask
   Remove: <Minus className="w-4 h-4" />,
   Link: <Link2 className="w-4 h-4" />,
   Progress: <BarChart3 className="w-4 h-4" />,
@@ -148,4 +154,8 @@ export const MenuIcons = {
   Show: <Eye className="w-4 h-4" />,
   Settings: <Settings className="w-4 h-4" />,
   Split: <Scissors className="w-4 h-4" />, // v0.8.0: Split task
+  // v0.16.0: Task status icons
+  MarkIncomplete: <Circle className="w-4 h-4" />,
+  SetInProgress: <PlayCircle className="w-4 h-4" />,
+  MarkComplete: <CheckCircle2 className="w-4 h-4" />,
 };

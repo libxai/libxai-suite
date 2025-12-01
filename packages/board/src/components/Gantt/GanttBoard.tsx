@@ -79,6 +79,11 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     onTaskContextMenu, // v0.8.0
     onTaskUpdate,
     onProgressChange, // v0.8.0
+    // v0.16.0: Context menu action callbacks
+    onTaskEdit,
+    onTaskAddSubtask,
+    onTaskMarkIncomplete,
+    onTaskSetInProgress,
     // Dependency events
     onDependencyCreate,
     onDependencyDelete,
@@ -1130,7 +1135,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         </div>
       </div>
 
-      {/* v0.8.0: Context Menu for Split task feature */}
+      {/* v0.8.0: Context Menu for task operations (v0.16.0: Enhanced with Edit, Add Subtask, Status changes) */}
       {contextMenu.task && (
         <ContextMenu
           isOpen={contextMenu.isOpen}
@@ -1139,9 +1144,97 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
           theme={theme}
           onClose={() => setContextMenu({ isOpen: false, x: 0, y: 0, task: null })}
           items={[
+            // v0.16.0: Edit Task - opens edit modal or calls custom handler
+            {
+              id: 'edit',
+              label: translations.contextMenu?.editTask || 'Edit Task',
+              icon: MenuIcons.Pencil,
+              onClick: () => {
+                if (!contextMenu.task) return;
+                if (onTaskEdit) {
+                  // Use custom handler if provided
+                  onTaskEdit(contextMenu.task);
+                } else {
+                  // Use built-in edit modal
+                  setEditingTask(contextMenu.task);
+                }
+              },
+            },
+            // v0.16.0: Add Subtask
+            {
+              id: 'addSubtask',
+              label: translations.contextMenu?.addSubtask || 'Add Subtask',
+              icon: MenuIcons.Add,
+              onClick: () => {
+                if (!contextMenu.task) return;
+                if (onTaskAddSubtask) {
+                  // Use custom handler if provided
+                  onTaskAddSubtask(contextMenu.task);
+                } else {
+                  // Use built-in subtask creation
+                  handleCreateSubtask(contextMenu.task.id);
+                }
+              },
+            },
+            // Separator before status changes
+            {
+              id: 'separator-status',
+              label: '',
+              separator: true,
+              onClick: () => {},
+            },
+            // v0.16.0: Mark Incomplete (status: 'todo', progress: 0)
+            {
+              id: 'markIncomplete',
+              label: translations.contextMenu?.markIncomplete || 'Mark Incomplete',
+              icon: MenuIcons.MarkIncomplete,
+              onClick: () => {
+                if (!contextMenu.task) return;
+                if (onTaskMarkIncomplete) {
+                  onTaskMarkIncomplete(contextMenu.task);
+                } else {
+                  handleTaskUpdate(contextMenu.task.id, { status: 'todo', progress: 0 });
+                }
+              },
+              disabled: contextMenu.task?.status === 'todo',
+            },
+            // v0.16.0: Set In Progress (status: 'in-progress')
+            {
+              id: 'setInProgress',
+              label: translations.contextMenu?.setInProgress || 'Set In Progress',
+              icon: MenuIcons.SetInProgress,
+              onClick: () => {
+                if (!contextMenu.task) return;
+                if (onTaskSetInProgress) {
+                  onTaskSetInProgress(contextMenu.task);
+                } else {
+                  handleTaskUpdate(contextMenu.task.id, { status: 'in-progress' });
+                }
+              },
+              disabled: contextMenu.task?.status === 'in-progress',
+            },
+            // v0.16.0: Mark Complete (status: 'completed', progress: 100)
+            {
+              id: 'markComplete',
+              label: translations.contextMenu?.markComplete || 'Mark Complete',
+              icon: MenuIcons.MarkComplete,
+              onClick: () => {
+                if (!contextMenu.task) return;
+                handleTaskUpdate(contextMenu.task.id, { status: 'completed', progress: 100 });
+              },
+              disabled: contextMenu.task?.status === 'completed',
+            },
+            // Separator before advanced options
+            {
+              id: 'separator-advanced',
+              label: '',
+              separator: true,
+              onClick: () => {},
+            },
+            // Split Task (existing feature from v0.8.0)
             {
               id: 'split',
-              label: 'Split Task',
+              label: translations.contextMenu?.splitTask || 'Split Task',
               icon: MenuIcons.Split,
               onClick: () => {
                 if (!contextMenu.task?.startDate || !contextMenu.task?.endDate) {
@@ -1159,6 +1252,27 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
                 handleSplitTask(contextMenu.task, splitDate);
               },
               disabled: !contextMenu.task?.startDate || !contextMenu.task?.endDate,
+            },
+            // Separator before delete
+            {
+              id: 'separator-delete',
+              label: '',
+              separator: true,
+              onClick: () => {},
+            },
+            // Delete Task
+            {
+              id: 'delete',
+              label: translations.contextMenu?.deleteTask || 'Delete Task',
+              icon: MenuIcons.Delete,
+              onClick: () => {
+                if (!contextMenu.task) return;
+                if (config.onTaskDelete) {
+                  config.onTaskDelete(contextMenu.task.id);
+                } else {
+                  setLocalTasks((prev) => deleteTasks(prev, [contextMenu.task!.id]));
+                }
+              },
             },
           ]}
         />

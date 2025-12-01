@@ -1611,6 +1611,26 @@ interface GanttConfig {
     onTaskUpdate?: (task: Task) => void;
     onTaskDateChange?: (task: Task, startDate: Date, endDate: Date) => void;
     onProgressChange?: (taskId: string, oldProgress: number, newProgress: number) => void;
+    /**
+     * Called when user clicks "Edit Task" in context menu
+     * If not provided, the built-in TaskFormModal will be used
+     */
+    onTaskEdit?: (task: Task) => void;
+    /**
+     * Called when user clicks "Add Subtask" in context menu
+     * If not provided, the built-in subtask creation will be used
+     */
+    onTaskAddSubtask?: (parentTask: Task) => void;
+    /**
+     * Called when user clicks "Mark Incomplete" in context menu
+     * Sets task status to 'todo' and progress to 0
+     */
+    onTaskMarkIncomplete?: (task: Task) => void;
+    /**
+     * Called when user clicks "Set In Progress" in context menu
+     * Sets task status to 'in-progress'
+     */
+    onTaskSetInProgress?: (task: Task) => void;
     onDependencyCreate?: (fromTaskId: string, toTaskId: string) => void;
     onDependencyDelete?: (taskId: string, dependencyId: string) => void;
     onBeforeTaskAdd?: (task: Task) => boolean | void | Promise<boolean | void>;
@@ -1970,8 +1990,10 @@ interface ContextMenuProps {
 declare function ContextMenu({ isOpen, x, y, items, onClose, theme }: ContextMenuProps): react_jsx_runtime.JSX.Element | null;
 declare const MenuIcons: {
     Edit: react_jsx_runtime.JSX.Element;
+    Pencil: react_jsx_runtime.JSX.Element;
     Delete: react_jsx_runtime.JSX.Element;
     Add: react_jsx_runtime.JSX.Element;
+    AddSubtask: react_jsx_runtime.JSX.Element;
     Remove: react_jsx_runtime.JSX.Element;
     Link: react_jsx_runtime.JSX.Element;
     Progress: react_jsx_runtime.JSX.Element;
@@ -1982,6 +2004,9 @@ declare const MenuIcons: {
     Show: react_jsx_runtime.JSX.Element;
     Settings: react_jsx_runtime.JSX.Element;
     Split: react_jsx_runtime.JSX.Element;
+    MarkIncomplete: react_jsx_runtime.JSX.Element;
+    SetInProgress: react_jsx_runtime.JSX.Element;
+    MarkComplete: react_jsx_runtime.JSX.Element;
 };
 
 interface TaskFormData {
@@ -2495,6 +2520,15 @@ interface GanttTranslations {
         compact: string;
         normal: string;
         spacious: string;
+    };
+    contextMenu: {
+        editTask: string;
+        addSubtask: string;
+        markIncomplete: string;
+        setInProgress: string;
+        markComplete: string;
+        splitTask: string;
+        deleteTask: string;
     };
     actions: {
         edit: string;
