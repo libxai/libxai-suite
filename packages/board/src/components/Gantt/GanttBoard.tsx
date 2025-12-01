@@ -1276,11 +1276,9 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
               icon: MenuIcons.Delete,
               onClick: () => {
                 if (!contextMenu.task) return;
-                if (config.onTaskDelete) {
-                  config.onTaskDelete(contextMenu.task.id);
-                } else {
-                  setLocalTasks((prev) => deleteTasks(prev, [contextMenu.task!.id]));
-                }
+                console.log('🗑️ GanttBoard context menu: Delete task clicked', contextMenu.task.id, contextMenu.task.name);
+                // v0.16.5: Use handleMultiTaskDelete which properly calls config.onMultiTaskDelete
+                handleMultiTaskDelete([contextMenu.task.id]);
               },
             },
           ]}
