@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useContext } from 'react';
 import { ChevronDown, ChevronRight, Keyboard, Plus, Edit3 } from 'lucide-react';
 import { Task, GanttColumn, ColumnType, GanttTemplates } from './types';
 import { motion } from 'framer-motion';
@@ -9,6 +9,7 @@ import { useGanttSelection } from './useGanttSelection';
 import { flattenTasks as flattenTasksUtil } from './hierarchyUtils';
 import { UserAssignmentSelector } from '../Card/UserAssignmentSelector';
 import { StatusSelector } from '../Card/StatusSelector';
+import { GanttI18nContext } from './GanttI18nContext';
 import type { User } from '../Card/UserAssignmentSelector';
 
 interface TaskGridProps {
@@ -64,6 +65,9 @@ export function TaskGrid({
   onCreateSubtask,
   onOpenTaskModal,
 }: TaskGridProps) {
+  // v0.16.2: Get translations from context
+  const translations = useContext(GanttI18nContext);
+
   const [hoveredTaskId, setHoveredTaskId] = useState<string | null>(null);
   const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
@@ -541,62 +545,88 @@ export function TaskGrid({
     ];
   };
 
-  // Context menu items for task row
+  // v0.16.2: Context menu items for task row - unified with GanttBoard context menu
   const getTaskContextMenuItems = (task: Task): ContextMenuItem[] => {
     return [
+      // Edit Task - opens edit modal via double-click handler
       {
         id: 'edit',
-        label: 'Edit Task',
-        icon: MenuIcons.Edit,
+        label: translations?.contextMenu?.editTask || 'Edit Task',
+        icon: MenuIcons.Pencil,
         onClick: () => {
-          // Implement edit dialog in parent component if needed
+          onTaskDblClick?.(task);
         },
       },
+      // Add Subtask
       {
         id: 'addSubtask',
-        label: 'Add Subtask',
+        label: translations?.contextMenu?.addSubtask || 'Add Subtask',
         icon: MenuIcons.Add,
         onClick: () => {
-          // Implement subtask creation in parent component if needed
+          onCreateSubtask?.(task.id);
         },
       },
-      {
-        id: 'addDependency',
-        label: 'Add Dependency',
-        icon: MenuIcons.Link,
-        onClick: () => {
-          // Implement dependency picker in parent component if needed
-        },
-      },
+      // Separator before status changes
       { id: 'sep1', label: '', onClick: () => {}, separator: true },
+      // Mark Incomplete (status: 'todo', progress: 0)
       {
-        id: 'markComplete',
-        label: task.status === 'completed' ? 'Mark Incomplete' : 'Mark Complete',
-        icon: MenuIcons.Progress,
+        id: 'markIncomplete',
+        label: translations?.contextMenu?.markIncomplete || 'Mark Incomplete',
+        icon: MenuIcons.MarkIncomplete,
         onClick: () => {
-          const newStatus = task.status === 'completed' ? 'in-progress' : 'completed';
-          const newProgress = task.status === 'completed' ? task.progress : 100;
-          onTaskUpdate?.(task.id, { status: newStatus, progress: newProgress });
+          onTaskUpdate?.(task.id, { status: 'todo', progress: 0 });
         },
+        disabled: task.status === 'todo',
       },
+      // Set In Progress (status: 'in-progress')
       {
         id: 'setInProgress',
-        label: 'Set In Progress',
-        icon: MenuIcons.Progress,
+        label: translations?.contextMenu?.setInProgress || 'Set In Progress',
+        icon: MenuIcons.SetInProgress,
         onClick: () => {
           onTaskUpdate?.(task.id, { status: 'in-progress' });
         },
         disabled: task.status === 'in-progress',
       },
+      // Mark Complete (status: 'completed', progress: 100)
+      {
+        id: 'markComplete',
+        label: translations?.contextMenu?.markComplete || 'Mark Complete',
+        icon: MenuIcons.MarkComplete,
+        onClick: () => {
+          onTaskUpdate?.(task.id, { status: 'completed', progress: 100 });
+        },
+        disabled: task.status === 'completed',
+      },
+      // Separator before advanced options
       { id: 'sep2', label: '', onClick: () => {}, separator: true },
+      // Split Task
+      {
+        id: 'split',
+        label: translations?.contextMenu?.splitTask || 'Split Task',
+        icon: MenuIcons.Split,
+        onClick: () => {
+          // Split task feature - triggered via context menu in Timeline
+          // For TaskGrid, we just show this option but main split is in Timeline
+          if (task.startDate && task.endDate) {
+            const startTime = task.startDate.getTime();
+            const endTime = task.endDate.getTime();
+            const midTime = startTime + (endTime - startTime) / 2;
+            // TODO: Emit split event to parent
+            console.log('Split task at:', new Date(midTime));
+          }
+        },
+        disabled: !task.startDate || !task.endDate,
+      },
+      // Separator before delete
+      { id: 'sep3', label: '', onClick: () => {}, separator: true },
+      // Delete Task
       {
         id: 'delete',
-        label: 'Delete Task',
+        label: translations?.contextMenu?.deleteTask || 'Delete Task',
         icon: MenuIcons.Delete,
         onClick: () => {
-          if (window.confirm(`Delete task "${task.name}"?`)) {
-            onMultiTaskDelete?.([task.id]);
-          }
+          onMultiTaskDelete?.([task.id]);
         },
       },
     ];
