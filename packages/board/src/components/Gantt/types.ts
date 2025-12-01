@@ -384,6 +384,31 @@ export interface GanttConfig {
   onTaskDateChange?: (task: Task, startDate: Date, endDate: Date) => void;
   onProgressChange?: (taskId: string, oldProgress: number, newProgress: number) => void; // v0.8.0: Progress change event
 
+  // ==================== Context Menu Action Callbacks (v0.16.0) ====================
+  /**
+   * Called when user clicks "Edit Task" in context menu
+   * If not provided, the built-in TaskFormModal will be used
+   */
+  onTaskEdit?: (task: Task) => void;
+
+  /**
+   * Called when user clicks "Add Subtask" in context menu
+   * If not provided, the built-in subtask creation will be used
+   */
+  onTaskAddSubtask?: (parentTask: Task) => void;
+
+  /**
+   * Called when user clicks "Mark Incomplete" in context menu
+   * Sets task status to 'todo' and progress to 0
+   */
+  onTaskMarkIncomplete?: (task: Task) => void;
+
+  /**
+   * Called when user clicks "Set In Progress" in context menu
+   * Sets task status to 'in-progress'
+   */
+  onTaskSetInProgress?: (task: Task) => void;
+
   // ==================== Dependency Events ====================
   onDependencyCreate?: (fromTaskId: string, toTaskId: string) => void;
   onDependencyDelete?: (taskId: string, dependencyId: string) => void;

@@ -42,6 +42,17 @@ export interface GanttTranslations {
     spacious: string;
   };
 
+  // v0.16.0: Context menu labels (right-click menu)
+  contextMenu: {
+    editTask: string;
+    addSubtask: string;
+    markIncomplete: string;
+    setInProgress: string;
+    markComplete: string;
+    splitTask: string;
+    deleteTask: string;
+  };
+
   // Task actions (context menu)
   actions: {
     edit: string;
@@ -165,6 +176,17 @@ export const en: GanttTranslations = {
     spacious: 'Spacious',
   },
 
+  // v0.16.0: Context menu labels (right-click menu)
+  contextMenu: {
+    editTask: 'Edit Task',
+    addSubtask: 'Add Subtask',
+    markIncomplete: 'Mark Incomplete',
+    setInProgress: 'Set In Progress',
+    markComplete: 'Mark Complete',
+    splitTask: 'Split Task',
+    deleteTask: 'Delete Task',
+  },
+
   actions: {
     edit: 'Edit',
     delete: 'Delete',
@@ -282,6 +304,17 @@ export const es: GanttTranslations = {
     spacious: 'Espacioso',
   },
 
+  // v0.16.0: Context menu labels (right-click menu)
+  contextMenu: {
+    editTask: 'Editar Tarea',
+    addSubtask: 'Agregar Subtarea',
+    markIncomplete: 'Marcar Incompleta',
+    setInProgress: 'Marcar En Progreso',
+    markComplete: 'Marcar Completada',
+    splitTask: 'Dividir Tarea',
+    deleteTask: 'Eliminar Tarea',
+  },
+
   actions: {
     edit: 'Editar',
     delete: 'Eliminar',
@@ -397,6 +430,7 @@ export function mergeTranslations(
   return {
     columns: { ...base.columns, ...customTranslations.columns },
     toolbar: { ...base.toolbar, ...customTranslations.toolbar },
+    contextMenu: { ...base.contextMenu, ...customTranslations.contextMenu }, // v0.16.0
     actions: { ...base.actions, ...customTranslations.actions },
     status: { ...base.status, ...customTranslations.status },
     labels: { ...base.labels, ...customTranslations.labels },
