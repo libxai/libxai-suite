@@ -626,6 +626,8 @@ export function TaskGrid({
         label: translations?.contextMenu?.deleteTask || 'Delete Task',
         icon: MenuIcons.Delete,
         onClick: () => {
+          console.log('🗑️ TaskGrid context menu: Delete task clicked', task.id, task.name);
+          console.log('🗑️ onMultiTaskDelete callback exists:', !!onMultiTaskDelete);
           onMultiTaskDelete?.([task.id]);
         },
       },

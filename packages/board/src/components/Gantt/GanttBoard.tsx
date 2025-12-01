@@ -630,10 +630,15 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   }, [config]);
 
   const handleMultiTaskDelete = useCallback((taskIds: string[]) => {
+    console.log('🗑️ GanttBoard handleMultiTaskDelete called with:', taskIds);
+    console.log('🗑️ config.onMultiTaskDelete exists:', !!config.onMultiTaskDelete);
+
     // Call the SaaS onMultiTaskDelete handler if provided
     if (config.onMultiTaskDelete) {
+      console.log('🗑️ Calling config.onMultiTaskDelete...');
       config.onMultiTaskDelete(taskIds);
     } else {
+      console.log('🗑️ No onMultiTaskDelete, using fallback...');
       // Fallback: update local state and call individual delete handlers
       setLocalTasks((prev) => deleteTasks(prev, taskIds));
       taskIds.forEach(id => config.onTaskDelete?.(id));
