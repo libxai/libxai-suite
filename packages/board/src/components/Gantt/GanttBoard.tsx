@@ -155,8 +155,6 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
 
   // Sync parent tasks prop changes to local state (e.g., after external DB operations)
   useEffect(() => {
-    console.log('🔄 GanttBoard: tasks prop changed, syncing to local state');
-    console.log('📥 Incoming tasks:', tasks.length, tasks.map(t => ({ id: t.id, name: t.name, startDate: t.startDate?.toISOString?.() })));
     setLocalTasks(tasks);
   }, [tasks, setLocalTasks]);
 
@@ -630,15 +628,10 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   }, [config]);
 
   const handleMultiTaskDelete = useCallback((taskIds: string[]) => {
-    console.log('🗑️ GanttBoard handleMultiTaskDelete called with:', taskIds);
-    console.log('🗑️ config.onMultiTaskDelete exists:', !!config.onMultiTaskDelete);
-
-    // Call the SaaS onMultiTaskDelete handler if provided
+    // Call the consumer's onMultiTaskDelete handler if provided
     if (config.onMultiTaskDelete) {
-      console.log('🗑️ Calling config.onMultiTaskDelete...');
       config.onMultiTaskDelete(taskIds);
     } else {
-      console.log('🗑️ No onMultiTaskDelete, using fallback...');
       // Fallback: update local state and call individual delete handlers
       setLocalTasks((prev) => deleteTasks(prev, taskIds));
       taskIds.forEach(id => config.onTaskDelete?.(id));
@@ -1276,8 +1269,6 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
               icon: MenuIcons.Delete,
               onClick: () => {
                 if (!contextMenu.task) return;
-                console.log('🗑️ GanttBoard context menu: Delete task clicked', contextMenu.task.id, contextMenu.task.name);
-                // v0.16.5: Use handleMultiTaskDelete which properly calls config.onMultiTaskDelete
                 handleMultiTaskDelete([contextMenu.task.id]);
               },
             },

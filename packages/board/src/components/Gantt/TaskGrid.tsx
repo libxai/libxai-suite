@@ -605,18 +605,9 @@ export function TaskGrid({
         id: 'split',
         label: translations?.contextMenu?.splitTask || 'Split Task',
         icon: MenuIcons.Split,
-        onClick: () => {
-          // Split task feature - triggered via context menu in Timeline
-          // For TaskGrid, we just show this option but main split is in Timeline
-          if (task.startDate && task.endDate) {
-            const startTime = task.startDate.getTime();
-            const endTime = task.endDate.getTime();
-            const midTime = startTime + (endTime - startTime) / 2;
-            // TODO: Emit split event to parent
-            console.log('Split task at:', new Date(midTime));
-          }
-        },
-        disabled: !task.startDate || !task.endDate,
+        onClick: () => {},
+        // Split task is only available via Timeline context menu (right-click on task bar)
+        disabled: true,
       },
       // Separator before delete
       { id: 'sep3', label: '', onClick: () => {}, separator: true },
@@ -626,8 +617,6 @@ export function TaskGrid({
         label: translations?.contextMenu?.deleteTask || 'Delete Task',
         icon: MenuIcons.Delete,
         onClick: () => {
-          console.log('🗑️ TaskGrid context menu: Delete task clicked', task.id, task.name);
-          console.log('🗑️ onMultiTaskDelete callback exists:', !!onMultiTaskDelete);
           onMultiTaskDelete?.([task.id]);
         },
       },
