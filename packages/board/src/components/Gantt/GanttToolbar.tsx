@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Calendar, ZoomIn, ZoomOut, Sun, Moon, Palette, AlignJustify, Download, FileImage, FileSpreadsheet, FileText, FileJson, ChevronDown, FolderKanban, Plus } from 'lucide-react';
+import { ZoomIn, ZoomOut, Sun, Moon, Palette, Download, FileImage, FileSpreadsheet, FileText, FileJson, ChevronDown, FolderKanban, Plus, Rows3, Check } from 'lucide-react';
 import { TimeScale, Theme, RowDensity } from './types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGanttI18n } from './GanttI18nContext'; // v0.15.0: i18n
@@ -232,15 +232,16 @@ function ExportDropdown({ theme, onExportPNG, onExportPDF, onExportExcel, onExpo
   );
 }
 
-// Segmented Control Component
+// Segmented Control Component (kept for theme selector)
 interface SegmentedControlProps {
   options: Array<{ value: string; label: string; icon?: React.ReactNode }>;
   value: string;
   onChange: (value: string) => void;
   theme: any;
+  layoutId?: string;
 }
 
-function SegmentedControl({ options, value, onChange, theme }: SegmentedControlProps) {
+function SegmentedControl({ options, value, onChange, theme, layoutId = 'activeSegment' }: SegmentedControlProps) {
   return (
     <div
       className="inline-flex p-1 rounded-lg relative"
@@ -267,7 +268,7 @@ function SegmentedControl({ options, value, onChange, theme }: SegmentedControlP
           >
             {isActive && (
               <motion.div
-                layoutId="activeSegment"
+                layoutId={layoutId}
                 className="absolute inset-0 rounded-md"
                 style={{
                   backgroundColor: theme.accent,
@@ -291,6 +292,173 @@ function SegmentedControl({ options, value, onChange, theme }: SegmentedControlP
           </motion.button>
         );
       })}
+    </div>
+  );
+}
+
+/**
+ * v0.16.0: Minimal Tabs Component - Linear/Notion style
+ * Minimalist tab selector with underline indicator
+ */
+interface MinimalTabsProps {
+  options: Array<{ value: string; label: string }>;
+  value: string;
+  onChange: (value: string) => void;
+  theme: any;
+}
+
+function MinimalTabs({ options, value, onChange, theme }: MinimalTabsProps) {
+  return (
+    <div className="inline-flex items-center gap-1">
+      {options.map((option) => {
+        const isActive = value === option.value;
+        return (
+          <motion.button
+            key={option.value}
+            onClick={() => onChange(option.value)}
+            className="relative px-3 py-1.5 text-xs transition-all"
+            style={{
+              color: isActive ? theme.accent : theme.textTertiary,
+              fontFamily: 'Inter, sans-serif',
+              fontWeight: isActive ? 600 : 500,
+            }}
+            whileHover={{ color: isActive ? theme.accent : theme.textSecondary }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <span>{option.label}</span>
+            {/* Underline indicator */}
+            {isActive && (
+              <motion.div
+                layoutId="timeScaleUnderline"
+                className="absolute bottom-0 left-1 right-1 h-0.5 rounded-full"
+                style={{ backgroundColor: theme.accent }}
+                transition={{
+                  type: 'spring',
+                  stiffness: 400,
+                  damping: 30,
+                }}
+              />
+            )}
+          </motion.button>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * v0.16.0: Density Dropdown Component
+ * Consolidated density selector as a compact dropdown
+ */
+interface DensityDropdownProps {
+  theme: any;
+  value: RowDensity;
+  onChange: (density: RowDensity) => void;
+}
+
+function DensityDropdown({ theme, value, onChange }: DensityDropdownProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const t = useGanttI18n();
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
+
+  const densityOptions = [
+    { value: 'compact' as RowDensity, label: t.toolbar.compact || 'Compact' },
+    { value: 'comfortable' as RowDensity, label: t.toolbar.normal || 'Normal' },
+    { value: 'spacious' as RowDensity, label: t.toolbar.spacious || 'Spacious' },
+  ];
+
+  const currentLabel = densityOptions.find(opt => opt.value === value)?.label || 'Normal';
+
+  return (
+    <div ref={dropdownRef} className="relative">
+      <motion.button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center justify-center p-2 rounded-lg transition-all"
+        style={{
+          backgroundColor: isOpen ? theme.accentLight : theme.bgSecondary,
+          border: `1px solid ${isOpen ? theme.accent : theme.borderLight}`,
+          color: isOpen ? theme.accent : theme.textSecondary,
+        }}
+        whileHover={{
+          backgroundColor: theme.hoverBg,
+          scale: 1.02,
+        }}
+        whileTap={{ scale: 0.98 }}
+        title={`${t.toolbar.density || 'Density'}: ${currentLabel}`}
+      >
+        <Rows3 className="w-4 h-4" />
+      </motion.button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -8, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -8, scale: 0.95 }}
+            transition={{ duration: 0.15, ease: 'easeOut' }}
+            className="absolute left-0 mt-2 w-36 rounded-lg overflow-hidden z-50"
+            style={{
+              backgroundColor: theme.bgSecondary,
+              border: `1px solid ${theme.border}`,
+              boxShadow: '0 10px 40px rgba(0, 0, 0, 0.25)',
+            }}
+          >
+            <div className="py-1">
+              {densityOptions.map((option, index) => {
+                const isActive = value === option.value;
+                return (
+                  <motion.button
+                    key={option.value}
+                    onClick={() => {
+                      onChange(option.value);
+                      setIsOpen(false);
+                    }}
+                    className="w-full flex items-center justify-between px-3 py-2 text-left transition-all"
+                    style={{
+                      backgroundColor: isActive ? theme.accentLight : 'transparent',
+                      borderBottom: index < densityOptions.length - 1 ? `1px solid ${theme.borderLight}` : 'none',
+                    }}
+                    whileHover={{
+                      backgroundColor: isActive ? theme.accentLight : theme.hoverBg,
+                    }}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.03 }}
+                  >
+                    <span
+                      className="text-xs"
+                      style={{
+                        color: isActive ? theme.accent : theme.textPrimary,
+                        fontFamily: 'Inter, sans-serif',
+                        fontWeight: isActive ? 600 : 500,
+                      }}
+                    >
+                      {option.label}
+                    </span>
+                    {isActive && (
+                      <Check className="w-3.5 h-3.5" style={{ color: theme.accent }} />
+                    )}
+                  </motion.button>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -319,11 +487,11 @@ export function GanttToolbar({
   const t = useGanttI18n(); // v0.15.0: i18n
   const hasExport = onExportPNG || onExportPDF || onExportExcel || onExportCSV || onExportJSON || onExportMSProject;
 
-  // v0.15.0: Use translations for labels
+  // v0.16.0: Use minimal tabs for time scale (Linear/Notion style)
   const timeScaleOptions = [
-    { value: 'day', label: t.toolbar.day, icon: <Calendar className="w-3.5 h-3.5" /> },
-    { value: 'week', label: t.toolbar.week, icon: <Calendar className="w-3.5 h-3.5" /> },
-    { value: 'month', label: t.toolbar.month, icon: <Calendar className="w-3.5 h-3.5" /> },
+    { value: 'day', label: t.toolbar.day },
+    { value: 'week', label: t.toolbar.week },
+    { value: 'month', label: t.toolbar.month },
   ];
 
   const themeOptions = [
@@ -332,23 +500,18 @@ export function GanttToolbar({
     { value: 'neutral', label: 'Zen', icon: <Palette className="w-3.5 h-3.5" /> },
   ];
 
-  const densityOptions = [
-    { value: 'compact', label: 'Compact', icon: <AlignJustify className="w-3.5 h-3.5" /> },
-    { value: 'comfortable', label: 'Normal', icon: <AlignJustify className="w-3.5 h-3.5" /> },
-    { value: 'spacious', label: 'Spacious', icon: <AlignJustify className="w-3.5 h-3.5" /> },
-  ];
-
   return (
     <div
-      className="h-14 px-6 flex items-center justify-between border-b"
+      className="h-12 px-4 flex items-center justify-between border-b"
       style={{
         backgroundColor: theme.bgGrid,
         borderColor: theme.border,
       }}
     >
-      {/* Left Section - Time Scale Controls */}
-      <div className="flex items-center gap-4">
-        <SegmentedControl
+      {/* Left Section - Time Scale as Minimal Tabs */}
+      <div className="flex items-center gap-3">
+        {/* v0.16.0: Minimal tabs for time scale */}
+        <MinimalTabs
           options={timeScaleOptions}
           value={timeScale}
           onChange={(val) => onTimeScaleChange(val as TimeScale)}
@@ -357,70 +520,67 @@ export function GanttToolbar({
 
         {/* Divider */}
         <div
-          className="w-px h-6"
+          className="w-px h-5"
           style={{ backgroundColor: theme.borderLight }}
         />
 
-        {/* Zoom Controls */}
+        {/* Zoom Controls - Compact */}
         <div className="flex items-center gap-1">
-            <motion.button
-              onClick={() => onZoomChange(Math.max(0.5, zoom - 0.1))}
-              className="p-1.5 rounded-md transition-all"
-              style={{
-                backgroundColor: theme.bgSecondary,
-                border: `1px solid ${theme.borderLight}`,
-              }}
-              whileHover={{
-                backgroundColor: theme.hoverBg,
-                scale: 1.05,
-              }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <ZoomOut className="w-3.5 h-3.5" style={{ color: theme.textSecondary }} />
-            </motion.button>
+          <motion.button
+            onClick={() => onZoomChange(Math.max(0.5, zoom - 0.1))}
+            className="p-1.5 rounded-md transition-all"
+            style={{
+              backgroundColor: 'transparent',
+              color: theme.textSecondary,
+            }}
+            whileHover={{
+              backgroundColor: theme.hoverBg,
+              scale: 1.05,
+            }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <ZoomOut className="w-3.5 h-3.5" />
+          </motion.button>
 
-            <div
-              className="px-3 py-1 rounded-md text-xs tabular-nums min-w-[50px] text-center"
-              style={{
-                backgroundColor: theme.bgSecondary,
-                border: `1px solid ${theme.borderLight}`,
-                color: theme.textPrimary,
-                fontFamily: 'Inter, sans-serif',
-                fontWeight: 600,
-              }}
-            >
-              {Math.round(zoom * 100)}%
-            </div>
+          <div
+            className="px-2 py-0.5 rounded text-xs tabular-nums min-w-[42px] text-center"
+            style={{
+              color: theme.textSecondary,
+              fontFamily: 'Inter, sans-serif',
+              fontWeight: 500,
+            }}
+          >
+            {Math.round(zoom * 100)}%
+          </div>
 
-            <motion.button
-              onClick={() => onZoomChange(Math.min(2, zoom + 0.1))}
-              className="p-1.5 rounded-md transition-all"
-              style={{
-                backgroundColor: theme.bgSecondary,
-                border: `1px solid ${theme.borderLight}`,
-              }}
-              whileHover={{
-                backgroundColor: theme.hoverBg,
-                scale: 1.05,
-              }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <ZoomIn className="w-3.5 h-3.5" style={{ color: theme.textSecondary }} />
-            </motion.button>
+          <motion.button
+            onClick={() => onZoomChange(Math.min(2, zoom + 0.1))}
+            className="p-1.5 rounded-md transition-all"
+            style={{
+              backgroundColor: 'transparent',
+              color: theme.textSecondary,
+            }}
+            whileHover={{
+              backgroundColor: theme.hoverBg,
+              scale: 1.05,
+            }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <ZoomIn className="w-3.5 h-3.5" />
+          </motion.button>
         </div>
 
         {/* Divider */}
         <div
-          className="w-px h-6"
+          className="w-px h-5"
           style={{ backgroundColor: theme.borderLight }}
         />
 
-        {/* Row Density Controls */}
-        <SegmentedControl
-          options={densityOptions}
-          value={rowDensity}
-          onChange={(val) => onRowDensityChange(val as RowDensity)}
+        {/* v0.16.0: Row Density as Dropdown Icon */}
+        <DensityDropdown
           theme={theme}
+          value={rowDensity}
+          onChange={onRowDensityChange}
         />
       </div>
 
