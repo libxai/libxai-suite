@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.16.7] - 2024-12-01
+
+### Fixed
+- **Subtask Date Inheritance**: Subtasks now inherit start/end dates from parent task
+  - Previously subtasks used fixed dates (today + 7 days) regardless of parent
+  - Now subtasks fit within parent task date range
+  - Ensures visual consistency in Gantt chart
+
+---
+
 ## [0.16.6] - 2024-12-01
 
 ### Changed
