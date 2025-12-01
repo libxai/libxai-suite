@@ -35,6 +35,11 @@ export interface GanttTranslations {
     undo: string;
     redo: string;
     createTask: string;
+    // v0.16.0: Density dropdown
+    density: string;
+    compact: string;
+    normal: string;
+    spacious: string;
   };
 
   // Task actions (context menu)
@@ -153,6 +158,11 @@ export const en: GanttTranslations = {
     undo: 'Undo',
     redo: 'Redo',
     createTask: 'New Task',
+    // v0.16.0: Density dropdown
+    density: 'Row Density',
+    compact: 'Compact',
+    normal: 'Normal',
+    spacious: 'Spacious',
   },
 
   actions: {
@@ -265,6 +275,11 @@ export const es: GanttTranslations = {
     undo: 'Deshacer',
     redo: 'Rehacer',
     createTask: 'Nueva Tarea',
+    // v0.16.0: Density dropdown
+    density: 'Densidad',
+    compact: 'Compacto',
+    normal: 'Normal',
+    spacious: 'Espacioso',
   },
 
   actions: {
