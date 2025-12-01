@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.16.6] - 2024-12-01
+
+### Changed
+- **Production Ready**: Removed all debug console.log statements from GanttBoard and TaskGrid
+- **Split Task Menu**: Disabled Split Task in TaskGrid context menu (only available in Timeline)
+- Code cleanup for professional release
+
+---
+
 ## [0.16.5] - 2024-12-01
 
 ### Fixed
