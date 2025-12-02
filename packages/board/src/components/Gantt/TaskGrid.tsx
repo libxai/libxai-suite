@@ -640,7 +640,7 @@ export function TaskGrid({
           backgroundColor: theme.bgGrid,
           borderColor: theme.border,
           height: `${HEADER_HEIGHT}px`,
-          marginLeft: '3px', // Alinear con el borderLeft de las filas
+          paddingLeft: '3px', // Alinear con el borderLeft de las filas
         }}
       >
         {visibleColumns.map((column) => (
@@ -848,13 +848,12 @@ export function TaskGrid({
         return (
           <motion.div
             key={task.id}
-            className="flex items-center border-b cursor-pointer group"
+            className="flex items-center cursor-pointer group"
             style={{
               height: `${ROW_HEIGHT}px`,
-              borderTop: `1px solid ${isSelected ? theme.accent : theme.borderLight}`,
-              borderRight: `1px solid ${isSelected ? theme.accent : theme.borderLight}`,
+              boxSizing: 'border-box',
               borderBottom: `1px solid ${isSelected ? theme.accent : theme.borderLight}`,
-              borderLeft: isSelected ? `3px solid ${theme.accent}` : '3px solid transparent',
+              borderLeft: isSelected ? `3px solid ${theme.accent}` : `3px solid transparent`,
               backgroundColor: isSelected
                 ? theme.accentLight
                 : (index % 2 === 0 ? theme.bgPrimary : theme.bgGrid),
