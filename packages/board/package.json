@@ -1,8 +1,8 @@
 {
   "name": "@libxai/board",
-  "version": "0.16.15",
+  "version": "0.17.0",
   "type": "module",
-  "description": "Professional Gantt Chart + Kanban Board for React - Part of LibXAI Suite - TypeScript - Production-Ready - Zero Config",
+  "description": "Professional Gantt Chart + Kanban Board + ListView + CalendarBoard for React - Part of LibXAI Suite - TypeScript - Production-Ready - Zero Config",
   "author": "LibXAI <hello@libxai.com>",
   "license": "BUSL-1.1",
   "repository": {
@@ -20,6 +20,8 @@
     "react",
     "gantt-chart",
     "kanban-board",
+    "list-view",
+    "calendar-board",
     "project-management",
     "task-management",
     "typescript",
@@ -27,6 +29,8 @@
     "component-library",
     "react-gantt",
     "react-kanban",
+    "react-calendar",
+    "react-list",
     "scheduling",
     "planning",
     "agile",

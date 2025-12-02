@@ -110,6 +110,72 @@ export {
 export { useGanttI18n, GanttI18nContext } from './components/Gantt/GanttI18nContext'
 export type { GanttTranslations, SupportedLocale } from './components/Gantt/i18n'
 
+// v0.17.0: ListView Component
+export { ListView } from './components/ListView'
+export type {
+  ListViewProps,
+  ListViewConfig,
+  ListViewCallbacks,
+  ListViewPermissions,
+  ListViewTheme,
+  ListViewTranslations,
+  ListSort,
+  ListSortColumn,
+  SortDirection,
+  ListFilter,
+  ListColumn,
+  FlattenedTask,
+} from './components/ListView'
+export {
+  listViewThemes,
+  listViewDarkTheme,
+  listViewLightTheme,
+  listViewNeutralTheme,
+  getListViewTheme,
+} from './components/ListView'
+export type { ListViewThemeName } from './components/ListView'
+export {
+  listViewTranslations,
+  listViewEnTranslations,
+  listViewEsTranslations,
+  getListViewTranslations,
+  mergeListViewTranslations,
+} from './components/ListView'
+export type { ListViewSupportedLocale } from './components/ListView'
+
+// v0.17.0: CalendarBoard Component
+export { CalendarBoard } from './components/Calendar'
+export type {
+  CalendarBoardProps,
+  CalendarConfig,
+  CalendarCallbacks,
+  CalendarPermissions,
+  CalendarTheme,
+  CalendarTranslations,
+  CalendarEvent,
+  CalendarDay,
+  CalendarViewMode,
+  WeekDay,
+} from './components/Calendar'
+export {
+  calendarThemes,
+  calendarDarkTheme,
+  calendarLightTheme,
+  calendarNeutralTheme,
+  getCalendarTheme,
+} from './components/Calendar'
+export type { CalendarThemeName } from './components/Calendar'
+export {
+  calendarTranslations,
+  calendarEnTranslations,
+  calendarEsTranslations,
+  getCalendarTranslations,
+  mergeCalendarTranslations,
+  getMonthNames,
+  getWeekdayNames,
+} from './components/Calendar'
+export type { CalendarSupportedLocale } from './components/Calendar'
+
 // v0.6.0: Smart Card Stacking
 export { CardStack } from './components/CardStack/CardStack'
 export type { CardStackProps } from './components/CardStack/CardStack'
