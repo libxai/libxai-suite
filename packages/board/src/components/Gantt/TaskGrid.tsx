@@ -644,17 +644,18 @@ export function TaskGrid({
           boxSizing: 'border-box', // Border included in height
         }}
       >
-        {visibleColumns.map((column) => (
+        {visibleColumns.map((column, colIndex) => (
           <div
             key={column.id}
-            className={`flex items-center px-4 border-r cursor-pointer hover:bg-opacity-50 transition-colors relative ${
+            className={`flex items-center px-4 cursor-pointer hover:bg-opacity-50 transition-colors relative ${
               column.id === 'name' ? 'justify-start' : 'justify-center'
             }`}
             style={{
               width: `${column.width}px`,
               minWidth: `${column.width}px`,
               maxWidth: `${column.width}px`,
-              borderColor: theme.borderLight,
+              // Only add border-right between columns, not on the last one (GanttBoard container has the divider)
+              borderRight: colIndex < visibleColumns.length - 1 ? `1px solid ${theme.borderLight}` : 'none',
               height: '100%',
               boxSizing: 'border-box',
             }}
@@ -893,12 +894,12 @@ export function TaskGrid({
               backgroundColor: isSelected ? theme.accentLight : theme.hoverBg,
             }}
           >
-          {visibleColumns.map((column) => (
+          {visibleColumns.map((column, colIndex) => (
             <div
               key={`${task.id}-${column.id}`}
-              className={`px-4 border-r flex items-center ${
+              className={`px-4 flex items-center ${
                 column.id === 'name' ? 'justify-start' : 'justify-center'
-              }`}
+              } ${colIndex < visibleColumns.length - 1 ? 'border-r' : ''}`}
               style={{
                 width: `${column.width}px`,
                 minWidth: `${column.width}px`,
