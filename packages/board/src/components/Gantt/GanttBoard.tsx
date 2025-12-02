@@ -1061,6 +1061,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
           style={{
             width: gridWidth,
             overflow: 'hidden',
+            borderRight: `1px solid ${isResizing ? theme.accent : theme.border}`,
           }}
         >
           <TaskGrid
@@ -1090,24 +1091,16 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
           />
         </div>
 
-        {/* Separator - Single resizable divider line */}
+        {/* Resize handle - invisible but draggable area over the border */}
         <div
-          className="relative flex-shrink-0 cursor-col-resize"
+          className="flex-shrink-0 cursor-col-resize"
           style={{
-            width: 8, // Clickable area for grabbing
-            backgroundColor: 'transparent',
+            width: 6,
+            marginLeft: -3, // Center over the border line
+            zIndex: 10,
           }}
           onMouseDown={handleMouseDown}
-        >
-          {/* Single visible line */}
-          <div
-            className="absolute inset-y-0 left-1/2 -translate-x-1/2 transition-colors duration-150"
-            style={{
-              width: 1,
-              backgroundColor: isResizing ? theme.accent : theme.border,
-            }}
-          />
-        </div>
+        />
 
         {/* Timeline - v0.13.9: Has both scrolls, TaskGrid syncs to this scroll */}
         <div

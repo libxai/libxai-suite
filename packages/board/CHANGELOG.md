@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.16.10] - 2024-12-02
+
+### Fixed
+- **Gantt Separator Alignment**: TaskGrid and Timeline now perfectly aligned
+  - Border line is now part of TaskGrid container (no gap)
+  - Invisible resize handle overlays the border for dragging
+  - No visual space/desfase between panels
+
+---
+
 ## [0.16.9] - 2024-12-02
 
 ### Fixed
