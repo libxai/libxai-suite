@@ -728,9 +728,8 @@ declare function KanbanBoard({ board, callbacks, onCardClick, renderProps, confi
 }): react_jsx_runtime.JSX.Element;
 
 /**
- * User Assignment Selector V2
+ * User Assignment Selector Component
  * Multi-select user assignment with avatar display
- * Uses world-class Dropdown system for perfect positioning
  */
 interface User {
     id: string;
@@ -830,12 +829,11 @@ interface PrioritySelectorProps {
     onChange: (priority?: Priority) => void;
     className?: string;
 }
-declare function PrioritySelector({ priority, onChange, className }: PrioritySelectorProps): react_jsx_runtime.JSX.Element;
+declare function PrioritySelector({ priority, onChange, className, }: PrioritySelectorProps): react_jsx_runtime.JSX.Element;
 
 /**
- * Date Range Picker V2
+ * Date Range Picker Component
  * Quick selection buttons + interactive calendar
- * Uses world-class Dropdown system for perfect positioning
  */
 interface DateRangePickerProps {
     startDate?: string;
