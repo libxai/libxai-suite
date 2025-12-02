@@ -9507,6 +9507,11 @@ body {
 }
 
 
+.duration-150 {
+  transition-duration: 150ms;
+}
+
+
 .duration-200 {
   transition-duration: 200ms;
 }
