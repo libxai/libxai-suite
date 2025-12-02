@@ -151,13 +151,13 @@
 
   /* ========== COLOR SYSTEM ========== */
   /* v0.5.0: Theme-aware colors - fallback to dark theme if ThemeProvider not used */
-  --color-bg-primary: var(--theme-bg-primary, #0a0a0a);
-  --color-bg-secondary: var(--theme-bg-secondary, #141414);
-  --color-bg-tertiary: var(--theme-bg-tertiary, #1a1a1a);
+  --color-bg-primary: var(--theme-bg-primary, #0F1117);
+  --color-bg-secondary: var(--theme-bg-secondary, #1A1D25);
+  --color-bg-tertiary: var(--theme-bg-tertiary, #252A35);
 
-  --color-text-primary: var(--theme-text-primary, #ffffff);
-  --color-text-secondary: var(--theme-text-secondary, #a3a3a3);
-  --color-text-tertiary: var(--theme-text-tertiary, #737373);
+  --color-text-primary: var(--theme-text-primary, #F8FAFC);
+  --color-text-secondary: var(--theme-text-secondary, #9CA3AF);
+  --color-text-tertiary: var(--theme-text-tertiary, #6B7280);
 
   /* Accent colors - use theme accent or fallback to blue */
   --color-blue: var(--theme-accent-primary, #3b82f6);
@@ -639,4 +639,107 @@
     border: 1px solid rgba(255, 255, 255, var(--opacity-faint));
     box-shadow: var(--shadow-glass-lg);
   }
+}
+
+/* ============================================================================
+   LIGHT THEME OVERRIDES
+   When .asakaa-board does NOT have .dark class, use light colors
+   ============================================================================ */
+
+.asakaa-board:not(.dark) {
+  --color-bg-primary: #ffffff;
+  --color-bg-secondary: #f9fafb;
+  --color-bg-tertiary: #f3f4f6;
+  --color-text-primary: #111827;
+  --color-text-secondary: #6b7280;
+  --color-text-tertiary: #9ca3af;
+  --color-border-primary: rgba(0, 0, 0, 0.1);
+  --color-border-secondary: rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.15);
+  background: var(--color-bg-primary);
+}
+
+.asakaa-board:not(.dark) .asakaa-column {
+  background: var(--color-bg-secondary);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+.asakaa-board:not(.dark) .asakaa-column:hover {
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.asakaa-board:not(.dark) .asakaa-column-header {
+  border-bottom-color: rgba(0, 0, 0, 0.1);
+}
+
+.asakaa-board:not(.dark) .asakaa-column-title {
+  color: var(--color-text-primary);
+}
+
+.asakaa-board:not(.dark) .asakaa-column-count {
+  color: var(--color-text-tertiary);
+}
+
+.asakaa-board:not(.dark) .asakaa-card {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+.asakaa-board:not(.dark) .asakaa-card:hover {
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
+.asakaa-board:not(.dark) .asakaa-card-title {
+  color: var(--color-text-primary);
+}
+
+.asakaa-board:not(.dark) .asakaa-card-description {
+  color: var(--color-text-secondary);
+}
+
+.asakaa-board:not(.dark) .asakaa-card-footer {
+  border-top-color: rgba(0, 0, 0, 0.1);
+}
+
+.asakaa-board:not(.dark) .asakaa-drop-zone {
+  border-color: rgba(0, 0, 0, 0.15);
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.asakaa-board:not(.dark) .asakaa-drop-zone-active {
+  border-color: rgba(59, 130, 246, 0.6);
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.asakaa-board:not(.dark) .asakaa-skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.05) 0%,
+    rgba(0, 0, 0, 0.1) 50%,
+    rgba(0, 0, 0, 0.05) 100%
+  );
+}
+
+.asakaa-board:not(.dark) .asakaa-empty {
+  color: var(--color-text-tertiary);
+}
+
+/* Light theme scrollbar */
+.asakaa-board:not(.dark)::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.asakaa-board:not(.dark)::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-color: rgba(0, 0, 0, 0.05);
+}
+
+.asakaa-board:not(.dark)::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.asakaa-board:not(.dark) .asakaa-column-cards::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
 }

@@ -311,7 +311,7 @@ export function TaskGrid({
             ) : (
               <>
                 <span
-                  className="truncate flex-1"
+                  className="flex-1"
                   style={{
                     color: theme.textPrimary,
                     fontFamily: 'Inter, sans-serif',

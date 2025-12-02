@@ -174,7 +174,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   // v0.13.9: Increased default width to 320px for better readability of long task names
   // v0.15.0: Column labels now use translations
   const getDefaultColumns = useCallback((t: GanttTranslations): GanttColumn[] => [
-    { id: 'name', label: t.columns.taskName, width: 320, minWidth: 180, maxWidth: 800, visible: true, sortable: true, resizable: true },
+    { id: 'name', label: t.columns.taskName, width: 400, minWidth: 200, maxWidth: 2000, visible: true, sortable: true, resizable: false },
     { id: 'startDate', label: t.columns.startDate, width: 110, visible: false, sortable: true },
     { id: 'endDate', label: t.columns.endDate, width: 110, visible: false, sortable: true },
     { id: 'duration', label: t.columns.duration, width: 80, visible: false, sortable: true },
@@ -1061,7 +1061,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
           style={{
             width: gridWidth,
             overflow: 'hidden',
-            borderRight: `1px solid ${isResizing ? theme.accent : theme.border}`,
+            // v0.17.5: Removed borderRight - causes ghost line in header
           }}
         >
           <TaskGrid
