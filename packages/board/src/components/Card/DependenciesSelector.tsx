@@ -1,11 +1,10 @@
 /**
- * Dependencies Selector V2
+ * Dependencies Selector Component
  * Select task dependencies with link icon
- * Uses world-class Dropdown system for perfect positioning
  */
 
-import { useState } from 'react'
-import { Dropdown } from '../Dropdown'
+import { useState, useRef, useEffect } from 'react'
+import { Portal } from '../Portal'
 import type { Card } from '../../types'
 
 export interface DependenciesSelectorProps {
@@ -28,8 +27,56 @@ export function DependenciesSelector({
   onChange,
   className,
 }: DependenciesSelectorProps) {
+  const [isOpen, setIsOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [hasDependencies, setHasDependencies] = useState(dependencies.length > 0)
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 })
+  const menuRef = useRef<HTMLDivElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    if (isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect()
+      setMenuPosition({
+        top: rect.bottom + window.scrollY + 8,
+        left: rect.left + window.scrollX,
+      })
+    }
+  }, [isOpen])
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(event.target as Node) &&
+        !buttonRef.current?.contains(event.target as Node)
+      ) {
+        setIsOpen(false)
+        setSearchQuery('')
+      }
+    }
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+    return undefined
+  }, [isOpen])
+
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsOpen(false)
+        setSearchQuery('')
+      }
+    }
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscape)
+      return () => document.removeEventListener('keydown', handleEscape)
+    }
+    return undefined
+  }, [isOpen])
 
   const handleToggleDependency = (taskId: string) => {
     const isDependency = dependencies.includes(taskId)
@@ -68,88 +115,73 @@ export function DependenciesSelector({
   const linkColor = dependencies.length > 0 ? '#3B82F6' : '#BDC3C7'
 
   return (
-    <Dropdown
-      trigger={({ isOpen }) => (
-        <button
-          className={`flex items-center gap-1 px-2 py-1 rounded transition-all hover:bg-white/5 ${className || ''}`}
-          style={{
-            transform: isOpen ? 'scale(1.05)' : 'scale(1)',
-          }}
-          title={
-            dependencies.length > 0
-              ? `${dependencies.length} dependencies`
-              : 'Add dependencies'
-          }
-          aria-label="Select dependencies"
-          aria-expanded={isOpen}
-          aria-haspopup="menu"
-        >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 16 16"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="M7 9L9 7M11.5 3.5L10 2C8.89543 0.89543 7.10457 0.89543 6 2C4.89543 3.10457 4.89543 4.89543 6 6L7.5 7.5M4.5 12.5L6 14C7.10457 15.1046 8.89543 15.1046 10 14C11.1046 12.8954 11.1046 11.1046 10 10L8.5 8.5"
-              stroke={linkColor}
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-          {dependencies.length > 0 && (
-            <span className="text-xs font-medium" style={{ color: linkColor }}>
-              {dependencies.length}
-            </span>
-          )}
-        </button>
-      )}
-      placement="bottom-start"
-      minWidth={300}
-      maxHeight={350}
-      itemCount={hasDependencies ? filteredTasks.length : 0}
-      onSelectItem={(index) => {
-        const task = filteredTasks[index]
-        if (task) {
-          handleToggleDependency(task.id)
+    <div className={`relative ${className || ''}`}>
+      {/* Link icon button */}
+      <button
+        ref={buttonRef}
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-1 px-2 py-1 rounded transition-all hover:bg-white/5"
+        title={
+          dependencies.length > 0
+            ? `${dependencies.length} dependencies`
+            : 'Add dependencies'
         }
-      }}
-      onClose={() => setSearchQuery('')}
-      onOpen={() => setHasDependencies(dependencies.length > 0)}
-    >
-      {({ activeIndex, close }) => (
-        <div className="dependencies-dropdown">
+      >
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 16 16"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M7 9L9 7M11.5 3.5L10 2C8.89543 0.89543 7.10457 0.89543 6 2C4.89543 3.10457 4.89543 4.89543 6 6L7.5 7.5M4.5 12.5L6 14C7.10457 15.1046 8.89543 15.1046 10 14C11.1046 12.8954 11.1046 11.1046 10 10L8.5 8.5"
+            stroke={linkColor}
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+        {dependencies.length > 0 && (
+          <span className="text-xs font-medium" style={{ color: linkColor }}>
+            {dependencies.length}
+          </span>
+        )}
+      </button>
+
+      {/* Dependencies menu - Using Portal to escape stacking context */}
+      {isOpen && (
+        <Portal>
+          <div
+            ref={menuRef}
+            className="dependencies-selector-menu absolute rounded-xl shadow-2xl border min-w-[300px]"
+            style={{
+              top: `${menuPosition.top}px`,
+              left: `${menuPosition.left}px`,
+              background: 'var(--modal-v2-bg, #1f1f1f)',
+              border: '1px solid var(--modal-v2-border, rgba(255, 255, 255, 0.15))',
+              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1)',
+              zIndex: 99999,
+            }}
+          >
           {/* Header */}
-          <div className="dropdown-section-header">Task Dependencies</div>
+          <div className="px-4 py-2 border-b" style={{ borderColor: 'var(--modal-v2-border, rgba(255, 255, 255, 0.05))' }}>
+            <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--modal-v2-text-secondary, rgba(255, 255, 255, 0.7))' }}>
+              Task Dependencies
+            </span>
+          </div>
 
           {/* Has dependencies checkbox */}
-          <div className="dropdown-button-wrapper" style={{ borderBottom: '1px solid var(--asakaa-color-border-subtle)' }}>
+          <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--modal-v2-border, rgba(255, 255, 255, 0.05))' }}>
             <label
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                cursor: 'pointer',
-              }}
+              className="flex items-center gap-2 cursor-pointer group"
               onClick={handleToggleHasDependencies}
             >
               <div
+                className="w-4 h-4 rounded border-2 flex items-center justify-center transition-all"
                 style={{
-                  width: '16px',
-                  height: '16px',
-                  borderRadius: '4px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'all 0.15s',
-                  border: hasDependencies
-                    ? '2px solid var(--asakaa-color-interactive-primary)'
-                    : '2px solid var(--asakaa-color-border-default)',
-                  background: hasDependencies
-                    ? 'var(--asakaa-color-interactive-primary)'
-                    : 'transparent',
+                  background: hasDependencies ? '#3b82f6' : 'transparent',
+                  borderColor: hasDependencies ? '#3b82f6' : 'var(--modal-v2-border, rgba(255, 255, 255, 0.3))',
                 }}
               >
                 {hasDependencies && (
@@ -170,11 +202,7 @@ export function DependenciesSelector({
                   </svg>
                 )}
               </div>
-              <span style={{
-                fontSize: '13px',
-                fontWeight: 600,
-                color: 'var(--asakaa-color-text-primary)'
-              }}>
+              <span className="text-sm font-medium" style={{ color: 'var(--modal-v2-text-primary, rgba(255, 255, 255, 0.8))' }}>
                 Has dependencies
               </span>
             </label>
@@ -184,55 +212,51 @@ export function DependenciesSelector({
           {hasDependencies && (
             <>
               {/* Search input */}
-              <div className="dropdown-search-wrapper">
+              <div className="px-3 py-2 border-b" style={{ borderColor: 'var(--modal-v2-border, rgba(255, 255, 255, 0.05))' }}>
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search by name or ID..."
-                  className="dropdown-search-input"
+                  className="w-full px-3 py-2 rounded-md text-xs border outline-none transition-all"
+                  style={{
+                    background: 'var(--modal-v2-bg-secondary, rgba(255, 255, 255, 0.05))',
+                    borderColor: 'var(--modal-v2-border, rgba(255, 255, 255, 0.1))',
+                    color: 'var(--modal-v2-text-primary, #ffffff)',
+                  }}
                   autoFocus
                 />
               </div>
 
               {/* Task list */}
-              <div className="dropdown-list">
+              <div className="py-2 max-h-[280px] overflow-y-auto">
                 {filteredTasks.length === 0 ? (
-                  <div className="dropdown-empty">
+                  <div className="px-4 py-3 text-xs text-center" style={{ color: 'var(--modal-v2-text-tertiary, rgba(255, 255, 255, 0.5))' }}>
                     No tasks found
                   </div>
                 ) : (
-                  filteredTasks.map((task, index) => {
+                  filteredTasks.map((task) => {
                     const isDependency = dependencies.includes(task.id)
 
                     return (
                       <button
                         key={task.id}
                         onClick={() => handleToggleDependency(task.id)}
-                        className="dropdown-item"
-                        data-active={activeIndex === index}
-                        data-index={index}
-                        role="option"
-                        aria-selected={isDependency}
+                        className="w-full px-4 py-2 flex items-start gap-3 text-sm transition-colors"
+                        style={{ background: 'transparent' }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = 'var(--modal-v2-bg-secondary, rgba(255, 255, 255, 0.05))'
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = 'transparent'
+                        }}
                       >
                         {/* Checkbox */}
                         <div
+                          className="w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-all"
                           style={{
-                            width: '16px',
-                            height: '16px',
-                            borderRadius: '4px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            flexShrink: 0,
-                            marginTop: '2px',
-                            transition: 'all 0.15s',
-                            border: isDependency
-                              ? '2px solid var(--asakaa-color-interactive-primary)'
-                              : '2px solid var(--asakaa-color-border-default)',
-                            background: isDependency
-                              ? 'var(--asakaa-color-interactive-primary)'
-                              : 'transparent',
+                            background: isDependency ? '#3b82f6' : 'transparent',
+                            borderColor: isDependency ? '#3b82f6' : 'var(--modal-v2-border, rgba(255, 255, 255, 0.3))',
                           }}
                         >
                           {isDependency && (
@@ -255,18 +279,11 @@ export function DependenciesSelector({
                         </div>
 
                         {/* Task info */}
-                        <div style={{ flex: 1, textAlign: 'left' }}>
-                          <div style={{
-                            fontWeight: 600,
-                            color: 'var(--asakaa-color-text-primary)'
-                          }}>
+                        <div className="flex-1 text-left">
+                          <div className="font-medium" style={{ color: 'var(--modal-v2-text-primary, rgba(255, 255, 255, 0.9))' }}>
                             {task.title}
                           </div>
-                          <div style={{
-                            fontSize: '11px',
-                            marginTop: '2px',
-                            color: 'var(--asakaa-color-text-secondary)'
-                          }}>
+                          <div className="text-xs mt-0.5" style={{ color: 'var(--modal-v2-text-tertiary, rgba(255, 255, 255, 0.5))' }}>
                             {task.id}
                           </div>
                         </div>
@@ -280,21 +297,23 @@ export function DependenciesSelector({
 
           {/* Clear button */}
           {dependencies.length > 0 && (
-            <div className="dropdown-button-wrapper">
+            <div className="px-3 py-2 border-t border-white/5">
               <button
                 onClick={() => {
                   onChange([])
                   setHasDependencies(false)
-                  close()
+                  setIsOpen(false)
                 }}
-                className="dropdown-danger-button"
+                className="w-full px-3 py-2 rounded-md text-xs font-medium transition-all hover:bg-red-600/20 border border-red-500/30"
+                style={{ color: '#E74C3C' }}
               >
                 Clear All Dependencies
               </button>
             </div>
           )}
-        </div>
+          </div>
+        </Portal>
       )}
-    </Dropdown>
+    </div>
   )
 }

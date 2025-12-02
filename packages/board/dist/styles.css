@@ -7848,6 +7848,11 @@ body {
 }
 
 
+.left-1\/2 {
+  left: 50%;
+}
+
+
 .left-3 {
   left: 0.75rem;
 }
@@ -8074,18 +8079,8 @@ body {
 }
 
 
-.table {
-  display: table;
-}
-
-
 .grid {
   display: grid;
-}
-
-
-.contents {
-  display: contents;
 }
 
 
@@ -8169,6 +8164,11 @@ body {
 }
 
 
+.h-7 {
+  height: 1.75rem;
+}
+
+
 .h-8 {
   height: 2rem;
 }
@@ -8206,6 +8206,16 @@ body {
 
 .max-h-96 {
   max-height: 24rem;
+}
+
+
+.max-h-\[280px\] {
+  max-height: 280px;
+}
+
+
+.max-h-\[300px\] {
+  max-height: 300px;
 }
 
 
@@ -8319,6 +8329,11 @@ body {
 }
 
 
+.w-7 {
+  width: 1.75rem;
+}
+
+
 .w-8 {
   width: 2rem;
 }
@@ -8361,6 +8376,11 @@ body {
 
 .min-w-\[280px\] {
   min-width: 280px;
+}
+
+
+.min-w-\[300px\] {
+  min-width: 300px;
 }
 
 
@@ -8431,6 +8451,12 @@ body {
 
 .shrink {
   flex-shrink: 1;
+}
+
+
+.-translate-x-1\/2 {
+  --tw-translate-x: -50%;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
 }
 
 
@@ -8778,6 +8804,12 @@ body {
 }
 
 
+.border-blue-400 {
+  --tw-border-opacity: 1;
+  border-color: rgb(96 165 250 / var(--tw-border-opacity, 1));
+}
+
+
 .border-blue-500 {
   --tw-border-opacity: 1;
   border-color: rgb(59 130 246 / var(--tw-border-opacity, 1));
@@ -8950,6 +8982,12 @@ body {
 .bg-gray-200 {
   --tw-bg-opacity: 1;
   background-color: rgb(229 231 235 / var(--tw-bg-opacity, 1));
+}
+
+
+.bg-gray-300 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(209 213 219 / var(--tw-bg-opacity, 1));
 }
 
 
@@ -9284,6 +9322,11 @@ body {
 }
 
 
+.pt-0\.5 {
+  padding-top: 0.125rem;
+}
+
+
 .pt-1 {
   padding-top: 0.25rem;
 }
@@ -9334,6 +9377,11 @@ body {
 
 .text-\[10px\] {
   font-size: 10px;
+}
+
+
+.text-\[11px\] {
+  font-size: 11px;
 }
 
 
@@ -9405,6 +9453,11 @@ body {
 
 .leading-none {
   line-height: 1;
+}
+
+
+.tracking-wide {
+  letter-spacing: 0.025em;
 }
 
 
@@ -9675,6 +9728,13 @@ body {
 }
 
 
+.shadow-sm {
+  --tw-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --tw-shadow-colored: 0 1px 2px 0 var(--tw-shadow-color);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+
+
 .shadow-xl {
   --tw-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
   --tw-shadow-colored: 0 20px 25px -5px var(--tw-shadow-color), 0 8px 10px -6px var(--tw-shadow-color);
@@ -9932,13 +9992,13 @@ body {
 
   /* ========== COLOR SYSTEM ========== */
   /* v0.5.0: Theme-aware colors - fallback to dark theme if ThemeProvider not used */
-  --color-bg-primary: var(--theme-bg-primary, #0a0a0a);
-  --color-bg-secondary: var(--theme-bg-secondary, #141414);
-  --color-bg-tertiary: var(--theme-bg-tertiary, #1a1a1a);
+  --color-bg-primary: var(--theme-bg-primary, #0F1117);
+  --color-bg-secondary: var(--theme-bg-secondary, #1A1D25);
+  --color-bg-tertiary: var(--theme-bg-tertiary, #252A35);
 
-  --color-text-primary: var(--theme-text-primary, #ffffff);
-  --color-text-secondary: var(--theme-text-secondary, #a3a3a3);
-  --color-text-tertiary: var(--theme-text-tertiary, #737373);
+  --color-text-primary: var(--theme-text-primary, #F8FAFC);
+  --color-text-secondary: var(--theme-text-secondary, #9CA3AF);
+  --color-text-tertiary: var(--theme-text-tertiary, #6B7280);
 
   /* Accent colors - use theme accent or fallback to blue */
   --color-blue: var(--theme-accent-primary, #3b82f6);
@@ -9982,6 +10042,131 @@ body {
 /* ============================================================================
    UTILITIES
    ============================================================================ */
+
+
+/* ============================================================================
+   LIGHT THEME OVERRIDES
+   When .asakaa-board does NOT have .dark class, use light colors
+   ============================================================================ */
+
+
+.asakaa-board:not(.dark) {
+  --color-bg-primary: #ffffff;
+  --color-bg-secondary: #f9fafb;
+  --color-bg-tertiary: #f3f4f6;
+  --color-text-primary: #111827;
+  --color-text-secondary: #6b7280;
+  --color-text-tertiary: #9ca3af;
+  --color-border-primary: rgba(0, 0, 0, 0.1);
+  --color-border-secondary: rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.15);
+  background: var(--color-bg-primary);
+}
+
+
+.asakaa-board:not(.dark) .asakaa-column {
+  background: var(--color-bg-secondary);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+
+.asakaa-board:not(.dark) .asakaa-column:hover {
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+
+.asakaa-board:not(.dark) .asakaa-column-header {
+  border-bottom-color: rgba(0, 0, 0, 0.1);
+}
+
+
+.asakaa-board:not(.dark) .asakaa-column-title {
+  color: var(--color-text-primary);
+}
+
+
+.asakaa-board:not(.dark) .asakaa-column-count {
+  color: var(--color-text-tertiary);
+}
+
+
+.asakaa-board:not(.dark) .asakaa-card {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+
+.asakaa-board:not(.dark) .asakaa-card:hover {
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
+
+.asakaa-board:not(.dark) .asakaa-card-title {
+  color: var(--color-text-primary);
+}
+
+
+.asakaa-board:not(.dark) .asakaa-card-description {
+  color: var(--color-text-secondary);
+}
+
+
+.asakaa-board:not(.dark) .asakaa-card-footer {
+  border-top-color: rgba(0, 0, 0, 0.1);
+}
+
+
+.asakaa-board:not(.dark) .asakaa-drop-zone {
+  border-color: rgba(0, 0, 0, 0.15);
+  background: rgba(0, 0, 0, 0.02);
+}
+
+
+.asakaa-board:not(.dark) .asakaa-drop-zone-active {
+  border-color: rgba(59, 130, 246, 0.6);
+  background: rgba(59, 130, 246, 0.05);
+}
+
+
+.asakaa-board:not(.dark) .asakaa-skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.05) 0%,
+    rgba(0, 0, 0, 0.1) 50%,
+    rgba(0, 0, 0, 0.05) 100%
+  );
+}
+
+
+.asakaa-board:not(.dark) .asakaa-empty {
+  color: var(--color-text-tertiary);
+}
+
+
+/* Light theme scrollbar */
+
+
+.asakaa-board:not(.dark)::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+
+.asakaa-board:not(.dark)::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-color: rgba(0, 0, 0, 0.05);
+}
+
+
+.asakaa-board:not(.dark)::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+
+.asakaa-board:not(.dark) .asakaa-column-cards::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+}
 
 
 .placeholder\:text-\[\#6B7280\]::-moz-placeholder {
@@ -10073,6 +10258,11 @@ body {
 
 .hover\:bg-red-600\/20:hover {
   background-color: rgb(220 38 38 / 0.2);
+}
+
+
+.hover\:bg-red-600\/30:hover {
+  background-color: rgb(220 38 38 / 0.3);
 }
 
 
