@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.16.11] - 2024-12-02
+
+### Fixed
+- **Gantt Row Alignment**: TaskGrid rows now perfectly aligned with Timeline rows
+  - Removed extra borderTop from TaskGrid rows (was causing cumulative offset)
+  - Simplified row borders to only borderBottom
+  - Rows now match exactly between left and right panels
+
+---
+
 ## [0.16.10] - 2024-12-02
 
 ### Fixed
