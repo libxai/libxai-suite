@@ -1,6 +1,6 @@
 {
   "name": "@libxai/board",
-  "version": "0.17.6",
+  "version": "0.17.7",
   "type": "module",
   "description": "Professional Gantt Chart + Kanban Board + ListView + CalendarBoard for React - Part of LibXAI Suite - TypeScript - Production-Ready - Zero Config",
   "author": "LibXAI <hello@libxai.com>",
@@ -90,6 +90,7 @@
     "jspdf": "^3.0.3",
     "jspdf-autotable": "^5.0.2",
     "lucide-react": "^0.487.0",
+    "react-dropzone": "^14.3.8",
     "react-markdown": "^10.1.0",
     "recharts": "^3.2.1",
     "rehype-highlight": "^7.0.2",
