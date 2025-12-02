@@ -7,7 +7,6 @@ import { Timeline } from './Timeline';
 import { ContextMenu, MenuIcons } from './ContextMenu'; // v0.8.0: Split task context menu
 import { TaskFormModal } from './TaskFormModal'; // v0.10.0: Task edit modal
 import { GanttAIAssistant } from './GanttAIAssistant'; // v0.14.0: AI Assistant
-import { motion } from 'framer-motion';
 import { useUndoRedo } from './useUndoRedo';
 import { useGanttUndoRedoKeys } from './useGanttUndoRedoKeys';
 import { ThemeContext } from '../../theme/ThemeProvider';
@@ -975,9 +974,17 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     };
 
     const handleMouseMove = (e: MouseEvent) => {
-      if (isResizing) {
-        const newWidth = e.clientX;
-        if (newWidth > 300 && newWidth < window.innerWidth - 400) {
+      if (isResizing && gridContainer) {
+        // Calculate width relative to the container's left edge for accuracy
+        const containerRect = gridContainer.parentElement?.getBoundingClientRect();
+        const containerLeft = containerRect?.left || 0;
+        const newWidth = e.clientX - containerLeft;
+
+        // Clamp between reasonable min/max values
+        const minWidth = 200;
+        const maxWidth = Math.min(window.innerWidth - 300, 800);
+
+        if (newWidth >= minWidth && newWidth <= maxWidth) {
           setGridWidthOverride(newWidth);
         }
       }
@@ -1083,25 +1090,31 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
           />
         </div>
 
-        {/* Separator - Resizable */}
+        {/* Separator - Resizable divider line */}
         <div
           className="relative flex-shrink-0 cursor-col-resize group"
           style={{
-            width: 8,
-            backgroundColor: isResizing ? theme.accent : theme.border,
-            transition: 'background-color 0.2s',
+            width: 12, // Clickable area for easier grabbing
+            backgroundColor: 'transparent',
           }}
           onMouseDown={handleMouseDown}
         >
-          <motion.div
-            className="absolute inset-y-0 left-1/2 -translate-x-1/2"
+          {/* Visible line - thin 1px divider */}
+          <div
+            className="absolute inset-y-0 left-1/2 -translate-x-1/2 transition-all duration-150"
             style={{
-              width: 2,
-              backgroundColor: theme.accent,
+              width: isResizing ? 2 : 1,
+              backgroundColor: isResizing ? theme.accent : theme.border,
             }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: isResizing ? 1 : 0 }}
-            whileHover={{ opacity: 1 }}
+          />
+          {/* Hover indicator - shows on hover for better UX */}
+          <div
+            className="absolute inset-y-0 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-150"
+            style={{
+              width: 3,
+              backgroundColor: theme.accent,
+              borderRadius: 2,
+            }}
           />
         </div>
 

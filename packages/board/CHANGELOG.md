@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.16.8] - 2024-12-02
+
+### Fixed
+- **Gantt Separator Line**: Completely redesigned the resizable divider between TaskGrid and Timeline
+  - Changed from thick 8px gray bar to thin 1px line
+  - Transparent clickable area (12px) for easy grabbing
+  - Visual line only 1px wide (expands to 2px when resizing)
+  - Smooth hover indicator with accent color
+  - Fixed erratic resize behavior by calculating position relative to container
+  - Better min/max width constraints (200px - 800px)
+
+---
+
 ## [0.16.7] - 2024-12-01
 
 ### Fixed
