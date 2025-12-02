@@ -852,8 +852,6 @@ export function TaskGrid({
             className="flex items-center cursor-pointer group"
             style={{
               height: `${ROW_HEIGHT}px`,
-              boxSizing: 'border-box',
-              borderBottom: `1px solid ${isSelected ? theme.accent : theme.borderLight}`,
               borderLeft: isSelected ? `3px solid ${theme.accent}` : `3px solid transparent`,
               backgroundColor: isSelected
                 ? theme.accentLight

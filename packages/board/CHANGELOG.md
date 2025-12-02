@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.16.13] - 2024-12-02
+
+### Fixed
+- **Gantt Row Height Alignment**: Removed borderBottom from TaskGrid rows
+  - TaskGrid rows had borderBottom with box-sizing causing 47px visible height
+  - Timeline rows are 48px without border
+  - Now both panels have exactly ROW_HEIGHT pixels per row
+
+---
+
 ## [0.16.12] - 2024-12-02
 
 ### Fixed
