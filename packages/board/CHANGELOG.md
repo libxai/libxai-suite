@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.16.9] - 2024-12-02
+
+### Fixed
+- **Gantt Separator Line**: Simplified to single clean divider line
+  - Removed duplicate borders (TaskGrid border-right + separator lines)
+  - Now only one 1px line between TaskGrid and Timeline
+  - Clean visual appearance without multiple lines
+
+---
+
 ## [0.16.8] - 2024-12-02
 
 ### Fixed

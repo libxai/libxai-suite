@@ -631,7 +631,6 @@ export function TaskGrid({
       className="h-full overflow-hidden"
       style={{
         backgroundColor: theme.bgPrimary,
-        borderRight: `1px solid ${theme.border}`,
       }}
     >
       {/* Header */}

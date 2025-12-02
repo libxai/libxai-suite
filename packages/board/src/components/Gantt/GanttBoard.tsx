@@ -1090,30 +1090,21 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
           />
         </div>
 
-        {/* Separator - Resizable divider line */}
+        {/* Separator - Single resizable divider line */}
         <div
-          className="relative flex-shrink-0 cursor-col-resize group"
+          className="relative flex-shrink-0 cursor-col-resize"
           style={{
-            width: 12, // Clickable area for easier grabbing
+            width: 8, // Clickable area for grabbing
             backgroundColor: 'transparent',
           }}
           onMouseDown={handleMouseDown}
         >
-          {/* Visible line - thin 1px divider */}
+          {/* Single visible line */}
           <div
-            className="absolute inset-y-0 left-1/2 -translate-x-1/2 transition-all duration-150"
+            className="absolute inset-y-0 left-1/2 -translate-x-1/2 transition-colors duration-150"
             style={{
-              width: isResizing ? 2 : 1,
+              width: 1,
               backgroundColor: isResizing ? theme.accent : theme.border,
-            }}
-          />
-          {/* Hover indicator - shows on hover for better UX */}
-          <div
-            className="absolute inset-y-0 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-150"
-            style={{
-              width: 3,
-              backgroundColor: theme.accent,
-              borderRadius: 2,
             }}
           />
         </div>
