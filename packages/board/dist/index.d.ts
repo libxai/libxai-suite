@@ -254,6 +254,10 @@ interface AICallbacks {
  * Configuration options for the Kanban board
  */
 interface BoardConfig {
+    /** Theme: 'dark' | 'light' | 'neutral' */
+    theme?: 'dark' | 'light' | 'neutral';
+    /** Locale for i18n */
+    locale?: 'en' | 'es' | string;
     /** Enable virtualization (auto-enabled if >100 cards) */
     enableVirtualization?: boolean;
     /** Enable AI features */
