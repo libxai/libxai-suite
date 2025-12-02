@@ -33,6 +33,11 @@ export function KanbanBoard({
 }: KanbanBoardProps & { children?: React.ReactNode }) {
   const [dragState, setDragState] = useDragState()
 
+  // Determine theme class - default to 'dark'
+  const themeName = config?.theme || 'dark'
+  const isDark = themeName === 'dark' || themeName === 'neutral'
+  const themeClass = isDark ? 'dark' : ''
+
   const handleCardUpdate = useCallback(
     (cardId: string, updates: Partial<typeof board.cards[0]>) => {
       callbacks.onCardUpdate?.(cardId, updates)
@@ -182,7 +187,7 @@ export function KanbanBoard({
 
   if (isLoading) {
     return (
-      <div className={cn('asakaa-board', className)} style={style}>
+      <div className={cn('asakaa-board', themeClass, className)} style={style}>
         <LoadingSkeleton columnCount={3} />
       </div>
     )
@@ -190,7 +195,7 @@ export function KanbanBoard({
 
   if (error) {
     return (
-      <div className={cn('asakaa-board', className)} style={style}>
+      <div className={cn('asakaa-board', themeClass, className)} style={style}>
         <div className="flex items-center justify-center w-full h-64">
           <div className="text-center">
             <p className="text-asakaa-accent-red text-lg font-semibold mb-2">
@@ -213,7 +218,7 @@ export function KanbanBoard({
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className={cn('asakaa-board', className)} style={style}>
+      <div className={cn('asakaa-board', themeClass, className)} style={style}>
         {board.columns
           .sort((a, b) => a.position - b.position)
           .map((column) => {
