@@ -635,12 +635,13 @@ export function TaskGrid({
     >
       {/* Header */}
       <div
-        className="sticky top-0 z-10 flex items-center border-b"
+        className="sticky top-0 z-10 flex items-center"
         style={{
           backgroundColor: theme.bgGrid,
-          borderColor: theme.border,
           height: `${HEADER_HEIGHT}px`,
           paddingLeft: '3px', // Alinear con el borderLeft de las filas
+          borderBottom: `1px solid ${theme.border}`,
+          boxSizing: 'border-box', // Border included in height
         }}
       >
         {visibleColumns.map((column) => (
