@@ -6,7 +6,16 @@ export {
   DateRangePicker,
   UserAssignmentSelector,
   DependenciesSelector,
+  DragPhysics,
+  useDragPhysics,
+  dragPhysicsPresets,
+  FlipCard,
+  StackedFlipCards,
+  CarouselFlipCard,
+  useFlipCard,
+  flipCardPresets,
 } from './Card'
+export { CoverImageManager } from './CoverImage'
 export { ErrorBoundary, withErrorBoundary } from './ErrorBoundary'
 export { CommandPalette } from './CommandPalette'
 export { CardDetailModal, CardDetailModalV2 } from './CardDetailModal'
@@ -27,7 +36,12 @@ export type {
   UserAssignmentSelectorProps,
   DependenciesSelectorProps,
   User,
+  DragPhysicsProps,
+  DragPhysicsPreset,
+  FlipCardProps,
+  FlipCardPreset,
 } from './Card'
+export type { CoverImageManagerProps, RecentUpload, UnsplashPhoto } from './CoverImage'
 export type { ErrorBoundaryProps } from './ErrorBoundary'
 export type { CommandPaletteProps } from './CommandPalette'
 export type { CardDetailModalProps, CardDetailModalV2Props } from './CardDetailModal'
