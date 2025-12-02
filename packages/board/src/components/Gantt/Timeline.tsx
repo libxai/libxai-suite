@@ -313,16 +313,18 @@ export function Timeline({
           {/* Header Grid Lines and Text */}
           {headers.map((header, index) => (
             <g key={`header-${index}`}>
-              {/* Grid line in header */}
-              <line
-                x1={header.x}
-                y1={0}
-                x2={header.x}
-                y2={HEADER_HEIGHT}
-                stroke={theme.border}
-                strokeWidth={1}
-                opacity={0.1}
-              />
+              {/* Grid line in header - skip first line since TaskGrid border serves as divider */}
+              {index > 0 && (
+                <line
+                  x1={header.x}
+                  y1={0}
+                  x2={header.x}
+                  y2={HEADER_HEIGHT}
+                  stroke={theme.border}
+                  strokeWidth={1}
+                  opacity={0.1}
+                />
+              )}
 
               {/* Header text - JetBrains Mono for technical/date display */}
               <text
@@ -391,16 +393,18 @@ export function Timeline({
                 />
               )}
 
-              {/* Grid line */}
-              <line
-                x1={header.x}
-                y1={0}
-                x2={header.x}
-                y2={flatTasks.length * ROW_HEIGHT}
-                stroke={theme.border}
-                strokeWidth={1}
-                opacity={0.1}
-              />
+              {/* Grid line - skip first line since TaskGrid border serves as divider */}
+              {index > 0 && (
+                <line
+                  x1={header.x}
+                  y1={0}
+                  x2={header.x}
+                  y2={flatTasks.length * ROW_HEIGHT}
+                  stroke={theme.border}
+                  strokeWidth={1}
+                  opacity={0.1}
+                />
+              )}
             </g>
           );
         })}
