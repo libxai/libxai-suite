@@ -291,12 +291,14 @@ export function Timeline({
           zIndex: 10,
           backgroundColor: theme.bgGrid,
           flexShrink: 0,
+          height: `${HEADER_HEIGHT}px`,
           borderBottom: `1px solid ${theme.border}`,
+          boxSizing: 'border-box', // Border included in height
         }}
       >
         <svg
           width={Math.max(timelineWidth, 1000)}
-          height={HEADER_HEIGHT}
+          height={HEADER_HEIGHT - 1} // -1 for border
           style={{ display: 'block' }}
         >
           {/* Header Background */}

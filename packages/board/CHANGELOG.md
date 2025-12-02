@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.16.12] - 2024-12-02
+
+### Fixed
+- **Gantt Header Alignment**: Headers now have identical heights with box-sizing
+  - Both TaskGrid and Timeline headers use box-sizing: border-box
+  - Border is now included in the 48px height (not added on top)
+  - Ensures content starts at exactly the same Y position
+
+---
+
 ## [0.16.11] - 2024-12-02
 
 ### Fixed
