@@ -2609,11 +2609,11 @@ interface GanttTranslations {
 /**
  * English translations (default)
  */
-declare const en: GanttTranslations;
+declare const en$2: GanttTranslations;
 /**
  * Spanish translations
  */
-declare const es: GanttTranslations;
+declare const es$2: GanttTranslations;
 /**
  * All available translations
  */
@@ -2647,6 +2647,578 @@ declare const GanttI18nContext: React$1.Context<GanttTranslations>;
  * ```
  */
 declare function useGanttI18n(): GanttTranslations;
+
+/**
+ * ListView Component Types
+ * @version 0.17.0
+ */
+
+/**
+ * Sort direction for list columns
+ */
+type SortDirection = 'asc' | 'desc';
+/**
+ * Sortable columns in the list view
+ */
+type ListSortColumn = 'name' | 'startDate' | 'endDate' | 'progress' | 'status' | 'assignees' | 'priority';
+/**
+ * Sort configuration
+ */
+interface ListSort {
+    column: ListSortColumn;
+    direction: SortDirection;
+}
+/**
+ * Filter configuration for list view
+ */
+interface ListFilter {
+    search?: string;
+    status?: Array<'todo' | 'in-progress' | 'completed'>;
+    assignees?: string[];
+    dateRange?: {
+        start: Date;
+        end: Date;
+    };
+    showCompleted?: boolean;
+}
+/**
+ * Column configuration for list view
+ */
+interface ListColumn {
+    id: ListSortColumn | 'actions';
+    label: string;
+    width: number;
+    minWidth?: number;
+    maxWidth?: number;
+    visible: boolean;
+    sortable: boolean;
+    resizable?: boolean;
+}
+/**
+ * Theme configuration for list view
+ */
+interface ListViewTheme {
+    bgPrimary: string;
+    bgSecondary: string;
+    bgHover: string;
+    bgSelected: string;
+    bgAlternate: string;
+    border: string;
+    borderLight: string;
+    textPrimary: string;
+    textSecondary: string;
+    textMuted: string;
+    accent: string;
+    accentHover: string;
+    accentLight: string;
+    statusTodo: string;
+    statusInProgress: string;
+    statusCompleted: string;
+    focusRing: string;
+    checkboxBg: string;
+    checkboxChecked: string;
+}
+/**
+ * Permissions for list view operations
+ */
+interface ListViewPermissions {
+    canCreateTask?: boolean;
+    canUpdateTask?: boolean;
+    canDeleteTask?: boolean;
+    canBulkSelect?: boolean;
+    canExport?: boolean;
+    canSort?: boolean;
+    canFilter?: boolean;
+    canReorder?: boolean;
+}
+/**
+ * ListView configuration
+ */
+interface ListViewConfig {
+    /** Theme: 'dark' | 'light' | 'neutral' */
+    theme?: 'dark' | 'light' | 'neutral';
+    /** Locale for i18n */
+    locale?: 'en' | 'es' | string;
+    /** Custom translations */
+    customTranslations?: Partial<ListViewTranslations>;
+    /** Enable row selection */
+    enableSelection?: boolean;
+    /** Enable multi-select with checkboxes */
+    enableMultiSelect?: boolean;
+    /** Show search bar */
+    showSearch?: boolean;
+    /** Show filters */
+    showFilters?: boolean;
+    /** Show hierarchy indentation */
+    showHierarchy?: boolean;
+    /** Columns to display */
+    columns?: ListColumn[];
+    /** Row height in pixels */
+    rowHeight?: number;
+    /** Available users for filtering */
+    availableUsers?: User$1[];
+    /** Permissions */
+    permissions?: ListViewPermissions;
+    /** Enable virtual scrolling for large lists */
+    enableVirtualization?: boolean;
+    /** Items per page (0 = no pagination) */
+    pageSize?: number;
+}
+/**
+ * ListView translations
+ */
+interface ListViewTranslations {
+    columns: {
+        name: string;
+        startDate: string;
+        endDate: string;
+        progress: string;
+        status: string;
+        assignees: string;
+        priority: string;
+        actions: string;
+    };
+    toolbar: {
+        search: string;
+        searchPlaceholder: string;
+        filter: string;
+        clearFilters: string;
+        export: string;
+        columns: string;
+        newTask: string;
+    };
+    filters: {
+        status: string;
+        assignees: string;
+        dateRange: string;
+        showCompleted: string;
+        all: string;
+        none: string;
+    };
+    status: {
+        todo: string;
+        inProgress: string;
+        completed: string;
+    };
+    actions: {
+        edit: string;
+        delete: string;
+        duplicate: string;
+        viewDetails: string;
+    };
+    empty: {
+        noTasks: string;
+        noResults: string;
+        addFirstTask: string;
+    };
+    pagination: {
+        showing: string;
+        of: string;
+        tasks: string;
+        previous: string;
+        next: string;
+    };
+    bulk: {
+        selected: string;
+        delete: string;
+        move: string;
+        assignTo: string;
+    };
+}
+/**
+ * Callback functions for ListView
+ */
+interface ListViewCallbacks {
+    /** Task click handler */
+    onTaskClick?: (task: Task) => void;
+    /** Task double-click handler */
+    onTaskDoubleClick?: (task: Task) => void;
+    /** Task update handler */
+    onTaskUpdate?: (task: Task) => void;
+    /** Task delete handler */
+    onTaskDelete?: (taskId: string) => void;
+    /** Task create handler */
+    onTaskCreate?: (parentId?: string) => void;
+    /** Bulk delete handler */
+    onBulkDelete?: (taskIds: string[]) => void;
+    /** Sort change handler */
+    onSortChange?: (sort: ListSort) => void;
+    /** Filter change handler */
+    onFilterChange?: (filter: ListFilter) => void;
+    /** Selection change handler */
+    onSelectionChange?: (selectedIds: string[]) => void;
+    /** Row expand/collapse handler */
+    onTaskToggleExpand?: (taskId: string) => void;
+    /** Export handler */
+    onExport?: (format: 'csv' | 'json' | 'excel') => void;
+}
+/**
+ * Main ListView props
+ */
+interface ListViewProps {
+    /** Tasks to display */
+    tasks: Task[];
+    /** Configuration */
+    config?: ListViewConfig;
+    /** Callbacks */
+    callbacks?: ListViewCallbacks;
+    /** Loading state */
+    isLoading?: boolean;
+    /** Error state */
+    error?: Error | string;
+    /** Custom CSS class */
+    className?: string;
+    /** Inline styles */
+    style?: React.CSSProperties;
+}
+/**
+ * Flattened task with hierarchy info
+ */
+interface FlattenedTask extends Task {
+    level: number;
+    hasChildren: boolean;
+    parentPath: string[];
+}
+
+/**
+ * Main ListView Component
+ */
+declare function ListView({ tasks, config, callbacks, isLoading, error, className, style, }: ListViewProps): react_jsx_runtime.JSX.Element;
+
+/**
+ * ListView Themes
+ * @version 0.17.0
+ */
+
+/**
+ * Dark theme for ListView
+ */
+declare const darkTheme$3: ListViewTheme;
+/**
+ * Light theme for ListView
+ */
+declare const lightTheme$3: ListViewTheme;
+/**
+ * Neutral theme for ListView
+ */
+declare const neutralTheme$3: ListViewTheme;
+/**
+ * All available themes
+ */
+declare const listViewThemes: {
+    readonly dark: ListViewTheme;
+    readonly light: ListViewTheme;
+    readonly neutral: ListViewTheme;
+};
+type ListViewThemeName = keyof typeof listViewThemes;
+/**
+ * Get theme by name
+ */
+declare function getListViewTheme(themeName: ListViewThemeName): ListViewTheme;
+
+/**
+ * Internationalization (i18n) for ListView
+ * @version 0.17.0
+ */
+
+type ListViewSupportedLocale = 'en' | 'es';
+/**
+ * English translations
+ */
+declare const en$1: ListViewTranslations;
+/**
+ * Spanish translations
+ */
+declare const es$1: ListViewTranslations;
+/**
+ * All available translations
+ */
+declare const listViewTranslations: Record<ListViewSupportedLocale, ListViewTranslations>;
+/**
+ * Get translations for a specific locale
+ */
+declare function getListViewTranslations(locale: ListViewSupportedLocale | string): ListViewTranslations;
+/**
+ * Merge custom translations with default translations
+ */
+declare function mergeListViewTranslations(locale: ListViewSupportedLocale | string, customTranslations?: Partial<ListViewTranslations>): ListViewTranslations;
+
+/**
+ * CalendarBoard Component Types
+ * @version 0.17.0
+ */
+
+/**
+ * Calendar view modes
+ */
+type CalendarViewMode = 'month' | 'week' | 'day';
+/**
+ * Day of the week (0 = Sunday, 6 = Saturday)
+ */
+type WeekDay = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+/**
+ * Calendar event (task displayed on calendar)
+ */
+interface CalendarEvent {
+    id: string;
+    title: string;
+    start: Date;
+    end: Date;
+    color?: string;
+    status?: 'todo' | 'in-progress' | 'completed';
+    progress?: number;
+    assignees?: Task['assignees'];
+    task: Task;
+}
+/**
+ * Calendar day info
+ */
+interface CalendarDay {
+    date: Date;
+    isCurrentMonth: boolean;
+    isToday: boolean;
+    isWeekend: boolean;
+    events: CalendarEvent[];
+}
+/**
+ * Theme configuration for calendar
+ */
+interface CalendarTheme {
+    bgPrimary: string;
+    bgSecondary: string;
+    bgHover: string;
+    bgToday: string;
+    bgWeekend: string;
+    bgOtherMonth: string;
+    border: string;
+    borderLight: string;
+    textPrimary: string;
+    textSecondary: string;
+    textMuted: string;
+    textToday: string;
+    accent: string;
+    accentHover: string;
+    accentLight: string;
+    statusTodo: string;
+    statusInProgress: string;
+    statusCompleted: string;
+    focusRing: string;
+}
+/**
+ * Permissions for calendar operations
+ */
+interface CalendarPermissions {
+    canCreateTask?: boolean;
+    canUpdateTask?: boolean;
+    canDeleteTask?: boolean;
+    canDragDrop?: boolean;
+    canResize?: boolean;
+}
+/**
+ * CalendarBoard configuration
+ */
+interface CalendarConfig {
+    /** Theme: 'dark' | 'light' | 'neutral' */
+    theme?: 'dark' | 'light' | 'neutral';
+    /** Locale for i18n */
+    locale?: 'en' | 'es' | string;
+    /** Custom translations */
+    customTranslations?: Partial<CalendarTranslations>;
+    /** Default view mode */
+    defaultView?: CalendarViewMode;
+    /** First day of week (0 = Sunday, 1 = Monday, etc.) */
+    firstDayOfWeek?: WeekDay;
+    /** Show week numbers */
+    showWeekNumbers?: boolean;
+    /** Show mini calendar in sidebar */
+    showMiniCalendar?: boolean;
+    /** Max events to show per day before "+N more" */
+    maxEventsPerDay?: number;
+    /** Available users for filtering */
+    availableUsers?: User$1[];
+    /** Permissions */
+    permissions?: CalendarPermissions;
+    /** Enable drag and drop */
+    enableDragDrop?: boolean;
+    /** Show task details on hover */
+    showTooltip?: boolean;
+}
+/**
+ * CalendarBoard translations
+ */
+interface CalendarTranslations {
+    navigation: {
+        today: string;
+        previous: string;
+        next: string;
+        month: string;
+        week: string;
+        day: string;
+    };
+    weekdays: {
+        sun: string;
+        mon: string;
+        tue: string;
+        wed: string;
+        thu: string;
+        fri: string;
+        sat: string;
+    };
+    weekdaysFull: {
+        sunday: string;
+        monday: string;
+        tuesday: string;
+        wednesday: string;
+        thursday: string;
+        friday: string;
+        saturday: string;
+    };
+    months: {
+        january: string;
+        february: string;
+        march: string;
+        april: string;
+        may: string;
+        june: string;
+        july: string;
+        august: string;
+        september: string;
+        october: string;
+        november: string;
+        december: string;
+    };
+    status: {
+        todo: string;
+        inProgress: string;
+        completed: string;
+    };
+    labels: {
+        allDay: string;
+        moreEvents: string;
+        noEvents: string;
+        newTask: string;
+        viewAll: string;
+        week: string;
+    };
+    tooltips: {
+        progress: string;
+        status: string;
+        assignees: string;
+        duration: string;
+        days: string;
+    };
+}
+/**
+ * Callback functions for CalendarBoard
+ */
+interface CalendarCallbacks {
+    /** Event click handler */
+    onEventClick?: (event: CalendarEvent) => void;
+    /** Event double-click handler */
+    onEventDoubleClick?: (event: CalendarEvent) => void;
+    /** Date click handler (create new task) */
+    onDateClick?: (date: Date) => void;
+    /** Task update after drag/drop */
+    onTaskUpdate?: (task: Task) => void;
+    /** Task delete handler */
+    onTaskDelete?: (taskId: string) => void;
+    /** View change handler */
+    onViewChange?: (view: CalendarViewMode) => void;
+    /** Date range change handler */
+    onDateRangeChange?: (start: Date, end: Date) => void;
+}
+/**
+ * Main CalendarBoard props
+ */
+interface CalendarBoardProps {
+    /** Tasks to display */
+    tasks: Task[];
+    /** Configuration */
+    config?: CalendarConfig;
+    /** Callbacks */
+    callbacks?: CalendarCallbacks;
+    /** Initial date to display */
+    initialDate?: Date;
+    /** Loading state */
+    isLoading?: boolean;
+    /** Error state */
+    error?: Error | string;
+    /** Custom CSS class */
+    className?: string;
+    /** Inline styles */
+    style?: React.CSSProperties;
+}
+
+/**
+ * Main CalendarBoard Component
+ */
+declare function CalendarBoard({ tasks, config, callbacks, initialDate, isLoading, error, className, style, }: CalendarBoardProps): react_jsx_runtime.JSX.Element;
+
+/**
+ * CalendarBoard Themes
+ * @version 0.17.0
+ */
+
+/**
+ * Dark theme for CalendarBoard
+ */
+declare const darkTheme$2: CalendarTheme;
+/**
+ * Light theme for CalendarBoard
+ */
+declare const lightTheme$2: CalendarTheme;
+/**
+ * Neutral theme for CalendarBoard
+ */
+declare const neutralTheme$2: CalendarTheme;
+/**
+ * All available themes
+ */
+declare const calendarThemes: {
+    readonly dark: CalendarTheme;
+    readonly light: CalendarTheme;
+    readonly neutral: CalendarTheme;
+};
+type CalendarThemeName = keyof typeof calendarThemes;
+/**
+ * Get theme by name
+ */
+declare function getCalendarTheme(themeName: CalendarThemeName): CalendarTheme;
+
+/**
+ * Internationalization (i18n) for CalendarBoard
+ * @version 0.17.0
+ */
+
+type CalendarSupportedLocale = 'en' | 'es';
+/**
+ * English translations
+ */
+declare const en: CalendarTranslations;
+/**
+ * Spanish translations
+ */
+declare const es: CalendarTranslations;
+/**
+ * All available translations
+ */
+declare const calendarTranslations: Record<CalendarSupportedLocale, CalendarTranslations>;
+/**
+ * Get translations for a specific locale
+ */
+declare function getCalendarTranslations(locale: CalendarSupportedLocale | string): CalendarTranslations;
+/**
+ * Merge custom translations with default translations
+ */
+declare function mergeCalendarTranslations(locale: CalendarSupportedLocale | string, customTranslations?: Partial<CalendarTranslations>): CalendarTranslations;
+/**
+ * Get month names array based on locale
+ */
+declare function getMonthNames(locale: CalendarSupportedLocale | string): string[];
+/**
+ * Get weekday names array based on locale and first day of week
+ */
+declare function getWeekdayNames(locale: CalendarSupportedLocale | string, firstDayOfWeek?: number, short?: boolean): string[];
 
 interface CardStackProps {
     /** Stack configuration */
@@ -4762,4 +5334,4 @@ declare const themes: Record<ThemeName, Theme>;
  */
 declare const defaultTheme: ThemeName;
 
-export { type AICallbacks, type AICommandResult$1 as AICommandResult, type GanttTask as AIGanttTask, type AIModelKey, type AIOperation, AIUsageDashboard, type AIUsageDashboardProps, AI_FEATURES, AI_MODELS, type Activity, type ActivityType, type AssigneeSuggestion, type Attachment, AttachmentUploader, type AttachmentUploaderProps, type Board, type BoardCallbacks, type BoardConfig, BoardProvider, type BoardProviderProps, type BorderRadiusToken, BulkOperationsToolbar, type BulkOperationsToolbarProps, BurnDownChart, type BurnDownChartProps, type BurnDownDataPoint, Card, CardDetailModal, type CardDetailModalProps, CardDetailModalV2, type CardDetailModalV2Props, type CardFilter, type CardFilters, CardHistoryReplay, type CardHistoryReplayProps, CardHistoryTimeline, type CardHistoryTimelineProps, type CardProps, CardRelationshipsGraph, type CardRelationshipsGraphProps, type CardSort, type CardSortKey, CardStack, type CardStackProps, type CardStack$1 as CardStackType, type CardStatus, type CardTemplate, CardTemplateSelector, type CardTemplateSelectorProps, type Card$1 as CardType, CircuitBreaker, Column, ColumnManager, type ColumnProps, type Column$1 as ColumnType, CommandPalette, type CommandPaletteProps, type Comment, ConfigMenu, type ConfigMenuProps, ContextMenu, DEFAULT_SHORTCUTS, DEFAULT_TEMPLATES, type DateFilter, DateRangePicker, type DateRangePickerProps, DependenciesSelector, type DependenciesSelectorProps, DependencyLine, type DesignTokens, DistributionCharts, type DistributionChartsProps, type DistributionDataPoint, type DragData, type DropData, type DurationToken, type EasingToken, EditableColumnTitle, type EditableColumnTitleProps, ErrorBoundary, type ErrorBoundaryProps, type ExportFormat, ExportImportModal, type ExportImportModalProps, type ExportOptions, FilterBar, type FilterBarProps, type FilterState, type FontSizeToken, type FontWeightToken, GANTT_AI_SYSTEM_PROMPT, GanttAIAssistant, type GanttAIAssistantConfig$1 as GanttAIAssistantConfig, type Assignee as GanttAssignee, GanttBoard, type GanttConfig as GanttBoardConfig, type GanttBoardRef, type GanttColumn, type ColumnType as GanttColumnType, GanttI18nContext, Milestone as GanttMilestone, type GanttPermissions, type Task as GanttTask, type GanttTemplates, type Theme$1 as GanttTheme, type GanttTheme as GanttThemeConfig, GanttToolbar, type GanttTranslations, GenerateGanttTasksDialog, type GenerateGanttTasksDialogProps, GeneratePlanModal, type GeneratePlanModalProps, type GeneratedPlan, type GeneratedTasksResponse, type GroupByOption, GroupBySelector, type GroupBySelectorProps, type IPluginManager, type ImportResult, type Insight, type InsightSeverity, type InsightType, KanbanBoard, type KanbanBoardProps, KanbanViewAdapter, type KanbanViewConfig, type KeyboardAction, type KeyboardShortcut, KeyboardShortcutsHelp, type KeyboardShortcutsHelpProps, type LineHeightToken, MenuIcons, type OpacityToken, type Plugin, type PluginContext, type PluginHooks, PluginManager, type Priority, PrioritySelector, type PrioritySelectorProps, RATE_LIMITS, type RenderProps, type RetryOptions, type RetryResult, type ShadowToken, type SortBy, type SortOrder, type SortState, type SpacingToken, type StackSuggestion, type StackingConfig, type StackingStrategy, type SupportedLocale, type Swimlane, SwimlaneBoardView, type SwimlaneBoardViewProps, type SwimlaneConfig, TaskBar, type TaskFormData, TaskFormModal, type TaskFormModalProps, TaskGrid, type Theme, type ThemeColors, type ThemeContextValue, ThemeModal, type ThemeModalProps, type ThemeName, ThemeProvider, ThemeSwitcher, type TimeScale, Timeline, type ThemeColors$1 as TokenThemeColors, type TokenValue, type UsageStats, type UseAIOptions, type UseAIReturn, type UseBoardReturn as UseBoardCoreReturn, type UseBoardOptions, type UseBoardReturn$1 as UseBoardReturn, type UseCardStackingOptions, type UseCardStackingResult, type UseDragStateReturn, type UseFiltersOptions, type UseFiltersReturn, type UseKanbanStateOptions, type UseKanbanStateReturn, type UseKeyboardShortcutsOptions, type UseKeyboardShortcutsReturn, type UseMultiSelectReturn, type UseSelectionStateReturn, type User$1 as User, UserAssignmentSelector, type UserAssignmentSelectorProps, VelocityChart, type VelocityChartProps, type VelocityDataPoint, VirtualGrid, type VirtualGridProps, VirtualList, type VirtualListProps, type ZIndexToken, aiUsageTracker, borderRadius, calculatePosition, cardToGanttTask, cardsToGanttTasks, cn, createKanbanView, createRetryWrapper, darkTheme, darkTheme$1 as darkTokenTheme, defaultTheme, designTokens, duration, easing, exportTokensToCSS, findTaskByName, fontSize, fontWeight, formatCost, en as ganttEnTranslations, es as ganttEsTranslations, ganttTaskToCardUpdate, themes$1 as ganttThemes, gantt as ganttTokens, translations as ganttTranslations, ganttUtils, generateCSSVariables, generateCompleteCSS, generateInitialPositions, generateTasksContext, generateThemeVariables, getToken, getTranslations, kanban as kanbanTokens, lightTheme, lightTheme$1 as lightTokenTheme, lineHeight, mergeTranslations, neutralTheme, neutralTheme$1 as neutralTokenTheme, opacity, parseLocalCommand, parseNaturalDate, parseNaturalDuration, parseProgress, parseStatus, pluginManager, retrySyncOperation, retryWithBackoff, shadows, shouldVirtualizeGrid, spacing, themes, useAI, useBoard$1 as useBoard, useBoard as useBoardCore, useBoardStore, useCardStacking, useDragState, useFilteredCards, useFilters, useGanttI18n, useKanbanState, useKeyboardShortcuts, useMultiSelect, useSelectionState, useSortedCards, useTheme, useVirtualGrid, useVirtualList, validateAIResponse, withErrorBoundary, zIndex };
+export { type AICallbacks, type AICommandResult$1 as AICommandResult, type GanttTask as AIGanttTask, type AIModelKey, type AIOperation, AIUsageDashboard, type AIUsageDashboardProps, AI_FEATURES, AI_MODELS, type Activity, type ActivityType, type AssigneeSuggestion, type Attachment, AttachmentUploader, type AttachmentUploaderProps, type Board, type BoardCallbacks, type BoardConfig, BoardProvider, type BoardProviderProps, type BorderRadiusToken, BulkOperationsToolbar, type BulkOperationsToolbarProps, BurnDownChart, type BurnDownChartProps, type BurnDownDataPoint, CalendarBoard, type CalendarBoardProps, type CalendarCallbacks, type CalendarConfig, type CalendarDay, type CalendarEvent, type CalendarPermissions, type CalendarSupportedLocale, type CalendarTheme, type CalendarThemeName, type CalendarTranslations, type CalendarViewMode, Card, CardDetailModal, type CardDetailModalProps, CardDetailModalV2, type CardDetailModalV2Props, type CardFilter, type CardFilters, CardHistoryReplay, type CardHistoryReplayProps, CardHistoryTimeline, type CardHistoryTimelineProps, type CardProps, CardRelationshipsGraph, type CardRelationshipsGraphProps, type CardSort, type CardSortKey, CardStack, type CardStackProps, type CardStack$1 as CardStackType, type CardStatus, type CardTemplate, CardTemplateSelector, type CardTemplateSelectorProps, type Card$1 as CardType, CircuitBreaker, Column, ColumnManager, type ColumnProps, type Column$1 as ColumnType, CommandPalette, type CommandPaletteProps, type Comment, ConfigMenu, type ConfigMenuProps, ContextMenu, DEFAULT_SHORTCUTS, DEFAULT_TEMPLATES, type DateFilter, DateRangePicker, type DateRangePickerProps, DependenciesSelector, type DependenciesSelectorProps, DependencyLine, type DesignTokens, DistributionCharts, type DistributionChartsProps, type DistributionDataPoint, type DragData, type DropData, type DurationToken, type EasingToken, EditableColumnTitle, type EditableColumnTitleProps, ErrorBoundary, type ErrorBoundaryProps, type ExportFormat, ExportImportModal, type ExportImportModalProps, type ExportOptions, FilterBar, type FilterBarProps, type FilterState, type FlattenedTask, type FontSizeToken, type FontWeightToken, GANTT_AI_SYSTEM_PROMPT, GanttAIAssistant, type GanttAIAssistantConfig$1 as GanttAIAssistantConfig, type Assignee as GanttAssignee, GanttBoard, type GanttConfig as GanttBoardConfig, type GanttBoardRef, type GanttColumn, type ColumnType as GanttColumnType, GanttI18nContext, Milestone as GanttMilestone, type GanttPermissions, type Task as GanttTask, type GanttTemplates, type Theme$1 as GanttTheme, type GanttTheme as GanttThemeConfig, GanttToolbar, type GanttTranslations, GenerateGanttTasksDialog, type GenerateGanttTasksDialogProps, GeneratePlanModal, type GeneratePlanModalProps, type GeneratedPlan, type GeneratedTasksResponse, type GroupByOption, GroupBySelector, type GroupBySelectorProps, type IPluginManager, type ImportResult, type Insight, type InsightSeverity, type InsightType, KanbanBoard, type KanbanBoardProps, KanbanViewAdapter, type KanbanViewConfig, type KeyboardAction, type KeyboardShortcut, KeyboardShortcutsHelp, type KeyboardShortcutsHelpProps, type LineHeightToken, type ListColumn, type ListFilter, type ListSort, type ListSortColumn, ListView, type ListViewCallbacks, type ListViewConfig, type ListViewPermissions, type ListViewProps, type ListViewSupportedLocale, type ListViewTheme, type ListViewThemeName, type ListViewTranslations, MenuIcons, type OpacityToken, type Plugin, type PluginContext, type PluginHooks, PluginManager, type Priority, PrioritySelector, type PrioritySelectorProps, RATE_LIMITS, type RenderProps, type RetryOptions, type RetryResult, type ShadowToken, type SortBy, type SortDirection, type SortOrder, type SortState, type SpacingToken, type StackSuggestion, type StackingConfig, type StackingStrategy, type SupportedLocale, type Swimlane, SwimlaneBoardView, type SwimlaneBoardViewProps, type SwimlaneConfig, TaskBar, type TaskFormData, TaskFormModal, type TaskFormModalProps, TaskGrid, type Theme, type ThemeColors, type ThemeContextValue, ThemeModal, type ThemeModalProps, type ThemeName, ThemeProvider, ThemeSwitcher, type TimeScale, Timeline, type ThemeColors$1 as TokenThemeColors, type TokenValue, type UsageStats, type UseAIOptions, type UseAIReturn, type UseBoardReturn as UseBoardCoreReturn, type UseBoardOptions, type UseBoardReturn$1 as UseBoardReturn, type UseCardStackingOptions, type UseCardStackingResult, type UseDragStateReturn, type UseFiltersOptions, type UseFiltersReturn, type UseKanbanStateOptions, type UseKanbanStateReturn, type UseKeyboardShortcutsOptions, type UseKeyboardShortcutsReturn, type UseMultiSelectReturn, type UseSelectionStateReturn, type User$1 as User, UserAssignmentSelector, type UserAssignmentSelectorProps, VelocityChart, type VelocityChartProps, type VelocityDataPoint, VirtualGrid, type VirtualGridProps, VirtualList, type VirtualListProps, type WeekDay, type ZIndexToken, aiUsageTracker, borderRadius, calculatePosition, darkTheme$2 as calendarDarkTheme, en as calendarEnTranslations, es as calendarEsTranslations, lightTheme$2 as calendarLightTheme, neutralTheme$2 as calendarNeutralTheme, calendarThemes, calendarTranslations, cardToGanttTask, cardsToGanttTasks, cn, createKanbanView, createRetryWrapper, darkTheme, darkTheme$1 as darkTokenTheme, defaultTheme, designTokens, duration, easing, exportTokensToCSS, findTaskByName, fontSize, fontWeight, formatCost, en$2 as ganttEnTranslations, es$2 as ganttEsTranslations, ganttTaskToCardUpdate, themes$1 as ganttThemes, gantt as ganttTokens, translations as ganttTranslations, ganttUtils, generateCSSVariables, generateCompleteCSS, generateInitialPositions, generateTasksContext, generateThemeVariables, getCalendarTheme, getCalendarTranslations, getListViewTheme, getListViewTranslations, getMonthNames, getToken, getTranslations, getWeekdayNames, kanban as kanbanTokens, lightTheme, lightTheme$1 as lightTokenTheme, lineHeight, darkTheme$3 as listViewDarkTheme, en$1 as listViewEnTranslations, es$1 as listViewEsTranslations, lightTheme$3 as listViewLightTheme, neutralTheme$3 as listViewNeutralTheme, listViewThemes, listViewTranslations, mergeCalendarTranslations, mergeListViewTranslations, mergeTranslations, neutralTheme, neutralTheme$1 as neutralTokenTheme, opacity, parseLocalCommand, parseNaturalDate, parseNaturalDuration, parseProgress, parseStatus, pluginManager, retrySyncOperation, retryWithBackoff, shadows, shouldVirtualizeGrid, spacing, themes, useAI, useBoard$1 as useBoard, useBoard as useBoardCore, useBoardStore, useCardStacking, useDragState, useFilteredCards, useFilters, useGanttI18n, useKanbanState, useKeyboardShortcuts, useMultiSelect, useSelectionState, useSortedCards, useTheme, useVirtualGrid, useVirtualList, validateAIResponse, withErrorBoundary, zIndex };

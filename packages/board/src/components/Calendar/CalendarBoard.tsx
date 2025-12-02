@@ -1,316 +1,69 @@
 /**
  * CalendarBoard Component
  * Professional calendar view for task management
+ * Based on SaaS ProjectCalendar component styles
  * @version 0.17.0
  */
 
 import { useState, useMemo, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
+  Calendar,
   ChevronLeft,
   ChevronRight,
-  Calendar,
-  Plus,
-  Clock,
-  Check,
+  CheckCircle2,
   Circle,
+  PlayCircle,
+  X,
 } from 'lucide-react';
 import type { Task } from '../Gantt/types';
-import type {
-  CalendarBoardProps,
-  CalendarEvent,
-  CalendarDay,
-  CalendarViewMode,
-} from './types';
-import { getCalendarTheme } from './themes';
-import { getCalendarTranslations, mergeCalendarTranslations, getMonthNames, getWeekdayNames } from './i18n';
+import type { CalendarBoardProps, CalendarDay } from './types';
+import { mergeCalendarTranslations } from './i18n';
 import { cn } from '../../utils';
 
 /**
- * Get all days for the calendar grid (including padding days from other months)
+ * Flatten hierarchical tasks to flat list
  */
-function getCalendarDays(
-  year: number,
-  month: number,
-  firstDayOfWeek: number = 0
-): Date[] {
-  const days: Date[] = [];
-  const firstOfMonth = new Date(year, month, 1);
-  const lastOfMonth = new Date(year, month + 1, 0);
+function flattenTasks(tasks: Task[]): Task[] {
+  const result: Task[] = [];
 
-  // Get the day of week for the first day of the month
-  let startDay = firstOfMonth.getDay() - firstDayOfWeek;
-  if (startDay < 0) startDay += 7;
-
-  // Add padding days from previous month
-  for (let i = startDay - 1; i >= 0; i--) {
-    const date = new Date(year, month, -i);
-    days.push(date);
+  function traverse(taskList: Task[]) {
+    for (const task of taskList) {
+      result.push(task);
+      if (task.subtasks?.length) {
+        traverse(task.subtasks);
+      }
+    }
   }
 
-  // Add all days of current month
-  for (let i = 1; i <= lastOfMonth.getDate(); i++) {
-    days.push(new Date(year, month, i));
-  }
-
-  // Add padding days from next month to complete the grid (always 6 rows)
-  const remainingDays = 42 - days.length;
-  for (let i = 1; i <= remainingDays; i++) {
-    days.push(new Date(year, month + 1, i));
-  }
-
-  return days;
+  traverse(tasks);
+  return result;
 }
 
 /**
- * Check if a task spans the given date
+ * Check if a date falls within a task's date range
  */
 function isDateInTaskRange(date: Date, task: Task): boolean {
   if (!task.startDate || !task.endDate) return false;
 
-  const taskStart = new Date(task.startDate);
-  const taskEnd = new Date(task.endDate);
-
-  // Normalize to date only (no time)
   const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  const startOnly = new Date(taskStart.getFullYear(), taskStart.getMonth(), taskStart.getDate());
-  const endOnly = new Date(taskEnd.getFullYear(), taskEnd.getMonth(), taskEnd.getDate());
+  const startOnly = new Date(task.startDate.getFullYear(), task.startDate.getMonth(), task.startDate.getDate());
+  const endOnly = new Date(task.endDate.getFullYear(), task.endDate.getMonth(), task.endDate.getDate());
 
   return dateOnly >= startOnly && dateOnly <= endOnly;
 }
 
 /**
- * Convert tasks to calendar events
+ * Status Icon component
  */
-function tasksToEvents(tasks: Task[]): CalendarEvent[] {
-  const events: CalendarEvent[] = [];
-
-  const processTasks = (taskList: Task[]) => {
-    for (const task of taskList) {
-      if (task.startDate && task.endDate) {
-        events.push({
-          id: task.id,
-          title: task.name,
-          start: new Date(task.startDate),
-          end: new Date(task.endDate),
-          color: task.color,
-          status: task.status,
-          progress: task.progress,
-          assignees: task.assignees,
-          task,
-        });
-      }
-
-      // Process subtasks
-      if (task.subtasks?.length) {
-        processTasks(task.subtasks);
-      }
-    }
-  };
-
-  processTasks(tasks);
-  return events;
-}
-
-/**
- * Check if two dates are the same day
- */
-function isSameDay(date1: Date, date2: Date): boolean {
-  return (
-    date1.getFullYear() === date2.getFullYear() &&
-    date1.getMonth() === date2.getMonth() &&
-    date1.getDate() === date2.getDate()
-  );
-}
-
-/**
- * Check if date is today
- */
-function isToday(date: Date): boolean {
-  return isSameDay(date, new Date());
-}
-
-/**
- * Check if date is weekend
- */
-function isWeekend(date: Date): boolean {
-  const day = date.getDay();
-  return day === 0 || day === 6;
-}
-
-/**
- * Status indicator component
- */
-function StatusDot({
-  status,
-  theme,
-}: {
-  status?: 'todo' | 'in-progress' | 'completed';
-  theme: ReturnType<typeof getCalendarTheme>;
-}) {
-  const color = {
-    todo: theme.statusTodo,
-    'in-progress': theme.statusInProgress,
-    completed: theme.statusCompleted,
-  }[status || 'todo'];
-
-  return (
-    <span
-      className="w-2 h-2 rounded-full flex-shrink-0"
-      style={{ backgroundColor: color }}
-    />
-  );
-}
-
-/**
- * Event item component
- */
-function EventItem({
-  event,
-  date,
-  theme,
-  onClick,
-  onDoubleClick,
-  compact = false,
-}: {
-  event: CalendarEvent;
-  date: Date;
-  theme: ReturnType<typeof getCalendarTheme>;
-  onClick?: () => void;
-  onDoubleClick?: () => void;
-  compact?: boolean;
-}) {
-  const isStart = isSameDay(date, event.start);
-  const isEnd = isSameDay(date, event.end);
-  const eventColor = event.color || theme.accent;
-
-  if (compact) {
-    return (
-      <button
-        onClick={onClick}
-        onDoubleClick={onDoubleClick}
-        className="w-full flex items-center gap-1 px-1.5 py-0.5 text-xs rounded truncate transition-colors hover:opacity-80"
-        style={{
-          backgroundColor: `${eventColor}30`,
-          color: eventColor,
-          borderLeft: isStart ? `3px solid ${eventColor}` : 'none',
-          borderRadius: isStart && isEnd ? '4px' : isStart ? '4px 0 0 4px' : isEnd ? '0 4px 4px 0' : '0',
-        }}
-        title={event.title}
-      >
-        <StatusDot status={event.status} theme={theme} />
-        <span className="truncate">{event.title}</span>
-      </button>
-    );
+function StatusIcon({ task }: { task: Task }) {
+  if (task.progress === 100 || task.status === 'completed') {
+    return <CheckCircle2 className="w-3 h-3 text-green-500 flex-shrink-0" />;
   }
-
-  return (
-    <button
-      onClick={onClick}
-      onDoubleClick={onDoubleClick}
-      className="w-full flex items-center gap-2 px-2 py-1 text-sm rounded transition-colors hover:opacity-80"
-      style={{
-        backgroundColor: `${eventColor}20`,
-        color: theme.textPrimary,
-        borderLeft: `3px solid ${eventColor}`,
-      }}
-    >
-      <StatusDot status={event.status} theme={theme} />
-      <span className="truncate flex-1 text-left">{event.title}</span>
-      {event.progress !== undefined && event.progress > 0 && (
-        <span className="text-xs" style={{ color: theme.textSecondary }}>
-          {event.progress}%
-        </span>
-      )}
-    </button>
-  );
-}
-
-/**
- * Calendar day cell component
- */
-function DayCell({
-  day,
-  events,
-  theme,
-  translations,
-  maxEvents,
-  onDateClick,
-  onEventClick,
-  onEventDoubleClick,
-}: {
-  day: CalendarDay;
-  events: CalendarEvent[];
-  theme: ReturnType<typeof getCalendarTheme>;
-  translations: ReturnType<typeof getCalendarTranslations>;
-  maxEvents: number;
-  onDateClick?: (date: Date) => void;
-  onEventClick?: (event: CalendarEvent) => void;
-  onEventDoubleClick?: (event: CalendarEvent) => void;
-}) {
-  const visibleEvents = events.slice(0, maxEvents);
-  const hiddenCount = events.length - maxEvents;
-
-  return (
-    <div
-      className={cn(
-        'min-h-[100px] p-1 border-b border-r flex flex-col transition-colors',
-        day.isToday && 'ring-2 ring-inset',
-        !day.isCurrentMonth && 'opacity-50'
-      )}
-      style={{
-        backgroundColor: day.isToday
-          ? theme.bgToday
-          : day.isWeekend
-          ? theme.bgWeekend
-          : !day.isCurrentMonth
-          ? theme.bgOtherMonth
-          : theme.bgPrimary,
-        borderColor: theme.borderLight,
-        ...(day.isToday && { ringColor: theme.accent }),
-      }}
-    >
-      {/* Day header */}
-      <div className="flex items-center justify-between mb-1">
-        <button
-          onClick={() => onDateClick?.(day.date)}
-          className={cn(
-            'w-7 h-7 rounded-full flex items-center justify-center text-sm font-medium transition-colors hover:opacity-80',
-            day.isToday && 'text-white'
-          )}
-          style={{
-            backgroundColor: day.isToday ? theme.accent : 'transparent',
-            color: day.isToday ? '#fff' : theme.textPrimary,
-          }}
-        >
-          {day.date.getDate()}
-        </button>
-      </div>
-
-      {/* Events */}
-      <div className="flex-1 space-y-0.5 overflow-hidden">
-        {visibleEvents.map((event) => (
-          <EventItem
-            key={event.id}
-            event={event}
-            date={day.date}
-            theme={theme}
-            onClick={() => onEventClick?.(event)}
-            onDoubleClick={() => onEventDoubleClick?.(event)}
-            compact
-          />
-        ))}
-        {hiddenCount > 0 && (
-          <button
-            onClick={() => onDateClick?.(day.date)}
-            className="w-full text-xs text-left px-1 py-0.5 hover:underline"
-            style={{ color: theme.accent }}
-          >
-            {translations.labels.moreEvents.replace('{count}', String(hiddenCount))}
-          </button>
-        )}
-      </div>
-    </div>
-  );
+  if ((task.progress && task.progress > 0) || task.status === 'in-progress') {
+    return <PlayCircle className="w-3 h-3 text-blue-500 flex-shrink-0" />;
+  }
+  return <Circle className="w-3 h-3 text-gray-400 flex-shrink-0" />;
 }
 
 /**
@@ -330,87 +83,133 @@ export function CalendarBoard({
     theme: themeName = 'dark',
     locale = 'en',
     customTranslations,
-    defaultView = 'month',
-    firstDayOfWeek = 0,
-    // showWeekNumbers = false, // Reserved for future use
-    maxEventsPerDay = 3,
-    permissions = {},
   } = config;
 
-  const theme = getCalendarTheme(themeName);
   const t = mergeCalendarTranslations(locale, customTranslations);
-  const monthNames = getMonthNames(locale);
-  const weekdayNames = getWeekdayNames(locale, firstDayOfWeek);
+  const isDark = themeName === 'dark';
 
   // State
   const [currentDate, setCurrentDate] = useState(initialDate || new Date());
-  const [viewMode, setViewMode] = useState<CalendarViewMode>(defaultView);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
-  const currentYear = currentDate.getFullYear();
-  const currentMonth = currentDate.getMonth();
-
-  // Convert tasks to calendar events
-  const events = useMemo(() => tasksToEvents(tasks), [tasks]);
-
-  // Get calendar days for current view
-  const calendarDays = useMemo(() => {
-    return getCalendarDays(currentYear, currentMonth, firstDayOfWeek);
-  }, [currentYear, currentMonth, firstDayOfWeek]);
-
-  // Map events to days
-  const dayEventsMap = useMemo(() => {
-    const map = new Map<string, CalendarEvent[]>();
-
-    for (const day of calendarDays) {
-      const dayKey = day.toISOString().split('T')[0] as string;
-      const dayEvents = events.filter((event) => isDateInTaskRange(day, event.task));
-      map.set(dayKey, dayEvents);
-    }
-
-    return map;
-  }, [calendarDays, events]);
-
-  // Build calendar day info
-  const calendarDayInfo: CalendarDay[] = useMemo(() => {
-    return calendarDays.map((date) => {
-      const dayKey = date.toISOString().split('T')[0] as string;
-      return {
-        date,
-        isCurrentMonth: date.getMonth() === currentMonth,
-        isToday: isToday(date),
-        isWeekend: isWeekend(date),
-        events: dayEventsMap.get(dayKey) || [],
-      };
-    });
-  }, [calendarDays, currentMonth, dayEventsMap]);
-
-  // Navigation handlers
+  // Navigate months
   const goToPreviousMonth = useCallback(() => {
-    setCurrentDate(new Date(currentYear, currentMonth - 1, 1));
-  }, [currentYear, currentMonth]);
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+  }, [currentDate]);
 
   const goToNextMonth = useCallback(() => {
-    setCurrentDate(new Date(currentYear, currentMonth + 1, 1));
-  }, [currentYear, currentMonth]);
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+  }, [currentDate]);
 
   const goToToday = useCallback(() => {
     setCurrentDate(new Date());
   }, []);
 
-  const handleViewChange = useCallback((view: CalendarViewMode) => {
-    setViewMode(view);
-    callbacks.onViewChange?.(view);
+  // Generate calendar days
+  const calendarDays = useMemo((): CalendarDay[] => {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+
+    const firstDayOfMonth = new Date(year, month, 1);
+    const lastDayOfMonth = new Date(year, month + 1, 0);
+
+    const startDay = firstDayOfMonth.getDay();
+    const daysInMonth = lastDayOfMonth.getDate();
+
+    const flatTaskList = flattenTasks(tasks);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const days: CalendarDay[] = [];
+
+    // Previous month days
+    const prevMonthDays = startDay;
+    const prevMonthLastDay = new Date(year, month, 0).getDate();
+    for (let i = prevMonthDays - 1; i >= 0; i--) {
+      const date = new Date(year, month - 1, prevMonthLastDay - i);
+      days.push({
+        date,
+        isCurrentMonth: false,
+        isToday: false,
+        isWeekend: date.getDay() === 0 || date.getDay() === 6,
+        events: flatTaskList.filter(t => isDateInTaskRange(date, t)).map(task => ({
+          id: task.id,
+          title: task.name,
+          start: task.startDate!,
+          end: task.endDate!,
+          task,
+        })),
+      });
+    }
+
+    // Current month days
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(year, month, day);
+      const isToday = date.getTime() === today.getTime();
+      days.push({
+        date,
+        isCurrentMonth: true,
+        isToday,
+        isWeekend: date.getDay() === 0 || date.getDay() === 6,
+        events: flatTaskList.filter(t => isDateInTaskRange(date, t)).map(task => ({
+          id: task.id,
+          title: task.name,
+          start: task.startDate!,
+          end: task.endDate!,
+          task,
+        })),
+      });
+    }
+
+    // Next month days (fill to complete 6 rows)
+    const remainingDays = 42 - days.length;
+    for (let day = 1; day <= remainingDays; day++) {
+      const date = new Date(year, month + 1, day);
+      days.push({
+        date,
+        isCurrentMonth: false,
+        isToday: false,
+        isWeekend: date.getDay() === 0 || date.getDay() === 6,
+        events: flatTaskList.filter(t => isDateInTaskRange(date, t)).map(task => ({
+          id: task.id,
+          title: task.name,
+          start: task.startDate!,
+          end: task.endDate!,
+          task,
+        })),
+      });
+    }
+
+    return days;
+  }, [currentDate, tasks]);
+
+  // Day names
+  const dayNames = locale === 'es'
+    ? ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
+    : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+  // Month name
+  const monthName = currentDate.toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', {
+    month: 'long',
+    year: 'numeric',
+  });
+
+  // Handle task toggle
+  const handleTaskToggle = useCallback((task: Task) => {
+    const newProgress = task.progress === 100 ? 0 : 100;
+    const newStatus: 'todo' | 'completed' = newProgress === 100 ? 'completed' : 'todo';
+    callbacks.onTaskUpdate?.({ ...task, status: newStatus, progress: newProgress });
   }, [callbacks]);
 
   // Loading state
   if (isLoading) {
     return (
-      <div
-        className={cn('libxai-calendar', className)}
-        style={{ backgroundColor: theme.bgPrimary, ...style }}
-      >
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: theme.accent }} />
+      <div className={cn("flex-1 flex items-center justify-center", isDark ? "bg-[#0F1117]" : "bg-white", className)} style={style}>
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-8 h-8 animate-spin rounded-full border-b-2 border-[#3B82F6]" />
+          <p className={cn("text-sm", isDark ? "text-[#9CA3AF]" : "text-gray-600")}>
+            {t.labels.noEvents}...
+          </p>
         </div>
       </div>
     );
@@ -419,179 +218,256 @@ export function CalendarBoard({
   // Error state
   if (error) {
     return (
-      <div
-        className={cn('libxai-calendar', className)}
-        style={{ backgroundColor: theme.bgPrimary, ...style }}
-      >
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <p className="text-red-500 font-semibold">{typeof error === 'string' ? error : error.message}</p>
+      <div className={cn("flex-1 flex items-center justify-center", isDark ? "bg-[#0F1117]" : "bg-white", className)} style={style}>
+        <div className="flex flex-col items-center gap-4 max-w-md text-center">
+          <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center">
+            <span className="text-red-500 text-2xl">⚠</span>
+          </div>
+          <div>
+            <h3 className={cn("text-lg font-semibold mb-2", isDark ? "text-white" : "text-gray-900")}>
+              Error
+            </h3>
+            <p className={cn("text-sm", isDark ? "text-[#9CA3AF]" : "text-gray-600")}>
+              {typeof error === 'string' ? error : error.message}
+            </p>
           </div>
         </div>
       </div>
     );
   }
 
-  return (
-    <div
-      className={cn('libxai-calendar flex flex-col h-full', className)}
-      style={{ backgroundColor: theme.bgPrimary, color: theme.textPrimary, ...style }}
-    >
-      {/* Header / Toolbar */}
-      <div
-        className="flex items-center justify-between px-4 py-3 border-b"
-        style={{ borderColor: theme.border }}
-      >
-        {/* Navigation */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={goToToday}
-            className="px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors"
-            style={{
-              backgroundColor: theme.bgSecondary,
-              borderColor: theme.border,
-              color: theme.textPrimary,
-            }}
-          >
-            {t.navigation.today}
-          </button>
+  // Empty state
+  if (tasks.length === 0) {
+    return (
+      <div className={cn("flex-1 flex items-center justify-center", isDark ? "bg-[#0F1117]" : "bg-white", className)} style={style}>
+        <div className="text-center max-w-md">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-[#3B82F6]/10 flex items-center justify-center">
+            <Calendar className="w-8 h-8 text-[#3B82F6]" />
+          </div>
+          <h3 className={cn("text-lg font-semibold mb-2", isDark ? "text-white" : "text-gray-900")}>
+            {t.labels.noEvents}
+          </h3>
+          <p className={cn("text-sm", isDark ? "text-[#9CA3AF]" : "text-gray-600")}>
+            {t.labels.newTask}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
-          <div className="flex items-center">
+  return (
+    <div className={cn("flex-1 flex flex-col w-full h-full overflow-hidden", isDark ? "bg-[#0F1117]" : "bg-white", className)} style={style}>
+      {/* Calendar Header */}
+      <div className={cn("flex-shrink-0 px-6 py-4 border-b", isDark ? "border-white/10" : "border-gray-200")}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <h2 className={cn("text-xl font-semibold capitalize", isDark ? "text-white" : "text-gray-900")}>
+              {monthName}
+            </h2>
+            <button
+              onClick={goToToday}
+              className={cn(
+                "px-3 py-1.5 text-sm rounded-lg transition-colors",
+                isDark
+                  ? "bg-white/5 text-white hover:bg-white/10"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              )}
+            >
+              {t.navigation.today}
+            </button>
+          </div>
+          <div className="flex items-center gap-2">
             <button
               onClick={goToPreviousMonth}
-              className="p-1.5 rounded-lg transition-colors hover:bg-opacity-10"
-              style={{ color: theme.textSecondary }}
+              className={cn("p-2 rounded-lg transition-colors", isDark ? "hover:bg-white/10" : "hover:bg-gray-100")}
             >
-              <ChevronLeft size={20} />
+              <ChevronLeft className={cn("w-5 h-5", isDark ? "text-[#9CA3AF]" : "text-gray-600")} />
             </button>
             <button
               onClick={goToNextMonth}
-              className="p-1.5 rounded-lg transition-colors hover:bg-opacity-10"
-              style={{ color: theme.textSecondary }}
+              className={cn("p-2 rounded-lg transition-colors", isDark ? "hover:bg-white/10" : "hover:bg-gray-100")}
             >
-              <ChevronRight size={20} />
+              <ChevronRight className={cn("w-5 h-5", isDark ? "text-[#9CA3AF]" : "text-gray-600")} />
             </button>
           </div>
-
-          <h2 className="text-lg font-semibold ml-2">
-            {monthNames[currentMonth]} {currentYear}
-          </h2>
-        </div>
-
-        {/* View mode selector & actions */}
-        <div className="flex items-center gap-3">
-          {/* View mode buttons */}
-          <div
-            className="flex rounded-lg overflow-hidden border"
-            style={{ borderColor: theme.border }}
-          >
-            {(['month', 'week', 'day'] as CalendarViewMode[]).map((view) => (
-              <button
-                key={view}
-                onClick={() => handleViewChange(view)}
-                className="px-3 py-1.5 text-sm transition-colors"
-                style={{
-                  backgroundColor: viewMode === view ? theme.accent : theme.bgSecondary,
-                  color: viewMode === view ? '#fff' : theme.textSecondary,
-                }}
-              >
-                {t.navigation[view]}
-              </button>
-            ))}
-          </div>
-
-          {/* New task button */}
-          {permissions.canCreateTask !== false && callbacks.onDateClick && (
-            <button
-              onClick={() => callbacks.onDateClick?.(new Date())}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
-              style={{ backgroundColor: theme.accent, color: '#fff' }}
-            >
-              <Plus size={16} />
-              {t.labels.newTask}
-            </button>
-          )}
         </div>
       </div>
 
       {/* Calendar Grid */}
-      <div className="flex-1 overflow-auto">
-        {viewMode === 'month' && (
-          <div className="h-full flex flex-col">
-            {/* Weekday headers */}
-            <div
-              className="grid grid-cols-7 border-b"
-              style={{ borderColor: theme.border }}
-            >
-              {weekdayNames.map((name, index) => (
-                <div
-                  key={index}
-                  className="px-2 py-2 text-center text-xs font-semibold uppercase tracking-wider"
-                  style={{ color: theme.textSecondary }}
-                >
-                  {name}
+      <div className="flex-1 p-6 overflow-auto">
+        <div className="h-full flex flex-col">
+          {/* Day Headers */}
+          <div className="grid grid-cols-7 gap-px mb-2">
+            {dayNames.map((day) => (
+              <div
+                key={day}
+                className={cn("py-2 text-center text-xs font-medium uppercase", isDark ? "text-[#9CA3AF]" : "text-gray-500")}
+              >
+                {day}
+              </div>
+            ))}
+          </div>
+
+          {/* Calendar Days */}
+          <div className={cn("flex-1 grid grid-cols-7 grid-rows-6 gap-px rounded-lg overflow-hidden", isDark ? "bg-white/5" : "bg-gray-200")}>
+            {calendarDays.map((day, index) => (
+              <div
+                key={index}
+                className={cn(
+                  "min-h-[100px] p-2 transition-colors",
+                  isDark ? "bg-[#0F1117]" : "bg-white",
+                  !day.isCurrentMonth && (isDark ? "bg-[#0F1117]/50" : "bg-gray-50"),
+                  day.isToday && "ring-2 ring-[#3B82F6] ring-inset"
+                )}
+              >
+                {/* Day Number */}
+                <div className={cn(
+                  "text-sm font-medium mb-1",
+                  day.isToday
+                    ? "text-[#3B82F6]"
+                    : day.isCurrentMonth
+                      ? (isDark ? "text-white" : "text-gray-900")
+                      : (isDark ? "text-[#6B7280]" : "text-gray-400")
+                )}>
+                  {day.date.getDate()}
                 </div>
-              ))}
-            </div>
 
-            {/* Day grid */}
-            <div className="flex-1 grid grid-cols-7 grid-rows-6">
-              {calendarDayInfo.map((day, index) => (
-                <DayCell
-                  key={index}
-                  day={day}
-                  events={day.events}
-                  theme={theme}
-                  translations={t}
-                  maxEvents={maxEventsPerDay}
-                  onDateClick={callbacks.onDateClick}
-                  onEventClick={callbacks.onEventClick}
-                  onEventDoubleClick={callbacks.onEventDoubleClick}
-                />
-              ))}
-            </div>
+                {/* Tasks for this day */}
+                <div className="space-y-1 overflow-y-auto max-h-[80px]">
+                  {day.events.slice(0, 3).map((event) => (
+                    <motion.button
+                      key={event.id}
+                      onClick={() => {
+                        setSelectedTask(event.task);
+                        callbacks.onEventClick?.(event);
+                      }}
+                      whileHover={{ scale: 1.02 }}
+                      className={cn(
+                        "w-full flex items-center gap-1 px-1.5 py-0.5 rounded text-xs truncate",
+                        event.task.progress === 100
+                          ? (isDark ? "bg-green-500/20 text-green-400" : "bg-green-500/10 text-green-600")
+                          : (isDark ? "bg-[#3B82F6]/20 text-[#3B82F6]" : "bg-[#3B82F6]/10 text-[#3B82F6]")
+                      )}
+                    >
+                      <StatusIcon task={event.task} />
+                      <span className="truncate">{event.title}</span>
+                    </motion.button>
+                  ))}
+                  {day.events.length > 3 && (
+                    <div className={cn("text-xs px-1.5", isDark ? "text-[#6B7280]" : "text-gray-400")}>
+                      +{day.events.length - 3} {locale === 'es' ? 'más' : 'more'}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
-        )}
-
-        {/* Week view */}
-        {viewMode === 'week' && (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center" style={{ color: theme.textMuted }}>
-              <Calendar size={48} className="mx-auto mb-2 opacity-50" />
-              <p>{t.navigation.week} view coming soon</p>
-            </div>
-          </div>
-        )}
-
-        {/* Day view */}
-        {viewMode === 'day' && (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center" style={{ color: theme.textMuted }}>
-              <Calendar size={48} className="mx-auto mb-2 opacity-50" />
-              <p>{t.navigation.day} view coming soon</p>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Footer - Legend */}
-      <div
-        className="px-4 py-2 border-t flex items-center gap-4 text-xs"
-        style={{ borderColor: theme.border, color: theme.textSecondary }}
-      >
-        <div className="flex items-center gap-1.5">
-          <Circle size={10} style={{ color: theme.statusTodo }} fill={theme.statusTodo} />
-          {t.status.todo}
-        </div>
-        <div className="flex items-center gap-1.5">
-          <Clock size={10} style={{ color: theme.statusInProgress }} />
-          {t.status.inProgress}
-        </div>
-        <div className="flex items-center gap-1.5">
-          <Check size={10} style={{ color: theme.statusCompleted }} />
-          {t.status.completed}
         </div>
       </div>
+
+      {/* Task Detail Panel */}
+      <AnimatePresence>
+        {selectedTask && (
+          <motion.div
+            initial={{ opacity: 0, x: 300 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 300 }}
+            className={cn(
+              "fixed right-0 top-0 h-full w-80 border-l shadow-xl z-50",
+              isDark ? "bg-[#1A1D25] border-white/10" : "bg-white border-gray-200"
+            )}
+          >
+            <div className={cn("p-4 border-b flex items-center justify-between", isDark ? "border-white/10" : "border-gray-200")}>
+              <h3 className={cn("font-semibold", isDark ? "text-white" : "text-gray-900")}>
+                {locale === 'es' ? 'Detalle de tarea' : 'Task Detail'}
+              </h3>
+              <button
+                onClick={() => setSelectedTask(null)}
+                className={cn("p-1 rounded", isDark ? "hover:bg-white/10" : "hover:bg-gray-100")}
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <div>
+                <label className={cn("text-xs uppercase", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
+                  {locale === 'es' ? 'Nombre' : 'Name'}
+                </label>
+                <p className={cn("font-medium", isDark ? "text-white" : "text-gray-900")}>{selectedTask.name}</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className={cn("text-xs uppercase", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
+                    {locale === 'es' ? 'Inicio' : 'Start'}
+                  </label>
+                  <p className={cn("text-sm", isDark ? "text-white" : "text-gray-900")}>
+                    {selectedTask.startDate?.toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US') || '-'}
+                  </p>
+                </div>
+                <div>
+                  <label className={cn("text-xs uppercase", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
+                    {locale === 'es' ? 'Fin' : 'End'}
+                  </label>
+                  <p className={cn("text-sm", isDark ? "text-white" : "text-gray-900")}>
+                    {selectedTask.endDate?.toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US') || '-'}
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <label className={cn("text-xs uppercase mb-2 block", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
+                  {locale === 'es' ? 'Progreso' : 'Progress'}
+                </label>
+                <div className="flex items-center gap-3">
+                  <div className={cn("flex-1 h-2 rounded-full overflow-hidden", isDark ? "bg-white/10" : "bg-gray-200")}>
+                    <div
+                      className={cn(
+                        "h-full rounded-full transition-all",
+                        selectedTask.progress === 100 ? "bg-green-500" : "bg-[#3B82F6]"
+                      )}
+                      style={{ width: `${selectedTask.progress || 0}%` }}
+                    />
+                  </div>
+                  <span className={cn("text-sm font-medium w-10", isDark ? "text-white" : "text-gray-900")}>
+                    {selectedTask.progress || 0}%
+                  </span>
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  handleTaskToggle(selectedTask);
+                  setSelectedTask(null);
+                }}
+                className={cn(
+                  "w-full py-2 rounded-lg font-medium transition-colors",
+                  selectedTask.progress === 100
+                    ? "bg-gray-500/10 text-gray-500 hover:bg-gray-500/20"
+                    : "bg-green-500/10 text-green-500 hover:bg-green-500/20"
+                )}
+              >
+                {selectedTask.progress === 100
+                  ? (locale === 'es' ? 'Marcar como pendiente' : 'Mark as pending')
+                  : (locale === 'es' ? 'Marcar como completada' : 'Mark as complete')}
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Overlay for task detail panel */}
+      <AnimatePresence>
+        {selectedTask && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setSelectedTask(null)}
+            className="fixed inset-0 bg-black/20 z-40"
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
