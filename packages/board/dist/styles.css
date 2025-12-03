@@ -3023,6 +3023,155 @@
 
 
 /* ============================================================================
+   COVER IMAGE SECTION
+   ============================================================================ */
+
+
+.modal-v2-cover-section {
+  margin: 0;
+  padding: 0;
+}
+
+
+/* Add Cover Button */
+
+
+.modal-v2-add-cover-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 16px;
+  margin: 0;
+  border: 2px dashed var(--modal-v2-border);
+  background: transparent;
+  color: var(--modal-v2-text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+
+.modal-v2-add-cover-button:hover {
+  border-color: var(--asakaa-accent, #3B82F6);
+  color: var(--asakaa-accent, #3B82F6);
+  background: var(--modal-v2-bg-secondary);
+}
+
+
+/* Cover Preview Wrapper */
+
+
+.modal-v2-cover-preview-wrapper {
+  position: relative;
+  width: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+
+.modal-v2-cover-image {
+  width: 100%;
+  height: 240px;
+  -o-object-fit: cover;
+     object-fit: cover;
+  display: block;
+}
+
+
+.modal-v2-cover-actions {
+  display: flex;
+  gap: 8px;
+  padding: 12px 24px;
+  background: var(--modal-v2-bg);
+  border-bottom: 1px solid var(--modal-v2-border);
+}
+
+
+.modal-v2-cover-action-button {
+  flex: 1;
+  padding: 8px 16px;
+  border: 1px solid var(--modal-v2-border);
+  background: var(--modal-v2-bg-secondary);
+  color: var(--modal-v2-text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+
+.modal-v2-cover-action-button:hover {
+  background: var(--modal-v2-bg-tertiary);
+  border-color: var(--modal-v2-border-hover);
+}
+
+
+.modal-v2-cover-action-button.danger {
+  border-color: #EF4444;
+  color: #EF4444;
+}
+
+
+.modal-v2-cover-action-button.danger:hover {
+  background: #EF4444;
+  color: white;
+}
+
+
+/* Cover Manager Wrapper */
+
+
+.modal-v2-cover-manager-wrapper {
+  padding: 24px;
+  border-bottom: 1px solid var(--modal-v2-border);
+  background: var(--modal-v2-bg);
+}
+
+
+.modal-v2-cover-manager-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+
+.modal-v2-cover-manager-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--modal-v2-text-primary);
+  margin: 0;
+}
+
+
+.modal-v2-cover-manager-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--modal-v2-text-secondary);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+
+.modal-v2-cover-manager-close:hover {
+  background: var(--modal-v2-bg-secondary);
+  color: var(--modal-v2-text-primary);
+}
+
+
+/* ============================================================================
    THEME SPECIFIC OVERRIDES
    ============================================================================ */
 

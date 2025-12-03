@@ -22,6 +22,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeSanitize from 'rehype-sanitize'
 import { Portal } from '../Portal'
+import { CoverImageManager } from '../CoverImage'
 import type { Card, User, Comment, Activity } from '../../types'
 import './card-detail-modal-v2.css'
 
@@ -73,6 +74,12 @@ export interface CardDetailModalV2Props {
 
   /** Available labels */
   availableLabels?: string[]
+
+  /** Upload cover image callback (optional - returns public URL) */
+  onUploadCoverImage?: (file: File) => Promise<string>
+
+  /** Unsplash API key for cover images (optional) */
+  unsplashAccessKey?: string
 }
 
 interface Subtask {
@@ -101,6 +108,8 @@ export function CardDetailModalV2({
   onAIFindSimilar: _onAIFindSimilar,
   availableColumns = [],
   availableLabels = [],
+  onUploadCoverImage,
+  unsplashAccessKey,
 }: CardDetailModalV2Props) {
   // Local state - Initialize immediately from card prop to avoid render delay
   const [localCard, setLocalCard] = useState<Card | null>(card)
@@ -111,6 +120,7 @@ export function CardDetailModalV2({
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('')
   const [commentText, setCommentText] = useState('')
   const [activityFilter, setActivityFilter] = useState<'all' | 'comments' | 'history'>('all')
+  const [showCoverManager, setShowCoverManager] = useState(false)
 
   // Popover states
   const [showStatusMenu, setShowStatusMenu] = useState(false)
@@ -415,6 +425,28 @@ export function CardDetailModalV2({
     [handleSendComment]
   )
 
+  const handleCoverImageChange = useCallback(
+    (url: string) => {
+      if (localCard) {
+        const updated = { ...localCard, coverImage: url }
+        setLocalCard(updated)
+        onUpdate?.(localCard.id, { coverImage: url })
+        setShowCoverManager(false)
+      }
+    },
+    [localCard, onUpdate]
+  )
+
+  const handleCoverImageRemove = useCallback(() => {
+    if (localCard) {
+      const updated = { ...localCard, coverImage: undefined }
+      setLocalCard(updated)
+      onUpdate?.(localCard.id, { coverImage: undefined })
+      // Don't close manager immediately - let user see the change
+      // setShowCoverManager(false)
+    }
+  }, [localCard, onUpdate])
+
   // Enhanced markdown renderer with GFM support
   const renderMarkdown = (text: string) => {
     return (
@@ -512,19 +544,88 @@ export function CardDetailModalV2({
             </button>
           </header>
 
-          {/* COVER IMAGE */}
-          {displayCard.coverImage && (
-            <div className="modal-v2-cover">
-              <img
-                src={displayCard.coverImage}
-                alt={`Cover for ${displayCard.title}`}
-                className="w-full max-h-96 object-cover"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none'
-                }}
-              />
-            </div>
-          )}
+          {/* COVER IMAGE SECTION */}
+          <section className="modal-v2-cover-section">
+            {!showCoverManager && !displayCard.coverImage && (
+              <button
+                className="modal-v2-add-cover-button"
+                onClick={() => setShowCoverManager(true)}
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <polyline points="21 15 16 10 5 21" />
+                </svg>
+                Add cover image
+              </button>
+            )}
+
+            {!showCoverManager && displayCard.coverImage && (
+              <div className="modal-v2-cover-preview-wrapper">
+                <img
+                  src={displayCard.coverImage}
+                  alt={`Cover for ${displayCard.title}`}
+                  className="modal-v2-cover-image"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none'
+                  }}
+                />
+                <div className="modal-v2-cover-actions">
+                  <button
+                    className="modal-v2-cover-action-button"
+                    onClick={() => setShowCoverManager(true)}
+                  >
+                    Change
+                  </button>
+                  <button
+                    className="modal-v2-cover-action-button danger"
+                    onClick={handleCoverImageRemove}
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {showCoverManager && (
+              <div className="modal-v2-cover-manager-wrapper">
+                <div className="modal-v2-cover-manager-header">
+                  <h3>Cover Image</h3>
+                  <button
+                    className="modal-v2-cover-manager-close"
+                    onClick={() => setShowCoverManager(false)}
+                  >
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
+                </div>
+                <CoverImageManager
+                  coverImage={displayCard.coverImage}
+                  onUpload={onUploadCoverImage}
+                  onChange={handleCoverImageChange}
+                  onRemove={handleCoverImageRemove}
+                  unsplashAccessKey={unsplashAccessKey}
+                  showRecentUploads={true}
+                />
+              </div>
+            )}
+          </section>
 
           {/* METADATA GRID */}
           <section className="modal-v2-metadata">
