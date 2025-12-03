@@ -7,6 +7,64 @@ import { useState, useRef, useEffect } from 'react'
 import { Portal } from '../Portal'
 import type { Card } from '../../types'
 
+/**
+ * Validate if adding a dependency would create a circular reference
+ * Uses Depth-First Search (DFS) algorithm
+ * @param allCards - All cards in the board
+ * @param fromCardId - The card that would become a dependency (the task being depended on)
+ * @param toCardId - The card that would depend on fromCardId
+ * @returns True if adding this dependency would create a circular reference
+ */
+export function wouldCreateCircularDependency(
+  allCards: Card[],
+  fromCardId: string,
+  toCardId: string
+): boolean {
+  // Build dependency map from all cards
+  const dependencyMap = new Map<string, string[]>()
+  allCards.forEach((card) => {
+    if (card.dependencies && Array.isArray(card.dependencies)) {
+      // Handle both string[] and Dependency[] formats
+      // Dependency from @libxai/core has 'taskId', not 'targetId'
+      const deps = card.dependencies.map((d) => {
+        if (typeof d === 'string') return d
+        // Handle both possible formats
+        const depObj = d as { taskId?: string; targetId?: string }
+        return depObj.taskId || depObj.targetId || ''
+      }).filter(Boolean)
+      dependencyMap.set(card.id, deps)
+    }
+  })
+
+  // Simulate adding the new dependency (toCardId depends on fromCardId)
+  const existingDeps = dependencyMap.get(toCardId) || []
+  dependencyMap.set(toCardId, [...existingDeps, fromCardId])
+
+  // DFS to detect cycle
+  const visited = new Set<string>()
+  const recStack = new Set<string>()
+
+  const hasCycle = (cardId: string): boolean => {
+    if (!visited.has(cardId)) {
+      visited.add(cardId)
+      recStack.add(cardId)
+
+      const deps = dependencyMap.get(cardId) || []
+      for (const depId of deps) {
+        if (!visited.has(depId) && hasCycle(depId)) {
+          return true
+        } else if (recStack.has(depId)) {
+          return true
+        }
+      }
+    }
+    recStack.delete(cardId)
+    return false
+  }
+
+  return hasCycle(toCardId)
+}
+
 export interface DependenciesSelectorProps {
   /** Current card (to exclude from dependencies) */
   currentCardId: string
@@ -18,6 +76,10 @@ export interface DependenciesSelectorProps {
   onChange: (dependencies: string[]) => void
   /** Custom className */
   className?: string
+  /** Enable circular dependency validation (default: true) */
+  validateCircular?: boolean
+  /** Callback when circular dependency is detected */
+  onCircularDependencyError?: (targetCardId: string, targetCardTitle: string) => void
 }
 
 export function DependenciesSelector({
@@ -26,11 +88,14 @@ export function DependenciesSelector({
   availableTasks,
   onChange,
   className,
+  validateCircular = true,
+  onCircularDependencyError,
 }: DependenciesSelectorProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [hasDependencies, setHasDependencies] = useState(dependencies.length > 0)
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 })
+  const [circularError, setCircularError] = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
 
@@ -80,14 +145,37 @@ export function DependenciesSelector({
 
   const handleToggleDependency = (taskId: string) => {
     const isDependency = dependencies.includes(taskId)
+    const targetTask = availableTasks.find((t) => t.id === taskId)
+
+    // Clear any previous error
+    setCircularError(null)
 
     if (isDependency) {
+      // Removing dependency - always allowed
       const newDeps = dependencies.filter((id) => id !== taskId)
       onChange(newDeps)
       if (newDeps.length === 0) {
         setHasDependencies(false)
       }
     } else {
+      // Adding dependency - validate for circular references
+      if (validateCircular) {
+        const wouldBeCircular = wouldCreateCircularDependency(
+          availableTasks,
+          taskId,
+          currentCardId
+        )
+
+        if (wouldBeCircular) {
+          const errorMsg = `Cannot add "${targetTask?.title || taskId}" as dependency - would create circular reference`
+          setCircularError(errorMsg)
+          onCircularDependencyError?.(taskId, targetTask?.title || taskId)
+          // Auto-clear error after 3 seconds
+          setTimeout(() => setCircularError(null), 3000)
+          return // Don't add the dependency
+        }
+      }
+
       onChange([...dependencies, taskId])
       setHasDependencies(true)
     }
@@ -164,6 +252,36 @@ export function DependenciesSelector({
               zIndex: 99999,
             }}
           >
+          {/* Circular dependency error */}
+          {circularError && (
+            <div
+              className="px-4 py-3 flex items-center gap-2"
+              style={{
+                background: 'rgba(239, 68, 68, 0.15)',
+                borderBottom: '1px solid rgba(239, 68, 68, 0.3)',
+              }}
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M8 5V8M8 11H8.01M14 8C14 11.3137 11.3137 14 8 14C4.68629 14 2 11.3137 2 8C2 4.68629 4.68629 2 8 2C11.3137 2 14 4.68629 14 8Z"
+                  stroke="#ef4444"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              <span className="text-xs font-medium" style={{ color: '#ef4444' }}>
+                {circularError}
+              </span>
+            </div>
+          )}
+
           {/* Header */}
           <div className="px-4 py-2 border-b" style={{ borderColor: 'var(--modal-v2-border, rgba(255, 255, 255, 0.05))' }}>
             <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--modal-v2-text-secondary, rgba(255, 255, 255, 0.7))' }}>

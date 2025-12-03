@@ -24,7 +24,7 @@ import rehypeSanitize from 'rehype-sanitize'
 import { Portal } from '../Portal'
 import { CoverImageManager } from '../CoverImage'
 import { useKanbanTheme } from '../Board/KanbanThemeContext'
-import type { Card, User, Comment, Activity } from '../../types'
+import type { Card, User, Comment, Activity, Subtask } from '../../types'
 import './card-detail-modal-v2.css'
 
 export interface CardDetailModalV2Props {
@@ -84,12 +84,9 @@ export interface CardDetailModalV2Props {
 
   /** Theme for the modal (dark, light, neutral). If not provided, uses KanbanThemeContext or defaults to 'dark' */
   theme?: 'dark' | 'light' | 'neutral'
-}
 
-interface Subtask {
-  id: string
-  title: string
-  completed: boolean
+  /** Callback when subtasks are changed (for persistence) */
+  onSubtasksChange?: (cardId: string, subtasks: Subtask[]) => void
 }
 
 const PRIORITY_OPTIONS = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'] as const
@@ -115,6 +112,7 @@ export function CardDetailModalV2({
   onUploadCoverImage,
   unsplashAccessKey,
   theme,
+  onSubtasksChange,
 }: CardDetailModalV2Props) {
   // Get theme: prop > context > fallback
   const kanbanTheme = useKanbanTheme()
@@ -124,7 +122,7 @@ export function CardDetailModalV2({
   const [localCard, setLocalCard] = useState<Card | null>(card)
 
   const [isEditingDescription, setIsEditingDescription] = useState(false)
-  const [subtasks, setSubtasks] = useState<Subtask[]>([])
+  const [subtasks, setSubtasks] = useState<Subtask[]>(card?.subtasks || [])
   const [isAddingSubtask, setIsAddingSubtask] = useState(false)
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('')
   const [commentText, setCommentText] = useState('')
@@ -154,8 +152,10 @@ export function CardDetailModalV2({
   useEffect(() => {
     if (card && !localCard) {
       setLocalCard({ ...card })
+      setSubtasks(card.subtasks || [])
     } else if (card && localCard && card.id !== localCard.id) {
       setLocalCard({ ...card })
+      setSubtasks(card.subtasks || [])
     }
   }, [card, localCard])
 
@@ -389,32 +389,46 @@ export function CardDetailModalV2({
   )
 
   const handleAddSubtask = useCallback(() => {
-    if (newSubtaskTitle.trim()) {
+    if (newSubtaskTitle.trim() && localCard) {
       const newSubtask: Subtask = {
         id: `subtask-${Date.now()}`,
         title: newSubtaskTitle.trim(),
         completed: false,
+        createdAt: new Date(),
       }
-      setSubtasks([...subtasks, newSubtask])
+      const updatedSubtasks = [...subtasks, newSubtask]
+      setSubtasks(updatedSubtasks)
       setNewSubtaskTitle('')
       setIsAddingSubtask(false)
+      // Persist subtasks
+      onSubtasksChange?.(localCard.id, updatedSubtasks)
     }
-  }, [newSubtaskTitle, subtasks])
+  }, [newSubtaskTitle, subtasks, localCard, onSubtasksChange])
 
   const handleToggleSubtask = useCallback(
     (id: string) => {
-      setSubtasks(
-        subtasks.map((st) => (st.id === id ? { ...st, completed: !st.completed } : st))
+      const updatedSubtasks = subtasks.map((st) =>
+        st.id === id ? { ...st, completed: !st.completed, updatedAt: new Date() } : st
       )
+      setSubtasks(updatedSubtasks)
+      // Persist subtasks
+      if (localCard) {
+        onSubtasksChange?.(localCard.id, updatedSubtasks)
+      }
     },
-    [subtasks]
+    [subtasks, localCard, onSubtasksChange]
   )
 
   const handleDeleteSubtask = useCallback(
     (id: string) => {
-      setSubtasks(subtasks.filter((st) => st.id !== id))
+      const updatedSubtasks = subtasks.filter((st) => st.id !== id)
+      setSubtasks(updatedSubtasks)
+      // Persist subtasks
+      if (localCard) {
+        onSubtasksChange?.(localCard.id, updatedSubtasks)
+      }
     },
-    [subtasks]
+    [subtasks, localCard, onSubtasksChange]
   )
 
   const handleSendComment = useCallback(() => {

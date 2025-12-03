@@ -15,6 +15,29 @@ import type { Dependency } from '@libxai/core'
 export type Priority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
 
 /**
+ * Subtask entity
+ * Represents a checklist item within a card
+ */
+export interface Subtask {
+  /** Unique identifier */
+  id: string
+  /** Subtask title */
+  title: string
+  /** Completion status */
+  completed: boolean
+  /** Position within the subtask list */
+  position?: number
+  /** Assigned user ID (optional) */
+  assigneeId?: string
+  /** Due date (optional) */
+  dueDate?: Date | string
+  /** Created timestamp */
+  createdAt?: Date | string
+  /** Updated timestamp */
+  updatedAt?: Date | string
+}
+
+/**
  * Card status types
  */
 export type CardStatus = 'TODO' | 'IN_PROGRESS' | 'REVIEW' | 'DONE' | 'BLOCKED'
@@ -58,6 +81,8 @@ export interface Card {
   progress?: number
   /** Cover image URL */
   coverImage?: string
+  /** Subtasks/checklist items */
+  subtasks?: Subtask[]
   /** Custom metadata */
   metadata?: Record<string, unknown>
 
