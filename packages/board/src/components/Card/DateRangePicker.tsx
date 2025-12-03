@@ -5,6 +5,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { Portal } from '../Portal'
+import { useKanbanTheme } from '../Board/KanbanThemeContext'
 
 export interface DateRangePickerProps {
   startDate?: string
@@ -32,6 +33,9 @@ export function DateRangePicker({
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 })
   const menuRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
+  const kanbanTheme = useKanbanTheme()
+  const themeName = kanbanTheme?.themeName || 'dark'
+  const isDark = themeName === 'dark' || themeName === 'neutral'
 
   useEffect(() => {
     if (isOpen && buttonRef.current) {
@@ -187,20 +191,24 @@ export function DateRangePicker({
         <Portal>
           <div
             ref={menuRef}
-            data-theme="dark"
             className="date-picker-menu absolute rounded-xl shadow-2xl border min-w-[320px]"
             style={{
               top: `${menuPosition.top}px`,
               left: `${menuPosition.left}px`,
-              background: '#222326',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
-              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1)',
+              background: isDark ? '#222326' : '#FFFFFF',
+              border: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.12)'}`,
+              boxShadow: isDark
+                ? '0 20px 60px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1)'
+                : '0 20px 60px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.08)',
               zIndex: 99999,
             }}
           >
           {/* Quick selection */}
-          <div className="p-4 border-b" style={{ borderColor: 'rgba(255, 255, 255, 0.1)' }}>
-            <span className="text-xs font-bold uppercase tracking-wider block mb-3" style={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+          <div className="p-4 border-b" style={{ borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)' }}>
+            <span
+              className="text-xs font-bold uppercase tracking-wider block mb-3"
+              style={{ color: isDark ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.6)' }}
+            >
               Quick Select
             </span>
             <div className="grid grid-cols-2 gap-2">
@@ -208,19 +216,19 @@ export function DateRangePicker({
                 <button
                   key={option.label}
                   onClick={() => handleQuickSelect(option.days)}
-                  className="px-3 py-2.5 rounded-lg text-xs font-semibold transition-all active:scale-95 border"
+                  className="date-picker-quick-btn px-3 py-2.5 rounded-lg text-xs font-semibold transition-all active:scale-95 border"
                   style={{
-                    color: 'rgba(255, 255, 255, 0.9)',
-                    borderColor: 'rgba(255, 255, 255, 0.2)',
-                    background: 'rgba(255, 255, 255, 0.08)',
+                    color: isDark ? 'rgba(255, 255, 255, 0.9)' : 'rgba(0, 0, 0, 0.85)',
+                    borderColor: isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.12)',
+                    background: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)',
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)'
-                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)'
+                    e.currentTarget.style.background = isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)'
+                    e.currentTarget.style.borderColor = isDark ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.2)'
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'
-                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)'
+                    e.currentTarget.style.background = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)'
+                    e.currentTarget.style.borderColor = isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.12)'
                   }}
                 >
                   {option.label}
@@ -231,7 +239,10 @@ export function DateRangePicker({
 
           {/* Manual date inputs */}
           <div className="p-4">
-            <span className="text-xs font-bold uppercase tracking-wider block mb-3" style={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+            <span
+              className="text-xs font-bold uppercase tracking-wider block mb-3"
+              style={{ color: isDark ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.6)' }}
+            >
               Custom Range
             </span>
             <div className="space-y-3">
@@ -239,24 +250,24 @@ export function DateRangePicker({
                 type="date"
                 value={startDate || ''}
                 onChange={(e) => onChange(e.target.value, endDate)}
-                className="w-full px-3 py-2.5 rounded-lg text-sm border focus:outline-none transition-all"
+                className="date-picker-input w-full px-3 py-2.5 rounded-lg text-sm border focus:outline-none transition-all"
                 style={{
-                  background: 'rgba(255, 255, 255, 0.08)',
-                  borderColor: 'rgba(255, 255, 255, 0.2)',
-                  color: 'rgba(255, 255, 255, 0.9)',
-                  colorScheme: 'dark',
+                  background: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)',
+                  borderColor: isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.12)',
+                  color: isDark ? 'rgba(255, 255, 255, 0.9)' : 'rgba(0, 0, 0, 0.85)',
+                  colorScheme: isDark ? 'dark' : 'light',
                 }}
               />
               <input
                 type="date"
                 value={endDate || ''}
                 onChange={(e) => onChange(startDate, e.target.value)}
-                className="w-full px-3 py-2.5 rounded-lg text-sm border focus:outline-none transition-all"
+                className="date-picker-input w-full px-3 py-2.5 rounded-lg text-sm border focus:outline-none transition-all"
                 style={{
-                  background: 'rgba(255, 255, 255, 0.08)',
-                  borderColor: 'rgba(255, 255, 255, 0.2)',
-                  color: 'rgba(255, 255, 255, 0.9)',
-                  colorScheme: 'dark',
+                  background: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)',
+                  borderColor: isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.12)',
+                  color: isDark ? 'rgba(255, 255, 255, 0.9)' : 'rgba(0, 0, 0, 0.85)',
+                  colorScheme: isDark ? 'dark' : 'light',
                 }}
               />
             </div>
@@ -268,7 +279,7 @@ export function DateRangePicker({
                   onChange(undefined, undefined)
                   setIsOpen(false)
                 }}
-                className="mt-4 w-full px-3 py-2.5 rounded-lg text-sm font-semibold transition-all active:scale-95 border"
+                className="date-picker-clear-btn mt-4 w-full px-3 py-2.5 rounded-lg text-sm font-semibold transition-all active:scale-95 border"
                 style={{
                   color: '#ef4444',
                   borderColor: 'rgba(239, 68, 68, 0.3)',

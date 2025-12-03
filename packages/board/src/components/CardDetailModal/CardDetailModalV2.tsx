@@ -23,6 +23,7 @@ import remarkGfm from 'remark-gfm'
 import rehypeSanitize from 'rehype-sanitize'
 import { Portal } from '../Portal'
 import { CoverImageManager } from '../CoverImage'
+import { useKanbanTheme } from '../Board/KanbanThemeContext'
 import type { Card, User, Comment, Activity } from '../../types'
 import './card-detail-modal-v2.css'
 
@@ -111,6 +112,10 @@ export function CardDetailModalV2({
   onUploadCoverImage,
   unsplashAccessKey,
 }: CardDetailModalV2Props) {
+  // Get theme from context
+  const kanbanTheme = useKanbanTheme()
+  const themeName = kanbanTheme?.themeName || 'dark'
+
   // Local state - Initialize immediately from card prop to avoid render delay
   const [localCard, setLocalCard] = useState<Card | null>(card)
 
@@ -509,6 +514,7 @@ export function CardDetailModalV2({
           role="dialog"
           aria-modal="true"
           aria-labelledby="modal-title"
+          data-theme={themeName}
         >
           {/* HEADER */}
           <header className="modal-v2-header">
