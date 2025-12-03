@@ -5,7 +5,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { Portal } from '../Portal'
-import './date-range-picker.css'
+import { useKanbanTheme } from '../Board/KanbanThemeContext'
 
 export interface DateRangePickerProps {
   startDate?: string
@@ -33,6 +33,10 @@ export function DateRangePicker({
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 })
   const menuRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
+  const kanbanTheme = useKanbanTheme()
+  const themeName = kanbanTheme?.themeName || 'dark'
+  // Only 'dark' theme uses dark colors, 'light' and 'neutral' use light colors
+  const isDark = themeName === 'dark'
 
   useEffect(() => {
     if (isOpen && buttonRef.current) {
@@ -79,8 +83,6 @@ export function DateRangePicker({
   const handleQuickSelect = (days: number) => {
     const now = new Date()
 
-    // Format date as YYYY-MM-DD in LOCAL timezone (not UTC)
-    // This prevents timezone offset issues where selecting "Today" assigns tomorrow's date
     const formatLocalDate = (date: Date) => {
       const year = date.getFullYear()
       const month = String(date.getMonth() + 1).padStart(2, '0')
@@ -101,10 +103,8 @@ export function DateRangePicker({
   const formatDateRange = () => {
     if (!startDate || !endDate) return 'Set date'
 
-    // Parse dates as local timezone to avoid UTC conversion issues
     const parseLocalDate = (dateStr: string | Date) => {
       if (dateStr instanceof Date) return dateStr
-      // Handle invalid date strings
       if (typeof dateStr !== 'string' || !dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
         return null
       }
@@ -124,7 +124,6 @@ export function DateRangePicker({
     const start = parseLocalDate(startDate)
     const end = parseLocalDate(endDate)
 
-    // Return 'Set date' if parsing failed
     if (!start || !end || isNaN(start.getTime()) || isNaN(end.getTime())) {
       return 'Set date'
     }
@@ -136,7 +135,6 @@ export function DateRangePicker({
 
   const hasDateSet = startDate && endDate
 
-  // Check if date is overdue
   const isOverdue = () => {
     if (!endDate) return false
     const end = typeof endDate === 'string' ? new Date(endDate) : endDate
@@ -149,7 +147,6 @@ export function DateRangePicker({
 
   return (
     <div className={`relative ${className || ''}`}>
-      {/* Date button - plain text with color only if overdue */}
       <button
         ref={buttonRef}
         onClick={() => setIsOpen(!isOpen)}
@@ -183,26 +180,48 @@ export function DateRangePicker({
         )}
       </button>
 
-      {/* Date picker menu - Using Portal to escape stacking context */}
       {isOpen && (
         <Portal>
           <div
             ref={menuRef}
-            className="drp-menu"
+            className="date-picker-menu absolute rounded-xl shadow-2xl border min-w-[320px]"
             style={{
               top: `${menuPosition.top}px`,
               left: `${menuPosition.left}px`,
+              background: isDark ? '#222326' : '#FFFFFF',
+              border: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.12)'}`,
+              boxShadow: isDark
+                ? '0 20px 60px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1)'
+                : '0 20px 60px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.08)',
+              zIndex: 99999,
             }}
           >
-            {/* Quick selection */}
-            <div className="drp-section drp-section-border">
-              <span className="drp-label">Quick Select</span>
-              <div className="drp-grid">
+            <div className="p-4 border-b" style={{ borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)' }}>
+              <span
+                className="text-xs font-bold uppercase tracking-wider block mb-3"
+                style={{ color: isDark ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.6)' }}
+              >
+                Quick Select
+              </span>
+              <div className="grid grid-cols-2 gap-2">
                 {QUICK_OPTIONS.map((option) => (
                   <button
                     key={option.label}
                     onClick={() => handleQuickSelect(option.days)}
-                    className="drp-btn"
+                    className="px-3 py-2.5 rounded-lg text-xs font-semibold transition-all active:scale-95 border"
+                    style={{
+                      color: isDark ? 'rgba(255, 255, 255, 0.9)' : 'rgba(0, 0, 0, 0.85)',
+                      borderColor: isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.12)',
+                      background: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)'
+                      e.currentTarget.style.borderColor = isDark ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.2)'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)'
+                      e.currentTarget.style.borderColor = isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.12)'
+                    }}
                   >
                     {option.label}
                   </button>
@@ -210,32 +229,58 @@ export function DateRangePicker({
               </div>
             </div>
 
-            {/* Manual date inputs */}
-            <div className="drp-section">
-              <span className="drp-label">Custom Range</span>
-              <div className="drp-inputs">
+            <div className="p-4">
+              <span
+                className="text-xs font-bold uppercase tracking-wider block mb-3"
+                style={{ color: isDark ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.6)' }}
+              >
+                Custom Range
+              </span>
+              <div className="space-y-3">
                 <input
                   type="date"
                   value={startDate || ''}
                   onChange={(e) => onChange(e.target.value, endDate)}
-                  className="drp-input"
+                  className="w-full px-3 py-2.5 rounded-lg text-sm border focus:outline-none transition-all"
+                  style={{
+                    background: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)',
+                    borderColor: isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.12)',
+                    color: isDark ? 'rgba(255, 255, 255, 0.9)' : 'rgba(0, 0, 0, 0.85)',
+                    colorScheme: isDark ? 'dark' : 'light',
+                  }}
                 />
                 <input
                   type="date"
                   value={endDate || ''}
                   onChange={(e) => onChange(startDate, e.target.value)}
-                  className="drp-input"
+                  className="w-full px-3 py-2.5 rounded-lg text-sm border focus:outline-none transition-all"
+                  style={{
+                    background: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)',
+                    borderColor: isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.12)',
+                    color: isDark ? 'rgba(255, 255, 255, 0.9)' : 'rgba(0, 0, 0, 0.85)',
+                    colorScheme: isDark ? 'dark' : 'light',
+                  }}
                 />
               </div>
 
-              {/* Clear button */}
               {(startDate || endDate) && (
                 <button
                   onClick={() => {
                     onChange(undefined, undefined)
                     setIsOpen(false)
                   }}
-                  className="drp-clear-btn"
+                  className="mt-4 w-full px-3 py-2.5 rounded-lg text-sm font-semibold transition-all active:scale-95 border"
+                  style={{
+                    color: '#ef4444',
+                    borderColor: 'rgba(239, 68, 68, 0.3)',
+                    background: 'rgba(239, 68, 68, 0.1)',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'
+                  }}
                 >
                   Clear Dates
                 </button>
