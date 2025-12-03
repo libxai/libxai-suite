@@ -91,6 +91,8 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     onAfterTaskAdd,
     onBeforeTaskUpdate,
     onAfterTaskUpdate,
+    onBeforeTaskDelete,
+    onAfterTaskDelete,
   } = config;
 
   // Try to get global theme from ThemeProvider (will return undefined if not in ThemeProvider)
@@ -157,9 +159,31 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     setLocalTasks(tasks);
   }, [tasks, setLocalTasks]);
 
-  // Sync local tasks with parent when they change
+  // v0.17.19: Track previous tasks for comparison to avoid unnecessary onTasksChange calls
+  const prevTasksRef = useRef<Task[]>(tasks);
+  const isInitialMount = useRef(true);
+
+  // Sync local tasks with parent when they change (optimized to avoid unnecessary calls)
   useEffect(() => {
-    if (onTasksChange) {
+    // Skip on initial mount - parent already has the tasks
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      prevTasksRef.current = localTasks;
+      return;
+    }
+
+    if (!onTasksChange) return;
+
+    // Compare tasks to detect meaningful changes (not just reference changes)
+    // We use JSON stringify for deep comparison - this catches:
+    // - Added/removed tasks
+    // - Changed task properties (name, dates, progress, etc.)
+    // - But NOT just reordering of the same data in memory
+    const prevJson = JSON.stringify(prevTasksRef.current);
+    const currentJson = JSON.stringify(localTasks);
+
+    if (prevJson !== currentJson) {
+      prevTasksRef.current = localTasks;
       onTasksChange(localTasks);
     }
   }, [localTasks, onTasksChange]);
@@ -626,16 +650,41 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     config.onTaskMove?.(taskIds[0]!, direction);
   }, [config]);
 
-  const handleMultiTaskDelete = useCallback((taskIds: string[]) => {
+  const handleMultiTaskDelete = useCallback(async (taskIds: string[]) => {
+    // v0.17.19: Support lifecycle callbacks for delete operations
+    // Filter out tasks that are blocked by onBeforeTaskDelete
+    const allowedTaskIds: string[] = [];
+
+    for (const taskId of taskIds) {
+      if (onBeforeTaskDelete) {
+        const result = await Promise.resolve(onBeforeTaskDelete(taskId));
+        if (result === false) {
+          // Skip this task - deletion was cancelled
+          continue;
+        }
+      }
+      allowedTaskIds.push(taskId);
+    }
+
+    // If no tasks are allowed to be deleted, return early
+    if (allowedTaskIds.length === 0) {
+      return;
+    }
+
     // Call the consumer's onMultiTaskDelete handler if provided
     if (config.onMultiTaskDelete) {
-      config.onMultiTaskDelete(taskIds);
+      config.onMultiTaskDelete(allowedTaskIds);
     } else {
       // Fallback: update local state and call individual delete handlers
-      setLocalTasks((prev) => deleteTasks(prev, taskIds));
-      taskIds.forEach(id => config.onTaskDelete?.(id));
+      setLocalTasks((prev) => deleteTasks(prev, allowedTaskIds));
+      allowedTaskIds.forEach(id => config.onTaskDelete?.(id));
     }
-  }, [config]);
+
+    // v0.17.19: Call onAfterTaskDelete for each successfully deleted task
+    if (onAfterTaskDelete) {
+      allowedTaskIds.forEach(id => onAfterTaskDelete(id));
+    }
+  }, [config, onBeforeTaskDelete, onAfterTaskDelete]);
 
   const handleTaskDuplicate = useCallback((taskIds: string[]) => {
     setLocalTasks((prev) => duplicateTasks(prev, taskIds));
@@ -1300,7 +1349,8 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
             setLocalTasks((prev) => [...prev, task]);
           }}
           onTaskDelete={(taskId) => {
-            setLocalTasks((prev) => deleteTasks(prev, [taskId]));
+            // v0.17.19: Use handleMultiTaskDelete to respect lifecycle hooks
+            handleMultiTaskDelete([taskId]);
           }}
           onDependencyCreate={(fromTaskId, toTaskId) => {
             const fromTask = ganttUtils.findTaskById(localTasks, fromTaskId);
