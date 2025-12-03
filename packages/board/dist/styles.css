@@ -3179,6 +3179,129 @@
 /* Neutral theme grayscale filter removed - let colors breathe */
 
 
+/* ============================================================================
+   DATE RANGE PICKER - Theme-aware styles
+   ============================================================================ */
+
+
+/* Dark mode - default */
+
+
+[data-theme="dark"] {
+  --date-picker-bg: #222326;
+  --date-picker-border: rgba(255, 255, 255, 0.15);
+  --date-picker-text-primary: rgba(255, 255, 255, 0.9);
+  --date-picker-text-secondary: rgba(255, 255, 255, 0.7);
+  --date-picker-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1);
+  --date-picker-btn-bg: rgba(255, 255, 255, 0.05);
+  --date-picker-btn-bg-hover: rgba(255, 255, 255, 0.12);
+  --date-picker-btn-border: rgba(255, 255, 255, 0.15);
+  --date-picker-btn-border-hover: rgba(255, 255, 255, 0.25);
+  --date-picker-input-bg: rgba(255, 255, 255, 0.05);
+}
+
+
+/* Light mode */
+
+
+[data-theme="light"] {
+  --date-picker-bg: #FFFFFF;
+  --date-picker-border: rgba(0, 0, 0, 0.12);
+  --date-picker-text-primary: #1A1A1A;
+  --date-picker-text-secondary: #6B6B6B;
+  --date-picker-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.08);
+  --date-picker-btn-bg: rgba(0, 0, 0, 0.03);
+  --date-picker-btn-bg-hover: rgba(0, 0, 0, 0.08);
+  --date-picker-btn-border: rgba(0, 0, 0, 0.12);
+  --date-picker-btn-border-hover: rgba(0, 0, 0, 0.2);
+  --date-picker-input-bg: rgba(0, 0, 0, 0.02);
+}
+
+
+/* Neutral mode */
+
+
+[data-theme="neutral"] {
+  --date-picker-bg: #F5F5F5;
+  --date-picker-border: rgba(0, 0, 0, 0.1);
+  --date-picker-text-primary: #1A1A1A;
+  --date-picker-text-secondary: #6B6B6B;
+  --date-picker-shadow: 0 20px 60px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.06);
+  --date-picker-btn-bg: rgba(0, 0, 0, 0.04);
+  --date-picker-btn-bg-hover: rgba(0, 0, 0, 0.1);
+  --date-picker-btn-border: rgba(0, 0, 0, 0.1);
+  --date-picker-btn-border-hover: rgba(0, 0, 0, 0.18);
+  --date-picker-input-bg: rgba(0, 0, 0, 0.03);
+}
+
+
+/* Quick select buttons */
+
+
+.date-picker-quick-btn {
+  color: var(--date-picker-text-primary);
+  border-color: var(--date-picker-btn-border);
+  background: var(--date-picker-btn-bg);
+  transition: all 0.15s ease;
+}
+
+
+.date-picker-quick-btn:hover {
+  background: var(--date-picker-btn-bg-hover);
+  border-color: var(--date-picker-btn-border-hover);
+}
+
+
+/* Date inputs */
+
+
+.date-picker-input {
+  background: var(--date-picker-input-bg);
+  border-color: var(--date-picker-btn-border);
+  color: var(--date-picker-text-primary);
+}
+
+
+.date-picker-input:focus {
+  border-color: #3B82F6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+
+/* Dark mode specific for date inputs */
+
+
+[data-theme="dark"] .date-picker-input {
+  color-scheme: dark;
+}
+
+
+/* Light/Neutral mode specific for date inputs */
+
+
+[data-theme="light"] .date-picker-input,
+[data-theme="neutral"] .date-picker-input {
+  color-scheme: light;
+}
+
+
+/* Clear button */
+
+
+.date-picker-clear-btn {
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.1);
+  transition: all 0.15s ease;
+}
+
+
+.date-picker-clear-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+
 /* Card Stack - Smart grouping of related cards (v0.6.0) */
 
 
