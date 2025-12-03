@@ -7,6 +7,7 @@
 import { useEffect, useState, type ReactNode, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import { useGanttTheme } from '../Gantt/GanttThemeContext'
+import { useKanbanTheme } from '../Board/KanbanThemeContext'
 
 export interface PortalProps {
   children: ReactNode
@@ -17,11 +18,12 @@ export interface PortalProps {
 /**
  * Portal component that renders children at the root level
  * Perfect for modals, tooltips, dropdowns that need to escape stacking context
- * Automatically applies Gantt theme CSS variables when used within GanttBoard
+ * Automatically applies Gantt or Kanban theme when used within their respective boards
  */
 export function Portal({ children, container }: PortalProps) {
   const [mounted, setMounted] = useState(false)
   const ganttTheme = useGanttTheme()
+  const kanbanTheme = useKanbanTheme()
 
   useEffect(() => {
     setMounted(true)
@@ -83,6 +85,19 @@ export function Portal({ children, container }: PortalProps) {
         data-theme={themeName}
         data-gantt-portal="true"
         style={themeStyles}
+      >
+        {children}
+      </div>,
+      target
+    )
+  }
+
+  // If we have a Kanban theme, wrap children with data-theme attribute
+  if (kanbanTheme) {
+    return createPortal(
+      <div
+        data-theme={kanbanTheme.themeName}
+        data-kanban-portal="true"
       >
         {children}
       </div>,
