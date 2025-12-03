@@ -61,6 +61,9 @@ export interface CoverImageManagerProps {
 
   /** Show recent uploads */
   showRecentUploads?: boolean
+
+  /** Theme for styling (dark, light, neutral). Defaults to 'dark' */
+  theme?: 'dark' | 'light' | 'neutral'
 }
 
 type TabType = 'upload' | 'link' | 'unsplash'
@@ -77,6 +80,7 @@ export function CoverImageManager({
   unsplashAccessKey,
   maxFileSize = MAX_FILE_SIZE,
   showRecentUploads = true,
+  theme = 'dark',
 }: CoverImageManagerProps) {
   const [activeTab, setActiveTab] = useState<TabType>('upload')
   const [isUploading, setIsUploading] = useState(false)
@@ -294,7 +298,7 @@ export function CoverImageManager({
   if (coverImage && !repositionMode) {
     // Preview mode
     return (
-      <div className="cover-image-preview">
+      <div className="cover-image-preview" data-theme={theme}>
         <div className="cover-image-preview-container">
           <img
             src={coverImage}
@@ -339,7 +343,7 @@ export function CoverImageManager({
   }
 
   return (
-    <div className="cover-image-manager">
+    <div className="cover-image-manager" data-theme={theme}>
       {/* Tabs */}
       <div className="cover-image-tabs" role="tablist">
         <button
