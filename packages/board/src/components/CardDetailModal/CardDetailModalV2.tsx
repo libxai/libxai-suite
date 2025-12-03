@@ -22,7 +22,8 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeSanitize from 'rehype-sanitize'
 import { Portal } from '../Portal'
-import { CoverImageManager } from '../CoverImage'
+// COVER IMAGE - Commented out for future use. Uncomment to enable cover image functionality
+// import { CoverImageManager } from '../CoverImage'
 import { useKanbanTheme } from '../Board/KanbanThemeContext'
 import type { Card, User, Comment, Activity, Subtask } from '../../types'
 import './card-detail-modal-v2.css'
@@ -109,8 +110,9 @@ export function CardDetailModalV2({
   onAIFindSimilar: _onAIFindSimilar,
   availableColumns = [],
   availableLabels = [],
-  onUploadCoverImage,
-  unsplashAccessKey,
+  // COVER IMAGE - Commented out for future use
+  onUploadCoverImage: _onUploadCoverImage,
+  unsplashAccessKey: _unsplashAccessKey,
   theme,
   onSubtasksChange,
 }: CardDetailModalV2Props) {
@@ -127,7 +129,8 @@ export function CardDetailModalV2({
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('')
   const [commentText, setCommentText] = useState('')
   const [activityFilter, setActivityFilter] = useState<'all' | 'comments' | 'history'>('all')
-  const [showCoverManager, setShowCoverManager] = useState(false)
+  // COVER IMAGE - Commented out for future use. Uncomment when enabling cover image functionality
+  // const [showCoverManager, setShowCoverManager] = useState(false)
 
   // Popover states
   const [showStatusMenu, setShowStatusMenu] = useState(false)
@@ -448,6 +451,9 @@ export function CardDetailModalV2({
     [handleSendComment]
   )
 
+  // COVER IMAGE HANDLERS - Commented out for future use
+  // Uncomment these functions when enabling cover image functionality
+  /*
   const handleCoverImageChange = useCallback(
     (url: string) => {
       if (localCard) {
@@ -465,10 +471,9 @@ export function CardDetailModalV2({
       const updated = { ...localCard, coverImage: undefined }
       setLocalCard(updated)
       onUpdate?.(localCard.id, { coverImage: undefined })
-      // Don't close manager immediately - let user see the change
-      // setShowCoverManager(false)
     }
   }, [localCard, onUpdate])
+  */
 
   // Enhanced markdown renderer with GFM support
   const renderMarkdown = (text: string) => {
@@ -568,7 +573,11 @@ export function CardDetailModalV2({
             </button>
           </header>
 
-          {/* COVER IMAGE SECTION */}
+          {/* COVER IMAGE SECTION - COMMENTED OUT FOR FUTURE USE
+           * To enable cover image functionality, uncomment this section
+           * and ensure CoverImageManager import is active
+           */}
+          {/*
           <section className="modal-v2-cover-section">
             {!showCoverManager && !displayCard.coverImage && (
               <button
@@ -651,6 +660,7 @@ export function CardDetailModalV2({
               </div>
             )}
           </section>
+          */}
 
           {/* METADATA GRID */}
           <section className="modal-v2-metadata">
