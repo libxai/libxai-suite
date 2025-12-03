@@ -6,6 +6,7 @@ export {
   DateRangePicker,
   UserAssignmentSelector,
   DependenciesSelector,
+  wouldCreateCircularDependency,
   DragPhysics,
   useDragPhysics,
   dragPhysicsPresets,
