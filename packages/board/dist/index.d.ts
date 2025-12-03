@@ -1010,8 +1010,10 @@ interface CardDetailModalV2Props {
     onUploadCoverImage?: (file: File) => Promise<string>;
     /** Unsplash API key for cover images (optional) */
     unsplashAccessKey?: string;
+    /** Theme for the modal (dark, light, neutral). If not provided, uses KanbanThemeContext or defaults to 'dark' */
+    theme?: 'dark' | 'light' | 'neutral';
 }
-declare function CardDetailModalV2({ card, isOpen, onClose, onUpdate, onDelete: _onDelete, availableUsers, comments, activities, onAddComment, onDeleteComment: _onDeleteComment, currentUser, onAIGenerateDescription: _onAIGenerateDescription, onAICreateSubtasks: _onAICreateSubtasks, onAIFindSimilar: _onAIFindSimilar, availableColumns, availableLabels, onUploadCoverImage, unsplashAccessKey, }: CardDetailModalV2Props): react_jsx_runtime.JSX.Element | null;
+declare function CardDetailModalV2({ card, isOpen, onClose, onUpdate, onDelete: _onDelete, availableUsers, comments, activities, onAddComment, onDeleteComment: _onDeleteComment, currentUser, onAIGenerateDescription: _onAIGenerateDescription, onAICreateSubtasks: _onAICreateSubtasks, onAIFindSimilar: _onAIFindSimilar, availableColumns, availableLabels, onUploadCoverImage, unsplashAccessKey, theme, }: CardDetailModalV2Props): react_jsx_runtime.JSX.Element | null;
 
 interface AttachmentUploaderProps {
     /** Card ID for attachments */

@@ -81,6 +81,9 @@ export interface CardDetailModalV2Props {
 
   /** Unsplash API key for cover images (optional) */
   unsplashAccessKey?: string
+
+  /** Theme for the modal (dark, light, neutral). If not provided, uses KanbanThemeContext or defaults to 'dark' */
+  theme?: 'dark' | 'light' | 'neutral'
 }
 
 interface Subtask {
@@ -111,10 +114,11 @@ export function CardDetailModalV2({
   availableLabels = [],
   onUploadCoverImage,
   unsplashAccessKey,
+  theme,
 }: CardDetailModalV2Props) {
-  // Get theme from context
+  // Get theme: prop > context > fallback
   const kanbanTheme = useKanbanTheme()
-  const themeName = kanbanTheme?.themeName || 'dark'
+  const themeName = theme || kanbanTheme?.themeName || 'dark'
 
   // Local state - Initialize immediately from card prop to avoid render delay
   const [localCard, setLocalCard] = useState<Card | null>(card)
@@ -628,6 +632,7 @@ export function CardDetailModalV2({
                   onRemove={handleCoverImageRemove}
                   unsplashAccessKey={unsplashAccessKey}
                   showRecentUploads={true}
+                  theme={themeName}
                 />
               </div>
             )}
