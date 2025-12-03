@@ -831,10 +831,6 @@ interface PrioritySelectorProps {
 }
 declare function PrioritySelector({ priority, onChange, className, }: PrioritySelectorProps): react_jsx_runtime.JSX.Element;
 
-/**
- * Date Range Picker Component
- * Quick selection buttons + interactive calendar
- */
 interface DateRangePickerProps {
     startDate?: string;
     endDate?: string;
