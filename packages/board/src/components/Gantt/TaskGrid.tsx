@@ -713,8 +713,17 @@ export function TaskGrid({
           </div>
         ))}
         
-        {/* Add Column Button */}
-        <div className="px-3 flex items-center gap-2 h-full">
+        {/* Add Column Button - v0.17.23: Sticky to prevent overlap when resizing columns */}
+        <div
+          className="px-3 flex items-center gap-2 h-full"
+          style={{
+            position: 'sticky',
+            right: 0,
+            backgroundColor: theme.bgGrid,
+            zIndex: 15,
+            flexShrink: 0,
+          }}
+        >
           <ColumnManager
             columns={columns}
             onToggleColumn={onToggleColumn}
