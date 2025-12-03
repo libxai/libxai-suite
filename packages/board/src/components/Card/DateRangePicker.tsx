@@ -188,7 +188,7 @@ export function DateRangePicker({
             style={{
               top: `${menuPosition.top}px`,
               left: `${menuPosition.left}px`,
-              background: isDark ? '#222326' : '#FFFFFF',
+              background: isDark ? '#1A1D25' : '#FFFFFF',
               border: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.12)'}`,
               boxShadow: isDark
                 ? '0 20px 60px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1)'
