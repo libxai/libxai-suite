@@ -199,7 +199,7 @@ export function DateRangePicker({
           >
           {/* Quick selection */}
           <div className="p-4 border-b" style={{ borderColor: 'var(--modal-v2-border, rgba(255, 255, 255, 0.1))' }}>
-            <span className="text-xs font-bold uppercase tracking-wider block mb-3" style={{ color: 'var(--modal-v2-text-secondary, rgba(255, 255, 255, 0.8))' }}>
+            <span className="text-xs font-bold uppercase tracking-wider block mb-3" style={{ color: 'var(--modal-v2-text-secondary, rgba(255, 255, 255, 0.7))' }}>
               Quick Select
             </span>
             <div className="grid grid-cols-2 gap-2">
@@ -209,15 +209,17 @@ export function DateRangePicker({
                   onClick={() => handleQuickSelect(option.days)}
                   className="px-3 py-2.5 rounded-lg text-xs font-semibold transition-all active:scale-95 border"
                   style={{
-                    color: 'var(--modal-v2-text-primary, #60a5fa)',
-                    borderColor: 'var(--modal-v2-border, rgba(96, 165, 250, 0.3))',
-                    background: 'var(--modal-v2-bg-secondary, rgba(96, 165, 250, 0.08))',
+                    color: 'rgba(255, 255, 255, 0.9)',
+                    borderColor: 'rgba(255, 255, 255, 0.15)',
+                    background: 'rgba(255, 255, 255, 0.05)',
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'var(--modal-v2-bg-tertiary, rgba(96, 165, 250, 0.15))'
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.12)'
+                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.25)'
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'var(--modal-v2-bg-secondary, rgba(96, 165, 250, 0.08))'
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'
+                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)'
                   }}
                 >
                   {option.label}
@@ -228,7 +230,7 @@ export function DateRangePicker({
 
           {/* Manual date inputs */}
           <div className="p-4">
-            <span className="text-xs font-bold uppercase tracking-wider block mb-3" style={{ color: 'var(--modal-v2-text-secondary, rgba(255, 255, 255, 0.8))' }}>
+            <span className="text-xs font-bold uppercase tracking-wider block mb-3" style={{ color: 'rgba(255, 255, 255, 0.7)' }}>
               Custom Range
             </span>
             <div className="space-y-3">
@@ -238,9 +240,10 @@ export function DateRangePicker({
                 onChange={(e) => onChange(e.target.value, endDate)}
                 className="w-full px-3 py-2.5 rounded-lg text-sm border focus:outline-none transition-all"
                 style={{
-                  background: 'var(--modal-v2-bg-secondary, rgba(255, 255, 255, 0.05))',
-                  borderColor: 'var(--modal-v2-border, rgba(255, 255, 255, 0.2))',
-                  color: 'var(--modal-v2-text-primary, #ffffff)',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  borderColor: 'rgba(255, 255, 255, 0.15)',
+                  color: 'rgba(255, 255, 255, 0.9)',
+                  colorScheme: 'dark',
                 }}
               />
               <input
@@ -249,9 +252,10 @@ export function DateRangePicker({
                 onChange={(e) => onChange(startDate, e.target.value)}
                 className="w-full px-3 py-2.5 rounded-lg text-sm border focus:outline-none transition-all"
                 style={{
-                  background: 'var(--modal-v2-bg-secondary, rgba(255, 255, 255, 0.05))',
-                  borderColor: 'var(--modal-v2-border, rgba(255, 255, 255, 0.2))',
-                  color: 'var(--modal-v2-text-primary, #ffffff)',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  borderColor: 'rgba(255, 255, 255, 0.15)',
+                  color: 'rgba(255, 255, 255, 0.9)',
+                  colorScheme: 'dark',
                 }}
               />
             </div>
@@ -263,11 +267,17 @@ export function DateRangePicker({
                   onChange(undefined, undefined)
                   setIsOpen(false)
                 }}
-                className="mt-4 w-full px-3 py-2.5 rounded-lg text-sm font-semibold transition-all hover:bg-red-600/30 active:scale-95 border"
+                className="mt-4 w-full px-3 py-2.5 rounded-lg text-sm font-semibold transition-all active:scale-95 border"
                 style={{
-                  color: '#f87171',
-                  borderColor: 'rgba(248, 113, 113, 0.3)',
-                  background: 'rgba(248, 113, 113, 0.08)',
+                  color: '#ef4444',
+                  borderColor: 'rgba(239, 68, 68, 0.3)',
+                  background: 'rgba(239, 68, 68, 0.1)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'
                 }}
               >
                 Clear Dates
