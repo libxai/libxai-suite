@@ -593,15 +593,15 @@ export function GanttToolbar({
               onClick={onCreateTask}
               className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-all"
               style={{
-                background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)',
                 color: '#FFFFFF',
                 fontFamily: 'Inter, sans-serif',
                 fontWeight: 500,
-                boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)',
+                boxShadow: '0 2px 8px rgba(59, 130, 246, 0.3)',
               }}
               whileHover={{
                 scale: 1.02,
-                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.4)',
+                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.4)',
               }}
               whileTap={{ scale: 0.98 }}
             >
