@@ -1879,21 +1879,27 @@
 }
 
 
-/* Dark Theme - Exact #222326 */
+/* Dark Theme - Matches Kanban system color #1A1D25 */
 
 
 [data-theme="dark"] {
-  --modal-v2-bg: #222326;
+  --modal-v2-bg: #1A1D25;
   --modal-v2-text-primary: #F4F5F8;
   --modal-v2-text-secondary: #AEB6C0;
   --modal-v2-text-tertiary: #6B7280;
   --modal-v2-border: rgba(255, 255, 255, 0.08);
   --modal-v2-border-hover: rgba(255, 255, 255, 0.15);
-  --modal-v2-bg-secondary: rgba(255, 255, 255, 0.03);
-  --modal-v2-bg-tertiary: rgba(255, 255, 255, 0.05);
-  --modal-v2-comment-bg: #2A2B2E;
+  --modal-v2-bg-secondary: rgba(255, 255, 255, 0.04);
+  --modal-v2-bg-tertiary: rgba(255, 255, 255, 0.06);
+  --modal-v2-comment-bg: #242830;
   --modal-v2-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
   --modal-v2-backdrop: rgba(0, 0, 0, 0.7);
+  /* v0.17.21: Accent colors for interactive elements */
+  --color-accent-primary: #3B82F6;
+  --color-accent-hover: #2563EB;
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
+  --color-error: #EF4444;
 }
 
 
@@ -1912,6 +1918,12 @@
   --modal-v2-comment-bg: #F7F7F8;
   --modal-v2-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
   --modal-v2-backdrop: rgba(0, 0, 0, 0.4);
+  /* v0.17.21: Accent colors for interactive elements */
+  --color-accent-primary: #2563EB;
+  --color-accent-hover: #1D4ED8;
+  --color-success: #059669;
+  --color-warning: #D97706;
+  --color-error: #DC2626;
 }
 
 
@@ -1930,6 +1942,12 @@
   --modal-v2-comment-bg: #EBEBEB;
   --modal-v2-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
   --modal-v2-backdrop: rgba(0, 0, 0, 0.35);
+  /* v0.17.21: Accent colors for interactive elements */
+  --color-accent-primary: #2563EB;
+  --color-accent-hover: #1D4ED8;
+  --color-success: #059669;
+  --color-warning: #D97706;
+  --color-error: #DC2626;
 }
 
 

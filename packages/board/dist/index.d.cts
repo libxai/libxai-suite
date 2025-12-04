@@ -1052,7 +1052,7 @@ interface CardDetailModalV2Props {
     /** Callback when subtasks are changed (for persistence) */
     onSubtasksChange?: (cardId: string, subtasks: Subtask[]) => void;
 }
-declare function CardDetailModalV2({ card, isOpen, onClose, onUpdate, onDelete: _onDelete, availableUsers, comments, activities, onAddComment, onDeleteComment: _onDeleteComment, currentUser, onAIGenerateDescription: _onAIGenerateDescription, onAICreateSubtasks: _onAICreateSubtasks, onAIFindSimilar: _onAIFindSimilar, availableColumns, availableLabels, onUploadCoverImage, unsplashAccessKey, theme, onSubtasksChange, }: CardDetailModalV2Props): react_jsx_runtime.JSX.Element | null;
+declare function CardDetailModalV2({ card, isOpen, onClose, onUpdate, onDelete: _onDelete, availableUsers, comments, activities, onAddComment, onDeleteComment: _onDeleteComment, currentUser, onAIGenerateDescription: _onAIGenerateDescription, onAICreateSubtasks: _onAICreateSubtasks, onAIFindSimilar: _onAIFindSimilar, availableColumns, availableLabels, onUploadCoverImage: _onUploadCoverImage, unsplashAccessKey: _unsplashAccessKey, theme, onSubtasksChange, }: CardDetailModalV2Props): react_jsx_runtime.JSX.Element | null;
 
 interface AttachmentUploaderProps {
     /** Card ID for attachments */
