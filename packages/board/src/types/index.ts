@@ -83,6 +83,8 @@ export interface Card {
   coverImage?: string
   /** Subtasks/checklist items */
   subtasks?: Subtask[]
+  /** v0.17.29: Custom color for visual identification (hex color) */
+  color?: string
   /** Custom metadata */
   metadata?: Record<string, unknown>
 

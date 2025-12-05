@@ -36,6 +36,9 @@ export interface Task {
   // v0.11.0: Custom task colors - pastel colors for visual organization
   color?: string; // Hex color (e.g., '#6366F1') - subtasks inherit parent color with reduced opacity
 
+  // v0.17.29: Task priority for Kanban sync
+  priority?: 'low' | 'medium' | 'high' | 'urgent';
+
   // v0.8.1: Split task support - multiple time segments with gaps
   segments?: TaskSegment[]; // When task is split, contains multiple date ranges
 
@@ -49,7 +52,8 @@ export type TimeScale = 'day' | 'week' | 'month';
 export type Theme = 'dark' | 'light' | 'neutral';
 export type RowDensity = 'compact' | 'comfortable' | 'spacious';
 
-export type ColumnType = 'name' | 'startDate' | 'endDate' | 'duration' | 'assignees' | 'status' | 'progress';
+// v0.17.29: Added 'priority' column type
+export type ColumnType = 'name' | 'startDate' | 'endDate' | 'duration' | 'assignees' | 'status' | 'progress' | 'priority';
 
 export interface GanttColumn {
   id: ColumnType;
