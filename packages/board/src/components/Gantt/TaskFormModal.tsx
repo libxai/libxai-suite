@@ -16,17 +16,24 @@ import {
   AlertCircle,
   Milestone as MilestoneIcon,
   Palette,
+  Flag,
+  FileText,
 } from 'lucide-react'
 import { Task, Theme } from './types'
 import { themes } from './themes'
 import { ColorPicker } from './ColorPicker'
 
+// v0.17.28: Priority type for Kanban sync
+export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent'
+
 export interface TaskFormData {
   name: string
+  description?: string // v0.17.28: Task description for Kanban cards
   startDate?: Date
   endDate?: Date
   progress: number
   status: 'todo' | 'in-progress' | 'completed'
+  priority?: TaskPriority // v0.17.28: Task priority for Kanban cards
   isMilestone: boolean
   color?: string // v0.11.0: Custom task color
   assignees?: Array<{ name: string; avatar?: string; initials: string; color: string }>
@@ -81,8 +88,10 @@ export function TaskFormModal({
 
   const [formData, setFormData] = useState<TaskFormData>({
     name: '',
+    description: '',
     progress: 0,
     status: 'todo',
+    priority: 'medium',
     isMilestone: false,
     color: '#6366F1', // v0.11.0: Default blue pastel color
     assignees: [],
@@ -96,10 +105,12 @@ export function TaskFormModal({
     if (task) {
       setFormData({
         name: task.name,
+        description: (task as any).description || '',
         startDate: task.startDate,
         endDate: task.endDate,
         progress: task.progress,
         status: task.status || 'todo',
+        priority: (task as any).priority || 'medium',
         isMilestone: task.isMilestone || false,
         color: task.color || '#6366F1', // v0.11.0: Use task color or default
         assignees: task.assignees || [],
@@ -109,8 +120,10 @@ export function TaskFormModal({
       // Reset for create mode
       setFormData({
         name: '',
+        description: '',
         progress: 0,
         status: 'todo',
+        priority: 'medium',
         isMilestone: false,
         color: '#6366F1', // v0.11.0: Default blue pastel color
         assignees: [],
@@ -259,6 +272,25 @@ export function TaskFormModal({
                   )}
                 </div>
 
+                {/* v0.17.28: Description */}
+                <div>
+                  <label className="block text-sm font-medium mb-2 flex items-center gap-2" style={labelStyle}>
+                    <FileText className="w-4 h-4" />
+                    Descripción
+                  </label>
+                  <textarea
+                    value={formData.description || ''}
+                    onChange={(e) => handleChange('description', e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent resize-none"
+                    style={inputStyle}
+                    onFocus={(e) => (e.currentTarget.style.borderColor = themeColors.accent)}
+                    onBlur={(e) => (e.currentTarget.style.borderColor = themeColors.borderLight)}
+                    placeholder="Describe los detalles de la tarea..."
+                    rows={3}
+                    disabled={isLoading}
+                  />
+                </div>
+
                 {/* Dates Row */}
                 <div className="grid grid-cols-2 gap-4">
                   {/* Start Date */}
@@ -300,23 +332,46 @@ export function TaskFormModal({
                   </div>
                 </div>
 
-                {/* Status */}
-                <div>
-                  <label className="block text-sm font-medium mb-2 flex items-center gap-2" style={labelStyle}>
-                    <CheckCircle2 className="w-4 h-4" />
-                    Estado
-                  </label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => handleChange('status', e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent"
-                    style={inputStyle}
-                    disabled={isLoading}
-                  >
-                    <option value="todo">Por Hacer</option>
-                    <option value="in-progress">En Progreso</option>
-                    <option value="completed">Completada</option>
-                  </select>
+                {/* Status and Priority Row */}
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Status */}
+                  <div>
+                    <label className="block text-sm font-medium mb-2 flex items-center gap-2" style={labelStyle}>
+                      <CheckCircle2 className="w-4 h-4" />
+                      Estado
+                    </label>
+                    <select
+                      value={formData.status}
+                      onChange={(e) => handleChange('status', e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent"
+                      style={inputStyle}
+                      disabled={isLoading}
+                    >
+                      <option value="todo">Por Hacer</option>
+                      <option value="in-progress">En Progreso</option>
+                      <option value="completed">Completada</option>
+                    </select>
+                  </div>
+
+                  {/* v0.17.28: Priority */}
+                  <div>
+                    <label className="block text-sm font-medium mb-2 flex items-center gap-2" style={labelStyle}>
+                      <Flag className="w-4 h-4" />
+                      Prioridad
+                    </label>
+                    <select
+                      value={formData.priority || 'medium'}
+                      onChange={(e) => handleChange('priority', e.target.value as TaskPriority)}
+                      className="w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent"
+                      style={inputStyle}
+                      disabled={isLoading}
+                    >
+                      <option value="low">🟢 Baja</option>
+                      <option value="medium">🟡 Media</option>
+                      <option value="high">🟠 Alta</option>
+                      <option value="urgent">🔴 Urgente</option>
+                    </select>
+                  </div>
                 </div>
 
                 {/* v0.11.0: Color Picker */}
