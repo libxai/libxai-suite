@@ -761,16 +761,27 @@ interface KanbanToolbarI18n {
 }
 interface KanbanToolbarProps {
     columns: Column$1[];
-    onCreateTask?: (columnId: string) => void;
+    /**
+     * Handler for creating a new task.
+     * - If useColumnSelector is true: receives columnId as parameter
+     * - If useColumnSelector is false: called with no parameters (opens modal)
+     */
+    onCreateTask?: (columnId?: string) => void;
     createTaskLabel?: string;
     theme?: 'dark' | 'light';
     locale?: 'es' | 'en';
+    /**
+     * v0.17.27: If true, shows dropdown to select column before creating task.
+     * If false, shows a simple button that triggers onCreateTask() without columnId.
+     * @default false
+     */
+    useColumnSelector?: boolean;
     onExportCSV?: () => void;
     onExportJSON?: () => void;
     onExportExcel?: () => Promise<void>;
     translations?: Partial<KanbanToolbarI18n>;
 }
-declare function KanbanToolbar({ columns, onCreateTask, createTaskLabel, theme, locale, onExportCSV, onExportJSON, onExportExcel, translations, }: KanbanToolbarProps): react_jsx_runtime.JSX.Element;
+declare function KanbanToolbar({ columns, onCreateTask, createTaskLabel, theme, locale, useColumnSelector, onExportCSV, onExportJSON, onExportExcel, translations, }: KanbanToolbarProps): react_jsx_runtime.JSX.Element;
 
 /**
  * User Assignment Selector Component

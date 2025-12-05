@@ -3,6 +3,8 @@ import { Plus, ChevronDown, Download, FileSpreadsheet, FileText, FileJson } from
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Column as ColumnType } from '../../types';
 
+// v0.17.27: Simple button mode vs column selector mode
+
 // Theme type for toolbar styling
 interface KanbanToolbarTheme {
   bgGrid: string;
@@ -74,10 +76,21 @@ const englishI18n: KanbanToolbarI18n = {
 
 export interface KanbanToolbarProps {
   columns: ColumnType[];
-  onCreateTask?: (columnId: string) => void;
+  /**
+   * Handler for creating a new task.
+   * - If useColumnSelector is true: receives columnId as parameter
+   * - If useColumnSelector is false: called with no parameters (opens modal)
+   */
+  onCreateTask?: (columnId?: string) => void;
   createTaskLabel?: string;
   theme?: 'dark' | 'light';
   locale?: 'es' | 'en';
+  /**
+   * v0.17.27: If true, shows dropdown to select column before creating task.
+   * If false, shows a simple button that triggers onCreateTask() without columnId.
+   * @default false
+   */
+  useColumnSelector?: boolean;
   // Export handlers
   onExportCSV?: () => void;
   onExportJSON?: () => void;
@@ -385,12 +398,43 @@ function ExportDropdown({ theme, t, onExportCSV, onExportJSON, onExportExcel }: 
   );
 }
 
+// Simple Create Task Button (no dropdown)
+interface SimpleCreateButtonProps {
+  onClick: () => void;
+  label: string;
+}
+
+function SimpleCreateButton({ onClick, label }: SimpleCreateButtonProps) {
+  return (
+    <motion.button
+      onClick={onClick}
+      className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-all"
+      style={{
+        background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)',
+        color: '#FFFFFF',
+        fontFamily: 'Inter, sans-serif',
+        fontWeight: 500,
+        boxShadow: '0 2px 8px rgba(59, 130, 246, 0.3)',
+      }}
+      whileHover={{
+        scale: 1.02,
+        boxShadow: '0 4px 12px rgba(59, 130, 246, 0.4)',
+      }}
+      whileTap={{ scale: 0.98 }}
+    >
+      <Plus className="w-3.5 h-3.5" />
+      <span>{label}</span>
+    </motion.button>
+  );
+}
+
 export function KanbanToolbar({
   columns,
   onCreateTask,
   createTaskLabel,
   theme = 'dark',
   locale = 'es',
+  useColumnSelector = false,
   onExportCSV,
   onExportJSON,
   onExportExcel,
@@ -478,13 +522,20 @@ export function KanbanToolbar({
         )}
 
         {onCreateTask && (
-          <ColumnSelector
-            columns={columns}
-            onSelect={onCreateTask}
-            theme={themeStyles}
-            t={t}
-            createTaskLabel={createTaskLabel}
-          />
+          useColumnSelector ? (
+            <ColumnSelector
+              columns={columns}
+              onSelect={onCreateTask}
+              theme={themeStyles}
+              t={t}
+              createTaskLabel={createTaskLabel}
+            />
+          ) : (
+            <SimpleCreateButton
+              onClick={() => onCreateTask()}
+              label={createTaskLabel || t.newTask}
+            />
+          )
         )}
       </div>
     </div>
