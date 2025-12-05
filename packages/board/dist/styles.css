@@ -8564,6 +8564,11 @@ body {
 }
 
 
+.w-1\.5 {
+  width: 0.375rem;
+}
+
+
 .w-10 {
   width: 2.5rem;
 }
@@ -8601,6 +8606,11 @@ body {
 
 .w-4 {
   width: 1rem;
+}
+
+
+.w-44 {
+  width: 11rem;
 }
 
 
@@ -10694,6 +10704,11 @@ body {
 
 
 @media (min-width: 640px) {
+
+
+  .sm\:flex {
+    display: flex;
+  }
 
 
   .sm\:inline-flex {
