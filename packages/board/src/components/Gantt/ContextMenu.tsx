@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus,
@@ -42,6 +42,45 @@ interface ContextMenuProps {
 
 export function ContextMenu({ isOpen, x, y, items, onClose, theme }: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
+  // v0.17.32: Adaptive positioning to prevent menu from being cut off at edges
+  const [adjustedPosition, setAdjustedPosition] = useState({ x, y });
+
+  // v0.17.32: Calculate adjusted position when menu opens or position changes
+  useEffect(() => {
+    if (!isOpen) return;
+
+    // Menu dimensions (approximate - will be refined after render)
+    const menuWidth = 200; // min-w-[200px]
+    const menuHeight = items.length * 36 + 8; // ~36px per item + padding
+    const padding = 8; // Distance from edge
+
+    // Get viewport dimensions
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    let adjustedX = x;
+    let adjustedY = y;
+
+    // Adjust X if menu would overflow right edge
+    if (x + menuWidth + padding > viewportWidth) {
+      adjustedX = x - menuWidth; // Show to the left of cursor
+      // Ensure it doesn't go off left edge
+      if (adjustedX < padding) {
+        adjustedX = padding;
+      }
+    }
+
+    // Adjust Y if menu would overflow bottom edge
+    if (y + menuHeight + padding > viewportHeight) {
+      adjustedY = viewportHeight - menuHeight - padding;
+      // Ensure it doesn't go off top edge
+      if (adjustedY < padding) {
+        adjustedY = padding;
+      }
+    }
+
+    setAdjustedPosition({ x: adjustedX, y: adjustedY });
+  }, [isOpen, x, y, items.length]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -79,8 +118,8 @@ export function ContextMenu({ isOpen, x, y, items, onClose, theme }: ContextMenu
         transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
         className="fixed z-[9999] min-w-[200px] rounded-lg shadow-xl"
         style={{
-          left: `${x}px`,
-          top: `${y}px`,
+          left: `${adjustedPosition.x}px`,
+          top: `${adjustedPosition.y}px`,
           backgroundColor: theme.bgSecondary,
           border: `1px solid ${theme.border}`,
         }}
