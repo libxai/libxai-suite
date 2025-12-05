@@ -281,7 +281,7 @@ export function Timeline({
     <div
       className="w-full h-full flex flex-col"
       data-gantt-chart
-      style={{ backgroundColor: theme.bgPrimary }}
+      style={{ backgroundColor: theme.bgPrimary, overflow: 'visible' }}
     >
       {/* v0.13.7: Sticky Header - stays visible during vertical scroll */}
       <div
@@ -349,10 +349,11 @@ export function Timeline({
       </div>
 
       {/* Scrollable Content Area */}
+      {/* v0.17.31: Added overflow:visible to allow tooltips to render above the header */}
       <svg
         width={Math.max(timelineWidth, 1000)}
         height={contentHeight}
-        style={{ display: 'block', flexShrink: 0 }}
+        style={{ display: 'block', flexShrink: 0, overflow: 'visible' }}
       >
         <defs>
           <filter id="shadow">

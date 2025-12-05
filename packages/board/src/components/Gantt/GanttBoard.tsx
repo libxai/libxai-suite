@@ -1098,11 +1098,13 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       />
 
       {/* Main Content - v0.13.9: TaskGrid has no scroll, Timeline has the unified vertical scroll */}
+      {/* v0.17.31: Changed to clip to allow tooltips to render above header */}
       <div
         ref={gridScrollRef}
         className="flex-1 flex min-h-0"
         style={{
-          overflow: 'hidden',
+          overflow: 'clip',
+          overflowClipMargin: '100px', // Allow tooltip to overflow above
         }}
       >
         {/* Task Grid - v0.13.9: No scroll at all, content syncs with Timeline scroll */}
@@ -1153,11 +1155,14 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         />
 
         {/* Timeline - v0.13.9: Has both scrolls, TaskGrid syncs to this scroll */}
+        {/* v0.17.31: Added overflow-y:clip to allow tooltips to render above while maintaining scroll */}
         <div
           ref={timelineScrollRef}
-          className="gantt-timeline-scroll flex-1 overflow-auto"
+          className="gantt-timeline-scroll flex-1"
           style={{
             minHeight: 0,
+            overflowX: 'auto',
+            overflowY: 'auto',
             // v0.9.1: Prevent browser auto-scroll when disableScrollSync is enabled
             ...(config.disableScrollSync && {
               scrollBehavior: 'auto',
