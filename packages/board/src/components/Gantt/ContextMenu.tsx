@@ -108,6 +108,21 @@ export function ContextMenu({ isOpen, x, y, items, onClose, theme }: ContextMenu
 
   if (!isOpen) return null;
 
+  // v0.17.33: Ensure solid background color (not transparent)
+  // Some themes use rgba colors, so we need to ensure full opacity
+  const getSolidBackground = (color: string): string => {
+    // If it's already a solid hex color, return as-is
+    if (color.startsWith('#') && (color.length === 7 || color.length === 4)) {
+      return color;
+    }
+    // For dark themes, use a solid dark color
+    // For light themes, use a solid light color
+    const isDarkTheme = theme.bgPrimary?.includes('1') || theme.bgPrimary?.includes('2') ||
+                        theme.textPrimary?.toLowerCase().includes('fff') ||
+                        theme.textPrimary?.toLowerCase().includes('white');
+    return isDarkTheme ? '#1E2128' : '#FFFFFF';
+  };
+
   return (
     <AnimatePresence>
       <motion.div
@@ -116,12 +131,14 @@ export function ContextMenu({ isOpen, x, y, items, onClose, theme }: ContextMenu
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: -10 }}
         transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
-        className="fixed z-[9999] min-w-[200px] rounded-lg shadow-xl"
+        className="fixed z-[9999] min-w-[200px] rounded-lg"
         style={{
           left: `${adjustedPosition.x}px`,
           top: `${adjustedPosition.y}px`,
-          backgroundColor: theme.bgSecondary,
+          backgroundColor: getSolidBackground(theme.bgSecondary),
           border: `1px solid ${theme.border}`,
+          boxShadow: '0 10px 40px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.2)',
+          backdropFilter: 'none', // v0.17.33: Ensure no blur effect
         }}
       >
         <div className="py-1">
