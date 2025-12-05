@@ -407,9 +407,8 @@ export function TaskBar({
   const displayX = isDragging && !isConnecting ? ghostX : x;
   const displayWidth = isDragging && !isConnecting ? ghostWidth : width;
 
-  // v0.8.0: Generate tooltip and custom class using templates
-  const tooltipContent = templates.taskTooltip(task);
-  const tooltipText = typeof tooltipContent === 'string' ? tooltipContent : '';
+  // v0.8.0: Generate custom class using templates
+  // v0.17.30: Removed tooltipText - native SVG <title> replaced by custom tooltip
   const customClass = templates.taskClass(task);
 
   return (
@@ -436,8 +435,7 @@ export function TaskBar({
         onContextMenu?.(task, e as any);
       }}
     >
-      {/* v0.8.0: Tooltip using taskTooltip template */}
-      {tooltipText && <title dangerouslySetInnerHTML={{ __html: tooltipText }} />}
+      {/* v0.17.30: Removed native SVG <title> tooltip - using custom tooltip instead (lines ~1025-1162) */}
       {/* Zone Indicators with hover feedback - v0.8.1: Disabled for split tasks (segments are independent) */}
       {isHovered && !isDragging && !isSmallBar && !task.segments && (
         <>
@@ -1026,177 +1024,206 @@ export function TaskBar({
       )}
 
       {/* Enhanced Detailed Tooltip (shown on hover, hidden while dragging) - v0.8.1: Disabled for split tasks (segments are independent) */}
+      {/* v0.17.31: Adaptive positioning - shows below task when not enough space above */}
       <AnimatePresence>
-        {isHovered && !isDragging && !task.segments && (
-          <motion.g
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            transition={{ duration: 0.2 }}
-            style={{ pointerEvents: 'none' }}
-          >
-            {/* Tooltip Background */}
-            <rect
-              x={displayX + displayWidth / 2 - 120}
-              y={y - 95}
-              width={240}
-              height={82}
-              rx={8}
-              fill={theme.bgSecondary}
-              stroke={theme.border}
-              strokeWidth={1}
-              filter="drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15))"
-            />
+        {isHovered && !isDragging && !task.segments && (() => {
+          // v0.17.31: Calculate if tooltip should appear below the task bar
+          // Tooltip height is 82px + 13px for arrow = ~95px needed above
+          // If task is within 100px of top, show tooltip below instead
+          const tooltipHeight = 82;
+          const tooltipGap = 13; // Gap between tooltip and task bar
+          const showBelow = y < 100; // Threshold for flipping
 
-            {/* Tooltip Arrow */}
-            <path
-              d={`M ${displayX + displayWidth / 2 - 6} ${y - 13} L ${displayX + displayWidth / 2} ${y - 3} L ${displayX + displayWidth / 2 + 6} ${y - 13}`}
-              fill={theme.bgSecondary}
-              stroke={theme.border}
-              strokeWidth={1}
-            />
+          // Calculate Y positions based on direction
+          const tooltipY = showBelow
+            ? y + height + tooltipGap // Below: start after task bar + gap
+            : y - tooltipHeight - tooltipGap; // Above: tooltip bottom at gap above task
 
-            {/* Task Name */}
-            <text
-              x={displayX + displayWidth / 2}
-              y={y - 73}
-              textAnchor="middle"
-              fill={theme.textPrimary}
-              fontSize="13"
-              fontWeight="600"
-              fontFamily="Inter, sans-serif"
-            >
-              {task.name.length > 28 ? `${task.name.substring(0, 28)}...` : task.name}
-            </text>
+          // Arrow path changes based on direction
+          const arrowPath = showBelow
+            ? `M ${displayX + displayWidth / 2 - 6} ${y + height + 3} L ${displayX + displayWidth / 2} ${y + height + 13} L ${displayX + displayWidth / 2 + 6} ${y + height + 3}` // Arrow pointing up
+            : `M ${displayX + displayWidth / 2 - 6} ${y - 13} L ${displayX + displayWidth / 2} ${y - 3} L ${displayX + displayWidth / 2 + 6} ${y - 13}`; // Arrow pointing down
 
-            {/* Dates */}
-            <text
-              x={displayX + displayWidth / 2 - 110}
-              y={y - 55}
-              fill={theme.textTertiary}
-              fontSize="11"
-              fontFamily="Inter, sans-serif"
-            >
-              Start:
-            </text>
-            <text
-              x={displayX + displayWidth / 2 - 70}
-              y={y - 55}
-              fill={theme.textSecondary}
-              fontSize="11"
-              fontWeight="500"
-              fontFamily="Inter, sans-serif"
-            >
-              {formatDate(task.startDate!)}
-            </text>
+          // Text Y offsets from tooltip top
+          const nameY = tooltipY + 22;
+          const row1Y = tooltipY + 40;
+          const row2Y = tooltipY + 55;
+          const assigneesY = tooltipY + 70;
+          const hintsY = showBelow ? tooltipY + tooltipHeight - 5 : y - 18;
 
-            <text
-              x={displayX + displayWidth / 2 - 110}
-              y={y - 40}
-              fill={theme.textTertiary}
-              fontSize="11"
-              fontFamily="Inter, sans-serif"
+          return (
+            <motion.g
+              initial={{ opacity: 0, y: showBelow ? -10 : 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: showBelow ? -10 : 10 }}
+              transition={{ duration: 0.2 }}
+              style={{ pointerEvents: 'none' }}
             >
-              End:
-            </text>
-            <text
-              x={displayX + displayWidth / 2 - 70}
-              y={y - 40}
-              fill={theme.textSecondary}
-              fontSize="11"
-              fontWeight="500"
-              fontFamily="Inter, sans-serif"
-            >
-              {formatDate(task.endDate!)}
-            </text>
+              {/* Tooltip Arrow - render first so it's behind the rect */}
+              <path
+                d={arrowPath}
+                fill={theme.bgSecondary}
+                stroke={theme.border}
+                strokeWidth={1}
+              />
 
-            {/* Duration */}
-            <text
-              x={displayX + displayWidth / 2 + 10}
-              y={y - 55}
-              fill={theme.textTertiary}
-              fontSize="11"
-              fontFamily="Inter, sans-serif"
-            >
-              Duration:
-            </text>
-            <text
-              x={displayX + displayWidth / 2 + 65}
-              y={y - 55}
-              fill={theme.textSecondary}
-              fontSize="11"
-              fontWeight="500"
-              fontFamily="Inter, sans-serif"
-            >
-              {getDuration()}
-            </text>
+              {/* Tooltip Background */}
+              <rect
+                x={displayX + displayWidth / 2 - 120}
+                y={tooltipY}
+                width={240}
+                height={tooltipHeight}
+                rx={8}
+                fill={theme.bgSecondary}
+                stroke={theme.border}
+                strokeWidth={1}
+                filter="drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15))"
+              />
 
-            {/* Progress */}
-            <text
-              x={displayX + displayWidth / 2 + 10}
-              y={y - 40}
-              fill={theme.textTertiary}
-              fontSize="11"
-              fontFamily="Inter, sans-serif"
-            >
-              Progress:
-            </text>
-            <text
-              x={displayX + displayWidth / 2 + 65}
-              y={y - 40}
-              fill={theme.textSecondary}
-              fontSize="11"
-              fontWeight="500"
-              fontFamily="Inter, sans-serif"
-            >
-              {task.progress}%
-            </text>
+              {/* Task Name */}
+              <text
+                x={displayX + displayWidth / 2}
+                y={nameY}
+                textAnchor="middle"
+                fill={theme.textPrimary}
+                fontSize="13"
+                fontWeight="600"
+                fontFamily="Inter, sans-serif"
+              >
+                {task.name.length > 28 ? `${task.name.substring(0, 28)}...` : task.name}
+              </text>
 
-            {/* Assignees */}
-            {task.assignees && task.assignees.length > 0 && (
-              <>
+              {/* Dates */}
+              <text
+                x={displayX + displayWidth / 2 - 110}
+                y={row1Y}
+                fill={theme.textTertiary}
+                fontSize="11"
+                fontFamily="Inter, sans-serif"
+              >
+                Start:
+              </text>
+              <text
+                x={displayX + displayWidth / 2 - 70}
+                y={row1Y}
+                fill={theme.textSecondary}
+                fontSize="11"
+                fontWeight="500"
+                fontFamily="Inter, sans-serif"
+              >
+                {formatDate(task.startDate!)}
+              </text>
+
+              <text
+                x={displayX + displayWidth / 2 - 110}
+                y={row2Y}
+                fill={theme.textTertiary}
+                fontSize="11"
+                fontFamily="Inter, sans-serif"
+              >
+                End:
+              </text>
+              <text
+                x={displayX + displayWidth / 2 - 70}
+                y={row2Y}
+                fill={theme.textSecondary}
+                fontSize="11"
+                fontWeight="500"
+                fontFamily="Inter, sans-serif"
+              >
+                {formatDate(task.endDate!)}
+              </text>
+
+              {/* Duration */}
+              <text
+                x={displayX + displayWidth / 2 + 10}
+                y={row1Y}
+                fill={theme.textTertiary}
+                fontSize="11"
+                fontFamily="Inter, sans-serif"
+              >
+                Duration:
+              </text>
+              <text
+                x={displayX + displayWidth / 2 + 65}
+                y={row1Y}
+                fill={theme.textSecondary}
+                fontSize="11"
+                fontWeight="500"
+                fontFamily="Inter, sans-serif"
+              >
+                {getDuration()}
+              </text>
+
+              {/* Progress */}
+              <text
+                x={displayX + displayWidth / 2 + 10}
+                y={row2Y}
+                fill={theme.textTertiary}
+                fontSize="11"
+                fontFamily="Inter, sans-serif"
+              >
+                Progress:
+              </text>
+              <text
+                x={displayX + displayWidth / 2 + 65}
+                y={row2Y}
+                fill={theme.textSecondary}
+                fontSize="11"
+                fontWeight="500"
+                fontFamily="Inter, sans-serif"
+              >
+                {task.progress}%
+              </text>
+
+              {/* Assignees */}
+              {task.assignees && task.assignees.length > 0 && (
+                <>
+                  <text
+                    x={displayX + displayWidth / 2 - 110}
+                    y={assigneesY}
+                    fill={theme.textTertiary}
+                    fontSize="11"
+                    fontFamily="Inter, sans-serif"
+                  >
+                    Assignees:
+                  </text>
+                  <text
+                    x={displayX + displayWidth / 2 - 50}
+                    y={assigneesY}
+                    fill={theme.textSecondary}
+                    fontSize="11"
+                    fontWeight="500"
+                    fontFamily="Inter, sans-serif"
+                  >
+                    {task.assignees.map(a => a.name).join(', ').substring(0, 30)}
+                    {task.assignees.map(a => a.name).join(', ').length > 30 ? '...' : ''}
+                  </text>
+                </>
+              )}
+
+              {/* Interaction Hints - Adaptive for bar size */}
+              {!showBelow && (
                 <text
-                  x={displayX + displayWidth / 2 - 110}
-                  y={y - 25}
+                  x={displayX + displayWidth / 2}
+                  y={hintsY}
+                  textAnchor="middle"
                   fill={theme.textTertiary}
-                  fontSize="11"
+                  fontSize="9"
                   fontFamily="Inter, sans-serif"
+                  style={{ opacity: 0.7 }}
                 >
-                  Assignees:
+                  {isVerySmallBar
+                    ? 'Left: move • Right: resize'
+                    : isSmallBar
+                    ? 'Drag to move • Hold ALT + drag edge to resize'
+                    : 'Drag edges to resize • Drag center to move • Click ⚫ to link'
+                  }
                 </text>
-                <text
-                  x={displayX + displayWidth / 2 - 50}
-                  y={y - 25}
-                  fill={theme.textSecondary}
-                  fontSize="11"
-                  fontWeight="500"
-                  fontFamily="Inter, sans-serif"
-                >
-                  {task.assignees.map(a => a.name).join(', ').substring(0, 30)}
-                  {task.assignees.map(a => a.name).join(', ').length > 30 ? '...' : ''}
-                </text>
-              </>
-            )}
-
-            {/* Interaction Hints - Adaptive for bar size */}
-            <text
-              x={displayX + displayWidth / 2}
-              y={y - 18}
-              textAnchor="middle"
-              fill={theme.textTertiary}
-              fontSize="9"
-              fontFamily="Inter, sans-serif"
-              style={{ opacity: 0.7 }}
-            >
-              {isVerySmallBar
-                ? 'Left: move • Right: resize'
-                : isSmallBar
-                ? 'Drag to move • Hold ALT + drag edge to resize'
-                : 'Drag edges to resize • Drag center to move • Click ⚫ to link'
-              }
-            </text>
-          </motion.g>
-        )}
+              )}
+            </motion.g>
+          );
+        })()}
       </AnimatePresence>
     </g>
   );
