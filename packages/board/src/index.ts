@@ -10,6 +10,7 @@ export type { KanbanViewConfig } from './views'
 // Components
 export {
   KanbanBoard,
+  KanbanToolbar, // v0.17.26: Kanban toolbar component
   Column,
   Card,
   EditableColumnTitle,
@@ -219,6 +220,7 @@ export type {
   // GanttTimelineProps,
   ConfigMenuProps,
   ThemeModalProps,
+  KanbanToolbarProps, // v0.17.26
   // LazyLoadWrapperProps,
 } from './components'
 
