@@ -7,6 +7,8 @@ import { Timeline } from './Timeline';
 import { ContextMenu, MenuIcons } from './ContextMenu'; // v0.8.0: Split task context menu
 import { TaskFormModal } from './TaskFormModal'; // v0.10.0: Task edit modal
 import { GanttAIAssistant } from './GanttAIAssistant'; // v0.14.0: AI Assistant
+import { motion, AnimatePresence } from 'framer-motion'; // v0.17.33: For delete confirmation modal
+import { AlertTriangle, Trash2 } from 'lucide-react'; // v0.17.33: Icons for delete confirmation
 import { useUndoRedo } from './useUndoRedo';
 import { useGanttUndoRedoKeys } from './useGanttUndoRedoKeys';
 import { ThemeContext } from '../../theme/ThemeProvider';
@@ -119,6 +121,9 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
 
   // v0.10.0: Task form modal state for editing
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+
+  // v0.17.33: Delete confirmation modal state
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{ taskId: string; taskName: string } | null>(null);
 
   // Sync with global theme changes (from ThemeContext)
   useEffect(() => {
@@ -1314,14 +1319,18 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
               separator: true,
               onClick: () => {},
             },
-            // Delete Task
+            // Delete Task - v0.17.33: Now shows confirmation modal
             {
               id: 'delete',
               label: translations.contextMenu?.deleteTask || 'Delete Task',
               icon: MenuIcons.Delete,
               onClick: () => {
                 if (!contextMenu.task) return;
-                handleMultiTaskDelete([contextMenu.task.id]);
+                // v0.17.33: Show confirmation modal instead of deleting directly
+                setDeleteConfirmation({
+                  taskId: contextMenu.task.id,
+                  taskName: contextMenu.task.name,
+                });
               },
             },
           ]}
@@ -1342,6 +1351,122 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
           theme={currentTheme}
         />
       )}
+
+      {/* v0.17.33: Delete Confirmation Modal */}
+      <AnimatePresence>
+        {deleteConfirmation && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[10000] flex items-center justify-center p-4"
+            style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }}
+            onClick={() => setDeleteConfirmation(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-md rounded-xl shadow-2xl overflow-hidden"
+              style={{
+                backgroundColor: theme.bgSecondary,
+                border: `1px solid ${theme.border}`,
+              }}
+            >
+              {/* Header */}
+              <div
+                className="px-6 py-4"
+                style={{ borderBottom: `1px solid ${theme.border}` }}
+              >
+                <div className="flex items-start gap-3">
+                  <div
+                    className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                    style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)' }}
+                  >
+                    <AlertTriangle className="w-5 h-5" style={{ color: '#EF4444' }} />
+                  </div>
+                  <div className="flex-1">
+                    <h3
+                      className="text-lg font-semibold"
+                      style={{ color: theme.textPrimary, fontFamily: 'Inter, sans-serif' }}
+                    >
+                      {translations.contextMenu?.deleteTask || 'Delete Task'}?
+                    </h3>
+                    <p
+                      className="text-sm mt-1"
+                      style={{ color: theme.textSecondary, fontFamily: 'Inter, sans-serif' }}
+                    >
+                      {locale === 'es' ? 'Esta acción no se puede deshacer' : 'This action cannot be undone'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Body */}
+              <div className="px-6 py-4">
+                <p
+                  className="text-sm leading-relaxed"
+                  style={{ color: theme.textSecondary, fontFamily: 'Inter, sans-serif' }}
+                >
+                  {locale === 'es' ? 'Estás a punto de eliminar la tarea' : 'You are about to delete the task'}{' '}
+                  <span className="font-semibold" style={{ color: theme.textPrimary }}>
+                    "{deleteConfirmation.taskName}"
+                  </span>
+                  .
+                </p>
+              </div>
+
+              {/* Footer */}
+              <div
+                className="px-6 py-4 flex items-center justify-end gap-3"
+                style={{
+                  backgroundColor: theme.bgPrimary,
+                  borderTop: `1px solid ${theme.border}`,
+                }}
+              >
+                <button
+                  onClick={() => setDeleteConfirmation(null)}
+                  className="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
+                  style={{
+                    color: theme.textSecondary,
+                    fontFamily: 'Inter, sans-serif',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = theme.hoverBg;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
+                >
+                  {locale === 'es' ? 'Cancelar' : 'Cancel'}
+                </button>
+                <button
+                  onClick={() => {
+                    handleMultiTaskDelete([deleteConfirmation.taskId]);
+                    setDeleteConfirmation(null);
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors flex items-center gap-2"
+                  style={{
+                    backgroundColor: '#EF4444',
+                    fontFamily: 'Inter, sans-serif',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#DC2626';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#EF4444';
+                  }}
+                >
+                  <Trash2 className="w-4 h-4" />
+                  {locale === 'es' ? 'Eliminar' : 'Delete'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* v0.14.0: AI Assistant for natural language task editing */}
       {aiAssistant?.enabled && (
