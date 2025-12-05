@@ -97,6 +97,7 @@ export type {
   GanttTemplates, // v0.8.0 - Customizable templates
   TaskFormModalProps, // v0.9.0 - Task form props
   TaskFormData, // v0.9.0 - Task form data
+  TaskPriority, // v0.17.28 - Task priority type
   GanttAIAssistantConfig, // v0.14.0 - AI Assistant config
   AICommandResult, // v0.14.0 - AI command result
 } from './components/Gantt'

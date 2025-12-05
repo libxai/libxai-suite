@@ -45,8 +45,8 @@ export type {
   AICommandResult, // v0.14.0: AI command result
 } from './types';
 
-// Task Form Types (v0.9.0)
-export type { TaskFormModalProps, TaskFormData } from './TaskFormModal';
+// Task Form Types (v0.9.0, v0.17.28: added TaskPriority)
+export type { TaskFormModalProps, TaskFormData, TaskPriority } from './TaskFormModal';
 
 // Imperative API (v0.8.0)
 export type { GanttBoardRef } from './GanttBoardRef';
