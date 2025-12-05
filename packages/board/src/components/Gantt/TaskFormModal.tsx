@@ -532,6 +532,7 @@ export function TaskFormModal({
                                 ? [
                                     ...(formData.assignees || []),
                                     {
+                                      id: user.id, // v0.17.35: Include user.id for task_assignees insertion
                                       name: user.name,
                                       avatar: user.avatar,
                                       initials: user.name
