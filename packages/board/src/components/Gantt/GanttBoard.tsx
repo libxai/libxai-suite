@@ -1145,6 +1145,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
             onTaskRename={handleTaskRename}
             onCreateSubtask={handleCreateSubtask}
             onOpenTaskModal={onTaskClick ? (task: Task) => onTaskClick(task) : undefined}
+            onDeleteRequest={(taskId: string, taskName: string) => setDeleteConfirmation({ taskId, taskName })} // v0.17.34
           />
         </div>
 

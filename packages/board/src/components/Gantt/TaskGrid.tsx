@@ -39,6 +39,8 @@ interface TaskGridProps {
   onTaskRename?: (taskId: string, newName: string) => void;
   onCreateSubtask?: (parentTaskId: string) => void;
   onOpenTaskModal?: (task: Task) => void;
+  // v0.17.34: Delete confirmation request (shows modal instead of deleting directly)
+  onDeleteRequest?: (taskId: string, taskName: string) => void;
 }
 
 export function TaskGrid({
@@ -65,6 +67,7 @@ export function TaskGrid({
   onTaskRename,
   onCreateSubtask,
   onOpenTaskModal,
+  onDeleteRequest, // v0.17.34
 }: TaskGridProps) {
   // v0.16.2: Get translations from context
   const translations = useContext(GanttI18nContext);
@@ -647,13 +650,19 @@ export function TaskGrid({
       },
       // Separator before delete
       { id: 'sep3', label: '', onClick: () => {}, separator: true },
-      // Delete Task
+      // Delete Task - v0.17.34: Use confirmation modal if available
       {
         id: 'delete',
         label: translations?.contextMenu?.deleteTask || 'Delete Task',
         icon: MenuIcons.Delete,
         onClick: () => {
-          onMultiTaskDelete?.([task.id]);
+          if (onDeleteRequest) {
+            // Show confirmation modal
+            onDeleteRequest(task.id, task.name);
+          } else {
+            // Fallback to direct delete
+            onMultiTaskDelete?.([task.id]);
+          }
         },
       },
     ];
