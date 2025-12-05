@@ -9,6 +9,7 @@ import { useGanttSelection } from './useGanttSelection';
 import { flattenTasks as flattenTasksUtil } from './hierarchyUtils';
 import { UserAssignmentSelector } from '../Card/UserAssignmentSelector';
 import { StatusSelector } from '../Card/StatusSelector';
+import { PrioritySelector } from '../Card/PrioritySelector'; // v0.17.29
 import { GanttI18nContext } from './GanttI18nContext';
 import type { User } from '../Card/UserAssignmentSelector';
 
@@ -509,7 +510,42 @@ export function TaskGrid({
             </span>
           </div>
         );
-      
+
+      // v0.17.29: Priority column
+      case 'priority':
+        // Map task priority to PrioritySelector format
+        const priorityMapForSelector: Record<string, 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'> = {
+          low: 'LOW',
+          medium: 'MEDIUM',
+          high: 'HIGH',
+          urgent: 'URGENT',
+        };
+        const reversePriorityMapForTask: Record<string, 'low' | 'medium' | 'high' | 'urgent'> = {
+          LOW: 'low',
+          MEDIUM: 'medium',
+          HIGH: 'high',
+          URGENT: 'urgent',
+        };
+        const currentPriorityValue = priorityMapForSelector[task.priority || 'medium'] || 'MEDIUM';
+
+        return (
+          <div
+            className="flex items-center justify-center w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <PrioritySelector
+              priority={currentPriorityValue}
+              onChange={(newPriority) => {
+                if (newPriority) {
+                  onTaskUpdate?.(task.id, {
+                    priority: reversePriorityMapForTask[newPriority] || 'medium',
+                  });
+                }
+              }}
+            />
+          </div>
+        );
+
       default:
         return null;
     }

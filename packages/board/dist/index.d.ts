@@ -132,6 +132,8 @@ interface Card$1 {
     coverImage?: string;
     /** Subtasks/checklist items */
     subtasks?: Subtask[];
+    /** v0.17.29: Custom color for visual identification (hex color) */
+    color?: string;
     /** Custom metadata */
     metadata?: Record<string, unknown>;
     createdAt?: Date | string;
@@ -1397,6 +1399,7 @@ interface Task {
     isMilestone?: boolean;
     isCriticalPath?: boolean;
     color?: string;
+    priority?: 'low' | 'medium' | 'high' | 'urgent';
     segments?: TaskSegment[];
     parentId?: string;
     level?: number;
@@ -1405,7 +1408,7 @@ interface Task {
 type TimeScale = 'day' | 'week' | 'month';
 type Theme$1 = 'dark' | 'light' | 'neutral';
 type RowDensity = 'compact' | 'comfortable' | 'spacious';
-type ColumnType = 'name' | 'startDate' | 'endDate' | 'duration' | 'assignees' | 'status' | 'progress';
+type ColumnType = 'name' | 'startDate' | 'endDate' | 'duration' | 'assignees' | 'status' | 'progress' | 'priority';
 interface GanttColumn {
     id: ColumnType;
     label: string;
@@ -1937,7 +1940,8 @@ interface GanttToolbarProps {
     onExportJSON?: () => void;
     onExportMSProject?: () => void;
 }
-declare function GanttToolbar({ theme, timeScale, onTimeScaleChange, zoom, onZoomChange, currentTheme, onThemeChange, rowDensity, onRowDensityChange, showThemeSelector, showCreateTaskButton, createTaskLabel, // v0.15.0: Will use translations if not provided
+declare function GanttToolbar({ theme, timeScale, onTimeScaleChange, zoom, onZoomChange, currentTheme, onThemeChange, rowDensity, onRowDensityChange, showThemeSelector, // v0.17.29: Default to false - themes should be in app settings
+showCreateTaskButton, createTaskLabel, // v0.15.0: Will use translations if not provided
 onCreateTask, onExportPNG, onExportPDF, onExportExcel, onExportCSV, onExportJSON, onExportMSProject, }: GanttToolbarProps): react_jsx_runtime.JSX.Element;
 
 interface TaskGridProps {
@@ -2583,6 +2587,7 @@ interface GanttTranslations {
         assignees: string;
         status: string;
         progress: string;
+        priority: string;
     };
     toolbar: {
         today: string;

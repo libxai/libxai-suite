@@ -18,6 +18,7 @@ export interface GanttTranslations {
     assignees: string;
     status: string;
     progress: string;
+    priority: string; // v0.17.29
   };
 
   // Toolbar
@@ -153,6 +154,7 @@ export const en: GanttTranslations = {
     assignees: 'Assignees',
     status: 'Status',
     progress: '% Complete',
+    priority: 'Priority', // v0.17.29
   },
 
   toolbar: {
@@ -281,6 +283,7 @@ export const es: GanttTranslations = {
     assignees: 'Asignados',
     status: 'Estado',
     progress: '% Completado',
+    priority: 'Prioridad', // v0.17.29
   },
 
   toolbar: {

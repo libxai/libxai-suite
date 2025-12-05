@@ -473,7 +473,7 @@ export function GanttToolbar({
   onThemeChange,
   rowDensity,
   onRowDensityChange,
-  showThemeSelector = true,
+  showThemeSelector = false, // v0.17.29: Default to false - themes should be in app settings
   showCreateTaskButton = false,
   createTaskLabel, // v0.15.0: Will use translations if not provided
   onCreateTask,

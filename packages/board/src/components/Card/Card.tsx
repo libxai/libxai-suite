@@ -93,11 +93,21 @@ export const Card = memo<CardProps>(
       card.assignedUserIds?.includes(user.id)
     )
 
-    // Default card rendering
+    // Default card rendering with optional color accent
+    const cardStyle = {
+      ...style,
+      // v0.17.29: Apply custom color as top border accent
+      ...(card.color && {
+        borderTopWidth: '3px',
+        borderTopStyle: 'solid' as const,
+        borderTopColor: card.color,
+      }),
+    }
+
     return (
       <div
         ref={setNodeRef}
-        style={style}
+        style={cardStyle}
         className={cn(
           'asakaa-card',
           isDragging && 'asakaa-card-dragging',
@@ -227,6 +237,7 @@ export const Card = memo<CardProps>(
       prevProps.card.position === nextProps.card.position &&
       prevProps.card.columnId === nextProps.card.columnId &&
       prevProps.card.priority === nextProps.card.priority &&
+      prevProps.card.color === nextProps.card.color && // v0.17.29
       prevProps.card.startDate === nextProps.card.startDate &&
       prevProps.card.endDate === nextProps.card.endDate &&
       prevProps.isSelected === nextProps.isSelected &&

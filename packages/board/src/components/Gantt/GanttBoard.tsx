@@ -205,6 +205,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     { id: 'assignees', label: t.columns.assignees, width: 120, visible: false, sortable: false },
     { id: 'status', label: t.columns.status, width: 80, visible: false, sortable: true },
     { id: 'progress', label: t.columns.progress, width: 120, visible: false, sortable: true },
+    { id: 'priority', label: t.columns.priority, width: 90, visible: false, sortable: true }, // v0.17.29
   ], []);
 
   const [columns, setColumns] = useState<GanttColumn[]>(() => getDefaultColumns(translations));
