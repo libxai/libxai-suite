@@ -286,8 +286,35 @@ export interface GanttScrollBehavior {
 }
 
 /**
+ * AI chat message interface
+ * @version 0.17.42
+ */
+export interface AIMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+  command?: AICommandResult;
+  isLoading?: boolean;
+}
+
+/**
+ * Configuration for persisting AI chat history in localStorage
+ * @version 0.17.42
+ */
+export interface PersistHistoryConfig {
+  /** Enable history persistence in localStorage */
+  enabled: boolean;
+  /** Maximum messages to persist (default: 5) */
+  maxMessages?: number;
+  /** Custom storage key (default: 'gantt-ai-history') */
+  storageKey?: string;
+}
+
+/**
  * AI Assistant configuration for natural language task editing
  * @version 0.14.0
+ * @updated 0.17.42 - Added persistHistory option
  */
 export interface GanttAIAssistantConfig {
   /** Enable AI assistant (default: false) */
@@ -300,8 +327,10 @@ export interface GanttAIAssistantConfig {
   onCommand?: (command: string, tasks: Task[]) => Promise<AICommandResult>;
   /** Custom suggestions for the command palette */
   suggestions?: string[];
-  /** Maximum messages to keep in history */
+  /** Maximum messages to keep in memory history */
   maxHistory?: number;
+  /** Persist chat history in localStorage @version 0.17.42 */
+  persistHistory?: PersistHistoryConfig;
 }
 
 /**

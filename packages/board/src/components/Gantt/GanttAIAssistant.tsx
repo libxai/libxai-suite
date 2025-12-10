@@ -27,63 +27,17 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Portal } from '../Portal';
-import { Task, GanttTheme } from './types';
+import {
+  Task,
+  GanttTheme,
+  AICommandResult,
+  AIMessage,
+  GanttAIAssistantConfig,
+} from './types';
 
-// AI Command types for task operations
-export type AICommandType =
-  | 'move_task'      // Move a task to a different date
-  | 'resize_task'    // Change task duration
-  | 'rename_task'    // Rename a task
-  | 'delete_task'    // Delete a task
-  | 'create_task'    // Create a new task
-  | 'link_tasks'     // Create dependency between tasks
-  | 'unlink_tasks'   // Remove dependency
-  | 'assign_task'    // Assign users to task
-  | 'set_progress'   // Update task progress
-  | 'set_status'     // Change task status
-  | 'split_task'     // Split a task
-  | 'group_tasks'    // Create subtasks
-  | 'unknown';       // Unknown command
-
-// Parsed AI command result
-export interface AICommandResult {
-  type: AICommandType;
-  taskId?: string;
-  taskName?: string;
-  updates?: Partial<Task>;
-  newTask?: Task;
-  dependencyFrom?: string;
-  dependencyTo?: string;
-  message: string;
-  success: boolean;
-  error?: string;
-}
-
-// Chat message interface
-export interface AIMessage {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: Date;
-  command?: AICommandResult;
-  isLoading?: boolean;
-}
-
-// AI Assistant configuration
-export interface GanttAIAssistantConfig {
-  /** Enable AI assistant */
-  enabled?: boolean;
-  /** Custom placeholder text */
-  placeholder?: string;
-  /** Position of the chat button */
-  position?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
-  /** Handler for AI commands - should return task updates */
-  onCommand?: (command: string, tasks: Task[]) => Promise<AICommandResult>;
-  /** Custom suggestions for the command palette */
-  suggestions?: string[];
-  /** Maximum messages to keep in history */
-  maxHistory?: number;
-}
+// Re-export types for backwards compatibility
+export type { AICommandResult, AIMessage, GanttAIAssistantConfig } from './types';
+export type { PersistHistoryConfig } from './types';
 
 export interface GanttAIAssistantProps {
   /** All current tasks in the Gantt */
@@ -198,7 +152,47 @@ export function GanttAIAssistant({
     onCommand,
     suggestions = DEFAULT_SUGGESTIONS,
     maxHistory = 50,
+    persistHistory,
   } = config;
+
+  // Get storage key for localStorage
+  const storageKey = persistHistory?.storageKey || 'gantt-ai-history';
+  const persistMaxMessages = persistHistory?.maxMessages ?? 5;
+
+  // Load persisted history on mount
+  useEffect(() => {
+    if (persistHistory?.enabled) {
+      try {
+        const saved = localStorage.getItem(storageKey);
+        if (saved) {
+          const parsed = JSON.parse(saved) as AIMessage[];
+          // Convert timestamp strings back to Date objects
+          const messagesWithDates = parsed.map(msg => ({
+            ...msg,
+            timestamp: new Date(msg.timestamp),
+          }));
+          setMessages(messagesWithDates.slice(-persistMaxMessages));
+        }
+      } catch (error) {
+        console.warn('[GanttAIAssistant] Failed to load persisted history:', error);
+      }
+    }
+  }, [persistHistory?.enabled, storageKey, persistMaxMessages]);
+
+  // Persist history when messages change
+  useEffect(() => {
+    if (persistHistory?.enabled && messages.length > 0) {
+      try {
+        // Only persist non-loading messages
+        const messagesToPersist = messages
+          .filter(m => !m.isLoading)
+          .slice(-persistMaxMessages);
+        localStorage.setItem(storageKey, JSON.stringify(messagesToPersist));
+      } catch (error) {
+        console.warn('[GanttAIAssistant] Failed to persist history:', error);
+      }
+    }
+  }, [messages, persistHistory?.enabled, storageKey, persistMaxMessages]);
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
