@@ -15,6 +15,29 @@ import type { Dependency } from '@libxai/core'
 export type Priority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
 
 /**
+ * Subtask entity
+ * Represents a checklist item within a card
+ */
+export interface Subtask {
+  /** Unique identifier */
+  id: string
+  /** Subtask title */
+  title: string
+  /** Completion status */
+  completed: boolean
+  /** Position within the subtask list */
+  position?: number
+  /** Assigned user ID (optional) */
+  assigneeId?: string
+  /** Due date (optional) */
+  dueDate?: Date | string
+  /** Created timestamp */
+  createdAt?: Date | string
+  /** Updated timestamp */
+  updatedAt?: Date | string
+}
+
+/**
  * Card status types
  */
 export type CardStatus = 'TODO' | 'IN_PROGRESS' | 'REVIEW' | 'DONE' | 'BLOCKED'
@@ -58,6 +81,10 @@ export interface Card {
   progress?: number
   /** Cover image URL */
   coverImage?: string
+  /** Subtasks/checklist items */
+  subtasks?: Subtask[]
+  /** v0.17.29: Custom color for visual identification (hex color) */
+  color?: string
   /** Custom metadata */
   metadata?: Record<string, unknown>
 
@@ -268,6 +295,10 @@ export interface AICallbacks {
  * Configuration options for the Kanban board
  */
 export interface BoardConfig {
+  /** Theme: 'dark' | 'light' | 'neutral' */
+  theme?: 'dark' | 'light' | 'neutral'
+  /** Locale for i18n */
+  locale?: 'en' | 'es' | string
   /** Enable virtualization (auto-enabled if >100 cards) */
   enableVirtualization?: boolean
   /** Enable AI features */

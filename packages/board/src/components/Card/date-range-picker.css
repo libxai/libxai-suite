@@ -1,0 +1,194 @@
+/**
+ * Date Range Picker - Theme-aware styles
+ * Uses data-theme attribute for proper theme inheritance
+ */
+
+/* ==================== Menu Container ==================== */
+
+.drp-menu {
+  position: absolute;
+  min-width: 320px;
+  border-radius: 12px;
+  z-index: 99999;
+  overflow: hidden;
+
+  /* Default (dark) - matches Kanban card background */
+  background: #1A1D25;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+/* Light theme */
+[data-theme="light"] .drp-menu {
+  background: #FFFFFF;
+  border-color: rgba(0, 0, 0, 0.12);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
+/* Neutral theme */
+[data-theme="neutral"] .drp-menu {
+  background: #F5F5F5;
+  border-color: rgba(0, 0, 0, 0.1);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.06);
+}
+
+/* ==================== Sections ==================== */
+
+.drp-section {
+  padding: 16px;
+}
+
+.drp-section-border {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="light"] .drp-section-border,
+[data-theme="neutral"] .drp-section-border {
+  border-bottom-color: rgba(0, 0, 0, 0.08);
+}
+
+/* ==================== Labels ==================== */
+
+.drp-label {
+  display: block;
+  margin-bottom: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+
+  /* Default (dark) */
+  color: rgba(255, 255, 255, 0.7);
+}
+
+[data-theme="light"] .drp-label,
+[data-theme="neutral"] .drp-label {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+/* ==================== Button Grid ==================== */
+
+.drp-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+/* ==================== Quick Select Buttons ==================== */
+
+.drp-btn {
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  /* Default (dark) */
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.drp-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.drp-btn:active {
+  transform: scale(0.98);
+}
+
+/* Light theme */
+[data-theme="light"] .drp-btn {
+  color: rgba(0, 0, 0, 0.85);
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="light"] .drp-btn:hover {
+  background: rgba(0, 0, 0, 0.08);
+  border-color: rgba(0, 0, 0, 0.2);
+}
+
+/* Neutral theme */
+[data-theme="neutral"] .drp-btn {
+  color: rgba(0, 0, 0, 0.85);
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="neutral"] .drp-btn:hover {
+  background: rgba(0, 0, 0, 0.08);
+  border-color: rgba(0, 0, 0, 0.18);
+}
+
+/* ==================== Date Inputs ==================== */
+
+.drp-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.drp-input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  transition: all 0.15s ease;
+
+  /* Default (dark) */
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.9);
+  color-scheme: dark;
+}
+
+.drp-input:focus {
+  border-color: #3B82F6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+/* Light theme */
+[data-theme="light"] .drp-input {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.12);
+  color: rgba(0, 0, 0, 0.85);
+  color-scheme: light;
+}
+
+/* Neutral theme */
+[data-theme="neutral"] .drp-input {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.1);
+  color: rgba(0, 0, 0, 0.85);
+  color-scheme: light;
+}
+
+/* ==================== Clear Button ==================== */
+
+.drp-clear-btn {
+  width: 100%;
+  margin-top: 16px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.drp-clear-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.drp-clear-btn:active {
+  transform: scale(0.98);
+}

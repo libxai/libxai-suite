@@ -3,10 +3,11 @@ import { GanttTheme } from './types';
 export const themes: Record<string, GanttTheme> = {
   dark: {
     // Backgrounds
+    // v0.14.7: Reduced zebra stripe contrast for more sophisticated look
     bgPrimary: '#1A1D21',
     bgSecondary: '#23272E',
-    bgGrid: '#1E2228',
-    bgWeekend: 'rgba(139, 92, 246, 0.03)',
+    bgGrid: '#1C1F24',  // Reduced contrast from #1E2228
+    bgWeekend: 'rgba(59, 130, 246, 0.02)',
 
     // Borders
     border: '#2D3139',
@@ -17,14 +18,14 @@ export const themes: Record<string, GanttTheme> = {
     textSecondary: '#B4B9C5',
     textTertiary: '#7C8394',
 
-    // Accent & Interactive
-    accent: '#8B5CF6',
-    accentHover: '#9D72F8',
-    accentLight: 'rgba(139, 92, 246, 0.12)',
+    // Accent & Interactive - Electric Blue brand color
+    accent: '#3B82F6',
+    accentHover: '#60A5FA',
+    accentLight: 'rgba(59, 130, 246, 0.12)',
 
-    // Task Elements - More vibrant colors like ClickUp
-    taskBarPrimary: '#8B5CF6',
-    taskBarProgress: '#7C3AED',
+    // Task Elements - Electric Blue brand color
+    taskBarPrimary: '#3B82F6',
+    taskBarProgress: '#2563EB',
     taskBarHandle: '#FFFFFF',
 
     // Dependencies & Critical Path
@@ -41,20 +42,21 @@ export const themes: Record<string, GanttTheme> = {
 
     // Status Colors
     statusTodo: '#7C8394',
-    statusInProgress: '#8B5CF6',
+    statusInProgress: '#3B82F6',
     statusCompleted: '#10B981',
 
     // Hover & Focus States
     hoverBg: 'rgba(255, 255, 255, 0.05)',
-    focusRing: '#8B5CF6',
+    focusRing: '#3B82F6',
   },
   
   light: {
     // Backgrounds
+    // v0.14.7: Reduced zebra stripe contrast for more sophisticated look
     bgPrimary: '#FFFFFF',
     bgSecondary: '#F9FAFB',
-    bgGrid: '#FCFCFD',
-    bgWeekend: 'rgba(37, 99, 235, 0.03)',
+    bgGrid: '#FDFEFE',  // Reduced contrast from #FCFCFD
+    bgWeekend: 'rgba(37, 99, 235, 0.02)',
 
     // Borders
     border: '#E5E7EB',
@@ -99,10 +101,11 @@ export const themes: Record<string, GanttTheme> = {
   
   neutral: {
     // Backgrounds
+    // v0.14.7: Reduced zebra stripe contrast for more sophisticated look
     bgPrimary: '#FAFAF9',
     bgSecondary: '#F5F5F4',
-    bgGrid: '#FEFEFE',
-    bgWeekend: 'rgba(41, 37, 36, 0.025)',
+    bgGrid: '#FBFBFA',  // Reduced contrast from #FEFEFE
+    bgWeekend: 'rgba(41, 37, 36, 0.015)',
 
     // Borders
     border: '#E7E5E4',

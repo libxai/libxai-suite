@@ -1,8 +1,9 @@
-import { useMemo, useCallback } from 'react';
-import { TimeScale, Task, GanttTemplates } from './types';
+import { useMemo, useCallback, useState } from 'react';
+import { TimeScale, Task, GanttTemplates, DependentTaskPreview } from './types';
 import { TaskBar } from './TaskBar';
 import { DependencyLine } from './DependencyLine';
 import { Milestone } from './Milestone';
+import { ganttUtils } from './ganttUtils';
 
 interface TimelineProps {
   tasks: Task[];
@@ -46,6 +47,9 @@ export function Timeline({
   onDependencyDelete,
 }: TimelineProps) {
   const HEADER_HEIGHT = 48; // Must match TaskGrid's HEADER_HEIGHT for alignment
+
+  // v0.13.0: State for dependency cascade preview
+  const [cascadePreviews, setCascadePreviews] = useState<DependentTaskPreview[]>([]);
 
   // Calculate dimensions
   const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -101,18 +105,64 @@ export function Timeline({
     onTaskDateChange?.(task, clickedDate, endDate);
   }, [pixelToDate, onTaskDateChange]);
 
-  // Flatten tasks for rendering
-  const flattenTasks = (tasks: Task[], result: Task[] = []): Task[] => {
-    for (const task of tasks) {
-      result.push(task);
-      if (task.subtasks && task.subtasks.length > 0 && task.isExpanded) {
-        flattenTasks(task.subtasks, result);
-      }
-    }
-    return result;
-  };
+  // Calculate parent task dates from subtasks and flatten for rendering
+  const flatTasks = useMemo(() => {
+    // Helper function to calculate parent dates from subtasks
+    // v0.11.9: IMPORTANT - Only calculate dates if parent doesn't already have dates set
+    // This allows AI commands and manual edits to move parent tasks independently
+    const calculateParentDates = (tasks: Task[]): Task[] => {
+      return tasks.map(task => {
+        // If task has subtasks, calculate dates from them
+        if (task.subtasks && task.subtasks.length > 0) {
+          // First, recursively calculate dates for nested subtasks
+          const updatedSubtasks = calculateParentDates(task.subtasks);
 
-  const flatTasks = flattenTasks(tasks);
+          // Filter subtasks that have dates
+          const subtasksWithDates = updatedSubtasks.filter(st => st.startDate && st.endDate);
+
+          if (subtasksWithDates.length > 0) {
+            // Calculate earliest start and latest end from subtasks
+            const startDates = subtasksWithDates.map(st => st.startDate!.getTime());
+            const endDates = subtasksWithDates.map(st => st.endDate!.getTime());
+
+            const earliestStart = new Date(Math.min(...startDates));
+            const latestEnd = new Date(Math.max(...endDates));
+
+            // v0.11.9: Only set dates if parent doesn't already have them
+            // This preserves dates set by AI commands or manual edits
+            return {
+              ...task,
+              subtasks: updatedSubtasks,
+              startDate: task.startDate || earliestStart,
+              endDate: task.endDate || latestEnd,
+            };
+          }
+
+          return { ...task, subtasks: updatedSubtasks };
+        }
+
+        return task;
+      });
+    };
+
+    // Helper function to flatten tasks for rendering
+    const flattenTasks = (tasks: Task[], result: Task[] = []): Task[] => {
+      for (const task of tasks) {
+        result.push(task);
+        // Only include subtasks if parent is expanded (or if isExpanded is undefined, default to true)
+        if (task.subtasks && task.subtasks.length > 0 && (task.isExpanded === undefined || task.isExpanded)) {
+          flattenTasks(task.subtasks, result);
+        }
+      }
+      return result;
+    };
+
+    // Apply parent date calculation before flattening
+    const tasksWithCalculatedDates = calculateParentDates(tasks);
+    const flattened = flattenTasks(tasksWithCalculatedDates);
+
+    return flattened;
+  }, [tasks]);
 
   // Calculate task position
   const getTaskPosition = useCallback((task: Task) => {
@@ -137,13 +187,14 @@ export function Timeline({
   }, [startDate, dayWidth, zoom]);
 
   // Build task positions map for collision detection
+  // v0.13.7: Y positions no longer include HEADER_HEIGHT (header is now separate sticky element)
   const taskPositions = useMemo((): TaskPosition[] => {
     return flatTasks
       .filter(task => task.startDate && task.endDate) // Only include tasks with dates
       .map((task) => {
         const { x, width } = getTaskPosition(task);
         const actualIndex = flatTasks.findIndex(t => t.id === task.id);
-        const y = HEADER_HEIGHT + actualIndex * ROW_HEIGHT + 12;
+        const y = actualIndex * ROW_HEIGHT + 12;
         return {
           id: task.id,
           x,
@@ -153,6 +204,28 @@ export function Timeline({
         };
       });
   }, [flatTasks, getTaskPosition]);
+
+  // v0.13.0: Handle drag move for dependency cascade preview
+  const handleTaskDragMove = useCallback((taskId: string, daysDelta: number, isDragging: boolean) => {
+    if (!isDragging || daysDelta === 0) {
+      setCascadePreviews([]);
+      return;
+    }
+
+    // Calculate cascade preview positions for all dependent tasks
+    const previews = ganttUtils.calculateCascadePreview(
+      tasks,
+      taskId,
+      daysDelta,
+      flatTasks,
+      startDate,
+      dayWidth * zoom,
+      ROW_HEIGHT,
+      HEADER_HEIGHT
+    );
+
+    setCascadePreviews(previews);
+  }, [tasks, flatTasks, startDate, dayWidth, zoom, ROW_HEIGHT, HEADER_HEIGHT]);
 
   // Generate timeline headers
   const headers = useMemo(() => {
@@ -201,11 +274,86 @@ export function Timeline({
     return daysFromStart * dayWidth * zoom;
   }, [startDate, dayWidth, zoom]);
 
+  // v0.13.7: Content height calculation (without header - header is now separate)
+  const contentHeight = Math.max(flatTasks.length * ROW_HEIGHT, 600 - HEADER_HEIGHT);
+
   return (
-    <div className="flex-1 overflow-auto" data-gantt-chart style={{ backgroundColor: theme.bgPrimary }}>
+    <div
+      className="w-full h-full flex flex-col"
+      data-gantt-chart
+      style={{ backgroundColor: theme.bgPrimary, overflow: 'visible' }}
+    >
+      {/* v0.13.7: Sticky Header - stays visible during vertical scroll */}
+      <div
+        style={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 10,
+          backgroundColor: theme.bgGrid,
+          flexShrink: 0,
+          height: `${HEADER_HEIGHT}px`,
+          borderBottom: `1px solid ${theme.border}`,
+          boxSizing: 'border-box', // Border included in height
+        }}
+      >
+        <svg
+          width={Math.max(timelineWidth, 1000)}
+          height={HEADER_HEIGHT - 1} // -1 for border
+          style={{ display: 'block' }}
+        >
+          {/* Header Background */}
+          <rect
+            x={0}
+            y={0}
+            width={Math.max(timelineWidth, 1000)}
+            height={HEADER_HEIGHT}
+            fill={theme.bgGrid}
+          />
+
+          {/* Header Grid Lines and Text */}
+          {headers.map((header, index) => (
+            <g key={`header-${index}`}>
+              {/* Grid line in header - skip first line since TaskGrid border serves as divider */}
+              {index > 0 && (
+                <line
+                  x1={header.x}
+                  y1={0}
+                  x2={header.x}
+                  y2={HEADER_HEIGHT}
+                  stroke={theme.border}
+                  strokeWidth={1}
+                  opacity={0.1}
+                />
+              )}
+
+              {/* Header text - JetBrains Mono for technical/date display */}
+              <text
+                x={header.x + 8}
+                y={HEADER_HEIGHT / 2}
+                fill={theme.textTertiary}
+                fontSize="11"
+                fontFamily="'JetBrains Mono', ui-monospace, monospace"
+                fontWeight="500"
+                dominantBaseline="middle"
+              >
+                {header.label}
+              </text>
+            </g>
+          ))}
+
+          {/* Today marker in header */}
+          {todayX >= 0 && todayX <= timelineWidth && (
+            <circle cx={todayX} cy={HEADER_HEIGHT - 10} r={6} fill={theme.today} opacity={1} />
+          )}
+        </svg>
+      </div>
+
+      {/* Scrollable Content Area */}
+      {/* v0.17.31: Added overflow:visible to allow tooltips to render above the header */}
       <svg
         width={Math.max(timelineWidth, 1000)}
-        height={Math.max(flatTasks.length * ROW_HEIGHT + HEADER_HEIGHT, 600)}
+        height={contentHeight}
+        style={{ display: 'block', flexShrink: 0, overflow: 'visible' }}
       >
         <defs>
           <filter id="shadow">
@@ -223,20 +371,11 @@ export function Timeline({
           x={0}
           y={0}
           width={Math.max(timelineWidth, 1000)}
-          height={Math.max(flatTasks.length * ROW_HEIGHT + HEADER_HEIGHT, 600)}
+          height={contentHeight}
           fill={theme.bgPrimary}
         />
 
-        {/* Header Background */}
-        <rect
-          x={0}
-          y={0}
-          width={timelineWidth}
-          height={HEADER_HEIGHT}
-          fill={theme.bgGrid}
-        />
-
-        {/* Grid Lines and Weekend Backgrounds */}
+        {/* Grid Lines and Weekend Backgrounds - v0.13.7: Adjusted Y positions (no header offset) */}
         {headers.map((header, index) => {
           const nextX = headers[index + 1]?.x || timelineWidth;
           const isWeekendDay = isWeekend(header.date);
@@ -247,58 +386,44 @@ export function Timeline({
               {isWeekendDay && (
                 <rect
                   x={header.x}
-                  y={HEADER_HEIGHT}
+                  y={0}
                   width={nextX - header.x}
                   height={flatTasks.length * ROW_HEIGHT}
                   fill={theme.bgWeekend}
-                  opacity={0.6}
+                  opacity={1}
                 />
               )}
 
-              {/* Grid line */}
-              <line
-                x1={header.x}
-                y1={HEADER_HEIGHT}
-                x2={header.x}
-                y2={flatTasks.length * ROW_HEIGHT + HEADER_HEIGHT}
-                stroke={theme.border}
-                strokeWidth={1}
-                opacity={0.1}
-              />
-
-              {/* Header text */}
-              <text
-                x={header.x + 8}
-                y={HEADER_HEIGHT / 2}
-                fill={theme.textTertiary}
-                fontSize="11"
-                fontFamily="Inter, sans-serif"
-                dominantBaseline="middle"
-              >
-                {header.label}
-              </text>
+              {/* Grid line - skip first line since TaskGrid border serves as divider */}
+              {index > 0 && (
+                <line
+                  x1={header.x}
+                  y1={0}
+                  x2={header.x}
+                  y2={flatTasks.length * ROW_HEIGHT}
+                  stroke={theme.border}
+                  strokeWidth={1}
+                  opacity={0.1}
+                />
+              )}
             </g>
           );
         })}
 
-        {/* Today Line - Solid, prominent indicator */}
+        {/* Today Line - Solid, prominent indicator - v0.13.7: Adjusted Y (no header offset) */}
         {todayX >= 0 && todayX <= timelineWidth && (
-          <g>
-            {/* Solid line - more prominent */}
-            <line
-              x1={todayX}
-              y1={HEADER_HEIGHT}
-              x2={todayX}
-              y2={flatTasks.length * ROW_HEIGHT + HEADER_HEIGHT}
-              stroke={theme.today}
-              strokeWidth={2}
-              opacity={1}
-            />
-            <circle cx={todayX} cy={HEADER_HEIGHT - 10} r={6} fill={theme.today} opacity={1} />
-          </g>
+          <line
+            x1={todayX}
+            y1={0}
+            x2={todayX}
+            y2={flatTasks.length * ROW_HEIGHT}
+            stroke={theme.today}
+            strokeWidth={2}
+            opacity={1}
+          />
         )}
 
-        {/* Row Backgrounds with Click-to-Create functionality */}
+        {/* Row Backgrounds with Click-to-Create functionality - v0.13.7: Adjusted Y positions */}
         {flatTasks.map((task, index) => {
           const hasTaskBar = task.startDate && task.endDate;
 
@@ -308,7 +433,7 @@ export function Timeline({
               <rect
                 key={`row-${task.id}`}
                 x={0}
-                y={HEADER_HEIGHT + index * ROW_HEIGHT}
+                y={index * ROW_HEIGHT}
                 width={timelineWidth}
                 height={ROW_HEIGHT}
                 fill={index % 2 === 0 ? 'transparent' : theme.bgSecondary}
@@ -322,7 +447,7 @@ export function Timeline({
                   <rect
                     key={`clickable-${task.id}`}
                     x={0}
-                    y={HEADER_HEIGHT + index * ROW_HEIGHT}
+                    y={index * ROW_HEIGHT}
                     width={timelineWidth}
                     height={ROW_HEIGHT}
                     fill="transparent"
@@ -344,7 +469,7 @@ export function Timeline({
                   <text
                     key={`placeholder-${task.id}`}
                     x={todayX > 0 ? todayX : 100}
-                    y={HEADER_HEIGHT + index * ROW_HEIGHT + ROW_HEIGHT / 2}
+                    y={index * ROW_HEIGHT + ROW_HEIGHT / 2}
                     fill={theme.textTertiary}
                     fontSize="12"
                     fontFamily="Inter, sans-serif"
@@ -361,7 +486,7 @@ export function Timeline({
           );
         })}
 
-        {/* Dependencies */}
+        {/* Dependencies - v0.13.7: Adjusted Y positions */}
         {flatTasks.map((task, toIndex) => {
           if (!task.dependencies || task.dependencies.length === 0) return null;
           // Skip if task doesn't have dates
@@ -381,9 +506,9 @@ export function Timeline({
               <DependencyLine
                 key={`dep-${depId}-${task.id}`}
                 x1={fromPos.x + fromPos.width}
-                y1={HEADER_HEIGHT + fromIndex * ROW_HEIGHT + ROW_HEIGHT / 2}
+                y1={fromIndex * ROW_HEIGHT + ROW_HEIGHT / 2}
                 x2={toPos.x}
-                y2={HEADER_HEIGHT + toIndex * ROW_HEIGHT + ROW_HEIGHT / 2}
+                y2={toIndex * ROW_HEIGHT + ROW_HEIGHT / 2}
                 theme={theme}
                 onDelete={() => onDependencyDelete?.(task.id, depId)}
               />
@@ -391,7 +516,7 @@ export function Timeline({
           });
         })}
 
-        {/* Tasks */}
+        {/* Tasks - v0.13.7: Adjusted Y positions */}
         {flatTasks.map((task, index) => {
           // Don't render task bar if task doesn't have dates
           if (!task.startDate || !task.endDate) {
@@ -399,7 +524,7 @@ export function Timeline({
           }
 
           const { x, width } = getTaskPosition(task);
-          const y = HEADER_HEIGHT + index * ROW_HEIGHT + 12;
+          const y = index * ROW_HEIGHT + 12;
 
           // Container phase (has subtasks): render as bracket bar
           const isContainer = task.subtasks && task.subtasks.length > 0 && !task.isMilestone;
@@ -418,18 +543,29 @@ export function Timeline({
           }
 
           if (isContainer) {
-            // Render container as bracket bar
+            // Render container as elegant bracket bar with task name
             return (
               <g key={task.id} onClick={() => onTaskClick?.(task)} style={{ cursor: 'pointer' }}>
+                {/* Background fill - elegant and visible */}
+                <rect
+                  x={x}
+                  y={y}
+                  width={width}
+                  height={32}
+                  fill={theme.primary}
+                  opacity={0.25}
+                  rx={6}
+                />
                 {/* Top bracket line */}
                 <line
                   x1={x}
                   y1={y}
                   x2={x + width}
                   y2={y}
-                  stroke={theme.borderLight}
-                  strokeWidth={2}
-                  opacity={0.6}
+                  stroke={theme.primary}
+                  strokeWidth={3}
+                  opacity={0.9}
+                  strokeLinecap="round"
                 />
                 {/* Left vertical */}
                 <line
@@ -437,9 +573,10 @@ export function Timeline({
                   y1={y}
                   x2={x}
                   y2={y + 32}
-                  stroke={theme.borderLight}
-                  strokeWidth={2}
-                  opacity={0.6}
+                  stroke={theme.primary}
+                  strokeWidth={3}
+                  opacity={0.9}
+                  strokeLinecap="round"
                 />
                 {/* Right vertical */}
                 <line
@@ -447,9 +584,10 @@ export function Timeline({
                   y1={y}
                   x2={x + width}
                   y2={y + 32}
-                  stroke={theme.borderLight}
-                  strokeWidth={2}
-                  opacity={0.6}
+                  stroke={theme.primary}
+                  strokeWidth={3}
+                  opacity={0.9}
+                  strokeLinecap="round"
                 />
                 {/* Bottom bracket line */}
                 <line
@@ -457,10 +595,26 @@ export function Timeline({
                   y1={y + 32}
                   x2={x + width}
                   y2={y + 32}
-                  stroke={theme.borderLight}
-                  strokeWidth={2}
-                  opacity={0.6}
+                  stroke={theme.primary}
+                  strokeWidth={3}
+                  opacity={0.9}
+                  strokeLinecap="round"
                 />
+                {/* Task name text - Matching TaskBar pattern */}
+                {width > 60 && (
+                  <text
+                    x={x + 12}
+                    y={y + 16}
+                    dominantBaseline="middle"
+                    fill="#FFFFFF"
+                    fontSize="13"
+                    fontWeight="500"
+                    fontFamily="Inter, sans-serif"
+                    style={{ pointerEvents: 'none', userSelect: 'none' }}
+                  >
+                    {task.name}
+                  </text>
+                )}
               </g>
             );
           }
@@ -482,9 +636,50 @@ export function Timeline({
               onDateChange={onTaskDateChange}
               onDependencyCreate={onDependencyCreate}
               allTaskPositions={taskPositions}
+              onDragMove={handleTaskDragMove} // v0.13.0
             />
           );
         })}
+
+        {/* v0.13.0: Dependency Cascade Preview - Ghost bars showing where dependent tasks will move */}
+        {/* v0.13.4: Simplified - no conflicting animation, direct position */}
+        {/* v0.13.7: Adjusted Y positions for cascade previews */}
+        {cascadePreviews.map((preview) => (
+          <g
+            key={`cascade-preview-${preview.taskId}`}
+            style={{ pointerEvents: 'none' }}
+          >
+            {/* Ghost bar at exact preview position - v0.13.7: Y adjusted (subtract HEADER_HEIGHT) */}
+            <rect
+              x={preview.previewX}
+              y={preview.y - HEADER_HEIGHT}
+              width={preview.width}
+              height={32}
+              rx={8}
+              fill={preview.color || theme.accent}
+              opacity={0.3}
+              stroke={theme.accent}
+              strokeWidth={2}
+              strokeDasharray="4 2"
+            />
+            {/* Days delta label */}
+            {Math.abs(preview.daysDelta) > 0 && (
+              <text
+                x={preview.previewX + preview.width / 2}
+                y={preview.y - HEADER_HEIGHT + 16}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                fill={theme.accent}
+                fontSize="10"
+                fontWeight="600"
+                fontFamily="Inter, sans-serif"
+                style={{ userSelect: 'none' }}
+              >
+                {preview.daysDelta > 0 ? `+${preview.daysDelta}d` : `${preview.daysDelta}d`}
+              </text>
+            )}
+          </g>
+        ))}
       </svg>
     </div>
   );

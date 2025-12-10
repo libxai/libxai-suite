@@ -5,10 +5,16 @@ import { GanttToolbar } from './GanttToolbar';
 import { TaskGrid } from './TaskGrid';
 import { Timeline } from './Timeline';
 import { ContextMenu, MenuIcons } from './ContextMenu'; // v0.8.0: Split task context menu
-import { motion } from 'framer-motion';
+import { TaskFormModal } from './TaskFormModal'; // v0.10.0: Task edit modal
+import { GanttAIAssistant } from './GanttAIAssistant'; // v0.14.0: AI Assistant
+import { motion, AnimatePresence } from 'framer-motion'; // v0.17.33: For delete confirmation modal
+import { AlertTriangle, Trash2 } from 'lucide-react'; // v0.17.33: Icons for delete confirmation
 import { useUndoRedo } from './useUndoRedo';
 import { useGanttUndoRedoKeys } from './useGanttUndoRedoKeys';
 import { ThemeContext } from '../../theme/ThemeProvider';
+import { GanttThemeContext } from './GanttThemeContext';
+import { GanttI18nContext } from './GanttI18nContext'; // v0.15.0: i18n context
+import { mergeTranslations, GanttTranslations } from './i18n'; // v0.15.0: i18n
 import { GanttBoardRef } from './GanttBoardRef';
 import { ganttUtils } from './ganttUtils';
 import { mergeTemplates } from './defaultTemplates';
@@ -54,14 +60,31 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     timeScale: initialTimeScale = 'week',
     rowDensity: initialRowDensity = 'comfortable',
     showThemeSelector = true,
+    showExportButton = true, // v0.12.0: Show export dropdown in toolbar
     availableUsers = [],
     templates,
+    enableAutoCriticalPath = true, // v0.11.1: Allow disabling automatic CPM calculation
+    aiAssistant, // v0.14.0: AI Assistant configuration
+    // v0.15.0: Internationalization
+    locale = 'en',
+    customTranslations,
+    // v0.14.3: Create Task button in toolbar
+    showCreateTaskButton = false,
+    createTaskLabel,
+    onCreateTask,
+    // UI events
+    onThemeChange, // v0.9.0
     // Basic events
     onTaskClick,
     onTaskDblClick, // v0.8.0
     onTaskContextMenu, // v0.8.0
     onTaskUpdate,
     onProgressChange, // v0.8.0
+    // v0.16.0: Context menu action callbacks
+    onTaskEdit,
+    onTaskAddSubtask,
+    onTaskMarkIncomplete,
+    onTaskSetInProgress,
     // Dependency events
     onDependencyCreate,
     onDependencyDelete,
@@ -80,6 +103,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
 
   // Use global theme if available, otherwise fall back to initialTheme or 'dark'
   const [currentTheme, setCurrentTheme] = useState<Theme>(globalTheme || initialTheme || 'dark');
+
   const [timeScale, setTimeScale] = useState<TimeScale>(initialTimeScale);
   const [rowDensity, setRowDensity] = useState<RowDensity>(initialRowDensity);
   const [zoom, setZoom] = useState(1);
@@ -95,12 +119,34 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     task: null,
   });
 
-  // Sync with global theme changes
+  // v0.10.0: Task form modal state for editing
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+
+  // v0.17.33: Delete confirmation modal state
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{ taskId: string; taskName: string } | null>(null);
+
+  // Sync with global theme changes (from ThemeContext)
   useEffect(() => {
     if (globalTheme && globalTheme !== currentTheme) {
       setCurrentTheme(globalTheme);
     }
   }, [globalTheme]);
+
+  // v0.11.6: Sync with initialTheme prop changes (for external theme control)
+  useEffect(() => {
+    if (initialTheme && initialTheme !== currentTheme) {
+      setCurrentTheme(initialTheme);
+    }
+  }, [initialTheme]);
+
+  // v0.9.0: Handle theme change with callback
+  const handleThemeChange = useCallback(
+    (newTheme: Theme) => {
+      setCurrentTheme(newTheme);
+      onThemeChange?.(newTheme);
+    },
+    [onThemeChange]
+  );
 
   // Use undo/redo hook for task management
   const {
@@ -113,23 +159,69 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     clearHistory,
   } = useUndoRedo<Task[]>(tasks, 50);
 
-  // Sync local tasks with parent when they change
+  // Sync parent tasks prop changes to local state (e.g., after external DB operations)
   useEffect(() => {
-    if (onTasksChange) {
+    setLocalTasks(tasks);
+  }, [tasks, setLocalTasks]);
+
+  // v0.17.19: Track previous tasks for comparison to avoid unnecessary onTasksChange calls
+  const prevTasksRef = useRef<Task[]>(tasks);
+  const isInitialMount = useRef(true);
+
+  // Sync local tasks with parent when they change (optimized to avoid unnecessary calls)
+  useEffect(() => {
+    // Skip on initial mount - parent already has the tasks
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      prevTasksRef.current = localTasks;
+      return;
+    }
+
+    if (!onTasksChange) return;
+
+    // Compare tasks to detect meaningful changes (not just reference changes)
+    // We use JSON stringify for deep comparison - this catches:
+    // - Added/removed tasks
+    // - Changed task properties (name, dates, progress, etc.)
+    // - But NOT just reordering of the same data in memory
+    const prevJson = JSON.stringify(prevTasksRef.current);
+    const currentJson = JSON.stringify(localTasks);
+
+    if (prevJson !== currentJson) {
+      prevTasksRef.current = localTasks;
       onTasksChange(localTasks);
     }
   }, [localTasks, onTasksChange]);
 
+  // v0.15.0: Compute translations based on locale (must be before columns)
+  const translations: GanttTranslations = useMemo(() => {
+    return mergeTranslations(locale, customTranslations);
+  }, [locale, customTranslations]);
+
   // Column configuration - Default: Only show task name
-  const [columns, setColumns] = useState<GanttColumn[]>([
-    { id: 'name', label: 'Task Name', width: 240, visible: true, sortable: true },
-    { id: 'startDate', label: 'Start Date', width: 110, visible: false, sortable: true },
-    { id: 'endDate', label: 'End Date', width: 110, visible: false, sortable: true },
-    { id: 'duration', label: 'Duration', width: 80, visible: false, sortable: true },
-    { id: 'assignees', label: 'Assignees', width: 120, visible: false, sortable: false },
-    { id: 'status', label: 'Status', width: 80, visible: false, sortable: true },
-    { id: 'progress', label: '% Complete', width: 120, visible: false, sortable: true },
-  ]);
+  // v0.13.8: Name column is resizable with min/max width constraints
+  // v0.13.9: Increased default width to 320px for better readability of long task names
+  // v0.15.0: Column labels now use translations
+  const getDefaultColumns = useCallback((t: GanttTranslations): GanttColumn[] => [
+    { id: 'name', label: t.columns.taskName, width: 400, minWidth: 200, maxWidth: 2000, visible: true, sortable: true, resizable: false },
+    { id: 'startDate', label: t.columns.startDate, width: 110, visible: false, sortable: true },
+    { id: 'endDate', label: t.columns.endDate, width: 110, visible: false, sortable: true },
+    { id: 'duration', label: t.columns.duration, width: 80, visible: false, sortable: true },
+    { id: 'assignees', label: t.columns.assignees, width: 120, visible: false, sortable: false },
+    { id: 'status', label: t.columns.status, width: 80, visible: false, sortable: true },
+    { id: 'progress', label: t.columns.progress, width: 120, visible: false, sortable: true },
+    { id: 'priority', label: t.columns.priority, width: 90, visible: false, sortable: true }, // v0.17.29
+  ], []);
+
+  const [columns, setColumns] = useState<GanttColumn[]>(() => getDefaultColumns(translations));
+
+  // Update column labels when locale changes
+  useEffect(() => {
+    setColumns(prev => prev.map(col => ({
+      ...col,
+      label: translations.columns[col.id === 'name' ? 'taskName' : col.id as keyof typeof translations.columns] || col.label,
+    })));
+  }, [translations]);
 
   // Calculate grid width based on visible columns (memoized)
   const calculatedGridWidth = useMemo(() =>
@@ -150,6 +242,12 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     return deriveThemeFromCSS(currentTheme);
   }, [currentTheme]);
 
+  // Crear valor del contexto del tema para componentes hijos (Portal, etc.)
+  const ganttThemeContextValue = useMemo(() => ({
+    theme,
+    themeName: currentTheme,
+  }), [theme, currentTheme]);
+
   // Merge user templates with defaults
   const mergedTemplates = useMemo(() => {
     return mergeTemplates(templates);
@@ -157,7 +255,13 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
 
   // 🚀 KILLER FEATURE #1: Calculate Critical Path (auto-updates when tasks change)
   // This is BETTER than DHTMLX - we recalculate CPM automatically on every change
+  // v0.11.1: Can be disabled via enableAutoCriticalPath prop to preserve custom colors
   const tasksWithCriticalPath = useMemo(() => {
+    // If auto critical path is disabled, return tasks as-is (preserve custom colors)
+    if (!enableAutoCriticalPath) {
+      return localTasks;
+    }
+
     const criticalPathIds = ganttUtils.calculateCriticalPath(localTasks);
 
     const markCritical = (tasks: Task[]): Task[] => {
@@ -169,7 +273,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     };
 
     return markCritical(localTasks);
-  }, [localTasks]);
+  }, [localTasks, enableAutoCriticalPath]);
 
   // Calculate row height based on density
   const rowHeight = getRowHeight(rowDensity);
@@ -300,11 +404,27 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       setLocalTasks((prev) => moveTasks(prev, [taskId], direction));
     },
 
-    createSubtask: (parentId: string) => {
-      setLocalTasks((prev) => {
-        const { tasks } = createSubtask(prev, parentId);
-        return tasks;
-      });
+    createSubtask: async (parentId: string) => {
+      // Create subtask first
+      const { tasks: newTasks, newTask } = createSubtask(localTasks, parentId);
+
+      // v0.8.0: Before event (cancelable, supports async)
+      if (onBeforeTaskAdd) {
+        const result = onBeforeTaskAdd({ ...newTask, parentId });
+        // Handle both sync and async callbacks
+        const shouldContinue = result instanceof Promise ? await result : result;
+        if (shouldContinue === false) {
+          return; // Cancel creation
+        }
+      }
+
+      // Only update state if not cancelled
+      setLocalTasks(newTasks);
+
+      // v0.8.0: After event (non-cancelable)
+      if (onAfterTaskAdd) {
+        onAfterTaskAdd({ ...newTask, parentId });
+      }
     },
 
     // ==================== UI Methods ====================
@@ -323,8 +443,9 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     },
 
     highlightTask: (id: string, duration = 2000) => {
-      // TODO: Implement visual highlighting
-      console.log(`Highlighting task ${id} for ${duration}ms`);
+      // TODO: Implement visual highlighting - currently a no-op
+      void id;
+      void duration;
     },
 
     expandTask: (id: string) => {
@@ -454,6 +575,20 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     );
   }, []);
 
+  // v0.13.8: Handle column resize (memoized)
+  const handleColumnResize = useCallback((columnId: ColumnType, newWidth: number) => {
+    setColumns(prev =>
+      prev.map(col => {
+        if (col.id !== columnId) return col;
+        // Clamp width to min/max constraints
+        const minW = col.minWidth ?? 100;
+        const maxW = col.maxWidth ?? 800;
+        const clampedWidth = Math.max(minW, Math.min(maxW, newWidth));
+        return { ...col, width: clampedWidth };
+      })
+    );
+  }, []);
+
   // Handle task toggle (memoized)
   const handleTaskToggle = useCallback((taskId: string) => {
     setLocalTasks((prev) => toggleTaskExpansion(prev, taskId));
@@ -502,31 +637,6 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     }
   }, [localTasks, onTaskUpdate, onBeforeTaskUpdate, onAfterTaskUpdate, onProgressChange]);
 
-  // Handle task deletion (memoized)
-  const handleTaskDelete = useCallback((taskId: string) => {
-    // v0.8.0: Before event (cancelable)
-    if (onBeforeTaskDelete) {
-      const shouldContinue = onBeforeTaskDelete(taskId);
-      if (shouldContinue === false) {
-        return; // Cancel the deletion
-      }
-    }
-
-    const deleteTask = (tasks: Task[]): Task[] => {
-      return tasks.filter(task => {
-        if (task.id === taskId) return false;
-        if (task.subtasks) {
-          task.subtasks = deleteTask(task.subtasks);
-        }
-        return true;
-      });
-    };
-    setLocalTasks(deleteTask(localTasks));
-
-    // v0.8.0: After event
-    onAfterTaskDelete?.(taskId);
-  }, [localTasks, onBeforeTaskDelete, onAfterTaskDelete]);
-
   // Hierarchy handlers
   const handleTaskIndent = useCallback((taskIds: string[]) => {
     if (taskIds.length === 0) return;
@@ -546,10 +656,41 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     config.onTaskMove?.(taskIds[0]!, direction);
   }, [config]);
 
-  const handleMultiTaskDelete = useCallback((taskIds: string[]) => {
-    setLocalTasks((prev) => deleteTasks(prev, taskIds));
-    taskIds.forEach(id => config.onTaskDelete?.(id));
-  }, [config]);
+  const handleMultiTaskDelete = useCallback(async (taskIds: string[]) => {
+    // v0.17.19: Support lifecycle callbacks for delete operations
+    // Filter out tasks that are blocked by onBeforeTaskDelete
+    const allowedTaskIds: string[] = [];
+
+    for (const taskId of taskIds) {
+      if (onBeforeTaskDelete) {
+        const result = await Promise.resolve(onBeforeTaskDelete(taskId));
+        if (result === false) {
+          // Skip this task - deletion was cancelled
+          continue;
+        }
+      }
+      allowedTaskIds.push(taskId);
+    }
+
+    // If no tasks are allowed to be deleted, return early
+    if (allowedTaskIds.length === 0) {
+      return;
+    }
+
+    // Call the consumer's onMultiTaskDelete handler if provided
+    if (config.onMultiTaskDelete) {
+      config.onMultiTaskDelete(allowedTaskIds);
+    } else {
+      // Fallback: update local state and call individual delete handlers
+      setLocalTasks((prev) => deleteTasks(prev, allowedTaskIds));
+      allowedTaskIds.forEach(id => config.onTaskDelete?.(id));
+    }
+
+    // v0.17.19: Call onAfterTaskDelete for each successfully deleted task
+    if (onAfterTaskDelete) {
+      allowedTaskIds.forEach(id => onAfterTaskDelete(id));
+    }
+  }, [config, onBeforeTaskDelete, onAfterTaskDelete]);
 
   const handleTaskDuplicate = useCallback((taskIds: string[]) => {
     setLocalTasks((prev) => duplicateTasks(prev, taskIds));
@@ -594,6 +735,11 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   // When you move a task, all dependent tasks are automatically rescheduled
   // This is BETTER than DHTMLX - they require manual configuration
   const handleTaskDateChange = useCallback((task: Task, newStart: Date, newEnd: Date) => {
+    // v0.13.3: Calculate daysDelta to preserve relative gaps in cascade
+    const daysDelta = task.startDate
+      ? Math.round((newStart.getTime() - task.startDate.getTime()) / (1000 * 60 * 60 * 24))
+      : 0;
+
     const updateTaskDates = (tasks: Task[]): Task[] => {
       return tasks.map((t) => {
         if (t.id === task.id) {
@@ -617,7 +763,8 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     let updatedTasks = updateTaskDates(localTasks);
 
     // Then, auto-schedule all dependent tasks (cascade effect)
-    updatedTasks = ganttUtils.autoScheduleDependents(updatedTasks, task.id);
+    // v0.13.3: Pass daysDelta to preserve relative gaps between tasks
+    updatedTasks = ganttUtils.autoScheduleDependents(updatedTasks, task.id, daysDelta);
 
     setLocalTasks(updatedTasks);
 
@@ -650,6 +797,19 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     // Close context menu
     setContextMenu({ isOpen: false, x: 0, y: 0, task: null });
   }, [localTasks]);
+
+  // v0.10.0: Handle task double click - open edit modal
+  // v0.16.1: If onTaskEdit is provided, let the user handle editing (don't open built-in modal)
+  const handleTaskDblClickInternal = useCallback((task: Task) => {
+    // Call user's custom handler if provided
+    onTaskDblClick?.(task);
+
+    // Only open built-in edit modal if user hasn't provided a custom edit handler
+    // This prevents double modals when user handles editing themselves
+    if (!onTaskEdit) {
+      setEditingTask(task);
+    }
+  }, [onTaskDblClick, onTaskEdit]);
 
   // Helper function to detect circular dependencies using DFS
   const wouldCreateCircularDependency = useCallback((fromTaskId: string, toTaskId: string, tasks: Task[]): boolean => {
@@ -792,37 +952,94 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   //   // Placeholder - implement in parent component if needed
   // };
 
+  // v0.12.0: Export handlers for toolbar
+  const handleExportPNG = useCallback(async () => {
+    if (!ganttContainerRef.current) return;
+
+    const canvas = await html2canvas(ganttContainerRef.current, {
+      backgroundColor: theme.bgPrimary,
+      scale: 2,
+    });
+
+    // Create download link
+    const link = document.createElement('a');
+    link.download = 'gantt-chart.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  }, [theme]);
+
+  const handleExportPDF = useCallback(async () => {
+    await ganttUtils.exportToPDF(localTasks);
+  }, [localTasks]);
+
+  const handleExportExcel = useCallback(async () => {
+    await ganttUtils.exportToExcel(localTasks);
+  }, [localTasks]);
+
+  const handleExportCSV = useCallback(() => {
+    const csv = ganttUtils.exportToCSV(localTasks);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'gantt-chart.csv';
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }, [localTasks]);
+
+  const handleExportJSON = useCallback(() => {
+    const json = ganttUtils.exportToJSON(localTasks);
+    const blob = new Blob([json], { type: 'application/json;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'gantt-chart.json';
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }, [localTasks]);
+
+  const handleExportMSProject = useCallback(() => {
+    ganttUtils.exportToMSProject(localTasks, 'Gantt Project', 'project.xml');
+  }, [localTasks]);
+
   // Handle separator resize
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
     setIsResizing(true);
   };
 
-  // Synchronized scrolling and resizing
+  // v0.13.9: Timeline has the scrollbar, TaskGrid syncs via CSS transform
+  // This ensures only ONE scrollbar on the right side of the entire component
   useEffect(() => {
-    const gridScroll = gridScrollRef.current;
     const timelineScroll = timelineScrollRef.current;
+    const gridContainer = gridScrollRef.current;
 
-    if (!gridScroll || !timelineScroll) return;
+    if (!timelineScroll || !gridContainer) return;
 
-    const handleGridScroll = () => {
-      if (timelineScroll.scrollTop !== gridScroll.scrollTop) {
-        timelineScroll.scrollTop = gridScroll.scrollTop;
-      }
-      setScrollTop(gridScroll.scrollTop);
-    };
+    // v0.13.11: Find the TaskGrid CONTENT container (not the whole grid) to apply transform
+    // This keeps the header fixed while only the task rows move
+    const taskGridContent = gridContainer.querySelector('.gantt-taskgrid-content');
 
     const handleTimelineScroll = () => {
-      if (gridScroll.scrollTop !== timelineScroll.scrollTop) {
-        gridScroll.scrollTop = timelineScroll.scrollTop;
+      const scrollY = timelineScroll.scrollTop;
+      setScrollTop(scrollY);
+
+      // Sync TaskGrid content position via CSS transform (header stays fixed)
+      if (taskGridContent) {
+        (taskGridContent as HTMLElement).style.transform = `translateY(-${scrollY}px)`;
       }
-      setScrollTop(timelineScroll.scrollTop);
     };
 
     const handleMouseMove = (e: MouseEvent) => {
-      if (isResizing) {
-        const newWidth = e.clientX;
-        if (newWidth > 300 && newWidth < window.innerWidth - 400) {
+      if (isResizing && gridContainer) {
+        // Calculate width relative to the container's left edge for accuracy
+        const containerRect = gridContainer.parentElement?.getBoundingClientRect();
+        const containerLeft = containerRect?.left || 0;
+        const newWidth = e.clientX - containerLeft;
+
+        // Clamp between reasonable min/max values
+        const minWidth = 200;
+        const maxWidth = Math.min(window.innerWidth - 300, 800);
+
+        if (newWidth >= minWidth && newWidth <= maxWidth) {
           setGridWidthOverride(newWidth);
         }
       }
@@ -832,13 +1049,11 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       setIsResizing(false);
     };
 
-    gridScroll.addEventListener('scroll', handleGridScroll);
     timelineScroll.addEventListener('scroll', handleTimelineScroll);
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
 
     return () => {
-      gridScroll.removeEventListener('scroll', handleGridScroll);
       timelineScroll.removeEventListener('scroll', handleTimelineScroll);
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
@@ -846,12 +1061,20 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   }, [isResizing]);
 
   return (
+    <GanttI18nContext.Provider value={translations}>
+    <GanttThemeContext.Provider value={ganttThemeContextValue}>
     <div
       ref={ganttContainerRef}
-      className="flex flex-col h-screen overflow-hidden"
+      className="flex flex-col h-full w-full"
       style={{
         backgroundColor: theme.bgPrimary,
         fontFamily: 'Inter, sans-serif',
+        minHeight: 0, // Critical for flex children to shrink
+        // v0.9.1: Prevent browser auto-scroll when disableScrollSync is enabled
+        ...(config.disableScrollSync && {
+          scrollBehavior: 'auto',
+          overflowAnchor: 'none',
+        }),
       }}
     >
       {/* Toolbar */}
@@ -862,16 +1085,42 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         zoom={zoom}
         onZoomChange={setZoom}
         currentTheme={currentTheme}
-        onThemeChange={setCurrentTheme}
+        onThemeChange={handleThemeChange}
         rowDensity={rowDensity}
         onRowDensityChange={setRowDensity}
         showThemeSelector={showThemeSelector}
+        // v0.14.3: Create Task button
+        showCreateTaskButton={showCreateTaskButton}
+        createTaskLabel={createTaskLabel}
+        onCreateTask={onCreateTask}
+        // v0.12.0: Export handlers
+        onExportPNG={showExportButton ? handleExportPNG : undefined}
+        onExportPDF={showExportButton ? handleExportPDF : undefined}
+        onExportExcel={showExportButton ? handleExportExcel : undefined}
+        onExportCSV={showExportButton ? handleExportCSV : undefined}
+        onExportJSON={showExportButton ? handleExportJSON : undefined}
+        onExportMSProject={showExportButton ? handleExportMSProject : undefined}
       />
 
-      {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Task Grid */}
-        <div ref={gridScrollRef} style={{ width: gridWidth }}>
+      {/* Main Content - v0.13.9: TaskGrid has no scroll, Timeline has the unified vertical scroll */}
+      {/* v0.17.31: Changed to clip to allow tooltips to render above header */}
+      <div
+        ref={gridScrollRef}
+        className="flex-1 flex min-h-0"
+        style={{
+          overflow: 'clip',
+          overflowClipMargin: '100px', // Allow tooltip to overflow above
+        }}
+      >
+        {/* Task Grid - v0.13.9: No scroll at all, content syncs with Timeline scroll */}
+        <div
+          className="gantt-grid-scroll flex-shrink-0"
+          style={{
+            width: gridWidth,
+            overflow: 'hidden',
+            // v0.17.5: Removed borderRight - causes ghost line in header
+          }}
+        >
           <TaskGrid
             tasks={tasksWithCriticalPath}
             theme={theme}
@@ -879,14 +1128,14 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
             availableUsers={availableUsers}
             templates={mergedTemplates}
             onTaskClick={onTaskClick}
-            onTaskDblClick={onTaskDblClick} // v0.8.0
+            onTaskDblClick={handleTaskDblClickInternal} // v0.10.0: Use internal handler that opens modal
             onTaskContextMenu={onTaskContextMenu} // v0.8.0
             onTaskToggle={handleTaskToggle}
             scrollTop={scrollTop}
             columns={columns}
             onToggleColumn={handleToggleColumn}
+            onColumnResize={handleColumnResize}
             onTaskUpdate={handleTaskUpdate}
-            onTaskDelete={handleTaskDelete}
             onTaskIndent={handleTaskIndent}
             onTaskOutdent={handleTaskOutdent}
             onTaskMove={handleTaskMove}
@@ -896,33 +1145,37 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
             onTaskRename={handleTaskRename}
             onCreateSubtask={handleCreateSubtask}
             onOpenTaskModal={onTaskClick ? (task: Task) => onTaskClick(task) : undefined}
+            onDeleteRequest={(taskId: string, taskName: string) => setDeleteConfirmation({ taskId, taskName })} // v0.17.34
           />
         </div>
 
-        {/* Separator - Resizable */}
+        {/* Resize handle - invisible but draggable area over the border */}
         <div
-          className="relative flex-shrink-0 cursor-col-resize group"
+          className="flex-shrink-0 cursor-col-resize"
           style={{
-            width: 8,
-            backgroundColor: isResizing ? theme.accent : theme.border,
-            transition: 'background-color 0.2s',
+            width: 6,
+            marginLeft: -3, // Center over the border line
+            zIndex: 10,
           }}
           onMouseDown={handleMouseDown}
-        >
-          <motion.div
-            className="absolute inset-y-0 left-1/2 -translate-x-1/2"
-            style={{
-              width: 2,
-              backgroundColor: theme.accent,
-            }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: isResizing ? 1 : 0 }}
-            whileHover={{ opacity: 1 }}
-          />
-        </div>
+        />
 
-        {/* Timeline */}
-        <div ref={timelineScrollRef} className="flex-1 overflow-hidden">
+        {/* Timeline - v0.13.9: Has both scrolls, TaskGrid syncs to this scroll */}
+        {/* v0.17.31: Added overflow-y:clip to allow tooltips to render above while maintaining scroll */}
+        <div
+          ref={timelineScrollRef}
+          className="gantt-timeline-scroll flex-1"
+          style={{
+            minHeight: 0,
+            overflowX: 'auto',
+            overflowY: 'auto',
+            // v0.9.1: Prevent browser auto-scroll when disableScrollSync is enabled
+            ...(config.disableScrollSync && {
+              scrollBehavior: 'auto',
+              overflowAnchor: 'none',
+            }),
+          }}
+        >
           <Timeline
             tasks={tasksWithCriticalPath}
             theme={theme}
@@ -933,7 +1186,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
             zoom={zoom}
             templates={mergedTemplates}
             onTaskClick={onTaskClick}
-            onTaskDblClick={onTaskDblClick} // v0.8.0
+            onTaskDblClick={handleTaskDblClickInternal} // v0.10.0: Use internal handler that opens modal
             onTaskContextMenu={handleTaskContextMenu} // v0.8.0: Now uses our handler for Split feature
             onTaskDateChange={handleTaskDateChange}
             onDependencyCreate={handleDependencyCreate}
@@ -942,7 +1195,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         </div>
       </div>
 
-      {/* v0.8.0: Context Menu for Split task feature */}
+      {/* v0.8.0: Context Menu for task operations (v0.16.0: Enhanced with Edit, Add Subtask, Status changes) */}
       {contextMenu.task && (
         <ContextMenu
           isOpen={contextMenu.isOpen}
@@ -951,9 +1204,97 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
           theme={theme}
           onClose={() => setContextMenu({ isOpen: false, x: 0, y: 0, task: null })}
           items={[
+            // v0.16.0: Edit Task - opens edit modal or calls custom handler
+            {
+              id: 'edit',
+              label: translations.contextMenu?.editTask || 'Edit Task',
+              icon: MenuIcons.Pencil,
+              onClick: () => {
+                if (!contextMenu.task) return;
+                if (onTaskEdit) {
+                  // Use custom handler if provided
+                  onTaskEdit(contextMenu.task);
+                } else {
+                  // Use built-in edit modal
+                  setEditingTask(contextMenu.task);
+                }
+              },
+            },
+            // v0.16.0: Add Subtask
+            {
+              id: 'addSubtask',
+              label: translations.contextMenu?.addSubtask || 'Add Subtask',
+              icon: MenuIcons.Add,
+              onClick: () => {
+                if (!contextMenu.task) return;
+                if (onTaskAddSubtask) {
+                  // Use custom handler if provided
+                  onTaskAddSubtask(contextMenu.task);
+                } else {
+                  // Use built-in subtask creation
+                  handleCreateSubtask(contextMenu.task.id);
+                }
+              },
+            },
+            // Separator before status changes
+            {
+              id: 'separator-status',
+              label: '',
+              separator: true,
+              onClick: () => {},
+            },
+            // v0.16.0: Mark Incomplete (status: 'todo', progress: 0)
+            {
+              id: 'markIncomplete',
+              label: translations.contextMenu?.markIncomplete || 'Mark Incomplete',
+              icon: MenuIcons.MarkIncomplete,
+              onClick: () => {
+                if (!contextMenu.task) return;
+                if (onTaskMarkIncomplete) {
+                  onTaskMarkIncomplete(contextMenu.task);
+                } else {
+                  handleTaskUpdate(contextMenu.task.id, { status: 'todo', progress: 0 });
+                }
+              },
+              disabled: contextMenu.task?.status === 'todo',
+            },
+            // v0.16.0: Set In Progress (status: 'in-progress')
+            {
+              id: 'setInProgress',
+              label: translations.contextMenu?.setInProgress || 'Set In Progress',
+              icon: MenuIcons.SetInProgress,
+              onClick: () => {
+                if (!contextMenu.task) return;
+                if (onTaskSetInProgress) {
+                  onTaskSetInProgress(contextMenu.task);
+                } else {
+                  handleTaskUpdate(contextMenu.task.id, { status: 'in-progress' });
+                }
+              },
+              disabled: contextMenu.task?.status === 'in-progress',
+            },
+            // v0.16.0: Mark Complete (status: 'completed', progress: 100)
+            {
+              id: 'markComplete',
+              label: translations.contextMenu?.markComplete || 'Mark Complete',
+              icon: MenuIcons.MarkComplete,
+              onClick: () => {
+                if (!contextMenu.task) return;
+                handleTaskUpdate(contextMenu.task.id, { status: 'completed', progress: 100 });
+              },
+              disabled: contextMenu.task?.status === 'completed',
+            },
+            // Separator before advanced options
+            {
+              id: 'separator-advanced',
+              label: '',
+              separator: true,
+              onClick: () => {},
+            },
+            // Split Task (existing feature from v0.8.0)
             {
               id: 'split',
-              label: 'Split Task',
+              label: translations.contextMenu?.splitTask || 'Split Task',
               icon: MenuIcons.Split,
               onClick: () => {
                 if (!contextMenu.task?.startDate || !contextMenu.task?.endDate) {
@@ -972,9 +1313,188 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
               },
               disabled: !contextMenu.task?.startDate || !contextMenu.task?.endDate,
             },
+            // Separator before delete
+            {
+              id: 'separator-delete',
+              label: '',
+              separator: true,
+              onClick: () => {},
+            },
+            // Delete Task - v0.17.33: Now shows confirmation modal
+            {
+              id: 'delete',
+              label: translations.contextMenu?.deleteTask || 'Delete Task',
+              icon: MenuIcons.Delete,
+              onClick: () => {
+                if (!contextMenu.task) return;
+                // v0.17.33: Show confirmation modal instead of deleting directly
+                setDeleteConfirmation({
+                  taskId: contextMenu.task.id,
+                  taskName: contextMenu.task.name,
+                });
+              },
+            },
           ]}
         />
       )}
+
+      {/* v0.10.0: Task Edit Modal */}
+      {editingTask && (
+        <TaskFormModal
+          isOpen={true}
+          onClose={() => setEditingTask(null)}
+          task={editingTask}
+          onSubmit={(updates) => {
+            handleTaskUpdate(editingTask.id, updates);
+            setEditingTask(null);
+          }}
+          mode="edit"
+          theme={currentTheme}
+        />
+      )}
+
+      {/* v0.17.33: Delete Confirmation Modal */}
+      <AnimatePresence>
+        {deleteConfirmation && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[10000] flex items-center justify-center p-4"
+            style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }}
+            onClick={() => setDeleteConfirmation(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-md rounded-xl shadow-2xl overflow-hidden"
+              style={{
+                backgroundColor: theme.bgSecondary,
+                border: `1px solid ${theme.border}`,
+              }}
+            >
+              {/* Header */}
+              <div
+                className="px-6 py-4"
+                style={{ borderBottom: `1px solid ${theme.border}` }}
+              >
+                <div className="flex items-start gap-3">
+                  <div
+                    className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                    style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)' }}
+                  >
+                    <AlertTriangle className="w-5 h-5" style={{ color: '#EF4444' }} />
+                  </div>
+                  <div className="flex-1">
+                    <h3
+                      className="text-lg font-semibold"
+                      style={{ color: theme.textPrimary, fontFamily: 'Inter, sans-serif' }}
+                    >
+                      {translations.contextMenu?.deleteTask || 'Delete Task'}?
+                    </h3>
+                    <p
+                      className="text-sm mt-1"
+                      style={{ color: theme.textSecondary, fontFamily: 'Inter, sans-serif' }}
+                    >
+                      {locale === 'es' ? 'Esta acción no se puede deshacer' : 'This action cannot be undone'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Body */}
+              <div className="px-6 py-4">
+                <p
+                  className="text-sm leading-relaxed"
+                  style={{ color: theme.textSecondary, fontFamily: 'Inter, sans-serif' }}
+                >
+                  {locale === 'es' ? 'Estás a punto de eliminar la tarea' : 'You are about to delete the task'}{' '}
+                  <span className="font-semibold" style={{ color: theme.textPrimary }}>
+                    "{deleteConfirmation.taskName}"
+                  </span>
+                  .
+                </p>
+              </div>
+
+              {/* Footer */}
+              <div
+                className="px-6 py-4 flex items-center justify-end gap-3"
+                style={{
+                  backgroundColor: theme.bgPrimary,
+                  borderTop: `1px solid ${theme.border}`,
+                }}
+              >
+                <button
+                  onClick={() => setDeleteConfirmation(null)}
+                  className="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
+                  style={{
+                    color: theme.textSecondary,
+                    fontFamily: 'Inter, sans-serif',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = theme.hoverBg;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
+                >
+                  {locale === 'es' ? 'Cancelar' : 'Cancel'}
+                </button>
+                <button
+                  onClick={() => {
+                    handleMultiTaskDelete([deleteConfirmation.taskId]);
+                    setDeleteConfirmation(null);
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors flex items-center gap-2"
+                  style={{
+                    backgroundColor: '#EF4444',
+                    fontFamily: 'Inter, sans-serif',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#DC2626';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#EF4444';
+                  }}
+                >
+                  <Trash2 className="w-4 h-4" />
+                  {locale === 'es' ? 'Eliminar' : 'Delete'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* v0.14.0: AI Assistant for natural language task editing */}
+      {aiAssistant?.enabled && (
+        <GanttAIAssistant
+          tasks={localTasks}
+          theme={theme}
+          config={aiAssistant}
+          onTasksUpdate={setLocalTasks}
+          onTaskUpdate={handleTaskUpdate}
+          onTaskCreate={(task) => {
+            setLocalTasks((prev) => [...prev, task]);
+          }}
+          onTaskDelete={(taskId) => {
+            // v0.17.19: Use handleMultiTaskDelete to respect lifecycle hooks
+            handleMultiTaskDelete([taskId]);
+          }}
+          onDependencyCreate={(fromTaskId, toTaskId) => {
+            const fromTask = ganttUtils.findTaskById(localTasks, fromTaskId);
+            if (fromTask) {
+              handleDependencyCreate(fromTask, toTaskId);
+            }
+          }}
+          onDependencyDelete={handleDependencyDelete}
+        />
+      )}
     </div>
+    </GanttThemeContext.Provider>
+    </GanttI18nContext.Provider>
   );
 })

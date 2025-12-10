@@ -10,6 +10,7 @@ export type { KanbanViewConfig } from './views'
 // Components
 export {
   KanbanBoard,
+  KanbanToolbar, // v0.17.26: Kanban toolbar component
   Column,
   Card,
   EditableColumnTitle,
@@ -17,6 +18,7 @@ export {
   DateRangePicker,
   UserAssignmentSelector,
   DependenciesSelector,
+  wouldCreateCircularDependency,
   ErrorBoundary,
   withErrorBoundary,
   CommandPalette,
@@ -63,11 +65,23 @@ export {
   ColumnManager,
   ContextMenu,
   MenuIcons,
+  TaskFormModal, // v0.9.0 - Task CRUD modal
   themes as ganttThemes,
   cardToGanttTask,
   ganttTaskToCardUpdate,
   cardsToGanttTasks,
   ganttUtils, // v0.8.0 - Public utilities
+  GanttAIAssistant, // v0.14.0 - AI Assistant for natural language task editing
+  // AI Command Parser utilities (v0.14.0)
+  GANTT_AI_SYSTEM_PROMPT,
+  generateTasksContext,
+  findTaskByName,
+  parseNaturalDate,
+  parseNaturalDuration,
+  parseProgress,
+  parseStatus,
+  parseLocalCommand,
+  validateAIResponse,
 } from './components/Gantt'
 export type {
   Task as GanttTask,
@@ -81,7 +95,91 @@ export type {
   GanttTheme as GanttThemeConfig,
   GanttBoardRef, // v0.8.0 - Imperative API
   GanttTemplates, // v0.8.0 - Customizable templates
+  TaskFormModalProps, // v0.9.0 - Task form props
+  TaskFormData, // v0.9.0 - Task form data
+  TaskPriority, // v0.17.28 - Task priority type
+  GanttAIAssistantConfig, // v0.14.0 - AI Assistant config
+  AICommandResult, // v0.14.0 - AI command result
+  AIMessage, // v0.17.42 - AI chat message type
+  PersistHistoryConfig, // v0.17.42 - AI history persistence config
 } from './components/Gantt'
+
+// v0.15.0: Internationalization (i18n) for Gantt
+export {
+  getTranslations,
+  mergeTranslations,
+  translations as ganttTranslations,
+  en as ganttEnTranslations,
+  es as ganttEsTranslations,
+} from './components/Gantt/i18n'
+export { useGanttI18n, GanttI18nContext } from './components/Gantt/GanttI18nContext'
+export type { GanttTranslations, SupportedLocale } from './components/Gantt/i18n'
+
+// v0.17.0: ListView Component
+export { ListView } from './components/ListView'
+export type {
+  ListViewProps,
+  ListViewConfig,
+  ListViewCallbacks,
+  ListViewPermissions,
+  ListViewTheme,
+  ListViewTranslations,
+  ListSort,
+  ListSortColumn,
+  SortDirection,
+  ListFilter,
+  ListColumn,
+  FlattenedTask,
+} from './components/ListView'
+export {
+  listViewThemes,
+  listViewDarkTheme,
+  listViewLightTheme,
+  listViewNeutralTheme,
+  getListViewTheme,
+} from './components/ListView'
+export type { ListViewThemeName } from './components/ListView'
+export {
+  listViewTranslations,
+  listViewEnTranslations,
+  listViewEsTranslations,
+  getListViewTranslations,
+  mergeListViewTranslations,
+} from './components/ListView'
+export type { ListViewSupportedLocale } from './components/ListView'
+
+// v0.17.0: CalendarBoard Component
+export { CalendarBoard } from './components/Calendar'
+export type {
+  CalendarBoardProps,
+  CalendarConfig,
+  CalendarCallbacks,
+  CalendarPermissions,
+  CalendarTheme,
+  CalendarTranslations,
+  CalendarEvent,
+  CalendarDay,
+  CalendarViewMode,
+  WeekDay,
+} from './components/Calendar'
+export {
+  calendarThemes,
+  calendarDarkTheme,
+  calendarLightTheme,
+  calendarNeutralTheme,
+  getCalendarTheme,
+} from './components/Calendar'
+export type { CalendarThemeName } from './components/Calendar'
+export {
+  calendarTranslations,
+  calendarEnTranslations,
+  calendarEsTranslations,
+  getCalendarTranslations,
+  mergeCalendarTranslations,
+  getMonthNames,
+  getWeekdayNames,
+} from './components/Calendar'
+export type { CalendarSupportedLocale } from './components/Calendar'
 
 // v0.6.0: Smart Card Stacking
 export { CardStack } from './components/CardStack/CardStack'
@@ -125,14 +223,15 @@ export type {
   // GanttTimelineProps,
   ConfigMenuProps,
   ThemeModalProps,
+  KanbanToolbarProps, // v0.17.26
   // LazyLoadWrapperProps,
 } from './components'
 
 // export type { SkeletonProps } from './components/Skeleton'
 
 // AI Components
-export { GeneratePlanModal, AIUsageDashboard } from './components/AI'
-export type { GeneratePlanModalProps, AIUsageDashboardProps } from './components/AI'
+export { GeneratePlanModal, AIUsageDashboard, GenerateGanttTasksDialog } from './components/AI'
+export type { GeneratePlanModalProps, AIUsageDashboardProps, GenerateGanttTasksDialogProps, GanttTask as AIGanttTask, GeneratedTasksResponse } from './components/AI'
 
 // Hooks (Jotai-based - legacy, will be deprecated in v0.8.0)
 export {
@@ -182,6 +281,7 @@ export type {
   Board,
   Column as ColumnType,
   Card as CardType,
+  Subtask,
   Priority,
   CardStatus,
   BoardCallbacks,

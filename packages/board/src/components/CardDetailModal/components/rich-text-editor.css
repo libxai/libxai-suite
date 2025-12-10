@@ -1,0 +1,361 @@
+/**
+ * Rich Text Editor Styles
+ * TipTap-based WYSIWYG editor
+ */
+
+.rich-text-editor {
+  position: relative;
+  width: 100%;
+  background: var(--asakaa-bg-primary);
+  border: 1px solid var(--asakaa-border);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: border-color 0.2s ease;
+}
+
+.rich-text-editor:focus-within {
+  border-color: var(--asakaa-accent);
+  box-shadow: 0 0 0 3px var(--asakaa-accent-light);
+}
+
+/* ==================== Editor Content ==================== */
+
+.editor-content {
+  padding: 16px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--asakaa-text-primary);
+}
+
+.editor-content:focus {
+  outline: none;
+}
+
+/* Typography */
+.editor-content h1 {
+  font-size: 24px;
+  font-weight: 600;
+  margin: 24px 0 12px;
+  line-height: 1.3;
+}
+
+.editor-content h2 {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 20px 0 10px;
+  line-height: 1.3;
+}
+
+.editor-content h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 16px 0 8px;
+  line-height: 1.3;
+}
+
+.editor-content p {
+  margin: 8px 0;
+}
+
+.editor-content p:first-child {
+  margin-top: 0;
+}
+
+.editor-content p:last-child {
+  margin-bottom: 0;
+}
+
+/* Placeholder */
+.editor-content p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: var(--asakaa-text-tertiary);
+  pointer-events: none;
+  height: 0;
+  float: left;
+}
+
+/* Lists */
+.editor-content ul,
+.editor-content ol {
+  padding-left: 24px;
+  margin: 8px 0;
+}
+
+.editor-content li {
+  margin: 4px 0;
+}
+
+.editor-content li p {
+  margin: 0;
+}
+
+/* Task lists */
+.editor-content ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0;
+}
+
+.editor-content ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+}
+
+.editor-content ul[data-type="taskList"] li input[type="checkbox"] {
+  margin-right: 8px;
+  margin-top: 4px;
+  cursor: pointer;
+}
+
+/* Blockquote */
+.editor-content blockquote {
+  border-left: 3px solid var(--asakaa-border);
+  padding-left: 16px;
+  margin: 12px 0;
+  color: var(--asakaa-text-secondary);
+  font-style: italic;
+}
+
+/* Code blocks */
+.editor-content pre {
+  background: var(--asakaa-bg-secondary);
+  border: 1px solid var(--asakaa-border);
+  border-radius: 4px;
+  padding: 12px;
+  margin: 12px 0;
+  overflow-x: auto;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.editor-content code {
+  background: var(--asakaa-bg-secondary);
+  border: 1px solid var(--asakaa-border);
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 13px;
+}
+
+.editor-content pre code {
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+/* Links */
+.editor-content .editor-link {
+  color: var(--asakaa-accent);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.editor-content .editor-link:hover {
+  color: var(--asakaa-accent-hover);
+}
+
+/* Mentions */
+.editor-content .editor-mention {
+  background: var(--asakaa-accent-light);
+  color: var(--asakaa-accent);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.editor-content .editor-mention:hover {
+  background: var(--asakaa-accent);
+  color: white;
+}
+
+/* Horizontal rule */
+.editor-content hr {
+  border: none;
+  border-top: 1px solid var(--asakaa-border);
+  margin: 24px 0;
+}
+
+/* ==================== Bubble Menu (Toolbar) ==================== */
+
+.editor-bubble-menu {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--asakaa-bg-secondary);
+  border: 1px solid var(--asakaa-border);
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+}
+
+.editor-bubble-menu button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--asakaa-text-primary);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.editor-bubble-menu button:hover {
+  background: var(--asakaa-hover-bg);
+}
+
+.editor-bubble-menu button.is-active {
+  background: var(--asakaa-accent);
+  color: white;
+}
+
+.editor-bubble-menu .editor-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--asakaa-border);
+  margin: 0 4px;
+}
+
+/* ==================== Mention List (Dropdown) ==================== */
+
+.mention-list {
+  background: var(--asakaa-bg-secondary);
+  border: 1px solid var(--asakaa-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+  min-width: 200px;
+  z-index: 1001;
+}
+
+.mention-list-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--asakaa-text-primary);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  text-align: left;
+  font-size: 14px;
+}
+
+.mention-list-item:hover,
+.mention-list-item.is-selected {
+  background: var(--asakaa-hover-bg);
+}
+
+.mention-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: white;
+  flex-shrink: 0;
+}
+
+.mention-list-empty {
+  padding: 12px;
+  text-align: center;
+  color: var(--asakaa-text-tertiary);
+  font-size: 13px;
+}
+
+/* ==================== Editor Footer ==================== */
+
+.editor-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 8px 12px;
+  border-top: 1px solid var(--asakaa-border);
+  background: var(--asakaa-bg-secondary);
+}
+
+.editor-hint {
+  font-size: 12px;
+  color: var(--asakaa-text-tertiary);
+}
+
+.editor-hint kbd {
+  display: inline-block;
+  padding: 2px 6px;
+  background: var(--asakaa-bg-primary);
+  border: 1px solid var(--asakaa-border);
+  border-radius: 3px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 11px;
+  margin: 0 2px;
+}
+
+/* ==================== Dark Mode Adjustments ==================== */
+
+[data-theme="dark"] .rich-text-editor {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .editor-content code {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .editor-content pre {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .editor-bubble-menu {
+  background: #2a2a2a;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dark"] .mention-list {
+  background: #2a2a2a;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+/* ==================== Focus States & Accessibility ==================== */
+
+.editor-bubble-menu button:focus-visible {
+  outline: 2px solid var(--asakaa-accent);
+  outline-offset: 2px;
+}
+
+.mention-list-item:focus-visible {
+  outline: 2px solid var(--asakaa-accent);
+  outline-offset: -2px;
+}
+
+/* ==================== Scroll Styles ==================== */
+
+.mention-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.mention-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.mention-list::-webkit-scrollbar-thumb {
+  background: var(--asakaa-border);
+  border-radius: 4px;
+}
+
+.mention-list::-webkit-scrollbar-thumb:hover {
+  background: var(--asakaa-text-tertiary);
+}

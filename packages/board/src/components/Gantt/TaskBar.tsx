@@ -19,6 +19,8 @@ interface TaskBarProps {
   onDateChange?: (task: Task, newStart: Date, newEnd: Date) => void;
   onDependencyCreate?: (fromTask: Task, toTaskId: string) => void;
   allTaskPositions?: TaskPosition[];
+  // v0.13.0: Callback for dependency cascade preview during drag
+  onDragMove?: (taskId: string, daysDelta: number, isDragging: boolean) => void;
 }
 
 type DragMode = 'none' | 'move' | 'resize-start' | 'resize-end' | 'connect';
@@ -37,7 +39,8 @@ export function TaskBar({
   onContextMenu, // v0.8.0
   onDateChange,
   onDependencyCreate,
-  allTaskPositions = []
+  allTaskPositions = [],
+  onDragMove, // v0.13.0
 }: TaskBarProps) {
   // v0.8.1: Centralized drag state management for better modularity
   const dragState = useDragState(x, width);
@@ -68,6 +71,31 @@ export function TaskBar({
   const isOverdue = task.endDate && task.endDate < new Date() && task.progress < 100;
   const isAtRisk = task.isCriticalPath;  // Critical path tasks are "at risk"
   const isNeutralTheme = theme.name === 'neutral' || theme.today === '#1C1917';  // Detect neutral theme
+  // v0.17.41: Detect completed tasks for strikethrough styling
+  const isCompleted = task.status === 'completed' || task.progress === 100;
+
+  // v0.17.38: Priority-based colors - aligned with PrioritySelector component
+  // Supports both lowercase (from DB) and uppercase (from component) priority values
+  const PRIORITY_COLORS: Record<string, string> = {
+    low: '#2ECC71',      // Verde (Green)
+    LOW: '#2ECC71',
+    medium: '#F1C40F',   // Amarillo (Yellow)
+    MEDIUM: '#F1C40F',
+    high: '#E67E22',     // Naranja (Orange)
+    HIGH: '#E67E22',
+    urgent: '#E74C3C',   // Rojo (Red)
+    URGENT: '#E74C3C',
+  };
+
+  // Get task color: priority color > custom color > theme default
+  const getTaskColor = () => {
+    if (task.isCriticalPath || isOverdue) return '#DC2626'; // Critical/overdue = red
+    if (task.color) return task.color; // Custom color takes precedence
+    if (task.priority && PRIORITY_COLORS[task.priority]) return PRIORITY_COLORS[task.priority];
+    return theme.taskBarPrimary; // Fallback to theme
+  };
+
+  const taskColor = getTaskColor();
 
   // Dynamic resize zones based on bar width for better UX
   const getResizeZone = (barWidth: number): number => {
@@ -149,6 +177,7 @@ export function TaskBar({
   // Handle mouse down for dragging
   // v0.8.1: Added segmentX parameter for split tasks - allows segments to calculate their own offset
   const handleMouseDown = useCallback((e: React.MouseEvent, mode?: DragMode, segmentX?: number) => {
+    e.preventDefault();
     e.stopPropagation();
 
     const svgElement = svgRef.current?.ownerSVGElement;
@@ -251,6 +280,10 @@ export function TaskBar({
       setGhostX(snappedX);
       setGhostWidth(width);
 
+      // v0.13.0: Calculate days delta and notify for cascade preview
+      const daysDelta = Math.round((snappedX - x) / dayWidth);
+      onDragMove?.(task.id, daysDelta, true);
+
       // v0.8.1: For split tasks, calculate offset relative to the DRAGGED SEGMENT position
       if (task.segments && task.segments.length > 0 && draggedSegmentIndex !== null) {
         const segmentOffset = snappedX - draggedSegmentStartX; // Use saved segment position
@@ -278,7 +311,7 @@ export function TaskBar({
         setGhostWidth(newWidth);
       }
     }
-  }, [dragMode, x, width, dayWidth, dragOffset, task, snapToDay, draggedSegmentIndex, draggedSegmentStartX, findTaskAtPoint, setHoveredTaskId, setConnectionLine, setGhostX, setGhostWidth, setSegmentDragOffsetX]);
+  }, [dragMode, x, width, dayWidth, dragOffset, task, snapToDay, draggedSegmentIndex, draggedSegmentStartX, findTaskAtPoint, setHoveredTaskId, setConnectionLine, setGhostX, setGhostWidth, setSegmentDragOffsetX, onDragMove]);
 
   // Handle mouse up to finish dragging
   const handleMouseUp = useCallback(() => {
@@ -367,16 +400,24 @@ export function TaskBar({
       }
     }
 
+    // v0.13.0: Notify drag ended to clear cascade previews
+    onDragMove?.(task.id, 0, false);
+
     // v0.8.1: Use centralized reset function from useDragState hook
     resetDragState(x, width);
-  }, [dragMode, ghostX, ghostWidth, task, onDateChange, hoveredTaskId, onDependencyCreate, x, width, dayWidth, pixelToDate, segmentDragOffsetX, draggedSegmentIndex, resetDragState]);
+  }, [dragMode, ghostX, ghostWidth, task, onDateChange, hoveredTaskId, onDependencyCreate, x, width, dayWidth, pixelToDate, segmentDragOffsetX, draggedSegmentIndex, resetDragState, onDragMove]);
 
   // Setup global mouse listeners for smooth dragging
   useEffect(() => {
     if (dragMode === 'none') return;
 
-    const handleGlobalMouseMove = (e: MouseEvent) => handleMouseMove(e);
-    const handleGlobalMouseUp = () => handleMouseUp();
+    const handleGlobalMouseMove = (e: MouseEvent) => {
+      handleMouseMove(e);
+    };
+
+    const handleGlobalMouseUp = () => {
+      handleMouseUp();
+    };
 
     window.addEventListener('mousemove', handleGlobalMouseMove);
     window.addEventListener('mouseup', handleGlobalMouseUp);
@@ -391,9 +432,8 @@ export function TaskBar({
   const displayX = isDragging && !isConnecting ? ghostX : x;
   const displayWidth = isDragging && !isConnecting ? ghostWidth : width;
 
-  // v0.8.0: Generate tooltip and custom class using templates
-  const tooltipContent = templates.taskTooltip(task);
-  const tooltipText = typeof tooltipContent === 'string' ? tooltipContent : '';
+  // v0.8.0: Generate custom class using templates
+  // v0.17.30: Removed tooltipText - native SVG <title> replaced by custom tooltip
   const customClass = templates.taskClass(task);
 
   return (
@@ -420,8 +460,7 @@ export function TaskBar({
         onContextMenu?.(task, e as any);
       }}
     >
-      {/* v0.8.0: Tooltip using taskTooltip template */}
-      {tooltipText && <title dangerouslySetInnerHTML={{ __html: tooltipText }} />}
+      {/* v0.17.30: Removed native SVG <title> tooltip - using custom tooltip instead (lines ~1025-1162) */}
       {/* Zone Indicators with hover feedback - v0.8.1: Disabled for split tasks (segments are independent) */}
       {isHovered && !isDragging && !isSmallBar && !task.segments && (
         <>
@@ -513,6 +552,7 @@ export function TaskBar({
 
       {/* Ghost/Preview Bar (shown while dragging) */}
       {/* v0.8.1: Hide ghost bar for split tasks - segments handle their own visualization */}
+      {/* v0.13.6: Simplified ghost bar - uses theme accent color */}
       {isDragging && !isConnecting && !task.segments && (
         <motion.rect
           x={ghostX}
@@ -520,13 +560,13 @@ export function TaskBar({
           width={ghostWidth}
           height={height}
           rx={borderRadius}
-          fill={task.isCriticalPath ? '#DC2626' : theme.taskBarPrimary}
-          opacity={0.3}
-          stroke={task.isCriticalPath ? '#EF4444' : theme.accent}
+          fill={theme.accent}
+          opacity={0.5}
+          stroke={theme.accent}
           strokeWidth={2}
           strokeDasharray="4 4"
           initial={{ opacity: 0 }}
-          animate={{ opacity: 0.5 }}
+          animate={{ opacity: 0.6 }}
           transition={{ duration: 0.15 }}
           style={{ pointerEvents: 'none' }}
         />
@@ -534,6 +574,8 @@ export function TaskBar({
 
       {/* Main Task Bar - Background (light for contrast with progress) - v0.8.0: With custom class */}
       {/* v0.8.1: Hide main bar when task has segments (split task) */}
+      {/* v0.11.0: Custom task colors with parent/subtask opacity */}
+      {/* v0.13.6: Overdue tasks (past due + not completed) also shown in red */}
       {!task.segments && (
         <motion.rect
           x={displayX}
@@ -541,11 +583,17 @@ export function TaskBar({
           width={displayWidth}
           height={height}
           rx={borderRadius}
-          fill={task.isCriticalPath ? '#DC2626' : theme.taskBarPrimary}
+          fill={taskColor}
           data-task-class={customClass}
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{
-            opacity: isDragging && !isConnecting ? 0.15 : isHovered ? 0.25 : 0.2,  // Much lighter background
+            opacity: isDragging && !isConnecting
+              ? 0.15
+              : task.parentId
+              ? 0.6 // v0.11.0: Subtasks more transparent (60%)
+              : isHovered
+              ? 0.9 // Parent tasks more opaque on hover
+              : 0.8, // Parent tasks base opacity (80%)
             scale: isHovered && !isDragging ? 1.02 : 1,
           }}
           transition={{
@@ -562,6 +610,8 @@ export function TaskBar({
 
       {/* Progress Fill - Solid color for instant visual scanning */}
       {/* Eye processes shape/color faster than text */}
+      {/* v0.11.0: Use custom task color for progress fill */}
+      {/* v0.13.6: Overdue tasks also shown in red */}
       {!task.segments && (
         <rect
           x={displayX}
@@ -569,7 +619,7 @@ export function TaskBar({
           width={displayWidth * (task.progress / 100)}
           height={height}
           rx={borderRadius}
-          fill={theme.taskBarProgress}
+          fill={taskColor}
           opacity={1}
           style={{ pointerEvents: 'none' }}
         />
@@ -593,16 +643,25 @@ export function TaskBar({
             onMouseLeave={() => !isDragging && setHoveredSegmentIndex(null)}
           >
             {/* Segment background - interactive */}
+            {/* v0.11.0: Custom task colors for segments */}
+            {/* v0.13.6: Overdue tasks also shown in red */}
+            {/* v0.17.37: Now uses priority-based colors via taskColor */}
             <motion.rect
               x={displaySegmentX}
               y={y}
               width={segmentWidth}
               height={height}
               rx={borderRadius}
-              fill={task.isCriticalPath ? '#DC2626' : theme.taskBarPrimary}
+              fill={taskColor}
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{
-                opacity: isThisSegmentDragging ? 0.6 : isThisSegmentHovered ? 0.9 : 0.8,
+                opacity: isThisSegmentDragging
+                  ? 0.6
+                  : task.parentId
+                  ? 0.6 // v0.11.0: Subtask segments more transparent
+                  : isThisSegmentHovered
+                  ? 0.9
+                  : 0.8,
                 scale: isThisSegmentHovered && !isDragging ? 1.02 : 1,
               }}
               transition={{
@@ -621,14 +680,16 @@ export function TaskBar({
                 pointerEvents: 'all'
               }}
             />
-            {/* Segment progress */}
+            {/* Segment progress - v0.11.0: Use custom task color */}
+            {/* v0.13.6: Overdue tasks also shown in red */}
+            {/* v0.17.37: Now uses priority-based colors via taskColor */}
             <rect
               x={displaySegmentX}
               y={y}
               width={segmentWidth * (task.progress / 100)}
               height={height}
               rx={borderRadius}
-              fill={theme.taskBarProgress}
+              fill={taskColor}
               opacity={1}
               style={{ pointerEvents: 'none' }}
             />
@@ -687,11 +748,16 @@ export function TaskBar({
             x={displayX + 12}
             y={y + height / 2}
             dominantBaseline="middle"
-            fill="#FFFFFF"
+            fill={isCompleted ? 'rgba(255, 255, 255, 0.6)' : '#FFFFFF'}
             fontSize="13"
             fontWeight="500"
             fontFamily="Inter, sans-serif"
-            style={{ pointerEvents: 'none', userSelect: 'none' }}
+            style={{
+              pointerEvents: 'none',
+              userSelect: 'none',
+              // v0.17.41: Strikethrough for completed tasks
+              textDecoration: isCompleted ? 'line-through' : 'none',
+            }}
           >
             {truncated}
           </text>
@@ -966,177 +1032,206 @@ export function TaskBar({
       )}
 
       {/* Enhanced Detailed Tooltip (shown on hover, hidden while dragging) - v0.8.1: Disabled for split tasks (segments are independent) */}
+      {/* v0.17.31: Adaptive positioning - shows below task when not enough space above */}
       <AnimatePresence>
-        {isHovered && !isDragging && !task.segments && (
-          <motion.g
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            transition={{ duration: 0.2 }}
-            style={{ pointerEvents: 'none' }}
-          >
-            {/* Tooltip Background */}
-            <rect
-              x={displayX + displayWidth / 2 - 120}
-              y={y - 95}
-              width={240}
-              height={82}
-              rx={8}
-              fill={theme.bgSecondary}
-              stroke={theme.border}
-              strokeWidth={1}
-              filter="drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15))"
-            />
+        {isHovered && !isDragging && !task.segments && (() => {
+          // v0.17.31: Calculate if tooltip should appear below the task bar
+          // Tooltip height is 82px + 13px for arrow = ~95px needed above
+          // If task is within 100px of top, show tooltip below instead
+          const tooltipHeight = 82;
+          const tooltipGap = 13; // Gap between tooltip and task bar
+          const showBelow = y < 100; // Threshold for flipping
 
-            {/* Tooltip Arrow */}
-            <path
-              d={`M ${displayX + displayWidth / 2 - 6} ${y - 13} L ${displayX + displayWidth / 2} ${y - 3} L ${displayX + displayWidth / 2 + 6} ${y - 13}`}
-              fill={theme.bgSecondary}
-              stroke={theme.border}
-              strokeWidth={1}
-            />
+          // Calculate Y positions based on direction
+          const tooltipY = showBelow
+            ? y + height + tooltipGap // Below: start after task bar + gap
+            : y - tooltipHeight - tooltipGap; // Above: tooltip bottom at gap above task
 
-            {/* Task Name */}
-            <text
-              x={displayX + displayWidth / 2}
-              y={y - 73}
-              textAnchor="middle"
-              fill={theme.textPrimary}
-              fontSize="13"
-              fontWeight="600"
-              fontFamily="Inter, sans-serif"
-            >
-              {task.name.length > 28 ? `${task.name.substring(0, 28)}...` : task.name}
-            </text>
+          // Arrow path changes based on direction
+          const arrowPath = showBelow
+            ? `M ${displayX + displayWidth / 2 - 6} ${y + height + 3} L ${displayX + displayWidth / 2} ${y + height + 13} L ${displayX + displayWidth / 2 + 6} ${y + height + 3}` // Arrow pointing up
+            : `M ${displayX + displayWidth / 2 - 6} ${y - 13} L ${displayX + displayWidth / 2} ${y - 3} L ${displayX + displayWidth / 2 + 6} ${y - 13}`; // Arrow pointing down
 
-            {/* Dates */}
-            <text
-              x={displayX + displayWidth / 2 - 110}
-              y={y - 55}
-              fill={theme.textTertiary}
-              fontSize="11"
-              fontFamily="Inter, sans-serif"
-            >
-              Start:
-            </text>
-            <text
-              x={displayX + displayWidth / 2 - 70}
-              y={y - 55}
-              fill={theme.textSecondary}
-              fontSize="11"
-              fontWeight="500"
-              fontFamily="Inter, sans-serif"
-            >
-              {formatDate(task.startDate!)}
-            </text>
+          // Text Y offsets from tooltip top
+          const nameY = tooltipY + 22;
+          const row1Y = tooltipY + 40;
+          const row2Y = tooltipY + 55;
+          const assigneesY = tooltipY + 70;
+          const hintsY = showBelow ? tooltipY + tooltipHeight - 5 : y - 18;
 
-            <text
-              x={displayX + displayWidth / 2 - 110}
-              y={y - 40}
-              fill={theme.textTertiary}
-              fontSize="11"
-              fontFamily="Inter, sans-serif"
+          return (
+            <motion.g
+              initial={{ opacity: 0, y: showBelow ? -10 : 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: showBelow ? -10 : 10 }}
+              transition={{ duration: 0.2 }}
+              style={{ pointerEvents: 'none' }}
             >
-              End:
-            </text>
-            <text
-              x={displayX + displayWidth / 2 - 70}
-              y={y - 40}
-              fill={theme.textSecondary}
-              fontSize="11"
-              fontWeight="500"
-              fontFamily="Inter, sans-serif"
-            >
-              {formatDate(task.endDate!)}
-            </text>
+              {/* Tooltip Arrow - render first so it's behind the rect */}
+              <path
+                d={arrowPath}
+                fill={theme.bgSecondary}
+                stroke={theme.border}
+                strokeWidth={1}
+              />
 
-            {/* Duration */}
-            <text
-              x={displayX + displayWidth / 2 + 10}
-              y={y - 55}
-              fill={theme.textTertiary}
-              fontSize="11"
-              fontFamily="Inter, sans-serif"
-            >
-              Duration:
-            </text>
-            <text
-              x={displayX + displayWidth / 2 + 65}
-              y={y - 55}
-              fill={theme.textSecondary}
-              fontSize="11"
-              fontWeight="500"
-              fontFamily="Inter, sans-serif"
-            >
-              {getDuration()}
-            </text>
+              {/* Tooltip Background */}
+              <rect
+                x={displayX + displayWidth / 2 - 120}
+                y={tooltipY}
+                width={240}
+                height={tooltipHeight}
+                rx={8}
+                fill={theme.bgSecondary}
+                stroke={theme.border}
+                strokeWidth={1}
+                filter="drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15))"
+              />
 
-            {/* Progress */}
-            <text
-              x={displayX + displayWidth / 2 + 10}
-              y={y - 40}
-              fill={theme.textTertiary}
-              fontSize="11"
-              fontFamily="Inter, sans-serif"
-            >
-              Progress:
-            </text>
-            <text
-              x={displayX + displayWidth / 2 + 65}
-              y={y - 40}
-              fill={theme.textSecondary}
-              fontSize="11"
-              fontWeight="500"
-              fontFamily="Inter, sans-serif"
-            >
-              {task.progress}%
-            </text>
+              {/* Task Name */}
+              <text
+                x={displayX + displayWidth / 2}
+                y={nameY}
+                textAnchor="middle"
+                fill={theme.textPrimary}
+                fontSize="13"
+                fontWeight="600"
+                fontFamily="Inter, sans-serif"
+              >
+                {task.name.length > 28 ? `${task.name.substring(0, 28)}...` : task.name}
+              </text>
 
-            {/* Assignees */}
-            {task.assignees && task.assignees.length > 0 && (
-              <>
+              {/* Dates */}
+              <text
+                x={displayX + displayWidth / 2 - 110}
+                y={row1Y}
+                fill={theme.textTertiary}
+                fontSize="11"
+                fontFamily="Inter, sans-serif"
+              >
+                Start:
+              </text>
+              <text
+                x={displayX + displayWidth / 2 - 70}
+                y={row1Y}
+                fill={theme.textSecondary}
+                fontSize="11"
+                fontWeight="500"
+                fontFamily="Inter, sans-serif"
+              >
+                {formatDate(task.startDate!)}
+              </text>
+
+              <text
+                x={displayX + displayWidth / 2 - 110}
+                y={row2Y}
+                fill={theme.textTertiary}
+                fontSize="11"
+                fontFamily="Inter, sans-serif"
+              >
+                End:
+              </text>
+              <text
+                x={displayX + displayWidth / 2 - 70}
+                y={row2Y}
+                fill={theme.textSecondary}
+                fontSize="11"
+                fontWeight="500"
+                fontFamily="Inter, sans-serif"
+              >
+                {formatDate(task.endDate!)}
+              </text>
+
+              {/* Duration */}
+              <text
+                x={displayX + displayWidth / 2 + 10}
+                y={row1Y}
+                fill={theme.textTertiary}
+                fontSize="11"
+                fontFamily="Inter, sans-serif"
+              >
+                Duration:
+              </text>
+              <text
+                x={displayX + displayWidth / 2 + 65}
+                y={row1Y}
+                fill={theme.textSecondary}
+                fontSize="11"
+                fontWeight="500"
+                fontFamily="Inter, sans-serif"
+              >
+                {getDuration()}
+              </text>
+
+              {/* Progress */}
+              <text
+                x={displayX + displayWidth / 2 + 10}
+                y={row2Y}
+                fill={theme.textTertiary}
+                fontSize="11"
+                fontFamily="Inter, sans-serif"
+              >
+                Progress:
+              </text>
+              <text
+                x={displayX + displayWidth / 2 + 65}
+                y={row2Y}
+                fill={theme.textSecondary}
+                fontSize="11"
+                fontWeight="500"
+                fontFamily="Inter, sans-serif"
+              >
+                {task.progress}%
+              </text>
+
+              {/* Assignees */}
+              {task.assignees && task.assignees.length > 0 && (
+                <>
+                  <text
+                    x={displayX + displayWidth / 2 - 110}
+                    y={assigneesY}
+                    fill={theme.textTertiary}
+                    fontSize="11"
+                    fontFamily="Inter, sans-serif"
+                  >
+                    Assignees:
+                  </text>
+                  <text
+                    x={displayX + displayWidth / 2 - 50}
+                    y={assigneesY}
+                    fill={theme.textSecondary}
+                    fontSize="11"
+                    fontWeight="500"
+                    fontFamily="Inter, sans-serif"
+                  >
+                    {task.assignees.map(a => a.name).join(', ').substring(0, 30)}
+                    {task.assignees.map(a => a.name).join(', ').length > 30 ? '...' : ''}
+                  </text>
+                </>
+              )}
+
+              {/* Interaction Hints - Adaptive for bar size */}
+              {!showBelow && (
                 <text
-                  x={displayX + displayWidth / 2 - 110}
-                  y={y - 25}
+                  x={displayX + displayWidth / 2}
+                  y={hintsY}
+                  textAnchor="middle"
                   fill={theme.textTertiary}
-                  fontSize="11"
+                  fontSize="9"
                   fontFamily="Inter, sans-serif"
+                  style={{ opacity: 0.7 }}
                 >
-                  Assignees:
+                  {isVerySmallBar
+                    ? 'Left: move • Right: resize'
+                    : isSmallBar
+                    ? 'Drag to move • Hold ALT + drag edge to resize'
+                    : 'Drag edges to resize • Drag center to move • Click ⚫ to link'
+                  }
                 </text>
-                <text
-                  x={displayX + displayWidth / 2 - 50}
-                  y={y - 25}
-                  fill={theme.textSecondary}
-                  fontSize="11"
-                  fontWeight="500"
-                  fontFamily="Inter, sans-serif"
-                >
-                  {task.assignees.map(a => a.name).join(', ').substring(0, 30)}
-                  {task.assignees.map(a => a.name).join(', ').length > 30 ? '...' : ''}
-                </text>
-              </>
-            )}
-
-            {/* Interaction Hints - Adaptive for bar size */}
-            <text
-              x={displayX + displayWidth / 2}
-              y={y - 18}
-              textAnchor="middle"
-              fill={theme.textTertiary}
-              fontSize="9"
-              fontFamily="Inter, sans-serif"
-              style={{ opacity: 0.7 }}
-            >
-              {isVerySmallBar
-                ? 'Left: move • Right: resize'
-                : isSmallBar
-                ? 'Drag to move • Hold ALT + drag edge to resize'
-                : 'Drag edges to resize • Drag center to move • Click ⚫ to link'
-              }
-            </text>
-          </motion.g>
-        )}
+              )}
+            </motion.g>
+          );
+        })()}
       </AnimatePresence>
     </g>
   );

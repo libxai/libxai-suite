@@ -5,228 +5,411 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.8.0] - 2025-01-04
+---
 
-### 🎉 Initial Release - LibXAI Suite
+## [0.17.43] - 2025-12-10
 
-This is the inaugural release of **@libxai/board**, the flagship component of LibXAI Suite.
+### Added
+- **Click Outside to Close**: AI Assistant panel closes when clicking outside
+  - Improves UX by allowing quick dismissal without finding close button
+  - 100ms delay prevents immediate close on open click
 
-**Migration Note**: This package was previously published as `@asakaa/board`. All functionality remains the same with improved branding and organizational structure.
+---
 
-### What's Included
+## [0.17.42] - 2025-12-10
 
-#### Gantt Chart Features
-- 40+ imperative methods with DHTMLX-compatible API
-- Critical Path Analysis with automatic CPM calculation
-- Auto-scheduling with dependency cascade
-- Split tasks with configurable gaps (Bryntum-style)
-- Dependency management (4 types: SS, FF, SF, FS)
-- Circular dependency detection using DFS algorithm
-- Export to PDF, Excel, PNG, CSV
-- 6 zoom levels: Hour, Day, Week, Month, Quarter, Year
-- 50-level undo/redo system
-- Multi-level task hierarchy with visual indentation
-- Drag-to-resize and move task bars
-- Progress tracking with visual indicators
-- Milestone markers (diamond shapes)
-- Today indicator line
+### Added
+- **AI Chat History Persistence**: LocalStorage persistence for AI Assistant messages
+  - New `persistHistory` config option with `enabled`, `maxMessages`, `storageKey`
+  - Preserves last N messages across page reloads
+  - Per-project storage keys supported
 
-#### Kanban Board Features
-- Smooth drag-and-drop powered by @dnd-kit
-- Virtual scrolling for 10,000+ cards
-- Advanced filtering and search
-- Multi-select and bulk operations
+---
+
+## [0.17.35] - 2025-12-08
+
+### Fixed
+- **User Assignment**: Include user.id in assignees from TaskFormModal
+  - Ensures proper user identification in task assignments
+
+---
+
+## [0.17.34] - 2025-12-07
+
+### Added
+- **Delete Confirmation Modal**: TaskGrid context menu now shows confirmation before delete
+
+---
+
+## [0.17.33] - 2025-12-07
+
+### Added
+- **Solid Context Menu Background**: Improved visibility with opaque background
+- **Delete Confirmation**: Modal confirmation for task deletion
+
+---
+
+## [0.17.32] - 2025-12-06
+
+### Added
+- **Adaptive Context Menu**: Menu repositions to prevent cutoff at screen edges
+
+---
+
+## [0.17.31] - 2025-12-06
+
+### Added
+- **Adaptive Tooltip Positioning**: Tooltips show below task when near top of viewport
+
+---
+
+## [0.17.29] - 2025-12-05
+
+### Added
+- **Universal Task Sync**: Improved synchronization between Gantt, Kanban, and Calendar views
+
+---
+
+## [0.17.28] - 2025-12-04
+
+### Added
+- **Priority & Description Fields**: TaskFormModal now includes priority selector and description textarea
+
+---
+
+## [0.17.27] - 2025-12-04
+
+### Added
+- **useColumnSelector Prop**: KanbanToolbar can now toggle column visibility
+
+---
+
+## [0.17.26] - 2025-12-04
+
+### Added
+- **KanbanToolbar Component**: New toolbar for Kanban board with filtering and actions
+
+---
+
+## [0.17.24] - 2025-12-03
+
+### Changed
+- **Cover Image**: Commented out cover image functionality for future implementation
+
+---
+
+## [0.17.23] - 2025-12-03
+
+### Fixed
+- **Sticky Toolbar Icons**: Icons remain visible during column resize operations
+
+---
+
+## [0.17.22] - 2025-12-03
+
+### Fixed
+- **Dark Theme Colors**: Unified from brownish #222326 to grayish-blue #1A1D25
+  - Matches Kanban system color scheme
+
+---
+
+## [0.17.21] - 2025-12-02
+
+### Fixed
+- **Color Contrast**: Improved dark theme text visibility
+
+---
+
+## [0.17.20] - 2025-12-02
+
+### Fixed
+- **Gantt Lifecycle**: Optimized onTasksChange to prevent unnecessary re-renders
+
+---
+
+## [0.17.2] - 2025-12-02
+
+### Changed
+- Minor version bump for stability
+
+---
+
+## [0.17.1] - 2025-12-01
+
+### Fixed
+- **ListView & CalendarBoard**: Complete rewrite based on SaaS components
+
+---
+
+## [0.17.0] - 2025-12-01
+
+### Added
+- **ListView Component**: New list view for tasks
+- **CalendarBoard Component**: New calendar view for tasks
+
+---
+
+## [0.16.13] - 2024-12-02
+
+### Fixed
+- **Gantt Row Height Alignment**: Removed borderBottom from TaskGrid rows
+  - TaskGrid rows had borderBottom with box-sizing causing 47px visible height
+  - Timeline rows are 48px without border
+  - Now both panels have exactly ROW_HEIGHT pixels per row
+
+---
+
+## [0.16.12] - 2024-12-02
+
+### Fixed
+- **Gantt Header Alignment**: Headers now have identical heights with box-sizing
+  - Both TaskGrid and Timeline headers use box-sizing: border-box
+  - Border is now included in the 48px height (not added on top)
+  - Ensures content starts at exactly the same Y position
+
+---
+
+## [0.16.11] - 2024-12-02
+
+### Fixed
+- **Gantt Row Alignment**: TaskGrid rows now perfectly aligned with Timeline rows
+  - Removed extra borderTop from TaskGrid rows (was causing cumulative offset)
+  - Simplified row borders to only borderBottom
+  - Rows now match exactly between left and right panels
+
+---
+
+## [0.16.10] - 2024-12-02
+
+### Fixed
+- **Gantt Separator Alignment**: TaskGrid and Timeline now perfectly aligned
+  - Border line is now part of TaskGrid container (no gap)
+  - Invisible resize handle overlays the border for dragging
+  - No visual space/desfase between panels
+
+---
+
+## [0.16.9] - 2024-12-02
+
+### Fixed
+- **Gantt Separator Line**: Simplified to single clean divider line
+  - Removed duplicate borders (TaskGrid border-right + separator lines)
+  - Now only one 1px line between TaskGrid and Timeline
+  - Clean visual appearance without multiple lines
+
+---
+
+## [0.16.8] - 2024-12-02
+
+### Fixed
+- **Gantt Separator Line**: Completely redesigned the resizable divider between TaskGrid and Timeline
+  - Changed from thick 8px gray bar to thin 1px line
+  - Transparent clickable area (12px) for easy grabbing
+  - Visual line only 1px wide (expands to 2px when resizing)
+  - Smooth hover indicator with accent color
+  - Fixed erratic resize behavior by calculating position relative to container
+  - Better min/max width constraints (200px - 800px)
+
+---
+
+## [0.16.7] - 2024-12-01
+
+### Fixed
+- **Subtask Date Inheritance**: Subtasks now inherit start/end dates from parent task
+  - Previously subtasks used fixed dates (today + 7 days) regardless of parent
+  - Now subtasks fit within parent task date range
+  - Ensures visual consistency in Gantt chart
+
+---
+
+## [0.16.6] - 2024-12-01
+
+### Changed
+- **Production Ready**: Removed all debug console.log statements from GanttBoard and TaskGrid
+- **Split Task Menu**: Disabled Split Task in TaskGrid context menu (only available in Timeline)
+- Code cleanup for professional release
+
+---
+
+## [0.16.5] - 2024-12-01
+
+### Fixed
+- **Context Menu Delete Persistence**: Fixed critical bug where deleting tasks from context menu didn't persist to database
+  - Root cause: Timeline context menu was using `config.onTaskDelete` which didn't exist in consumer apps
+  - Solution: Now uses `handleMultiTaskDelete` which properly calls `config.onMultiTaskDelete`
+  - Impact: Delete operations now correctly persist to database
+
+### Changed
+- Unified delete flow across TaskGrid and Timeline context menus
+
+---
+
+## [0.16.4] - 2024-12-01
+
+### Added
+- Debug logging for task delete flow to diagnose persistence issues
+  - Logs in TaskGrid context menu
+  - Logs in GanttBoard handleMultiTaskDelete
+
+---
+
+## [0.16.3] - 2024-12-01
+
+### Fixed
+- **Unified Context Menu**: TaskGrid now uses the same context menu as Timeline
+  - Both menus now have identical options with i18n support
+  - "Add Subtask" action now properly calls `onCreateSubtask` callback
+
+### Added
+- `GanttI18nContext` integration in TaskGrid for translations
+- New icons: `MenuIcons.Pencil`, `MenuIcons.MarkIncomplete`, `MenuIcons.SetInProgress`, `MenuIcons.MarkComplete`
+
+---
+
+## [0.16.2] - 2024-11-30
+
+### Fixed
+- **Double Modal Bug**: Fixed issue where double-clicking a task opened two edit modals
+  - Root cause: Both library and consumer were opening modals on double-click
+  - Solution: Added check `if (!onTaskEdit)` before opening built-in modal
+
+---
+
+## [0.16.1] - 2024-11-30
+
+### Added
+- **Context Menu Callbacks**: New callbacks for context menu actions
+  - `onTaskEdit`: Called when "Edit Task" is clicked
+  - `onTaskAddSubtask`: Called when "Add Subtask" is clicked
+  - `onTaskMarkIncomplete`: Called when "Mark Incomplete" is clicked
+  - `onTaskSetInProgress`: Called when "Set In Progress" is clicked
+- **i18n for Context Menu**: Added translations for all context menu labels
+
+---
+
+## [0.16.0] - 2024-11-30
+
+### Added
+- **Enhanced Context Menu**: Full-featured context menu with status management
+  - Edit Task, Add Subtask options
+  - Mark Incomplete, Set In Progress, Mark Complete
+  - Split Task, Delete Task
+- **Consumer Callbacks**: Support for custom handlers for all context menu actions
+
+---
+
+## [0.15.0] - 2024-11-28
+
+### Added
+- **Internationalization (i18n) System**
+  - `locale` prop in config ('en' | 'es')
+  - `customTranslations` for overriding defaults
+  - Full Spanish language support
+- **useGanttI18n Hook**: Access translations anywhere in component tree
+
+---
+
+## [0.14.7] - 2024-11-26
+
+### Changed
+- **Default Task Color**: Changed from indigo (#6366F1) to electric blue (#3B82F6)
+
+---
+
+## [0.14.3] - 2024-11-24
+
+### Added
+- **Create Task Button**: `showCreateTaskButton` and `onCreateTask` in config
+
+---
+
+## [0.14.0] - 2024-11-22
+
+### Added
+- **AI Assistant Integration**: Natural language task editing with `aiAssistant` config
+
+---
+
+## [0.13.11] - 2024-11-20
+
+### Fixed
+- **Scroll Synchronization**: Improved TaskGrid and Timeline scroll sync
+
+---
+
+## [0.13.8] - 2024-11-17
+
+### Added
+- **Column Resize**: Draggable column borders with `onColumnResize` callback
+- **Task Name Tooltip**: Full name shown on hover
+
+---
+
+## [0.11.2] - 2024-11-10
+
+### Added
+- **Disable Auto Critical Path**: `enableAutoCriticalPath: false` to preserve custom colors
+
+---
+
+## [0.11.0] - 2024-11-08
+
+### Added
+- **Custom Task Colors**: `color` property on Task with color picker in form
+
+---
+
+## [0.10.0] - 2024-11-05
+
+### Added
+- **Task Edit Modal**: Built-in `TaskFormModal` component, opens on double-click
+
+---
+
+## [0.9.0] - 2024-11-01
+
+### Added
+- **GanttBoardRef**: 40+ imperative methods for programmatic control
+
+---
+
+## [0.8.1] - 2024-10-30
+
+### Added - Premium Features (FREE)
+- **Critical Path Method (CPM)**: Automatic calculation - FREE (vs DHTMLX $1,299/dev)
+- **Auto-Scheduling**: Dependency cascade - FREE
+- **Split Task Feature**: Bryntum-style gaps - FREE
+
+---
+
+## [0.8.0] - 2024-10-28
+
+### Initial Release - LibXAI Suite
+
+#### Gantt Chart
+- 40+ imperative methods (DHTMLX-compatible API)
+- Critical Path Analysis, Auto-scheduling, Split tasks
+- Dependency management (SS, FF, SF, FS)
+- Export: PDF, Excel, PNG, CSV
+- 6 zoom levels, 50-level undo/redo
+- Multi-level hierarchy, drag operations, milestones
+
+#### Kanban Board
+- @dnd-kit drag-and-drop
+- Virtual scrolling (10,000+ cards)
+- Filtering, search, multi-select
 - Command palette (Cmd+K)
-- Export/Import (JSON, CSV, PDF)
 
-#### Shared Features
-- TypeScript with complete type definitions
-- 3 professional themes: Dark, Light, Neutral
-- Responsive design
-- WCAG AA compliant
-- Keyboard shortcuts
+#### Core
+- TypeScript with complete types
+- 3 themes: Dark, Light, Neutral
+- WCAG AA compliant, keyboard shortcuts
 - Zero configuration required
 
-### Package Information
+---
+
+## Package Information
+
 - **NPM**: `npm install @libxai/board`
 - **Repository**: https://github.com/libxai/libxai-suite
-- **Homepage**: https://libxai.com/board
-- **License**: BUSL-1.1 (converts to Apache 2.0 on 2027-10-12)
-
----
-
-## [0.8.1-patch.1] - 2025-11-03
-
-### Fixed
-- **Split Task Persistence**: Fixed critical bug where split task segments returned to original position after drag
-  - Root cause: `GanttBoard.handleTaskDateChange` was not preserving `segments` array when updating task dates
-  - Solution: Added conditional spread operator to preserve segments: `...(task.segments && { segments: task.segments })`
-  - Impact: Segment positions now persist correctly after drag operations
-
-### Changed
-- **Code Architecture**: Refactored drag state management for better modularity
-  - Extracted drag state logic into `useDragState` custom hook
-  - Centralized 14 individual useState calls into single hook invocation
-  - Improved maintainability with computed states (isDragging, isResizing, isConnecting)
-  - Added `resetDragState` function to eliminate code duplication
-
-### Technical
-- New hook: `useDragState` for centralized drag state management (127 lines)
-- Reduced TaskBar.tsx complexity by extracting state logic
-- Fixed TypeScript unused import warning
-
----
-
-## [0.8.1] - 2025-11-02
-
-### Added - Killer Features (Better than DHTMLX!)
-
-ASAKAA Gantt now includes 3 game-changing features that make it objectively BETTER than DHTMLX Gantt:
-
-#### 1. Automatic Critical Path Method (CPM) - FREE
-**Why this matters**: DHTMLX charges $1,299 per developer for critical path in their PRO license. We include it FREE with automatic recalculation.
-
-- **Visual Highlighting**: Critical path tasks automatically display in RED (#DC2626) for instant identification
-- **Full CPM Algorithm**: Forward Pass (ES/EF) and Backward Pass (LS/LF) implementation
-- **Zero Configuration**: Automatically recalculates whenever tasks or dependencies change
-- **Real-time Updates**: Uses `useMemo` for optimal performance without manual triggers
-- **Slack Calculation**: Identifies tasks with zero float time on critical path
-- **Smart Detection**: Works with multi-level task hierarchies and complex dependencies
-
-**DHTMLX Comparison**:
-- DHTMLX: $1,299/dev PRO license + manual configuration required
-- ASAKAA: FREE + automatic recalculation on every change
-
-#### 2. Intelligent Auto-Scheduling - FREE
-**Why this matters**: DHTMLX requires manual configuration and doesn't cascade updates. We do it automatically with full cascade support.
-
-- **Cascade Effect**: Moving a task automatically reschedules ALL dependent tasks recursively
-- **Duration Preservation**: Task durations remain constant during rescheduling
-- **Smart Dependencies**: Handles complex dependency chains with proper sequencing
-- **Zero Manual Work**: No need to manually update dependent tasks
-- **Instant Feedback**: Changes propagate immediately in the UI
-- **Recursive Algorithm**: Uses `ganttUtils.autoScheduleDependents()` for deep cascade
-
-**Example**: Drag Task A from Jan 1-10 to Jan 5-15. All tasks depending on A automatically shift to start after Jan 15.
-
-**DHTMLX Comparison**:
-- DHTMLX: Requires manual configuration + no automatic cascade
-- ASAKAA: Fully automatic with recursive cascade effect
-
-#### 3. Split Task Feature (with GAP support) - FREE
-**Why this matters**: DHTMLX/Bryntum charge premium for split task, requiring complex configuration. We provide it FREE with Bryntum-style gap rendering.
-
-- **Context Menu Access**: Right-click any task bar to split it
-- **GAP Creation**: Creates pause in work schedule while keeping same task
-- **Visual Segments**: Renders multiple time segments with gaps between them
-- **Duration Preservation**: Total work days remain constant (end date extends by gap)
-- **Configurable Gap**: Default 3-day pause, customizable via API
-- **Segments Array**: Task stores multiple `{startDate, endDate}` segments
-- **Imperative API**: `ganttUtils.splitTask(tasks, taskId, splitDate, gapDays)`
-- **GanttBoardRef API**: `ref.splitTask(taskId, splitDate, gapDays)`
-
-**Example**:
-- Original: Jan 1-10 (10 days continuous work)
-- After split at Jan 5 with 3-day gap: Jan 1-4 [GAP: Jan 5-7] Jan 8-13
-- Same task, same name, just paused for 3 days
-
-**Visual Rendering**: Multiple task bars on same row with visible gaps
-
-**DHTMLX/Bryntum Comparison**:
-- DHTMLX/Bryntum: Premium feature, complex configuration
-- ASAKAA: FREE + Simple right-click + Automatic visual rendering
-
-### Technical Implementation
-
-- **New Methods**: `ganttUtils.calculateCriticalPath()`, `ganttUtils.autoScheduleDependents()`, `ganttUtils.splitTask()`
-- **Context Menu**: Added `ContextMenu` component with split task option (scissor icon)
-- **Visual Updates**: RED task bars for critical path (#DC2626)
-- **API Extension**: `GanttBoardRef.splitTask()` for imperative control
-- **Performance**: All features use memoization and efficient algorithms
-- **Bundle Size**: Minimal impact (~3KB) for all 3 features combined
-
-### Why Choose ASAKAA Over DHTMLX?
-
-| Feature | ASAKAA Gantt | DHTMLX Gantt |
-|---------|--------------|--------------|
-| **Critical Path** | ✅ FREE + Auto-calculated | ❌ PRO only ($1,299/dev) + Manual config |
-| **Auto-Scheduling** | ✅ FREE + Automatic cascade | ❌ Requires manual configuration |
-| **Split Task** | ✅ FREE + Built-in | ❌ Not available |
-| **Total Cost** | ✅ **$0** | ❌ **$1,299 per developer** |
-
----
-
-## [0.8.0] - 2025-01-26
-
-### Added
-
-#### Gantt Chart - Critical Improvements
-- **Circular Dependency Detection**: Prevents creation of circular task dependencies using DFS algorithm
-  - Visual feedback with alert modal when circular dependency is detected
-  - Protects workflow integrity and prevents logical deadlocks
-- **Date Validation System**: Comprehensive validation for task date ranges
-  - Prevents invalid states where start date > end date
-  - Enforces minimum task duration of 1 day
-  - Silent validation with console warnings for better UX
-- **Undo/Redo System**: Complete history management for all task operations
-  - Support for up to 50 levels of undo/redo
-  - Keyboard shortcuts: `Ctrl+Z` (undo), `Ctrl+Y` (redo) on Windows/Linux
-  - Keyboard shortcuts: `Cmd+Z` (undo), `Cmd+Shift+Z` (redo) on macOS
-  - Functional update support for state management
-  - Covers all operations: create, delete, edit, move, indent, outdent, duplicate tasks
-
-#### Gantt Chart - Visual Enhancements
-- **Hierarchical Icon System**: Differentiated icons based on task level
-  - Level 0 (Projects): Thick circle icon (2px stroke)
-  - Level 1 (Tasks): Regular circle icon (1.5px stroke)
-  - Level 2+ (Subtasks): Small filled dot (2.5px radius)
-  - Milestones: Diamond icon with accent color
-- **Enhanced Typography Hierarchy**: Improved visual hierarchy in task list
-  - Level 0: 14px, Semi-Bold (600), 100% opacity
-  - Level 1: 13px, Medium (500), 95% opacity
-  - Level 2+: 12px, Regular (400), 88% opacity
-- **Improved Tooltip System**: Fixed tooltip persistence issues
-  - Tooltips properly hide when dragging operations start
-  - AnimatePresence for smooth exit animations
-  - No tooltip accumulation during link creation
-
-#### Gantt Chart - User Experience
-- **Horizontal Scrolling**: Fixed horizontal scroll to view future dates beyond viewport
-- **Today Indicator**: Red vertical line marking current date in timeline
-- **Progress Visualization**: Inline progress bars with percentage display
-- **Milestone Differentiation**: Milestones render as diamonds in timeline (not bars)
-- **Default Week View**: Timeline defaults to week view for optimal balance
-- **Dependency Lines**: Curved dependency lines showing task flow
-
-### Fixed
-- Tooltip "Link" text no longer persists when creating task dependencies
-- Horizontal scroll now works correctly for extended timelines
-- Task date validation prevents invalid date ranges
-
-### Changed
-- Default column visibility: Only "Task Name" visible by default
-- Other columns accessible via "+" button in column manager
-- Typography refinement for better visual hierarchy
-
-### Technical
-- New hooks: `useUndoRedo`, `useGanttUndoRedoKeys`
-- Enhanced `TaskBar` component with date validation
-- Improved `GanttBoard` with circular dependency detection
-- Better type safety with functional update support
-
----
-
-## [0.7.0] - Previous Release
-
-### Added
-- Gantt chart component with timeline visualization
-- Task hierarchy with subtasks
-- Drag and drop for task scheduling
-- Dependency management
-- Multiple view modes (Day, Week, Month)
-- Theme support (Light, Dark, High Contrast)
-- Column management
-- Keyboard shortcuts for task operations
-
-[0.8.0]: https://github.com/asakaa/board/compare/v0.7.0...v0.8.0
-[0.7.0]: https://github.com/asakaa/board/releases/tag/v0.7.0
+- **License**: BUSL-1.1 (Apache 2.0 on 2027-10-12)

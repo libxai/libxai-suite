@@ -22,7 +22,10 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeSanitize from 'rehype-sanitize'
 import { Portal } from '../Portal'
-import type { Card, User, Comment, Activity } from '../../types'
+// COVER IMAGE - Commented out for future use. Uncomment to enable cover image functionality
+// import { CoverImageManager } from '../CoverImage'
+import { useKanbanTheme } from '../Board/KanbanThemeContext'
+import type { Card, User, Comment, Activity, Subtask } from '../../types'
 import './card-detail-modal-v2.css'
 
 export interface CardDetailModalV2Props {
@@ -73,12 +76,18 @@ export interface CardDetailModalV2Props {
 
   /** Available labels */
   availableLabels?: string[]
-}
 
-interface Subtask {
-  id: string
-  title: string
-  completed: boolean
+  /** Upload cover image callback (optional - returns public URL) */
+  onUploadCoverImage?: (file: File) => Promise<string>
+
+  /** Unsplash API key for cover images (optional) */
+  unsplashAccessKey?: string
+
+  /** Theme for the modal (dark, light, neutral). If not provided, uses KanbanThemeContext or defaults to 'dark' */
+  theme?: 'dark' | 'light' | 'neutral'
+
+  /** Callback when subtasks are changed (for persistence) */
+  onSubtasksChange?: (cardId: string, subtasks: Subtask[]) => void
 }
 
 const PRIORITY_OPTIONS = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'] as const
@@ -101,16 +110,27 @@ export function CardDetailModalV2({
   onAIFindSimilar: _onAIFindSimilar,
   availableColumns = [],
   availableLabels = [],
+  // COVER IMAGE - Commented out for future use
+  onUploadCoverImage: _onUploadCoverImage,
+  unsplashAccessKey: _unsplashAccessKey,
+  theme,
+  onSubtasksChange,
 }: CardDetailModalV2Props) {
+  // Get theme: prop > context > fallback
+  const kanbanTheme = useKanbanTheme()
+  const themeName = theme || kanbanTheme?.themeName || 'dark'
+
   // Local state - Initialize immediately from card prop to avoid render delay
   const [localCard, setLocalCard] = useState<Card | null>(card)
 
   const [isEditingDescription, setIsEditingDescription] = useState(false)
-  const [subtasks, setSubtasks] = useState<Subtask[]>([])
+  const [subtasks, setSubtasks] = useState<Subtask[]>(card?.subtasks || [])
   const [isAddingSubtask, setIsAddingSubtask] = useState(false)
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('')
   const [commentText, setCommentText] = useState('')
   const [activityFilter, setActivityFilter] = useState<'all' | 'comments' | 'history'>('all')
+  // COVER IMAGE - Commented out for future use. Uncomment when enabling cover image functionality
+  // const [showCoverManager, setShowCoverManager] = useState(false)
 
   // Popover states
   const [showStatusMenu, setShowStatusMenu] = useState(false)
@@ -135,8 +155,10 @@ export function CardDetailModalV2({
   useEffect(() => {
     if (card && !localCard) {
       setLocalCard({ ...card })
+      setSubtasks(card.subtasks || [])
     } else if (card && localCard && card.id !== localCard.id) {
       setLocalCard({ ...card })
+      setSubtasks(card.subtasks || [])
     }
   }, [card, localCard])
 
@@ -370,32 +392,46 @@ export function CardDetailModalV2({
   )
 
   const handleAddSubtask = useCallback(() => {
-    if (newSubtaskTitle.trim()) {
+    if (newSubtaskTitle.trim() && localCard) {
       const newSubtask: Subtask = {
         id: `subtask-${Date.now()}`,
         title: newSubtaskTitle.trim(),
         completed: false,
+        createdAt: new Date(),
       }
-      setSubtasks([...subtasks, newSubtask])
+      const updatedSubtasks = [...subtasks, newSubtask]
+      setSubtasks(updatedSubtasks)
       setNewSubtaskTitle('')
       setIsAddingSubtask(false)
+      // Persist subtasks
+      onSubtasksChange?.(localCard.id, updatedSubtasks)
     }
-  }, [newSubtaskTitle, subtasks])
+  }, [newSubtaskTitle, subtasks, localCard, onSubtasksChange])
 
   const handleToggleSubtask = useCallback(
     (id: string) => {
-      setSubtasks(
-        subtasks.map((st) => (st.id === id ? { ...st, completed: !st.completed } : st))
+      const updatedSubtasks = subtasks.map((st) =>
+        st.id === id ? { ...st, completed: !st.completed, updatedAt: new Date() } : st
       )
+      setSubtasks(updatedSubtasks)
+      // Persist subtasks
+      if (localCard) {
+        onSubtasksChange?.(localCard.id, updatedSubtasks)
+      }
     },
-    [subtasks]
+    [subtasks, localCard, onSubtasksChange]
   )
 
   const handleDeleteSubtask = useCallback(
     (id: string) => {
-      setSubtasks(subtasks.filter((st) => st.id !== id))
+      const updatedSubtasks = subtasks.filter((st) => st.id !== id)
+      setSubtasks(updatedSubtasks)
+      // Persist subtasks
+      if (localCard) {
+        onSubtasksChange?.(localCard.id, updatedSubtasks)
+      }
     },
-    [subtasks]
+    [subtasks, localCard, onSubtasksChange]
   )
 
   const handleSendComment = useCallback(() => {
@@ -414,6 +450,30 @@ export function CardDetailModalV2({
     },
     [handleSendComment]
   )
+
+  // COVER IMAGE HANDLERS - Commented out for future use
+  // Uncomment these functions when enabling cover image functionality
+  /*
+  const handleCoverImageChange = useCallback(
+    (url: string) => {
+      if (localCard) {
+        const updated = { ...localCard, coverImage: url }
+        setLocalCard(updated)
+        onUpdate?.(localCard.id, { coverImage: url })
+        setShowCoverManager(false)
+      }
+    },
+    [localCard, onUpdate]
+  )
+
+  const handleCoverImageRemove = useCallback(() => {
+    if (localCard) {
+      const updated = { ...localCard, coverImage: undefined }
+      setLocalCard(updated)
+      onUpdate?.(localCard.id, { coverImage: undefined })
+    }
+  }, [localCard, onUpdate])
+  */
 
   // Enhanced markdown renderer with GFM support
   const renderMarkdown = (text: string) => {
@@ -477,6 +537,7 @@ export function CardDetailModalV2({
           role="dialog"
           aria-modal="true"
           aria-labelledby="modal-title"
+          data-theme={themeName}
         >
           {/* HEADER */}
           <header className="modal-v2-header">
@@ -512,19 +573,94 @@ export function CardDetailModalV2({
             </button>
           </header>
 
-          {/* COVER IMAGE */}
-          {displayCard.coverImage && (
-            <div className="modal-v2-cover">
-              <img
-                src={displayCard.coverImage}
-                alt={`Cover for ${displayCard.title}`}
-                className="w-full max-h-96 object-cover"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none'
-                }}
-              />
-            </div>
-          )}
+          {/* COVER IMAGE SECTION - COMMENTED OUT FOR FUTURE USE
+           * To enable cover image functionality, uncomment this section
+           * and ensure CoverImageManager import is active
+           */}
+          {/*
+          <section className="modal-v2-cover-section">
+            {!showCoverManager && !displayCard.coverImage && (
+              <button
+                className="modal-v2-add-cover-button"
+                onClick={() => setShowCoverManager(true)}
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <polyline points="21 15 16 10 5 21" />
+                </svg>
+                Add cover image
+              </button>
+            )}
+
+            {!showCoverManager && displayCard.coverImage && (
+              <div className="modal-v2-cover-preview-wrapper">
+                <img
+                  src={displayCard.coverImage}
+                  alt={`Cover for ${displayCard.title}`}
+                  className="modal-v2-cover-image"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none'
+                  }}
+                />
+                <div className="modal-v2-cover-actions">
+                  <button
+                    className="modal-v2-cover-action-button"
+                    onClick={() => setShowCoverManager(true)}
+                  >
+                    Change
+                  </button>
+                  <button
+                    className="modal-v2-cover-action-button danger"
+                    onClick={handleCoverImageRemove}
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {showCoverManager && (
+              <div className="modal-v2-cover-manager-wrapper">
+                <div className="modal-v2-cover-manager-header">
+                  <h3>Cover Image</h3>
+                  <button
+                    className="modal-v2-cover-manager-close"
+                    onClick={() => setShowCoverManager(false)}
+                  >
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
+                </div>
+                <CoverImageManager
+                  coverImage={displayCard.coverImage}
+                  onUpload={onUploadCoverImage}
+                  onChange={handleCoverImageChange}
+                  onRemove={handleCoverImageRemove}
+                  unsplashAccessKey={unsplashAccessKey}
+                  showRecentUploads={true}
+                  theme={themeName}
+                />
+              </div>
+            )}
+          </section>
+          */}
 
           {/* METADATA GRID */}
           <section className="modal-v2-metadata">
@@ -865,21 +1001,6 @@ export function CardDetailModalV2({
                 <polyline points="10 9 9 9 8 9" />
               </svg>
               <h2>Description</h2>
-              <button className="modal-v2-ai-button">
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M12 2L2 7L12 12L22 7L12 2Z" />
-                  <path d="M2 17L12 22L22 17" />
-                  <path d="M2 12L12 17L22 12" />
-                </svg>
-                AI Assist
-              </button>
             </div>
 
             {isEditingDescription ? (

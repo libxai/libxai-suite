@@ -493,29 +493,19 @@ export const ganttUtils = {
    */
   exportToPDF: async (tasks: Task[], filename = 'gantt-chart.pdf'): Promise<void> => {
     try {
-      // v0.8.1: Validation
-      console.log('[PDF Export] Starting export...');
-      console.log('[PDF Export] Tasks count:', tasks?.length || 0);
-
       if (!tasks || tasks.length === 0) {
-        console.warn('[PDF Export] No tasks provided');
         alert('No tasks available to export to PDF');
         return;
       }
 
       // v0.8.1: FIXED - Use correct jspdf-autotable v5.0 API
-      // Breaking change in v5.0: autoTable is now imported as a function, not auto-applied to jsPDF
       const { jsPDF } = await import('jspdf');
       const { default: autoTable } = await import('jspdf-autotable');
-      console.log('[PDF Export] Modules loaded');
 
       const doc = new jsPDF();
       const flat = ganttUtils.flattenTasks(tasks);
 
-      console.log('[PDF Export] Flattened tasks count:', flat.length);
-
       if (flat.length === 0) {
-        console.warn('[PDF Export] No tasks after flattening');
         alert('No tasks found to export');
         return;
       }
@@ -542,7 +532,6 @@ export const ganttUtils = {
       });
 
       // v0.8.1: Use autoTable function (v5.0 API) instead of doc.autoTable() (old API)
-      console.log('[PDF Export] Generating table with autoTable function...');
       autoTable(doc, {
         head: headers,
         body: data,
@@ -568,14 +557,10 @@ export const ganttUtils = {
           5: { cellWidth: 25 }, // Status
         },
       });
-      console.log('[PDF Export] Table generated successfully');
 
       // Save the PDF
-      console.log('[PDF Export] Saving PDF:', filename);
       doc.save(filename);
-      console.log('[PDF Export] PDF saved successfully');
     } catch (error) {
-      console.error('Error exporting to PDF:', error);
       throw error;
     }
   },
@@ -638,6 +623,289 @@ export const ganttUtils = {
 
     // Save the file
     XLSX.writeFile(workbook, filename);
+  },
+
+  /**
+   * Export tasks to Microsoft Project XML format
+   * Compatible with MS Project 2010+ and other project management tools
+   * @param tasks - Tasks to export
+   * @param projectName - Project name (default: 'Gantt Project')
+   * @param filename - Optional filename (default: 'project.xml')
+   * @returns void - Downloads the XML file
+   */
+  exportToMSProject: (tasks: Task[], projectName = 'Gantt Project', filename = 'project.xml'): void => {
+    const flat = ganttUtils.flattenTasks(tasks);
+
+    // Generate unique UIDs for tasks (MS Project requires numeric UIDs)
+    const taskUIDMap = new Map<string, number>();
+    flat.forEach((task, index) => {
+      taskUIDMap.set(task.id, index + 1); // UID starts at 1
+    });
+
+    // Format date for MS Project XML (ISO 8601)
+    const formatMSDate = (date: Date): string => {
+      return date.toISOString().replace('Z', '');
+    };
+
+    // Calculate project start and end dates
+    const projectStart = ganttUtils.getEarliestStartDate(tasks) || new Date();
+    const projectEnd = ganttUtils.getLatestEndDate(tasks) || new Date();
+
+    // Build XML structure
+    const xmlTasks = flat.map((task, index) => {
+      const uid = taskUIDMap.get(task.id)!;
+      const duration = task.startDate && task.endDate
+        ? ganttUtils.calculateDuration(task.startDate, task.endDate)
+        : 0;
+
+      // Build predecessor links (dependencies)
+      const predecessorLinks = (task.dependencies || [])
+        .filter(depId => taskUIDMap.has(depId))
+        .map(depId => `
+        <PredecessorLink>
+          <PredecessorUID>${taskUIDMap.get(depId)}</PredecessorUID>
+          <Type>1</Type>
+          <CrossProject>0</CrossProject>
+          <LinkLag>0</LinkLag>
+          <LagFormat>7</LagFormat>
+        </PredecessorLink>`).join('');
+
+      return `
+    <Task>
+      <UID>${uid}</UID>
+      <ID>${index + 1}</ID>
+      <Name>${task.name.replace(/[<>&'"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' })[c] || c)}</Name>
+      <Type>0</Type>
+      <IsNull>0</IsNull>
+      <CreateDate>${formatMSDate(new Date())}</CreateDate>
+      <WBS>${index + 1}</WBS>
+      <OutlineNumber>${index + 1}</OutlineNumber>
+      <OutlineLevel>${task.level || 0}</OutlineLevel>
+      <Priority>500</Priority>
+      <Start>${task.startDate ? formatMSDate(task.startDate) : ''}</Start>
+      <Finish>${task.endDate ? formatMSDate(task.endDate) : ''}</Finish>
+      <Duration>PT${duration * 8}H0M0S</Duration>
+      <DurationFormat>7</DurationFormat>
+      <Work>PT${duration * 8}H0M0S</Work>
+      <Stop>${task.endDate ? formatMSDate(task.endDate) : ''}</Stop>
+      <Resume>${task.startDate ? formatMSDate(task.startDate) : ''}</Resume>
+      <ResumeValid>0</ResumeValid>
+      <EffortDriven>1</EffortDriven>
+      <Recurring>0</Recurring>
+      <OverAllocated>0</OverAllocated>
+      <Estimated>0</Estimated>
+      <Milestone>${task.isMilestone ? '1' : '0'}</Milestone>
+      <Summary>${(task.subtasks && task.subtasks.length > 0) ? '1' : '0'}</Summary>
+      <Critical>${task.isCriticalPath ? '1' : '0'}</Critical>
+      <IsSubproject>0</IsSubproject>
+      <IsSubprojectReadOnly>0</IsSubprojectReadOnly>
+      <ExternalTask>0</ExternalTask>
+      <EarlyStart>${task.startDate ? formatMSDate(task.startDate) : ''}</EarlyStart>
+      <EarlyFinish>${task.endDate ? formatMSDate(task.endDate) : ''}</EarlyFinish>
+      <LateStart>${task.startDate ? formatMSDate(task.startDate) : ''}</LateStart>
+      <LateFinish>${task.endDate ? formatMSDate(task.endDate) : ''}</LateFinish>
+      <StartVariance>0</StartVariance>
+      <FinishVariance>0</FinishVariance>
+      <WorkVariance>0</WorkVariance>
+      <FreeSlack>0</FreeSlack>
+      <TotalSlack>0</TotalSlack>
+      <FixedCost>0</FixedCost>
+      <FixedCostAccrual>3</FixedCostAccrual>
+      <PercentComplete>${task.progress}</PercentComplete>
+      <PercentWorkComplete>${task.progress}</PercentWorkComplete>
+      <Cost>0</Cost>
+      <OvertimeCost>0</OvertimeCost>
+      <OvertimeWork>PT0H0M0S</OvertimeWork>
+      <ActualStart>${task.progress > 0 && task.startDate ? formatMSDate(task.startDate) : ''}</ActualStart>
+      <ActualFinish>${task.progress === 100 && task.endDate ? formatMSDate(task.endDate) : ''}</ActualFinish>
+      <ActualDuration>PT${Math.round(duration * task.progress / 100) * 8}H0M0S</ActualDuration>
+      <ActualCost>0</ActualCost>
+      <ActualOvertimeCost>0</ActualOvertimeCost>
+      <ActualWork>PT${Math.round(duration * task.progress / 100) * 8}H0M0S</ActualWork>
+      <ActualOvertimeWork>PT0H0M0S</ActualOvertimeWork>
+      <RegularWork>PT${duration * 8}H0M0S</RegularWork>
+      <RemainingDuration>PT${Math.round(duration * (100 - task.progress) / 100) * 8}H0M0S</RemainingDuration>
+      <RemainingCost>0</RemainingCost>
+      <RemainingWork>PT${Math.round(duration * (100 - task.progress) / 100) * 8}H0M0S</RemainingWork>
+      <RemainingOvertimeCost>0</RemainingOvertimeCost>
+      <RemainingOvertimeWork>PT0H0M0S</RemainingOvertimeWork>
+      <ACWP>0</ACWP>
+      <CV>0</CV>
+      <ConstraintType>0</ConstraintType>
+      <CalendarUID>-1</CalendarUID>
+      <LevelAssignments>1</LevelAssignments>
+      <LevelingCanSplit>1</LevelingCanSplit>
+      <LevelingDelay>0</LevelingDelay>
+      <LevelingDelayFormat>8</LevelingDelayFormat>
+      <IgnoreResourceCalendar>0</IgnoreResourceCalendar>
+      <HideBar>0</HideBar>
+      <Rollup>0</Rollup>
+      <BCWS>0</BCWS>
+      <BCWP>0</BCWP>
+      <PhysicalPercentComplete>0</PhysicalPercentComplete>
+      <EarnedValueMethod>0</EarnedValueMethod>
+      <IsPublished>1</IsPublished>
+      <CommitmentType>0</CommitmentType>${predecessorLinks}
+    </Task>`;
+    }).join('');
+
+    // Complete MS Project XML structure
+    const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Project xmlns="http://schemas.microsoft.com/project">
+  <SaveVersion>14</SaveVersion>
+  <Name>${projectName.replace(/[<>&'"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' })[c] || c)}</Name>
+  <Title>${projectName.replace(/[<>&'"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' })[c] || c)}</Title>
+  <CreationDate>${formatMSDate(new Date())}</CreationDate>
+  <LastSaved>${formatMSDate(new Date())}</LastSaved>
+  <ScheduleFromStart>1</ScheduleFromStart>
+  <StartDate>${formatMSDate(projectStart)}</StartDate>
+  <FinishDate>${formatMSDate(projectEnd)}</FinishDate>
+  <FYStartDate>1</FYStartDate>
+  <CriticalSlackLimit>0</CriticalSlackLimit>
+  <CurrencyDigits>2</CurrencyDigits>
+  <CurrencySymbol>$</CurrencySymbol>
+  <CurrencyCode>USD</CurrencyCode>
+  <CurrencySymbolPosition>0</CurrencySymbolPosition>
+  <CalendarUID>1</CalendarUID>
+  <DefaultStartTime>08:00:00</DefaultStartTime>
+  <DefaultFinishTime>17:00:00</DefaultFinishTime>
+  <MinutesPerDay>480</MinutesPerDay>
+  <MinutesPerWeek>2400</MinutesPerWeek>
+  <DaysPerMonth>20</DaysPerMonth>
+  <DefaultTaskType>1</DefaultTaskType>
+  <DefaultFixedCostAccrual>3</DefaultFixedCostAccrual>
+  <DefaultStandardRate>0</DefaultStandardRate>
+  <DefaultOvertimeRate>0</DefaultOvertimeRate>
+  <DurationFormat>7</DurationFormat>
+  <WorkFormat>2</WorkFormat>
+  <EditableActualCosts>0</EditableActualCosts>
+  <HonorConstraints>1</HonorConstraints>
+  <InsertedProjectsLikeSummary>1</InsertedProjectsLikeSummary>
+  <MultipleCriticalPaths>0</MultipleCriticalPaths>
+  <NewTasksEffortDriven>1</NewTasksEffortDriven>
+  <NewTasksEstimated>1</NewTasksEstimated>
+  <SplitsInProgressTasks>1</SplitsInProgressTasks>
+  <SpreadActualCost>0</SpreadActualCost>
+  <SpreadPercentComplete>0</SpreadPercentComplete>
+  <TaskUpdatesResource>1</TaskUpdatesResource>
+  <FiscalYearStart>0</FiscalYearStart>
+  <WeekStartDay>1</WeekStartDay>
+  <MoveCompletedEndsBack>0</MoveCompletedEndsBack>
+  <MoveRemainingStartsBack>0</MoveRemainingStartsBack>
+  <MoveRemainingStartsForward>0</MoveRemainingStartsForward>
+  <MoveCompletedEndsForward>0</MoveCompletedEndsForward>
+  <BaselineForEarnedValue>0</BaselineForEarnedValue>
+  <AutoAddNewResourcesAndTasks>1</AutoAddNewResourcesAndTasks>
+  <CurrentDate>${formatMSDate(new Date())}</CurrentDate>
+  <MicrosoftProjectServerURL>1</MicrosoftProjectServerURL>
+  <Autolink>1</Autolink>
+  <NewTaskStartDate>0</NewTaskStartDate>
+  <DefaultTaskEVMethod>0</DefaultTaskEVMethod>
+  <ProjectExternallyEdited>0</ProjectExternallyEdited>
+  <ExtendedCreationDate>${formatMSDate(new Date())}</ExtendedCreationDate>
+  <ActualsInSync>0</ActualsInSync>
+  <RemoveFileProperties>0</RemoveFileProperties>
+  <AdminProject>0</AdminProject>
+  <Calendars>
+    <Calendar>
+      <UID>1</UID>
+      <Name>Standard</Name>
+      <IsBaseCalendar>1</IsBaseCalendar>
+      <IsBaselineCalendar>0</IsBaselineCalendar>
+      <BaseCalendarUID>-1</BaseCalendarUID>
+      <WeekDays>
+        <WeekDay>
+          <DayType>1</DayType>
+          <DayWorking>0</DayWorking>
+        </WeekDay>
+        <WeekDay>
+          <DayType>2</DayType>
+          <DayWorking>1</DayWorking>
+          <WorkingTimes>
+            <WorkingTime>
+              <FromTime>08:00:00</FromTime>
+              <ToTime>12:00:00</ToTime>
+            </WorkingTime>
+            <WorkingTime>
+              <FromTime>13:00:00</FromTime>
+              <ToTime>17:00:00</ToTime>
+            </WorkingTime>
+          </WorkingTimes>
+        </WeekDay>
+        <WeekDay>
+          <DayType>3</DayType>
+          <DayWorking>1</DayWorking>
+          <WorkingTimes>
+            <WorkingTime>
+              <FromTime>08:00:00</FromTime>
+              <ToTime>12:00:00</ToTime>
+            </WorkingTime>
+            <WorkingTime>
+              <FromTime>13:00:00</FromTime>
+              <ToTime>17:00:00</ToTime>
+            </WorkingTime>
+          </WorkingTimes>
+        </WeekDay>
+        <WeekDay>
+          <DayType>4</DayType>
+          <DayWorking>1</DayWorking>
+          <WorkingTimes>
+            <WorkingTime>
+              <FromTime>08:00:00</FromTime>
+              <ToTime>12:00:00</ToTime>
+            </WorkingTime>
+            <WorkingTime>
+              <FromTime>13:00:00</FromTime>
+              <ToTime>17:00:00</ToTime>
+            </WorkingTime>
+          </WorkingTimes>
+        </WeekDay>
+        <WeekDay>
+          <DayType>5</DayType>
+          <DayWorking>1</DayWorking>
+          <WorkingTimes>
+            <WorkingTime>
+              <FromTime>08:00:00</FromTime>
+              <ToTime>12:00:00</ToTime>
+            </WorkingTime>
+            <WorkingTime>
+              <FromTime>13:00:00</FromTime>
+              <ToTime>17:00:00</ToTime>
+            </WorkingTime>
+          </WorkingTimes>
+        </WeekDay>
+        <WeekDay>
+          <DayType>6</DayType>
+          <DayWorking>1</DayWorking>
+          <WorkingTimes>
+            <WorkingTime>
+              <FromTime>08:00:00</FromTime>
+              <ToTime>12:00:00</ToTime>
+            </WorkingTime>
+            <WorkingTime>
+              <FromTime>13:00:00</FromTime>
+              <ToTime>17:00:00</ToTime>
+            </WorkingTime>
+          </WorkingTimes>
+        </WeekDay>
+        <WeekDay>
+          <DayType>7</DayType>
+          <DayWorking>0</DayWorking>
+        </WeekDay>
+      </WeekDays>
+    </Calendar>
+  </Calendars>
+  <Tasks>${xmlTasks}
+  </Tasks>
+</Project>`;
+
+    // Download the file
+    const blob = new Blob([xml], { type: 'application/xml;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(link.href);
   },
 
   /**
@@ -793,11 +1061,13 @@ export const ganttUtils = {
 
   /**
    * Auto-schedule dependent tasks when a task changes
+   * v0.13.3: Now takes optional daysDelta to shift dependents by same amount (preserves gap)
    * @param tasks - All tasks
    * @param changedTaskId - Task that was changed
+   * @param daysDelta - Optional: days the parent moved (for preserving relative gaps)
    * @returns Updated tasks with rescheduled dependencies
    */
-  autoScheduleDependents: (tasks: Task[], changedTaskId: string): Task[] => {
+  autoScheduleDependents: (tasks: Task[], changedTaskId: string, daysDelta?: number): Task[] => {
     const changedTask = ganttUtils.findTaskById(tasks, changedTaskId);
     if (!changedTask || !changedTask.endDate) return tasks;
 
@@ -806,16 +1076,24 @@ export const ganttUtils = {
 
     let updatedTasks = [...tasks];
 
-    // For each dependent, shift start date to be after the changed task
+    // For each dependent, shift by the same daysDelta (preserves relative gap)
     for (const dependent of dependents) {
       if (!dependent.startDate || !dependent.endDate) continue;
 
       // Calculate duration of dependent task
       const duration = ganttUtils.calculateDuration(dependent.startDate, dependent.endDate);
 
-      // New start date = changed task end date + 1 day
-      const newStartDate = new Date(changedTask.endDate);
-      newStartDate.setDate(newStartDate.getDate() + 1);
+      let newStartDate: Date;
+
+      if (daysDelta !== undefined) {
+        // v0.13.3: Shift by same delta as parent (preserves relative gap)
+        newStartDate = new Date(dependent.startDate);
+        newStartDate.setDate(newStartDate.getDate() + daysDelta);
+      } else {
+        // Legacy behavior: New start date = changed task end date + 1 day
+        newStartDate = new Date(changedTask.endDate);
+        newStartDate.setDate(newStartDate.getDate() + 1);
+      }
 
       // Calculate new end date based on duration
       const newEndDate = ganttUtils.calculateEndDate(newStartDate, duration);
@@ -835,11 +1113,122 @@ export const ganttUtils = {
 
       updatedTasks = updateTaskRec(updatedTasks);
 
-      // Recursively update dependents of this task
-      updatedTasks = ganttUtils.autoScheduleDependents(updatedTasks, dependent.id);
+      // Recursively update dependents of this task (pass same delta)
+      updatedTasks = ganttUtils.autoScheduleDependents(updatedTasks, dependent.id, daysDelta);
     }
 
     return updatedTasks;
+  },
+
+  /**
+   * v0.13.0: Calculate cascade preview positions for dependent tasks during drag
+   * v0.13.3: FIXED - Preview shows ONLY actual movement needed (keeps same relative gap)
+   * Dependents shift by the same daysDelta as their parent, preserving the original gap
+   * @param tasks - All tasks (nested structure)
+   * @param draggedTaskId - Task being dragged
+   * @param daysDelta - How many days the dragged task is being moved
+   * @param flatTasks - Flattened task list with row indices
+   * @param timelineStartDate - Start date of the timeline
+   * @param scaledDayWidth - Width of one day in pixels (already includes zoom: dayWidth * zoom)
+   * @param rowHeight - Height of each row
+   * @param headerHeight - Height of the header
+   * @returns Array of DependentTaskPreview objects
+   */
+  calculateCascadePreview: (
+    tasks: Task[],
+    draggedTaskId: string,
+    daysDelta: number,
+    flatTasks: Task[],
+    timelineStartDate: Date,
+    scaledDayWidth: number, // Note: This already includes zoom (dayWidth * zoom)
+    rowHeight: number,
+    headerHeight: number
+  ): Array<{
+    taskId: string;
+    taskName: string;
+    originalX: number;
+    previewX: number;
+    width: number;
+    y: number;
+    rowIndex: number;
+    daysDelta: number;
+    color?: string;
+  }> => {
+    if (daysDelta === 0) return [];
+
+    const previews: Array<{
+      taskId: string;
+      taskName: string;
+      originalX: number;
+      previewX: number;
+      width: number;
+      y: number;
+      rowIndex: number;
+      daysDelta: number;
+      color?: string;
+    }> = [];
+
+    const rangeStart = timelineStartDate.getTime();
+    const msPerDay = 1000 * 60 * 60 * 24;
+
+    // Get dragged task info
+    const draggedTask = ganttUtils.findTaskById(tasks, draggedTaskId);
+    if (!draggedTask || !draggedTask.endDate) return [];
+
+    // v0.13.3: Dependents move by the SAME daysDelta as their parent
+    // This preserves the relative gap between tasks, making preview accurate
+    const getAffectedTasks = (parentTaskId: string, parentDelta: number, visited = new Set<string>()): void => {
+      if (visited.has(parentTaskId)) return; // Prevent infinite loops
+      visited.add(parentTaskId);
+
+      const dependents = ganttUtils.getDependentTasks(tasks, parentTaskId);
+
+      for (const dependent of dependents) {
+        if (!dependent.startDate || !dependent.endDate) continue;
+
+        // Find row index in flattened list
+        const rowIndex = flatTasks.findIndex(t => t.id === dependent.id);
+        if (rowIndex === -1) continue;
+
+        // Calculate task duration and current position
+        const taskStart = dependent.startDate.getTime();
+        const taskEnd = dependent.endDate.getTime();
+        const durationDays = (taskEnd - taskStart) / msPerDay;
+
+        // Original X position
+        const daysFromStart = (taskStart - rangeStart) / msPerDay;
+        const originalX = daysFromStart * scaledDayWidth;
+
+        // v0.13.3: Preview X = Original X + daysDelta (same shift as parent)
+        // This shows the task moving exactly with its parent, preserving the gap
+        const previewX = originalX + (parentDelta * scaledDayWidth);
+
+        // Width calculation - minimum 1 day width for visibility
+        const width = Math.max(durationDays * scaledDayWidth, scaledDayWidth);
+
+        // Y position - same formula as Timeline.tsx: HEADER_HEIGHT + index * ROW_HEIGHT + 12
+        const y = headerHeight + rowIndex * rowHeight + 12;
+
+        previews.push({
+          taskId: dependent.id,
+          taskName: dependent.name,
+          originalX,
+          previewX,
+          width,
+          y,
+          rowIndex,
+          daysDelta: parentDelta,
+          color: dependent.color,
+        });
+
+        // Recursively get dependents of this task (same delta propagates)
+        getAffectedTasks(dependent.id, parentDelta, visited);
+      }
+    };
+
+    getAffectedTasks(draggedTaskId, daysDelta);
+
+    return previews;
   },
 
   /**

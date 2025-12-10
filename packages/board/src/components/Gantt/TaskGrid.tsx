@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useContext } from 'react';
 import { ChevronDown, ChevronRight, Keyboard, Plus, Edit3 } from 'lucide-react';
 import { Task, GanttColumn, ColumnType, GanttTemplates } from './types';
 import { motion } from 'framer-motion';
@@ -7,9 +7,10 @@ import { ContextMenu, ContextMenuItem, MenuIcons } from './ContextMenu';
 import { useGanttKeyboard } from './useGanttKeyboard';
 import { useGanttSelection } from './useGanttSelection';
 import { flattenTasks as flattenTasksUtil } from './hierarchyUtils';
-import { DateRangePicker } from '../Card/DateRangePicker';
 import { UserAssignmentSelector } from '../Card/UserAssignmentSelector';
 import { StatusSelector } from '../Card/StatusSelector';
+import { PrioritySelector } from '../Card/PrioritySelector'; // v0.17.29
+import { GanttI18nContext } from './GanttI18nContext';
 import type { User } from '../Card/UserAssignmentSelector';
 
 interface TaskGridProps {
@@ -25,8 +26,8 @@ interface TaskGridProps {
   scrollTop: number;
   columns: GanttColumn[];
   onToggleColumn: (columnType: ColumnType) => void;
+  onColumnResize?: (columnId: ColumnType, newWidth: number) => void; // v0.13.8
   onTaskUpdate?: (taskId: string, updates: Partial<Task>) => void;
-  onTaskDelete?: (taskId: string) => void;
 
   // Hierarchy handlers
   onTaskIndent?: (taskIds: string[]) => void;
@@ -38,6 +39,8 @@ interface TaskGridProps {
   onTaskRename?: (taskId: string, newName: string) => void;
   onCreateSubtask?: (parentTaskId: string) => void;
   onOpenTaskModal?: (task: Task) => void;
+  // v0.17.34: Delete confirmation request (shows modal instead of deleting directly)
+  onDeleteRequest?: (taskId: string, taskName: string) => void;
 }
 
 export function TaskGrid({
@@ -53,8 +56,8 @@ export function TaskGrid({
   scrollTop: _scrollTop,
   columns,
   onToggleColumn,
+  onColumnResize,
   onTaskUpdate,
-  onTaskDelete,
   onTaskIndent,
   onTaskOutdent,
   onTaskMove,
@@ -64,13 +67,22 @@ export function TaskGrid({
   onTaskRename,
   onCreateSubtask,
   onOpenTaskModal,
+  onDeleteRequest, // v0.17.34
 }: TaskGridProps) {
+  // v0.16.2: Get translations from context
+  const translations = useContext(GanttI18nContext);
+
   const [hoveredTaskId, setHoveredTaskId] = useState<string | null>(null);
   const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editingTaskName, setEditingTaskName] = useState('');
   const keyboardHelpRef = useRef<HTMLDivElement>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
+
+  // v0.13.8: Column resize state
+  const [resizingColumn, setResizingColumn] = useState<ColumnType | null>(null);
+  const [resizeStartX, setResizeStartX] = useState(0);
+  const [resizeStartWidth, setResizeStartWidth] = useState(0);
   const [contextMenu, setContextMenu] = useState<{
     isOpen: boolean;
     x: number;
@@ -107,6 +119,35 @@ export function TaskGrid({
       editInputRef.current.select();
     }
   }, [editingTaskId]);
+
+  // v0.13.8: Handle column resize mouse events
+  useEffect(() => {
+    if (!resizingColumn) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const deltaX = e.clientX - resizeStartX;
+      const newWidth = resizeStartWidth + deltaX;
+      onColumnResize?.(resizingColumn, newWidth);
+    };
+
+    const handleMouseUp = () => {
+      setResizingColumn(null);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [resizingColumn, resizeStartX, resizeStartWidth, onColumnResize]);
 
   // Multi-selection hook
   const {
@@ -210,9 +251,9 @@ export function TaskGrid({
         const isHovered = hoveredTaskId === task.id;
 
         return (
-          <div className="flex items-center gap-2 flex-1 min-w-0 relative" style={{ paddingLeft: `${level * 24}px` }}>
-            {/* Expand/Collapse Button */}
-            {task.subtasks && task.subtasks.length > 0 && (
+          <div className="flex items-center gap-2 flex-1 min-w-0 relative" style={{ paddingLeft: `${level * 20}px` }}>
+            {/* Expand/Collapse Button - Always show space for alignment */}
+            {task.subtasks && task.subtasks.length > 0 ? (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -227,57 +268,23 @@ export function TaskGrid({
                   <ChevronRight className="w-4 h-4" />
                 )}
               </button>
+            ) : (
+              /* Spacer for tasks without subtasks to maintain alignment */
+              <div className="w-5 h-5 flex-shrink-0" />
             )}
 
-            {/* Type Icon: Milestone (diamond), Task (circle), or Subtask (small filled dot) */}
-            <div className="flex-shrink-0" style={{ opacity: level === 0 ? 0.7 : level === 1 ? 0.6 : 0.5 }}>
-              {task.isMilestone ? (
-                // Diamond icon for milestones
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                  <path
-                    d="M7 1L12 7L7 13L2 7L7 1Z"
-                    stroke={theme.accent}
-                    strokeWidth="1.5"
-                    fill="none"
-                  />
-                </svg>
-              ) : level >= 2 ? (
-                // Small filled circle for subtasks (level 2+)
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                  <circle
-                    cx="7"
-                    cy="7"
-                    r="2.5"
-                    fill={theme.textTertiary}
-                    opacity="0.5"
-                  />
-                </svg>
-              ) : level === 1 ? (
-                // Regular circle for tasks (level 1)
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                  <circle
-                    cx="7"
-                    cy="7"
-                    r="5"
-                    stroke={theme.textTertiary}
-                    strokeWidth="1.5"
-                    fill="none"
-                  />
-                </svg>
-              ) : (
-                // Larger circle with thicker stroke for parent tasks (level 0)
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                  <circle
-                    cx="7"
-                    cy="7"
-                    r="5"
-                    stroke={theme.textSecondary}
-                    strokeWidth="2"
-                    fill="none"
-                  />
-                </svg>
-              )}
-            </div>
+            {/* v0.11.0: Color Indicator - Simple dot showing task color */}
+            {/* v0.14.7: Changed default from #6366F1 (indigo) to #3B82F6 (electric blue) */}
+            <div
+              className="w-3 h-3 rounded-full flex-shrink-0 border"
+              style={{
+                backgroundColor: task.color || '#3B82F6',
+                opacity: task.parentId ? 0.6 : 1, // Subtasks more transparent
+                borderColor: task.isMilestone ? theme.accent : 'transparent',
+                borderWidth: task.isMilestone ? '2px' : '0px',
+              }}
+              title={task.isMilestone ? 'Milestone' : task.parentId ? 'Subtask' : 'Task'}
+            />
 
             {/* Task Name or Input */}
             {isEditing ? (
@@ -308,7 +315,7 @@ export function TaskGrid({
             ) : (
               <>
                 <span
-                  className="truncate flex-1"
+                  className="flex-1"
                   style={{
                     color: theme.textPrimary,
                     fontFamily: 'Inter, sans-serif',
@@ -321,6 +328,7 @@ export function TaskGrid({
                       : 400,  // Regular tasks: Normal
                     opacity: level === 0 ? 1 : level === 1 ? 0.95 : 0.88,
                   }}
+                  title={task.name} // v0.13.8: Show full name on hover tooltip
                 >
                   {task.name}
                 </span>
@@ -364,29 +372,56 @@ export function TaskGrid({
         );
       
       case 'startDate':
-      case 'endDate':
+        const startDateValue = task.startDate
+          ? typeof task.startDate === 'string'
+            ? task.startDate
+            : task.startDate.toISOString().split('T')[0]
+          : undefined;
         return (
-          <div onClick={(e) => e.stopPropagation()}>
-            <DateRangePicker
-              startDate={
-                task.startDate
-                  ? typeof task.startDate === 'string'
-                    ? task.startDate
-                    : task.startDate.toISOString().split('T')[0]
-                  : undefined
-              }
-              endDate={
-                task.endDate
-                  ? typeof task.endDate === 'string'
-                    ? task.endDate
-                    : task.endDate.toISOString().split('T')[0]
-                  : undefined
-              }
-              onChange={(startDate, endDate) => {
+          <div
+            className="flex items-center justify-center w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <input
+              type="date"
+              value={startDateValue || ''}
+              onChange={(e) => {
                 onTaskUpdate?.(task.id, {
-                  startDate: startDate ? new Date(startDate) : undefined,
-                  endDate: endDate ? new Date(endDate) : undefined
+                  startDate: e.target.value ? new Date(e.target.value) : undefined
                 });
+              }}
+              className="bg-transparent border-none text-xs cursor-pointer outline-none text-center"
+              style={{
+                color: theme.textSecondary,
+                fontFamily: 'Inter, sans-serif',
+              }}
+            />
+          </div>
+        );
+
+      case 'endDate':
+        const endDateValue = task.endDate
+          ? typeof task.endDate === 'string'
+            ? task.endDate
+            : task.endDate.toISOString().split('T')[0]
+          : undefined;
+        return (
+          <div
+            className="flex items-center justify-center w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <input
+              type="date"
+              value={endDateValue || ''}
+              onChange={(e) => {
+                onTaskUpdate?.(task.id, {
+                  endDate: e.target.value ? new Date(e.target.value) : undefined
+                });
+              }}
+              className="bg-transparent border-none text-xs cursor-pointer outline-none text-center"
+              style={{
+                color: theme.textSecondary,
+                fontFamily: 'Inter, sans-serif',
               }}
             />
           </div>
@@ -394,29 +429,36 @@ export function TaskGrid({
       
       case 'duration':
         return (
-          <span
-            className="text-xs tabular-nums"
-            style={{
-              color: theme.textSecondary,
-              fontFamily: 'Inter, sans-serif',
-              fontWeight: 600,
-            }}
-          >
-            {getDuration(task)}
-          </span>
+          <div className="flex items-center justify-center w-full">
+            <span
+              className="text-xs tabular-nums"
+              style={{
+                color: theme.textSecondary,
+                fontFamily: 'Inter, sans-serif',
+                fontWeight: 600,
+              }}
+            >
+              {getDuration(task)}
+            </span>
+          </div>
         );
       
       case 'assignees':
         const taskAssignedUsers: User[] = availableUsers.filter(user =>
           task.assignees?.some(a => a.name === user.name || a.initials === user.initials)
         );
+
         return (
-          <div onClick={(e) => e.stopPropagation()}>
+          <div
+            className="flex items-center justify-center w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
             <UserAssignmentSelector
               assignedUsers={taskAssignedUsers}
               availableUsers={availableUsers}
               onChange={(users: User[]) => {
                 const newAssignees = users.map(u => ({
+                  id: u.id,
                   name: u.name,
                   initials: u.initials,
                   color: u.color
@@ -431,7 +473,10 @@ export function TaskGrid({
       
       case 'status':
         return (
-          <div onClick={(e) => e.stopPropagation()}>
+          <div
+            className="flex items-center justify-center w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
             <StatusSelector
               status={task.status || 'todo'}
               onChange={(status) => {
@@ -446,8 +491,8 @@ export function TaskGrid({
       
       case 'progress':
         return (
-          <div className="flex items-center gap-2">
-            <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: theme.bgSecondary }}>
+          <div className="flex items-center justify-center gap-2 w-full">
+            <div className="flex-1 h-1.5 rounded-full overflow-hidden max-w-[60px]" style={{ backgroundColor: theme.bgSecondary }}>
               <div
                 className="h-full rounded-full transition-all"
                 style={{
@@ -468,7 +513,42 @@ export function TaskGrid({
             </span>
           </div>
         );
-      
+
+      // v0.17.29: Priority column
+      case 'priority':
+        // Map task priority to PrioritySelector format
+        const priorityMapForSelector: Record<string, 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'> = {
+          low: 'LOW',
+          medium: 'MEDIUM',
+          high: 'HIGH',
+          urgent: 'URGENT',
+        };
+        const reversePriorityMapForTask: Record<string, 'low' | 'medium' | 'high' | 'urgent'> = {
+          LOW: 'low',
+          MEDIUM: 'medium',
+          HIGH: 'high',
+          URGENT: 'urgent',
+        };
+        const currentPriorityValue = priorityMapForSelector[task.priority || 'medium'] || 'MEDIUM';
+
+        return (
+          <div
+            className="flex items-center justify-center w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <PrioritySelector
+              priority={currentPriorityValue}
+              onChange={(newPriority) => {
+                if (newPriority) {
+                  onTaskUpdate?.(task.id, {
+                    priority: reversePriorityMapForTask[newPriority] || 'medium',
+                  });
+                }
+              }}
+            />
+          </div>
+        );
+
       default:
         return null;
     }
@@ -504,61 +584,84 @@ export function TaskGrid({
     ];
   };
 
-  // Context menu items for task row
+  // v0.16.2: Context menu items for task row - unified with GanttBoard context menu
   const getTaskContextMenuItems = (task: Task): ContextMenuItem[] => {
     return [
+      // Edit Task - opens edit modal via double-click handler
       {
         id: 'edit',
-        label: 'Edit Task',
-        icon: MenuIcons.Edit,
+        label: translations?.contextMenu?.editTask || 'Edit Task',
+        icon: MenuIcons.Pencil,
         onClick: () => {
-          // Implement edit dialog in parent component if needed
+          onTaskDblClick?.(task);
         },
       },
+      // Add Subtask
       {
         id: 'addSubtask',
-        label: 'Add Subtask',
+        label: translations?.contextMenu?.addSubtask || 'Add Subtask',
         icon: MenuIcons.Add,
         onClick: () => {
-          // Implement subtask creation in parent component if needed
+          onCreateSubtask?.(task.id);
         },
       },
-      {
-        id: 'addDependency',
-        label: 'Add Dependency',
-        icon: MenuIcons.Link,
-        onClick: () => {
-          // Implement dependency picker in parent component if needed
-        },
-      },
+      // Separator before status changes
       { id: 'sep1', label: '', onClick: () => {}, separator: true },
+      // Mark Incomplete (status: 'todo', progress: 0)
       {
-        id: 'markComplete',
-        label: task.status === 'completed' ? 'Mark Incomplete' : 'Mark Complete',
-        icon: MenuIcons.Progress,
+        id: 'markIncomplete',
+        label: translations?.contextMenu?.markIncomplete || 'Mark Incomplete',
+        icon: MenuIcons.MarkIncomplete,
         onClick: () => {
-          const newStatus = task.status === 'completed' ? 'in-progress' : 'completed';
-          const newProgress = task.status === 'completed' ? task.progress : 100;
-          onTaskUpdate?.(task.id, { status: newStatus, progress: newProgress });
+          onTaskUpdate?.(task.id, { status: 'todo', progress: 0 });
         },
+        disabled: task.status === 'todo',
       },
+      // Set In Progress (status: 'in-progress')
       {
         id: 'setInProgress',
-        label: 'Set In Progress',
-        icon: MenuIcons.Progress,
+        label: translations?.contextMenu?.setInProgress || 'Set In Progress',
+        icon: MenuIcons.SetInProgress,
         onClick: () => {
           onTaskUpdate?.(task.id, { status: 'in-progress' });
         },
         disabled: task.status === 'in-progress',
       },
+      // Mark Complete (status: 'completed', progress: 100)
+      {
+        id: 'markComplete',
+        label: translations?.contextMenu?.markComplete || 'Mark Complete',
+        icon: MenuIcons.MarkComplete,
+        onClick: () => {
+          onTaskUpdate?.(task.id, { status: 'completed', progress: 100 });
+        },
+        disabled: task.status === 'completed',
+      },
+      // Separator before advanced options
       { id: 'sep2', label: '', onClick: () => {}, separator: true },
+      // Split Task
+      {
+        id: 'split',
+        label: translations?.contextMenu?.splitTask || 'Split Task',
+        icon: MenuIcons.Split,
+        onClick: () => {},
+        // Split task is only available via Timeline context menu (right-click on task bar)
+        disabled: true,
+      },
+      // Separator before delete
+      { id: 'sep3', label: '', onClick: () => {}, separator: true },
+      // Delete Task - v0.17.34: Use confirmation modal if available
       {
         id: 'delete',
-        label: 'Delete Task',
+        label: translations?.contextMenu?.deleteTask || 'Delete Task',
         icon: MenuIcons.Delete,
         onClick: () => {
-          if (window.confirm(`Delete task "${task.name}"?`)) {
-            onTaskDelete?.(task.id);
+          if (onDeleteRequest) {
+            // Show confirmation modal
+            onDeleteRequest(task.id, task.name);
+          } else {
+            // Fallback to direct delete
+            onMultiTaskDelete?.([task.id]);
           }
         },
       },
@@ -567,31 +670,39 @@ export function TaskGrid({
 
   const visibleColumns = columns.filter(col => col.visible);
 
+  // v0.13.10: TaskGrid no longer has its own scroll - it syncs with Timeline scroll
   return (
     <div
-      className="h-full overflow-auto"
+      className="h-full overflow-hidden"
       style={{
         backgroundColor: theme.bgPrimary,
-        borderRight: `1px solid ${theme.border}`,
       }}
     >
       {/* Header */}
       <div
-        className="sticky top-0 z-10 flex items-center border-b"
+        className="sticky top-0 z-10 flex items-center"
         style={{
           backgroundColor: theme.bgGrid,
-          borderColor: theme.border,
           height: `${HEADER_HEIGHT}px`,
+          paddingLeft: '3px', // Alinear con el borderLeft de las filas
+          borderBottom: `1px solid ${theme.border}`,
+          boxSizing: 'border-box', // Border included in height
         }}
       >
-        {visibleColumns.map((column) => (
+        {visibleColumns.map((column, colIndex) => (
           <div
             key={column.id}
-            className="flex items-center px-4 border-r cursor-pointer hover:bg-opacity-50 transition-colors relative"
+            className={`flex items-center px-4 cursor-pointer hover:bg-opacity-50 transition-colors relative ${
+              column.id === 'name' ? 'justify-start' : 'justify-center'
+            }`}
             style={{
               width: `${column.width}px`,
-              borderColor: theme.borderLight,
+              minWidth: `${column.width}px`,
+              maxWidth: `${column.width}px`,
+              // Only add border-right between columns, not on the last one (GanttBoard container has the divider)
+              borderRight: colIndex < visibleColumns.length - 1 ? `1px solid ${theme.borderLight}` : 'none',
               height: '100%',
+              boxSizing: 'border-box',
             }}
             onContextMenu={(e) => {
               e.preventDefault();
@@ -620,11 +731,44 @@ export function TaskGrid({
             >
               {column.label}
             </span>
+
+            {/* v0.13.8: Resize handle for resizable columns */}
+            {column.resizable && (
+              <div
+                className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-blue-500 transition-colors group"
+                style={{
+                  backgroundColor: resizingColumn === column.id ? theme.accent : 'transparent',
+                }}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setResizingColumn(column.id);
+                  setResizeStartX(e.clientX);
+                  setResizeStartWidth(column.width);
+                }}
+                title="Drag to resize column"
+              >
+                {/* Visual indicator line on hover */}
+                <div
+                  className="absolute right-0 top-2 bottom-2 w-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                  style={{ backgroundColor: theme.accent }}
+                />
+              </div>
+            )}
           </div>
         ))}
         
-        {/* Add Column Button */}
-        <div className="px-3 flex items-center gap-2 h-full">
+        {/* Add Column Button - v0.17.23: Sticky to prevent overlap when resizing columns */}
+        <div
+          className="px-3 flex items-center gap-2 h-full"
+          style={{
+            position: 'sticky',
+            right: 0,
+            backgroundColor: theme.bgGrid,
+            zIndex: 15,
+            flexShrink: 0,
+          }}
+        >
           <ColumnManager
             columns={columns}
             onToggleColumn={onToggleColumn}
@@ -752,20 +896,18 @@ export function TaskGrid({
         </div>
       </div>
 
-      {/* Task Rows */}
+      {/* Task Rows Container - v0.13.11: This container is targeted by CSS transform for scroll sync */}
+      <div className="gantt-taskgrid-content">
       {flatTasks.map(({ task, level }, index) => {
         const isSelected = isTaskSelected(task.id);
 
         return (
           <motion.div
             key={task.id}
-            className="flex items-center border-b cursor-pointer group"
+            className="flex items-center cursor-pointer group"
             style={{
               height: `${ROW_HEIGHT}px`,
-              borderTop: `1px solid ${isSelected ? theme.accent : theme.borderLight}`,
-              borderRight: `1px solid ${isSelected ? theme.accent : theme.borderLight}`,
-              borderBottom: `1px solid ${isSelected ? theme.accent : theme.borderLight}`,
-              borderLeft: isSelected ? `3px solid ${theme.accent}` : '3px solid transparent',
+              borderLeft: isSelected ? `3px solid ${theme.accent}` : `3px solid transparent`,
               backgroundColor: isSelected
                 ? theme.accentLight
                 : (index % 2 === 0 ? theme.bgPrimary : theme.bgGrid),
@@ -806,14 +948,19 @@ export function TaskGrid({
               backgroundColor: isSelected ? theme.accentLight : theme.hoverBg,
             }}
           >
-          {visibleColumns.map((column) => (
+          {visibleColumns.map((column, colIndex) => (
             <div
               key={`${task.id}-${column.id}`}
-              className="px-4 border-r flex items-center"
+              className={`px-4 flex items-center ${
+                column.id === 'name' ? 'justify-start' : 'justify-center'
+              } ${colIndex < visibleColumns.length - 1 ? 'border-r' : ''}`}
               style={{
                 width: `${column.width}px`,
+                minWidth: `${column.width}px`,
+                maxWidth: `${column.width}px`,
                 borderColor: hoveredTaskId === task.id ? theme.border : theme.borderLight,
                 height: '100%',
+                boxSizing: 'border-box',
               }}
             >
               {renderCellContent(column, task, column.id === 'name' ? level : 0)}
@@ -822,6 +969,7 @@ export function TaskGrid({
           </motion.div>
         );
       })}
+      </div>
 
       {/* Context Menu */}
       <ContextMenu

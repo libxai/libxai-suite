@@ -32,19 +32,25 @@
   --modal-v2-body-line-height: 1.6;
 }
 
-/* Dark Theme - Exact #222326 */
+/* Dark Theme - Matches Kanban system color #1A1D25 */
 [data-theme="dark"] {
-  --modal-v2-bg: #222326;
+  --modal-v2-bg: #1A1D25;
   --modal-v2-text-primary: #F4F5F8;
   --modal-v2-text-secondary: #AEB6C0;
   --modal-v2-text-tertiary: #6B7280;
   --modal-v2-border: rgba(255, 255, 255, 0.08);
   --modal-v2-border-hover: rgba(255, 255, 255, 0.15);
-  --modal-v2-bg-secondary: rgba(255, 255, 255, 0.03);
-  --modal-v2-bg-tertiary: rgba(255, 255, 255, 0.05);
-  --modal-v2-comment-bg: #2A2B2E;
+  --modal-v2-bg-secondary: rgba(255, 255, 255, 0.04);
+  --modal-v2-bg-tertiary: rgba(255, 255, 255, 0.06);
+  --modal-v2-comment-bg: #242830;
   --modal-v2-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
   --modal-v2-backdrop: rgba(0, 0, 0, 0.7);
+  /* v0.17.21: Accent colors for interactive elements */
+  --color-accent-primary: #3B82F6;
+  --color-accent-hover: #2563EB;
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
+  --color-error: #EF4444;
 }
 
 /* Light Theme - Exact #FFFFFF */
@@ -60,6 +66,12 @@
   --modal-v2-comment-bg: #F7F7F8;
   --modal-v2-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
   --modal-v2-backdrop: rgba(0, 0, 0, 0.4);
+  /* v0.17.21: Accent colors for interactive elements */
+  --color-accent-primary: #2563EB;
+  --color-accent-hover: #1D4ED8;
+  --color-success: #059669;
+  --color-warning: #D97706;
+  --color-error: #DC2626;
 }
 
 /* Neutral Theme - Exact #F5F5F5 */
@@ -75,6 +87,12 @@
   --modal-v2-comment-bg: #EBEBEB;
   --modal-v2-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
   --modal-v2-backdrop: rgba(0, 0, 0, 0.35);
+  /* v0.17.21: Accent colors for interactive elements */
+  --color-accent-primary: #2563EB;
+  --color-accent-hover: #1D4ED8;
+  --color-success: #059669;
+  --color-warning: #D97706;
+  --color-error: #DC2626;
 }
 
 /* ============================================================================
@@ -1013,7 +1031,228 @@
 }
 
 /* ============================================================================
+   COVER IMAGE SECTION
+   ============================================================================ */
+
+.modal-v2-cover-section {
+  margin: 0;
+  padding: 0;
+}
+
+/* Add Cover Button */
+.modal-v2-add-cover-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 16px;
+  margin: 0;
+  border: 2px dashed var(--modal-v2-border);
+  background: transparent;
+  color: var(--modal-v2-text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.modal-v2-add-cover-button:hover {
+  border-color: var(--asakaa-accent, #3B82F6);
+  color: var(--asakaa-accent, #3B82F6);
+  background: var(--modal-v2-bg-secondary);
+}
+
+/* Cover Preview Wrapper */
+.modal-v2-cover-preview-wrapper {
+  position: relative;
+  width: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+.modal-v2-cover-image {
+  width: 100%;
+  height: 240px;
+  object-fit: cover;
+  display: block;
+}
+
+.modal-v2-cover-actions {
+  display: flex;
+  gap: 8px;
+  padding: 12px 24px;
+  background: var(--modal-v2-bg);
+  border-bottom: 1px solid var(--modal-v2-border);
+}
+
+.modal-v2-cover-action-button {
+  flex: 1;
+  padding: 8px 16px;
+  border: 1px solid var(--modal-v2-border);
+  background: var(--modal-v2-bg-secondary);
+  color: var(--modal-v2-text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.modal-v2-cover-action-button:hover {
+  background: var(--modal-v2-bg-tertiary);
+  border-color: var(--modal-v2-border-hover);
+}
+
+.modal-v2-cover-action-button.danger {
+  border-color: #EF4444;
+  color: #EF4444;
+}
+
+.modal-v2-cover-action-button.danger:hover {
+  background: #EF4444;
+  color: white;
+}
+
+/* Cover Manager Wrapper */
+.modal-v2-cover-manager-wrapper {
+  padding: 24px;
+  border-bottom: 1px solid var(--modal-v2-border);
+  background: var(--modal-v2-bg);
+}
+
+.modal-v2-cover-manager-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.modal-v2-cover-manager-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--modal-v2-text-primary);
+  margin: 0;
+}
+
+.modal-v2-cover-manager-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--modal-v2-text-secondary);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.modal-v2-cover-manager-close:hover {
+  background: var(--modal-v2-bg-secondary);
+  color: var(--modal-v2-text-primary);
+}
+
+/* ============================================================================
    THEME SPECIFIC OVERRIDES
    ============================================================================ */
 
 /* Neutral theme grayscale filter removed - let colors breathe */
+
+/* ============================================================================
+   DATE RANGE PICKER - Theme-aware styles
+   ============================================================================ */
+
+/* Dark mode - default */
+[data-theme="dark"] {
+  --date-picker-bg: #222326;
+  --date-picker-border: rgba(255, 255, 255, 0.15);
+  --date-picker-text-primary: rgba(255, 255, 255, 0.9);
+  --date-picker-text-secondary: rgba(255, 255, 255, 0.7);
+  --date-picker-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1);
+  --date-picker-btn-bg: rgba(255, 255, 255, 0.05);
+  --date-picker-btn-bg-hover: rgba(255, 255, 255, 0.12);
+  --date-picker-btn-border: rgba(255, 255, 255, 0.15);
+  --date-picker-btn-border-hover: rgba(255, 255, 255, 0.25);
+  --date-picker-input-bg: rgba(255, 255, 255, 0.05);
+}
+
+/* Light mode */
+[data-theme="light"] {
+  --date-picker-bg: #FFFFFF;
+  --date-picker-border: rgba(0, 0, 0, 0.12);
+  --date-picker-text-primary: #1A1A1A;
+  --date-picker-text-secondary: #6B6B6B;
+  --date-picker-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.08);
+  --date-picker-btn-bg: rgba(0, 0, 0, 0.03);
+  --date-picker-btn-bg-hover: rgba(0, 0, 0, 0.08);
+  --date-picker-btn-border: rgba(0, 0, 0, 0.12);
+  --date-picker-btn-border-hover: rgba(0, 0, 0, 0.2);
+  --date-picker-input-bg: rgba(0, 0, 0, 0.02);
+}
+
+/* Neutral mode */
+[data-theme="neutral"] {
+  --date-picker-bg: #F5F5F5;
+  --date-picker-border: rgba(0, 0, 0, 0.1);
+  --date-picker-text-primary: #1A1A1A;
+  --date-picker-text-secondary: #6B6B6B;
+  --date-picker-shadow: 0 20px 60px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.06);
+  --date-picker-btn-bg: rgba(0, 0, 0, 0.04);
+  --date-picker-btn-bg-hover: rgba(0, 0, 0, 0.1);
+  --date-picker-btn-border: rgba(0, 0, 0, 0.1);
+  --date-picker-btn-border-hover: rgba(0, 0, 0, 0.18);
+  --date-picker-input-bg: rgba(0, 0, 0, 0.03);
+}
+
+/* Quick select buttons */
+.date-picker-quick-btn {
+  color: var(--date-picker-text-primary);
+  border-color: var(--date-picker-btn-border);
+  background: var(--date-picker-btn-bg);
+  transition: all 0.15s ease;
+}
+
+.date-picker-quick-btn:hover {
+  background: var(--date-picker-btn-bg-hover);
+  border-color: var(--date-picker-btn-border-hover);
+}
+
+/* Date inputs */
+.date-picker-input {
+  background: var(--date-picker-input-bg);
+  border-color: var(--date-picker-btn-border);
+  color: var(--date-picker-text-primary);
+}
+
+.date-picker-input:focus {
+  border-color: #3B82F6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+/* Dark mode specific for date inputs */
+[data-theme="dark"] .date-picker-input {
+  color-scheme: dark;
+}
+
+/* Light/Neutral mode specific for date inputs */
+[data-theme="light"] .date-picker-input,
+[data-theme="neutral"] .date-picker-input {
+  color-scheme: light;
+}
+
+/* Clear button */
+.date-picker-clear-btn {
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.1);
+  transition: all 0.15s ease;
+}
+
+.date-picker-clear-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.4);
+}

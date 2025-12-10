@@ -3,6 +3,7 @@
  * Manages all drag-related state in one place
  *
  * @version 0.8.1
+ * @version 0.13.6 - Removed dragDaysDelta (direction-based colors removed)
  */
 
 import { useState } from 'react';

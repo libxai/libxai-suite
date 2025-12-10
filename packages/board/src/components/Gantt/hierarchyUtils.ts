@@ -267,6 +267,7 @@ export function duplicateTasks(tasks: Task[], taskIds: string[]): Task[] {
 
 /**
  * Create a new task
+ * v0.11.0: New tasks start with default blue color
  */
 export function createTask(
   tasks: Task[],
@@ -274,11 +275,18 @@ export function createTask(
   direction: 'above' | 'below'
 ): { tasks: Task[]; newTask: Task } {
   const result = [...tasks];
+  const today = new Date();
+  const weekFromNow = new Date(today);
+  weekFromNow.setDate(weekFromNow.getDate() + 7);
+
   const newTask: Task = {
     id: `task-${Date.now()}`,
     name: 'New Task',
     progress: 0,
     status: 'todo',
+    startDate: today,
+    endDate: weekFromNow,
+    color: '#6366F1', // v0.11.0: Default blue pastel color
   };
 
   const insertTask = (tasks: Task[]): boolean => {
@@ -334,16 +342,43 @@ export function toggleTaskExpansion(tasks: Task[], taskId: string): Task[] {
 
 /**
  * Create a subtask for a parent task
+ * v0.11.0: Subtasks inherit parent color
  */
 export function createSubtask(
   tasks: Task[],
   parentTaskId: string
 ): { tasks: Task[]; newTask: Task } {
+  // Find parent task to inherit properties
+  const findParent = (tasks: Task[]): Task | null => {
+    for (const task of tasks) {
+      if (task.id === parentTaskId) return task;
+      if (task.subtasks) {
+        const found = findParent(task.subtasks);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+
+  const parentTask = findParent(tasks);
+
+  // v0.16.7: Inherit dates from parent task (subtask should fit within parent)
+  // If parent has dates, use them. Otherwise fall back to today + 7 days
+  const today = new Date();
+  const weekFromNow = new Date(today);
+  weekFromNow.setDate(weekFromNow.getDate() + 7);
+
+  const startDate = parentTask?.startDate || today;
+  const endDate = parentTask?.endDate || weekFromNow;
+
   const newTask: Task = {
     id: `task-${Date.now()}`,
     name: 'New Subtask',
     progress: 0,
     status: 'todo',
+    startDate: new Date(startDate), // Clone to avoid reference issues
+    endDate: new Date(endDate),     // Clone to avoid reference issues
+    color: parentTask?.color || '#3B82F6', // v0.16.7: Inherit parent color (default: electric blue)
   };
 
   const addSubtask = (tasks: Task[]): Task[] => {

@@ -5,6 +5,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { Portal } from '../Portal'
+import { useKanbanTheme } from '../Board/KanbanThemeContext'
 
 export interface DateRangePickerProps {
   startDate?: string
@@ -32,6 +33,10 @@ export function DateRangePicker({
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 })
   const menuRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
+  const kanbanTheme = useKanbanTheme()
+  const themeName = kanbanTheme?.themeName || 'dark'
+  // Only 'dark' theme uses dark colors, 'light' and 'neutral' use light colors
+  const isDark = themeName === 'dark'
 
   useEffect(() => {
     if (isOpen && buttonRef.current) {
@@ -78,8 +83,6 @@ export function DateRangePicker({
   const handleQuickSelect = (days: number) => {
     const now = new Date()
 
-    // Format date as YYYY-MM-DD in LOCAL timezone (not UTC)
-    // This prevents timezone offset issues where selecting "Today" assigns tomorrow's date
     const formatLocalDate = (date: Date) => {
       const year = date.getFullYear()
       const month = String(date.getMonth() + 1).padStart(2, '0')
@@ -100,10 +103,8 @@ export function DateRangePicker({
   const formatDateRange = () => {
     if (!startDate || !endDate) return 'Set date'
 
-    // Parse dates as local timezone to avoid UTC conversion issues
     const parseLocalDate = (dateStr: string | Date) => {
       if (dateStr instanceof Date) return dateStr
-      // Handle invalid date strings
       if (typeof dateStr !== 'string' || !dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
         return null
       }
@@ -123,7 +124,6 @@ export function DateRangePicker({
     const start = parseLocalDate(startDate)
     const end = parseLocalDate(endDate)
 
-    // Return 'Set date' if parsing failed
     if (!start || !end || isNaN(start.getTime()) || isNaN(end.getTime())) {
       return 'Set date'
     }
@@ -135,7 +135,6 @@ export function DateRangePicker({
 
   const hasDateSet = startDate && endDate
 
-  // Check if date is overdue
   const isOverdue = () => {
     if (!endDate) return false
     const end = typeof endDate === 'string' ? new Date(endDate) : endDate
@@ -148,7 +147,6 @@ export function DateRangePicker({
 
   return (
     <div className={`relative ${className || ''}`}>
-      {/* Date button - plain text with color only if overdue */}
       <button
         ref={buttonRef}
         onClick={() => setIsOpen(!isOpen)}
@@ -182,7 +180,6 @@ export function DateRangePicker({
         )}
       </button>
 
-      {/* Date picker menu - Using Portal to escape stacking context */}
       {isOpen && (
         <Portal>
           <div
@@ -191,89 +188,104 @@ export function DateRangePicker({
             style={{
               top: `${menuPosition.top}px`,
               left: `${menuPosition.left}px`,
-              background: 'var(--modal-v2-bg, #1f1f1f)',
-              border: '1px solid var(--modal-v2-border, rgba(255, 255, 255, 0.15))',
-              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1)',
+              background: isDark ? '#1A1D25' : '#FFFFFF',
+              border: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.12)'}`,
+              boxShadow: isDark
+                ? '0 20px 60px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1)'
+                : '0 20px 60px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.08)',
               zIndex: 99999,
             }}
           >
-          {/* Quick selection */}
-          <div className="p-4 border-b" style={{ borderColor: 'var(--modal-v2-border, rgba(255, 255, 255, 0.1))' }}>
-            <span className="text-xs font-bold uppercase tracking-wider block mb-3" style={{ color: 'var(--modal-v2-text-secondary, rgba(255, 255, 255, 0.8))' }}>
-              Quick Select
-            </span>
-            <div className="grid grid-cols-2 gap-2">
-              {QUICK_OPTIONS.map((option) => (
-                <button
-                  key={option.label}
-                  onClick={() => handleQuickSelect(option.days)}
-                  className="px-3 py-2.5 rounded-lg text-xs font-semibold transition-all active:scale-95 border"
+            <div className="p-4 border-b" style={{ borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)' }}>
+              <span
+                className="text-xs font-bold uppercase tracking-wider block mb-3"
+                style={{ color: isDark ? 'rgba(255, 255, 255, 0.85)' : 'rgba(0, 0, 0, 0.7)' }}
+              >
+                Quick Select
+              </span>
+              <div className="grid grid-cols-2 gap-2">
+                {QUICK_OPTIONS.map((option) => (
+                  <button
+                    key={option.label}
+                    onClick={() => handleQuickSelect(option.days)}
+                    className="px-3 py-2.5 rounded-lg text-xs font-semibold transition-all active:scale-95"
+                    style={{
+                      color: isDark ? 'rgba(255, 255, 255, 0.95)' : 'rgba(0, 0, 0, 0.85)',
+                      border: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.15)'}`,
+                      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.05)',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)'
+                      e.currentTarget.style.border = `1px solid ${isDark ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.25)'}`
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.05)'
+                      e.currentTarget.style.border = `1px solid ${isDark ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.15)'}`
+                    }}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="p-4">
+              <span
+                className="text-xs font-bold uppercase tracking-wider block mb-3"
+                style={{ color: isDark ? 'rgba(255, 255, 255, 0.85)' : 'rgba(0, 0, 0, 0.7)' }}
+              >
+                Custom Range
+              </span>
+              <div className="space-y-3">
+                <input
+                  type="date"
+                  value={startDate || ''}
+                  onChange={(e) => onChange(e.target.value, endDate)}
+                  className="w-full px-3 py-2.5 rounded-lg text-sm border focus:outline-none transition-all"
                   style={{
-                    color: 'var(--modal-v2-text-primary, #60a5fa)',
-                    borderColor: 'var(--modal-v2-border, rgba(96, 165, 250, 0.3))',
-                    background: 'var(--modal-v2-bg-secondary, rgba(96, 165, 250, 0.08))',
+                    background: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.05)',
+                    borderColor: isDark ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.15)',
+                    color: isDark ? 'rgba(255, 255, 255, 0.95)' : 'rgba(0, 0, 0, 0.85)',
+                    colorScheme: isDark ? 'dark' : 'light',
+                  }}
+                />
+                <input
+                  type="date"
+                  value={endDate || ''}
+                  onChange={(e) => onChange(startDate, e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-lg text-sm border focus:outline-none transition-all"
+                  style={{
+                    background: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.05)',
+                    borderColor: isDark ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.15)',
+                    color: isDark ? 'rgba(255, 255, 255, 0.95)' : 'rgba(0, 0, 0, 0.85)',
+                    colorScheme: isDark ? 'dark' : 'light',
+                  }}
+                />
+              </div>
+
+              {(startDate || endDate) && (
+                <button
+                  onClick={() => {
+                    onChange(undefined, undefined)
+                    setIsOpen(false)
+                  }}
+                  className="mt-4 w-full px-3 py-2.5 rounded-lg text-sm font-semibold transition-all active:scale-95 border"
+                  style={{
+                    color: '#ef4444',
+                    borderColor: 'rgba(239, 68, 68, 0.3)',
+                    background: 'rgba(239, 68, 68, 0.1)',
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'var(--modal-v2-bg-tertiary, rgba(96, 165, 250, 0.15))'
+                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)'
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'var(--modal-v2-bg-secondary, rgba(96, 165, 250, 0.08))'
+                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'
                   }}
                 >
-                  {option.label}
+                  Clear Dates
                 </button>
-              ))}
+              )}
             </div>
-          </div>
-
-          {/* Manual date inputs */}
-          <div className="p-4">
-            <span className="text-xs font-bold uppercase tracking-wider block mb-3" style={{ color: 'var(--modal-v2-text-secondary, rgba(255, 255, 255, 0.8))' }}>
-              Custom Range
-            </span>
-            <div className="space-y-3">
-              <input
-                type="date"
-                value={startDate || ''}
-                onChange={(e) => onChange(e.target.value, endDate)}
-                className="w-full px-3 py-2.5 rounded-lg text-sm border focus:outline-none transition-all"
-                style={{
-                  background: 'var(--modal-v2-bg-secondary, rgba(255, 255, 255, 0.05))',
-                  borderColor: 'var(--modal-v2-border, rgba(255, 255, 255, 0.2))',
-                  color: 'var(--modal-v2-text-primary, #ffffff)',
-                }}
-              />
-              <input
-                type="date"
-                value={endDate || ''}
-                onChange={(e) => onChange(startDate, e.target.value)}
-                className="w-full px-3 py-2.5 rounded-lg text-sm border focus:outline-none transition-all"
-                style={{
-                  background: 'var(--modal-v2-bg-secondary, rgba(255, 255, 255, 0.05))',
-                  borderColor: 'var(--modal-v2-border, rgba(255, 255, 255, 0.2))',
-                  color: 'var(--modal-v2-text-primary, #ffffff)',
-                }}
-              />
-            </div>
-
-            {/* Clear button */}
-            {(startDate || endDate) && (
-              <button
-                onClick={() => {
-                  onChange(undefined, undefined)
-                  setIsOpen(false)
-                }}
-                className="mt-4 w-full px-3 py-2.5 rounded-lg text-sm font-semibold transition-all hover:bg-red-600/30 active:scale-95 border"
-                style={{
-                  color: '#f87171',
-                  borderColor: 'rgba(248, 113, 113, 0.3)',
-                  background: 'rgba(248, 113, 113, 0.08)',
-                }}
-              >
-                Clear Dates
-              </button>
-            )}
-          </div>
           </div>
         </Portal>
       )}

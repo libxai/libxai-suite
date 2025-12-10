@@ -138,22 +138,22 @@
   --asakaa-gantt-milestone-rotation: 45;
 
   /* Dark theme colors (default) */
-  --asakaa-color-background-primary: #1a1a1a;
-  --asakaa-color-background-secondary: #2a2a2a;
-  --asakaa-color-background-tertiary: #3a3a3a;
-  --asakaa-color-background-card: #2d2d2d;
-  --asakaa-color-background-hover: #353535;
-  --asakaa-color-background-active: #404040;
-  --asakaa-color-background-input: #2a2a2a;
-  --asakaa-color-text-primary: #ffffff;
-  --asakaa-color-text-secondary: #b0b0b0;
-  --asakaa-color-text-tertiary: #808080;
-  --asakaa-color-text-disabled: #606060;
-  --asakaa-color-text-inverse: #1a1a1a;
+  --asakaa-color-background-primary: #0F1117;
+  --asakaa-color-background-secondary: #1A1D25;
+  --asakaa-color-background-tertiary: #252A35;
+  --asakaa-color-background-card: #1A1D25;
+  --asakaa-color-background-hover: #252A35;
+  --asakaa-color-background-active: #2F3542;
+  --asakaa-color-background-input: #1A1D25;
+  --asakaa-color-text-primary: #F8FAFC;
+  --asakaa-color-text-secondary: #9CA3AF;
+  --asakaa-color-text-tertiary: #6B7280;
+  --asakaa-color-text-disabled: #4B5563;
+  --asakaa-color-text-inverse: #0F1117;
   --asakaa-color-border-default: #404040;
   --asakaa-color-border-hover: #505050;
-  --asakaa-color-border-focus: #0ea5e9;
-  --asakaa-color-border-active: #0284c7;
+  --asakaa-color-border-focus: #3B82F6;
+  --asakaa-color-border-active: #2563EB;
   --asakaa-color-border-subtle: #2a2a2a;
   --asakaa-color-status-success: #22c55e;
   --asakaa-color-status-warning: #f59e0b;
@@ -181,7 +181,7 @@
   --asakaa-color-gantt-taskBackground: #3b82f6;
   --asakaa-color-gantt-taskBorder: #2563eb;
   --asakaa-color-gantt-criticalPath: #ef4444;
-  --asakaa-color-gantt-milestone: #8b5cf6;
+  --asakaa-color-gantt-milestone: #3B82F6;
   --asakaa-color-gantt-dependency: #6b7280;
   --asakaa-color-gantt-weekend: #2a2a2a;
 
@@ -206,8 +206,8 @@
   --asakaa-color-text-inverse: #ffffff;
   --asakaa-color-border-default: #e5e7eb;
   --asakaa-color-border-hover: #d1d5db;
-  --asakaa-color-border-focus: #0ea5e9;
-  --asakaa-color-border-active: #0284c7;
+  --asakaa-color-border-focus: #3B82F6;
+  --asakaa-color-border-active: #2563EB;
   --asakaa-color-border-subtle: #f3f4f6;
   --asakaa-color-status-success: #16a34a;
   --asakaa-color-status-warning: #d97706;
@@ -235,7 +235,7 @@
   --asakaa-color-gantt-taskBackground: #3b82f6;
   --asakaa-color-gantt-taskBorder: #2563eb;
   --asakaa-color-gantt-criticalPath: #ef4444;
-  --asakaa-color-gantt-milestone: #8b5cf6;
+  --asakaa-color-gantt-milestone: #3B82F6;
   --asakaa-color-gantt-dependency: #6b7280;
   --asakaa-color-gantt-weekend: #f9fafb;
 }
@@ -256,8 +256,8 @@
   --asakaa-color-text-inverse: #18181b;
   --asakaa-color-border-default: #3f3f46;
   --asakaa-color-border-hover: #52525b;
-  --asakaa-color-border-focus: #0ea5e9;
-  --asakaa-color-border-active: #0284c7;
+  --asakaa-color-border-focus: #3B82F6;
+  --asakaa-color-border-active: #2563EB;
   --asakaa-color-border-subtle: #27272a;
   --asakaa-color-status-success: #22c55e;
   --asakaa-color-status-warning: #f59e0b;
@@ -285,7 +285,7 @@
   --asakaa-color-gantt-taskBackground: #3b82f6;
   --asakaa-color-gantt-taskBorder: #2563eb;
   --asakaa-color-gantt-criticalPath: #ef4444;
-  --asakaa-color-gantt-milestone: #8b5cf6;
+  --asakaa-color-gantt-milestone: #3B82F6;
   --asakaa-color-gantt-dependency: #71717a;
   --asakaa-color-gantt-weekend: #27272a;
 }

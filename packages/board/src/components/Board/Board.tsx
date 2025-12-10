@@ -17,6 +17,7 @@ import { Column } from '../Column'
 import { Card } from '../Card'
 import { cn, calculateDropPosition } from '../../utils'
 import { useDragState } from '../../hooks/useDragState'
+import { KanbanThemeProvider } from './KanbanThemeContext'
 
 export function KanbanBoard({
   board,
@@ -32,6 +33,11 @@ export function KanbanBoard({
   children,
 }: KanbanBoardProps & { children?: React.ReactNode }) {
   const [dragState, setDragState] = useDragState()
+
+  // Determine theme class - default to 'dark'
+  const themeName = config?.theme || 'dark'
+  const isDark = themeName === 'dark' || themeName === 'neutral'
+  const themeClass = isDark ? 'dark' : ''
 
   const handleCardUpdate = useCallback(
     (cardId: string, updates: Partial<typeof board.cards[0]>) => {
@@ -182,7 +188,7 @@ export function KanbanBoard({
 
   if (isLoading) {
     return (
-      <div className={cn('asakaa-board', className)} style={style}>
+      <div className={cn('asakaa-board', themeClass, className)} style={style}>
         <LoadingSkeleton columnCount={3} />
       </div>
     )
@@ -190,7 +196,7 @@ export function KanbanBoard({
 
   if (error) {
     return (
-      <div className={cn('asakaa-board', className)} style={style}>
+      <div className={cn('asakaa-board', themeClass, className)} style={style}>
         <div className="flex items-center justify-center w-full h-64">
           <div className="text-center">
             <p className="text-asakaa-accent-red text-lg font-semibold mb-2">
@@ -206,54 +212,56 @@ export function KanbanBoard({
   }
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCorners}
-      onDragStart={handleDragStart}
-      onDragOver={handleDragOver}
-      onDragEnd={handleDragEnd}
-    >
-      <div className={cn('asakaa-board', className)} style={style}>
-        {board.columns
-          .sort((a, b) => a.position - b.position)
-          .map((column) => {
-            const cards = cardsByColumn.get(column.id) || []
+    <KanbanThemeProvider themeName={themeName}>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCorners}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragEnd={handleDragEnd}
+      >
+        <div className={cn('asakaa-board', themeClass, className)} style={style} data-theme={themeName}>
+          {board.columns
+            .sort((a, b) => a.position - b.position)
+            .map((column) => {
+              const cards = cardsByColumn.get(column.id) || []
 
-            return (
-              <Column
-                key={column.id}
-                column={column}
-                cards={cards}
-                renderCard={renderProps?.renderCard}
-                renderColumn={renderProps?.renderColumn}
-                renderHeader={renderProps?.renderColumnHeader}
-                renderEmptyState={renderProps?.renderEmptyState}
-                onCardClick={handleCardClick}
-                onCardUpdate={handleCardUpdate}
-                onColumnRename={handleColumnRename}
-                availableUsers={availableUsers}
-                allCards={board.cards}
-                enableVirtualization={config?.enableVirtualization}
-                cardHeight={config?.cardHeight}
-              />
-            )
-          })}
-        {children}
-      </div>
+              return (
+                <Column
+                  key={column.id}
+                  column={column}
+                  cards={cards}
+                  renderCard={renderProps?.renderCard}
+                  renderColumn={renderProps?.renderColumn}
+                  renderHeader={renderProps?.renderColumnHeader}
+                  renderEmptyState={renderProps?.renderEmptyState}
+                  onCardClick={handleCardClick}
+                  onCardUpdate={handleCardUpdate}
+                  onColumnRename={handleColumnRename}
+                  availableUsers={availableUsers}
+                  allCards={board.cards}
+                  enableVirtualization={config?.enableVirtualization}
+                  cardHeight={config?.cardHeight}
+                />
+              )
+            })}
+          {children}
+        </div>
 
-      <DragOverlay>
-        {dragState.draggedCardId ? (
-          <Card
-            card={
-              board.cards.find((c) => c.id === dragState.draggedCardId)!
-            }
-            render={renderProps?.renderCardOverlay || renderProps?.renderCard}
-            disableDrag
-            className="opacity-90 rotate-3 shadow-2xl"
-          />
-        ) : null}
-      </DragOverlay>
-    </DndContext>
+        <DragOverlay>
+          {dragState.draggedCardId ? (
+            <Card
+              card={
+                board.cards.find((c) => c.id === dragState.draggedCardId)!
+              }
+              render={renderProps?.renderCardOverlay || renderProps?.renderCard}
+              disableDrag
+              className="opacity-90 rotate-3 shadow-2xl"
+            />
+          ) : null}
+        </DragOverlay>
+      </DndContext>
+    </KanbanThemeProvider>
   )
 }
 
