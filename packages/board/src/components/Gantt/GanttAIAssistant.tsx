@@ -363,6 +363,29 @@ export function GanttAIAssistant({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen]);
 
+  // Close when clicking outside the chat panel
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      // Check if click is outside the chat container
+      if (chatContainerRef.current && !chatContainerRef.current.contains(target)) {
+        setIsOpen(false);
+      }
+    };
+
+    // Add listener with a small delay to avoid closing immediately on open
+    const timeoutId = setTimeout(() => {
+      document.addEventListener('mousedown', handleClickOutside);
+    }, 100);
+
+    return () => {
+      clearTimeout(timeoutId);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
+
   if (!enabled) return null;
 
   // Position classes
