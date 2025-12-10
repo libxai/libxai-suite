@@ -1973,11 +1973,12 @@ interface TaskGridProps {
     onTaskRename?: (taskId: string, newName: string) => void;
     onCreateSubtask?: (parentTaskId: string) => void;
     onOpenTaskModal?: (task: Task) => void;
+    onDeleteRequest?: (taskId: string, taskName: string) => void;
 }
 declare function TaskGrid({ tasks, theme, rowHeight: ROW_HEIGHT, availableUsers, templates: _templates, // TODO: Use templates for custom rendering
 onTaskClick, onTaskDblClick, // v0.8.0
 onTaskContextMenu, // v0.8.0
-onTaskToggle, scrollTop: _scrollTop, columns, onToggleColumn, onColumnResize, onTaskUpdate, onTaskIndent, onTaskOutdent, onTaskMove, onMultiTaskDelete, onTaskDuplicate, onTaskCreate, onTaskRename, onCreateSubtask, onOpenTaskModal, }: TaskGridProps): react_jsx_runtime.JSX.Element;
+onTaskToggle, scrollTop: _scrollTop, columns, onToggleColumn, onColumnResize, onTaskUpdate, onTaskIndent, onTaskOutdent, onTaskMove, onMultiTaskDelete, onTaskDuplicate, onTaskCreate, onTaskRename, onCreateSubtask, onOpenTaskModal, onDeleteRequest, }: TaskGridProps): react_jsx_runtime.JSX.Element;
 
 interface TimelineProps {
     tasks: Task[];

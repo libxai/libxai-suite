@@ -93,6 +93,9 @@ export const Card = memo<CardProps>(
       card.assignedUserIds?.includes(user.id)
     )
 
+    // v0.17.41: Detect completed tasks for strikethrough styling
+    const isCompleted = card.progress === 100
+
     // Default card rendering with optional color accent
     const cardStyle = {
       ...style,
@@ -144,8 +147,16 @@ export const Card = memo<CardProps>(
           </div>
         )}
 
-        {/* Title */}
-        <h3 className="asakaa-card-title mb-2">{card.title}</h3>
+        {/* Title - v0.17.41: Strikethrough for completed tasks */}
+        <h3
+          className="asakaa-card-title mb-2"
+          style={{
+            textDecoration: isCompleted ? 'line-through' : 'none',
+            opacity: isCompleted ? 0.6 : 1,
+          }}
+        >
+          {card.title}
+        </h3>
 
         {/* Description */}
         {card.description && (
@@ -225,6 +236,27 @@ export const Card = memo<CardProps>(
             ))}
           </div>
         )}
+
+        {/* Progress Bar - v0.17.37, v0.17.40: Fixed electric blue color */}
+        {typeof card.progress === 'number' && (
+          <div className="mt-3 pt-2 border-t border-white/5">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[10px] text-[#6B7280]">Progreso</span>
+              <span className="text-[10px] font-medium" style={{ color: '#3B82F6' }}>
+                {Math.round(card.progress)}%
+              </span>
+            </div>
+            <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-300"
+                style={{
+                  width: `${Math.min(100, Math.max(0, card.progress))}%`,
+                  backgroundColor: '#3B82F6',
+                }}
+              />
+            </div>
+          </div>
+        )}
       </div>
     )
   },
@@ -238,6 +270,7 @@ export const Card = memo<CardProps>(
       prevProps.card.columnId === nextProps.card.columnId &&
       prevProps.card.priority === nextProps.card.priority &&
       prevProps.card.color === nextProps.card.color && // v0.17.29
+      prevProps.card.progress === nextProps.card.progress && // v0.17.37
       prevProps.card.startDate === nextProps.card.startDate &&
       prevProps.card.endDate === nextProps.card.endDate &&
       prevProps.isSelected === nextProps.isSelected &&
