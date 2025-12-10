@@ -7,6 +7,148 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.17.43] - 2025-12-10
+
+### Added
+- **Click Outside to Close**: AI Assistant panel closes when clicking outside
+  - Improves UX by allowing quick dismissal without finding close button
+  - 100ms delay prevents immediate close on open click
+
+---
+
+## [0.17.42] - 2025-12-10
+
+### Added
+- **AI Chat History Persistence**: LocalStorage persistence for AI Assistant messages
+  - New `persistHistory` config option with `enabled`, `maxMessages`, `storageKey`
+  - Preserves last N messages across page reloads
+  - Per-project storage keys supported
+
+---
+
+## [0.17.35] - 2025-12-08
+
+### Fixed
+- **User Assignment**: Include user.id in assignees from TaskFormModal
+  - Ensures proper user identification in task assignments
+
+---
+
+## [0.17.34] - 2025-12-07
+
+### Added
+- **Delete Confirmation Modal**: TaskGrid context menu now shows confirmation before delete
+
+---
+
+## [0.17.33] - 2025-12-07
+
+### Added
+- **Solid Context Menu Background**: Improved visibility with opaque background
+- **Delete Confirmation**: Modal confirmation for task deletion
+
+---
+
+## [0.17.32] - 2025-12-06
+
+### Added
+- **Adaptive Context Menu**: Menu repositions to prevent cutoff at screen edges
+
+---
+
+## [0.17.31] - 2025-12-06
+
+### Added
+- **Adaptive Tooltip Positioning**: Tooltips show below task when near top of viewport
+
+---
+
+## [0.17.29] - 2025-12-05
+
+### Added
+- **Universal Task Sync**: Improved synchronization between Gantt, Kanban, and Calendar views
+
+---
+
+## [0.17.28] - 2025-12-04
+
+### Added
+- **Priority & Description Fields**: TaskFormModal now includes priority selector and description textarea
+
+---
+
+## [0.17.27] - 2025-12-04
+
+### Added
+- **useColumnSelector Prop**: KanbanToolbar can now toggle column visibility
+
+---
+
+## [0.17.26] - 2025-12-04
+
+### Added
+- **KanbanToolbar Component**: New toolbar for Kanban board with filtering and actions
+
+---
+
+## [0.17.24] - 2025-12-03
+
+### Changed
+- **Cover Image**: Commented out cover image functionality for future implementation
+
+---
+
+## [0.17.23] - 2025-12-03
+
+### Fixed
+- **Sticky Toolbar Icons**: Icons remain visible during column resize operations
+
+---
+
+## [0.17.22] - 2025-12-03
+
+### Fixed
+- **Dark Theme Colors**: Unified from brownish #222326 to grayish-blue #1A1D25
+  - Matches Kanban system color scheme
+
+---
+
+## [0.17.21] - 2025-12-02
+
+### Fixed
+- **Color Contrast**: Improved dark theme text visibility
+
+---
+
+## [0.17.20] - 2025-12-02
+
+### Fixed
+- **Gantt Lifecycle**: Optimized onTasksChange to prevent unnecessary re-renders
+
+---
+
+## [0.17.2] - 2025-12-02
+
+### Changed
+- Minor version bump for stability
+
+---
+
+## [0.17.1] - 2025-12-01
+
+### Fixed
+- **ListView & CalendarBoard**: Complete rewrite based on SaaS components
+
+---
+
+## [0.17.0] - 2025-12-01
+
+### Added
+- **ListView Component**: New list view for tasks
+- **CalendarBoard Component**: New calendar view for tasks
+
+---
+
 ## [0.16.13] - 2024-12-02
 
 ### Fixed
