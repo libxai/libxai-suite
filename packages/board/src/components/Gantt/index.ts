@@ -43,6 +43,8 @@ export type {
   GanttTemplates, // v0.8.0
   GanttAIAssistantConfig, // v0.14.0: AI Assistant config
   AICommandResult, // v0.14.0: AI command result
+  AIMessage, // v0.17.42: AI chat message type
+  PersistHistoryConfig, // v0.17.42: AI history persistence config
 } from './types';
 
 // Task Form Types (v0.9.0, v0.17.28: added TaskPriority)

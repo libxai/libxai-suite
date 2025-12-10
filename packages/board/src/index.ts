@@ -100,6 +100,8 @@ export type {
   TaskPriority, // v0.17.28 - Task priority type
   GanttAIAssistantConfig, // v0.14.0 - AI Assistant config
   AICommandResult, // v0.14.0 - AI command result
+  AIMessage, // v0.17.42 - AI chat message type
+  PersistHistoryConfig, // v0.17.42 - AI history persistence config
 } from './components/Gantt'
 
 // v0.15.0: Internationalization (i18n) for Gantt
