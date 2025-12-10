@@ -448,59 +448,16 @@ export function KanbanToolbar({
 
   const hasExport = onExportCSV || onExportJSON || onExportExcel;
 
-  // Calculate total tasks
-  const totalTasks = columns.reduce((sum, col) => sum + col.cardIds.length, 0);
+  // v0.17.37: Removed redundant task counts - column headers already show counts
 
   return (
     <div
-      className="h-12 px-4 flex items-center justify-between border-b sticky top-0 z-10"
+      className="h-12 px-4 flex items-center justify-end border-b sticky top-0 z-10"
       style={{
         backgroundColor: themeStyles.bgGrid,
         borderColor: themeStyles.border,
       }}
     >
-      {/* Left Section - Task Count */}
-      <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2">
-          <span
-            className="text-sm font-medium"
-            style={{ color: themeStyles.textPrimary }}
-          >
-            {totalTasks}
-          </span>
-          <span
-            className="text-xs"
-            style={{ color: themeStyles.textTertiary }}
-          >
-            {totalTasks === 1 ? (locale === 'es' ? 'tarea' : 'task') : (locale === 'es' ? 'tareas' : 'tasks')}
-          </span>
-        </div>
-
-        {/* Column breakdown - compact badges */}
-        <div className="hidden sm:flex items-center gap-1">
-          {columns
-            .sort((a, b) => a.position - b.position)
-            .map((column) => (
-              <div
-                key={column.id}
-                className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px]"
-                style={{
-                  backgroundColor: themeStyles.bgSecondary,
-                  border: `1px solid ${themeStyles.borderLight}`,
-                  color: themeStyles.textSecondary,
-                }}
-                title={column.title}
-              >
-                <div
-                  className="w-1.5 h-1.5 rounded-full"
-                  style={{ backgroundColor: column.color || themeStyles.accent }}
-                />
-                <span>{column.cardIds.length}</span>
-              </div>
-            ))}
-        </div>
-      </div>
-
       {/* Right Section - Create Task + Export */}
       <div className="flex items-center gap-3">
         {hasExport && (

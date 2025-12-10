@@ -71,6 +71,31 @@ export function TaskBar({
   const isOverdue = task.endDate && task.endDate < new Date() && task.progress < 100;
   const isAtRisk = task.isCriticalPath;  // Critical path tasks are "at risk"
   const isNeutralTheme = theme.name === 'neutral' || theme.today === '#1C1917';  // Detect neutral theme
+  // v0.17.41: Detect completed tasks for strikethrough styling
+  const isCompleted = task.status === 'completed' || task.progress === 100;
+
+  // v0.17.38: Priority-based colors - aligned with PrioritySelector component
+  // Supports both lowercase (from DB) and uppercase (from component) priority values
+  const PRIORITY_COLORS: Record<string, string> = {
+    low: '#2ECC71',      // Verde (Green)
+    LOW: '#2ECC71',
+    medium: '#F1C40F',   // Amarillo (Yellow)
+    MEDIUM: '#F1C40F',
+    high: '#E67E22',     // Naranja (Orange)
+    HIGH: '#E67E22',
+    urgent: '#E74C3C',   // Rojo (Red)
+    URGENT: '#E74C3C',
+  };
+
+  // Get task color: priority color > custom color > theme default
+  const getTaskColor = () => {
+    if (task.isCriticalPath || isOverdue) return '#DC2626'; // Critical/overdue = red
+    if (task.color) return task.color; // Custom color takes precedence
+    if (task.priority && PRIORITY_COLORS[task.priority]) return PRIORITY_COLORS[task.priority];
+    return theme.taskBarPrimary; // Fallback to theme
+  };
+
+  const taskColor = getTaskColor();
 
   // Dynamic resize zones based on bar width for better UX
   const getResizeZone = (barWidth: number): number => {
@@ -558,13 +583,7 @@ export function TaskBar({
           width={displayWidth}
           height={height}
           rx={borderRadius}
-          fill={
-            task.isCriticalPath || isOverdue
-              ? '#DC2626' // Critical path or overdue = red
-              : task.color
-              ? task.color // v0.11.0: Custom color
-              : theme.taskBarPrimary // Fallback to theme
-          }
+          fill={taskColor}
           data-task-class={customClass}
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{
@@ -600,13 +619,7 @@ export function TaskBar({
           width={displayWidth * (task.progress / 100)}
           height={height}
           rx={borderRadius}
-          fill={
-            task.isCriticalPath || isOverdue
-              ? '#DC2626' // Critical path or overdue = red
-              : task.color
-              ? task.color // v0.11.0: Custom color
-              : theme.taskBarProgress // Fallback to theme
-          }
+          fill={taskColor}
           opacity={1}
           style={{ pointerEvents: 'none' }}
         />
@@ -632,19 +645,14 @@ export function TaskBar({
             {/* Segment background - interactive */}
             {/* v0.11.0: Custom task colors for segments */}
             {/* v0.13.6: Overdue tasks also shown in red */}
+            {/* v0.17.37: Now uses priority-based colors via taskColor */}
             <motion.rect
               x={displaySegmentX}
               y={y}
               width={segmentWidth}
               height={height}
               rx={borderRadius}
-              fill={
-                task.isCriticalPath || isOverdue
-                  ? '#DC2626' // Critical path or overdue = red
-                  : task.color
-                  ? task.color // v0.11.0: Custom color
-                  : theme.taskBarPrimary // Fallback to theme
-              }
+              fill={taskColor}
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{
                 opacity: isThisSegmentDragging
@@ -674,19 +682,14 @@ export function TaskBar({
             />
             {/* Segment progress - v0.11.0: Use custom task color */}
             {/* v0.13.6: Overdue tasks also shown in red */}
+            {/* v0.17.37: Now uses priority-based colors via taskColor */}
             <rect
               x={displaySegmentX}
               y={y}
               width={segmentWidth * (task.progress / 100)}
               height={height}
               rx={borderRadius}
-              fill={
-                task.isCriticalPath || isOverdue
-                  ? '#DC2626' // Critical path or overdue = red
-                  : task.color
-                  ? task.color // v0.11.0: Custom color
-                  : theme.taskBarProgress // Fallback to theme
-              }
+              fill={taskColor}
               opacity={1}
               style={{ pointerEvents: 'none' }}
             />
@@ -745,11 +748,16 @@ export function TaskBar({
             x={displayX + 12}
             y={y + height / 2}
             dominantBaseline="middle"
-            fill="#FFFFFF"
+            fill={isCompleted ? 'rgba(255, 255, 255, 0.6)' : '#FFFFFF'}
             fontSize="13"
             fontWeight="500"
             fontFamily="Inter, sans-serif"
-            style={{ pointerEvents: 'none', userSelect: 'none' }}
+            style={{
+              pointerEvents: 'none',
+              userSelect: 'none',
+              // v0.17.41: Strikethrough for completed tasks
+              textDecoration: isCompleted ? 'line-through' : 'none',
+            }}
           >
             {truncated}
           </text>
