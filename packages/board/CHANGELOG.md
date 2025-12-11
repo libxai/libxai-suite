@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.17.47] - 2025-12-11
+
+### Fixed
+- **Parent Task Date Sync**: Parent tasks now ALWAYS update their dates from subtasks
+  - Removed conditional check that prevented date updates when parent already had dates
+  - Parent tasks now properly expand/contract to encompass all subtasks (MS Project summary task behavior)
+  - Fixes bug where parent dates remained static after creating/modifying subtasks
+
+---
+
 ## [0.17.46] - 2025-12-11
 
 ### Changed

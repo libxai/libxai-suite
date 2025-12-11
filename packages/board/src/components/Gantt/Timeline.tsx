@@ -107,9 +107,9 @@ export function Timeline({
 
   // Calculate parent task dates from subtasks and flatten for rendering
   const flatTasks = useMemo(() => {
-    // Helper function to calculate parent dates from subtasks
-    // v0.11.9: IMPORTANT - Only calculate dates if parent doesn't already have dates set
-    // This allows AI commands and manual edits to move parent tasks independently
+    // Helper function to calculate parent dates from subtasks (MS Project style)
+    // v0.17.47: Parent tasks ALWAYS derive dates from subtasks (summary task behavior)
+    // This is the standard behavior in professional project management tools
     const calculateParentDates = (tasks: Task[]): Task[] => {
       return tasks.map(task => {
         // If task has subtasks, calculate dates from them
@@ -128,13 +128,13 @@ export function Timeline({
             const earliestStart = new Date(Math.min(...startDates));
             const latestEnd = new Date(Math.max(...endDates));
 
-            // v0.11.9: Only set dates if parent doesn't already have them
-            // This preserves dates set by AI commands or manual edits
+            // v0.17.47: ALWAYS update parent dates from subtasks (MS Project summary task behavior)
+            // Parent tasks are read-only containers - their dates are derived from children
             return {
               ...task,
               subtasks: updatedSubtasks,
-              startDate: task.startDate || earliestStart,
-              endDate: task.endDate || latestEnd,
+              startDate: earliestStart,
+              endDate: latestEnd,
             };
           }
 
