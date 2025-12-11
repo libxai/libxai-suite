@@ -1196,6 +1196,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       </div>
 
       {/* v0.8.0: Context Menu for task operations (v0.16.0: Enhanced with Edit, Add Subtask, Status changes) */}
+      {/* v0.17.46: Parent tasks (with subtasks) have limited menu - no edit, no status changes */}
       {contextMenu.task && (
         <ContextMenu
           isOpen={contextMenu.isOpen}
@@ -1203,138 +1204,173 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
           y={contextMenu.y}
           theme={theme}
           onClose={() => setContextMenu({ isOpen: false, x: 0, y: 0, task: null })}
-          items={[
-            // v0.16.0: Edit Task - opens edit modal or calls custom handler
-            {
-              id: 'edit',
-              label: translations.contextMenu?.editTask || 'Edit Task',
-              icon: MenuIcons.Pencil,
-              onClick: () => {
-                if (!contextMenu.task) return;
-                if (onTaskEdit) {
-                  // Use custom handler if provided
-                  onTaskEdit(contextMenu.task);
-                } else {
-                  // Use built-in edit modal
-                  setEditingTask(contextMenu.task);
-                }
-              },
-            },
-            // v0.16.0: Add Subtask
-            {
-              id: 'addSubtask',
-              label: translations.contextMenu?.addSubtask || 'Add Subtask',
-              icon: MenuIcons.Add,
-              onClick: () => {
-                if (!contextMenu.task) return;
-                if (onTaskAddSubtask) {
-                  // Use custom handler if provided
-                  onTaskAddSubtask(contextMenu.task);
-                } else {
-                  // Use built-in subtask creation
-                  handleCreateSubtask(contextMenu.task.id);
-                }
-              },
-            },
-            // Separator before status changes
-            {
-              id: 'separator-status',
-              label: '',
-              separator: true,
-              onClick: () => {},
-            },
-            // v0.16.0: Mark Incomplete (status: 'todo', progress: 0)
-            {
-              id: 'markIncomplete',
-              label: translations.contextMenu?.markIncomplete || 'Mark Incomplete',
-              icon: MenuIcons.MarkIncomplete,
-              onClick: () => {
-                if (!contextMenu.task) return;
-                if (onTaskMarkIncomplete) {
-                  onTaskMarkIncomplete(contextMenu.task);
-                } else {
-                  handleTaskUpdate(contextMenu.task.id, { status: 'todo', progress: 0 });
-                }
-              },
-              disabled: contextMenu.task?.status === 'todo',
-            },
-            // v0.16.0: Set In Progress (status: 'in-progress')
-            {
-              id: 'setInProgress',
-              label: translations.contextMenu?.setInProgress || 'Set In Progress',
-              icon: MenuIcons.SetInProgress,
-              onClick: () => {
-                if (!contextMenu.task) return;
-                if (onTaskSetInProgress) {
-                  onTaskSetInProgress(contextMenu.task);
-                } else {
-                  handleTaskUpdate(contextMenu.task.id, { status: 'in-progress' });
-                }
-              },
-              disabled: contextMenu.task?.status === 'in-progress',
-            },
-            // v0.16.0: Mark Complete (status: 'completed', progress: 100)
-            {
-              id: 'markComplete',
-              label: translations.contextMenu?.markComplete || 'Mark Complete',
-              icon: MenuIcons.MarkComplete,
-              onClick: () => {
-                if (!contextMenu.task) return;
-                handleTaskUpdate(contextMenu.task.id, { status: 'completed', progress: 100 });
-              },
-              disabled: contextMenu.task?.status === 'completed',
-            },
-            // Separator before advanced options
-            {
-              id: 'separator-advanced',
-              label: '',
-              separator: true,
-              onClick: () => {},
-            },
-            // Split Task (existing feature from v0.8.0)
-            {
-              id: 'split',
-              label: translations.contextMenu?.splitTask || 'Split Task',
-              icon: MenuIcons.Split,
-              onClick: () => {
-                if (!contextMenu.task?.startDate || !contextMenu.task?.endDate) {
-                  console.warn('Cannot split task without dates');
-                  return;
-                }
+          items={(() => {
+            const task = contextMenu.task;
+            if (!task) return [];
 
-                // Calculate midpoint date for split
-                const startTime = contextMenu.task.startDate.getTime();
-                const endTime = contextMenu.task.endDate.getTime();
-                const midTime = startTime + (endTime - startTime) / 2;
-                const splitDate = new Date(midTime);
+            const isParentTask = task.subtasks && task.subtasks.length > 0;
 
-                // Call split handler
-                handleSplitTask(contextMenu.task, splitDate);
+            // v0.17.46: Parent tasks can only add subtasks and delete - status/progress is auto-calculated
+            if (isParentTask) {
+              return [
+                // Add Subtask - main action for parent tasks
+                {
+                  id: 'addSubtask',
+                  label: translations.contextMenu?.addSubtask || 'Add Subtask',
+                  icon: MenuIcons.Add,
+                  onClick: () => {
+                    if (onTaskAddSubtask) {
+                      onTaskAddSubtask(task);
+                    } else {
+                      handleCreateSubtask(task.id);
+                    }
+                  },
+                },
+                // Separator before delete
+                {
+                  id: 'separator-delete',
+                  label: '',
+                  separator: true,
+                  onClick: () => {},
+                },
+                // Delete Task
+                {
+                  id: 'delete',
+                  label: translations.contextMenu?.deleteTask || 'Delete Task',
+                  icon: MenuIcons.Delete,
+                  onClick: () => {
+                    setDeleteConfirmation({
+                      taskId: task.id,
+                      taskName: task.name,
+                    });
+                  },
+                },
+              ];
+            }
+
+            // Regular tasks (no subtasks) - full menu
+            return [
+              // v0.16.0: Edit Task - opens edit modal or calls custom handler
+              {
+                id: 'edit',
+                label: translations.contextMenu?.editTask || 'Edit Task',
+                icon: MenuIcons.Pencil,
+                onClick: () => {
+                  if (onTaskEdit) {
+                    onTaskEdit(task);
+                  } else {
+                    setEditingTask(task);
+                  }
+                },
               },
-              disabled: !contextMenu.task?.startDate || !contextMenu.task?.endDate,
-            },
-            // Separator before delete
-            {
-              id: 'separator-delete',
-              label: '',
-              separator: true,
-              onClick: () => {},
-            },
-            // Delete Task - v0.17.33: Now shows confirmation modal
-            {
-              id: 'delete',
-              label: translations.contextMenu?.deleteTask || 'Delete Task',
-              icon: MenuIcons.Delete,
-              onClick: () => {
-                if (!contextMenu.task) return;
-                // v0.17.33: Show confirmation modal instead of deleting directly
-                setDeleteConfirmation({
-                  taskId: contextMenu.task.id,
-                  taskName: contextMenu.task.name,
-                });
+              // v0.16.0: Add Subtask
+              {
+                id: 'addSubtask',
+                label: translations.contextMenu?.addSubtask || 'Add Subtask',
+                icon: MenuIcons.Add,
+                onClick: () => {
+                  if (onTaskAddSubtask) {
+                    onTaskAddSubtask(task);
+                  } else {
+                    handleCreateSubtask(task.id);
+                  }
+                },
               },
-            },
-          ]}
+              // Separator before status changes
+              {
+                id: 'separator-status',
+                label: '',
+                separator: true,
+                onClick: () => {},
+              },
+              // v0.16.0: Mark Incomplete (status: 'todo', progress: 0)
+              {
+                id: 'markIncomplete',
+                label: translations.contextMenu?.markIncomplete || 'Mark Incomplete',
+                icon: MenuIcons.MarkIncomplete,
+                onClick: () => {
+                  if (onTaskMarkIncomplete) {
+                    onTaskMarkIncomplete(task);
+                  } else {
+                    handleTaskUpdate(task.id, { status: 'todo', progress: 0 });
+                  }
+                },
+                disabled: task.status === 'todo',
+              },
+              // v0.16.0: Set In Progress (status: 'in-progress')
+              {
+                id: 'setInProgress',
+                label: translations.contextMenu?.setInProgress || 'Set In Progress',
+                icon: MenuIcons.SetInProgress,
+                onClick: () => {
+                  if (onTaskSetInProgress) {
+                    onTaskSetInProgress(task);
+                  } else {
+                    handleTaskUpdate(task.id, { status: 'in-progress' });
+                  }
+                },
+                disabled: task.status === 'in-progress',
+              },
+              // v0.16.0: Mark Complete (status: 'completed', progress: 100)
+              {
+                id: 'markComplete',
+                label: translations.contextMenu?.markComplete || 'Mark Complete',
+                icon: MenuIcons.MarkComplete,
+                onClick: () => {
+                  handleTaskUpdate(task.id, { status: 'completed', progress: 100 });
+                },
+                disabled: task.status === 'completed',
+              },
+              // Separator before advanced options
+              {
+                id: 'separator-advanced',
+                label: '',
+                separator: true,
+                onClick: () => {},
+              },
+              // Split Task (existing feature from v0.8.0)
+              {
+                id: 'split',
+                label: translations.contextMenu?.splitTask || 'Split Task',
+                icon: MenuIcons.Split,
+                onClick: () => {
+                  if (!task.startDate || !task.endDate) {
+                    console.warn('Cannot split task without dates');
+                    return;
+                  }
+
+                  // Calculate midpoint date for split
+                  const startTime = task.startDate.getTime();
+                  const endTime = task.endDate.getTime();
+                  const midTime = startTime + (endTime - startTime) / 2;
+                  const splitDate = new Date(midTime);
+
+                  // Call split handler
+                  handleSplitTask(task, splitDate);
+                },
+                disabled: !task.startDate || !task.endDate,
+              },
+              // Separator before delete
+              {
+                id: 'separator-delete',
+                label: '',
+                separator: true,
+                onClick: () => {},
+              },
+              // Delete Task - v0.17.33: Now shows confirmation modal
+              {
+                id: 'delete',
+                label: translations.contextMenu?.deleteTask || 'Delete Task',
+                icon: MenuIcons.Delete,
+                onClick: () => {
+                  setDeleteConfirmation({
+                    taskId: task.id,
+                    taskName: task.name,
+                  });
+                },
+              },
+            ];
+          })()}
         />
       )}
 

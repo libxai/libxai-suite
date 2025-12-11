@@ -544,8 +544,19 @@ export function Timeline({
 
           if (isContainer) {
             // Render container as elegant bracket bar with task name
+            // v0.17.45: Added onContextMenu handler for adding subtasks
+            // v0.17.46: Removed onDoubleClick - parent tasks are not directly editable (MS Project style)
             return (
-              <g key={task.id} onClick={() => onTaskClick?.(task)} style={{ cursor: 'pointer' }}>
+              <g
+                key={task.id}
+                onClick={() => onTaskClick?.(task)}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onTaskContextMenu?.(task, e as unknown as React.MouseEvent);
+                }}
+                style={{ cursor: 'default' }}
+              >
                 {/* Background fill - elegant and visible */}
                 <rect
                   x={x}

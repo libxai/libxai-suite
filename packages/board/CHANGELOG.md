@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.17.46] - 2025-12-11
+
+### Changed
+- **Parent Task Behavior (MS Project Style)**: Parent tasks with subtasks are now read-only
+  - Context menu shows only "Add Subtask" and "Delete Task" options
+  - Double-click to edit is disabled for parent tasks
+  - Status/progress changes are hidden (should be auto-calculated from subtasks)
+  - This follows MS Project "summary task" behavior where parent values derive from children
+
+---
+
+## [0.17.45] - 2025-12-11
+
+### Fixed
+- **Parent Task Interaction**: Parent tasks with subtasks now support right-click context menu
+  - Container bracket bar in Timeline was missing `onContextMenu` handler
+  - Users can now create more subtasks from parent task context menu
+
+---
+
 ## [0.17.44] - 2025-12-11
 
 ### Fixed

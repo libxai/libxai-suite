@@ -585,7 +585,41 @@ export function TaskGrid({
   };
 
   // v0.16.2: Context menu items for task row - unified with GanttBoard context menu
+  // v0.17.46: Parent tasks (with subtasks) have limited menu - no edit, no status changes
   const getTaskContextMenuItems = (task: Task): ContextMenuItem[] => {
+    const isParentTask = task.subtasks && task.subtasks.length > 0;
+
+    // v0.17.46: Parent tasks can only add subtasks and delete - status/progress is auto-calculated
+    if (isParentTask) {
+      return [
+        // Add Subtask - main action for parent tasks
+        {
+          id: 'addSubtask',
+          label: translations?.contextMenu?.addSubtask || 'Add Subtask',
+          icon: MenuIcons.Add,
+          onClick: () => {
+            onCreateSubtask?.(task.id);
+          },
+        },
+        // Separator before delete
+        { id: 'sep1', label: '', onClick: () => {}, separator: true },
+        // Delete Task
+        {
+          id: 'delete',
+          label: translations?.contextMenu?.deleteTask || 'Delete Task',
+          icon: MenuIcons.Delete,
+          onClick: () => {
+            if (onDeleteRequest) {
+              onDeleteRequest(task.id, task.name);
+            } else {
+              onMultiTaskDelete?.([task.id]);
+            }
+          },
+        },
+      ];
+    }
+
+    // Regular tasks (no subtasks) - full menu
     return [
       // Edit Task - opens edit modal via double-click handler
       {
