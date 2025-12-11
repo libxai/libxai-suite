@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.17.44] - 2025-12-11
+
+### Fixed
+- **Strikethrough Reset**: Task strikethrough now properly removes when progress is set back to 0
+  - TaskFormModal now resets status to 'todo' when progress = 0 (regardless of previous status)
+  - Fixes bug where completed tasks remained struck through after editing progress to 0
+
+---
+
 ## [0.17.43] - 2025-12-10
 
 ### Added

@@ -176,8 +176,9 @@ export function TaskFormModal({
         else if (progressValue > 0 && progressValue < 100 && prev.status === 'todo') {
           updated.status = 'in-progress'
         }
-        // Auto-reset to todo when progress is 0 and status is in-progress
-        else if (progressValue === 0 && prev.status === 'in-progress') {
+        // Auto-reset to todo when progress is 0 (regardless of current status)
+        // This ensures strikethrough is removed when user sets progress back to 0
+        else if (progressValue === 0 && prev.status !== 'todo') {
           updated.status = 'todo'
         }
       }
