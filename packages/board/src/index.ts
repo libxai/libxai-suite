@@ -11,6 +11,7 @@ export type { KanbanViewConfig } from './views'
 export {
   KanbanBoard,
   KanbanToolbar, // v0.17.26: Kanban toolbar component
+  AddColumnButton, // v0.9.0: Button to add new columns
   Column,
   Card,
   EditableColumnTitle,
@@ -224,6 +225,7 @@ export type {
   ConfigMenuProps,
   ThemeModalProps,
   KanbanToolbarProps, // v0.17.26
+  AddColumnButtonProps, // v0.9.0
   // LazyLoadWrapperProps,
 } from './components'
 
