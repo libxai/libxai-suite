@@ -118,87 +118,69 @@ export function StatusSelector({
     return { ...STATUS_CONFIG['todo'], id: 'todo' }
   }
 
-  // v0.17.61: Smart positioning - menu appears DIRECTLY adjacent to button
+  // v0.17.62: Calculate position IMMEDIATELY when opening
+  const calculatePosition = () => {
+    if (!buttonRef.current) return { top: 0, left: 0 }
+
+    const rect = buttonRef.current.getBoundingClientRect()
+    const viewportHeight = window.innerHeight
+    const viewportWidth = window.innerWidth
+    const menuWidth = 180
+    const menuHeight = 280
+    const GAP = 4
+
+    let leftPos = rect.right - menuWidth
+    if (leftPos < 10) leftPos = rect.left
+    if (leftPos + menuWidth > viewportWidth - 10) {
+      leftPos = viewportWidth - menuWidth - 10
+    }
+
+    const spaceBelow = viewportHeight - rect.bottom
+    const spaceAbove = rect.top
+    let topPos: number
+
+    if (spaceBelow >= menuHeight + GAP) {
+      topPos = rect.bottom + GAP
+    } else if (spaceAbove >= menuHeight + GAP) {
+      topPos = rect.top - menuHeight - GAP
+    } else if (spaceBelow >= spaceAbove) {
+      topPos = rect.bottom + GAP
+    } else {
+      topPos = Math.max(10, rect.top - menuHeight - GAP)
+    }
+
+    return { top: topPos, left: leftPos }
+  }
+
   useEffect(() => {
-    if (isOpen && buttonRef.current && menuRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect()
-      const viewportHeight = window.innerHeight
-      const viewportWidth = window.innerWidth
-      const menuWidth = 180
-      const GAP = 4
-
-      // Measure actual menu height after render
-      const actualMenuHeight = menuRef.current.offsetHeight || 280
-
-      // Horizontal: Right-align menu with button's right edge
-      let leftPos = rect.right - menuWidth
-      if (leftPos < 10) {
-        leftPos = rect.left
-      }
-      if (leftPos + menuWidth > viewportWidth - 10) {
-        leftPos = viewportWidth - menuWidth - 10
-      }
-
-      // Vertical: Position directly adjacent to button
-      const spaceBelow = viewportHeight - rect.bottom
-      const spaceAbove = rect.top
-      let topPos: number
-
-      if (spaceBelow >= actualMenuHeight + GAP) {
-        // Enough space below - open downward
-        topPos = rect.bottom + GAP
-      } else if (spaceAbove >= actualMenuHeight + GAP) {
-        // Open upward - bottom of menu touches top of button
-        topPos = rect.top - actualMenuHeight - GAP
-      } else {
-        // Constrained - use direction with more space
-        if (spaceBelow >= spaceAbove) {
-          topPos = rect.bottom + GAP
-        } else {
-          topPos = Math.max(10, rect.top - actualMenuHeight - GAP)
-        }
-      }
-
-      setMenuPosition({ top: topPos, left: leftPos })
+    if (isOpen) {
+      setMenuPosition(calculatePosition())
     }
   }, [isOpen])
 
-  // v0.17.61: Lock scroll on ALL scrollable ancestors (column, modal, body)
+  // v0.17.62: Lock scroll on ALL scrollable ancestors
   useEffect(() => {
-    if (isOpen && buttonRef.current) {
-      const scrollLockTargets: { element: HTMLElement; original: string }[] = []
+    if (!isOpen || !buttonRef.current) return
 
-      const scrollableSelectors = [
-        '.asakaa-column-cards',
-        '.modal-v2-container',
-        '.modal-content',
-        '[data-scroll-container]',
-      ]
+    const scrollLockTargets: { element: HTMLElement; original: string }[] = []
+    const selectors = ['.asakaa-column-cards', '.modal-v2-container', '.modal-content']
 
-      for (const selector of scrollableSelectors) {
-        const container = buttonRef.current.closest(selector) as HTMLElement
-        if (container) {
-          scrollLockTargets.push({
-            element: container,
-            original: container.style.overflow
-          })
-          container.style.overflow = 'hidden'
-        }
-      }
-
-      scrollLockTargets.push({
-        element: document.body,
-        original: document.body.style.overflow
-      })
-      document.body.style.overflow = 'hidden'
-
-      return () => {
-        scrollLockTargets.forEach(({ element, original }) => {
-          element.style.overflow = original
-        })
+    for (const selector of selectors) {
+      const el = buttonRef.current.closest(selector) as HTMLElement
+      if (el) {
+        scrollLockTargets.push({ element: el, original: el.style.overflow })
+        el.style.overflow = 'hidden'
       }
     }
-    return undefined
+
+    scrollLockTargets.push({ element: document.body, original: document.body.style.overflow })
+    document.body.style.overflow = 'hidden'
+
+    return () => {
+      scrollLockTargets.forEach(({ element, original }) => {
+        element.style.overflow = original
+      })
+    }
   }, [isOpen])
 
   useEffect(() => {
