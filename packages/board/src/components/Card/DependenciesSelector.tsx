@@ -99,7 +99,7 @@ export function DependenciesSelector({
   const menuRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
 
-  // v0.17.63: Calculate position and open menu synchronously
+  // v0.17.66: Calculate position with dynamic height based on menu state
   const openMenu = () => {
     if (!buttonRef.current) return
 
@@ -107,7 +107,8 @@ export function DependenciesSelector({
     const viewportHeight = window.innerHeight
     const viewportWidth = window.innerWidth
     const menuWidth = 300
-    const menuHeight = 380
+    // v0.17.66: Use smaller height for collapsed menu, larger for expanded
+    const menuHeight = hasDependencies ? 380 : 120
     const GAP = 4
 
     let leftPos = rect.right - menuWidth
@@ -136,6 +137,40 @@ export function DependenciesSelector({
 
   // v0.17.65: Scroll lock removed - position:fixed handles positioning correctly
   // The Portal renders outside the overflow container, so no lock needed
+
+  // v0.17.66: Recalculate position when menu expands/collapses
+  useEffect(() => {
+    if (!isOpen || !buttonRef.current) return
+
+    const rect = buttonRef.current.getBoundingClientRect()
+    const viewportHeight = window.innerHeight
+    const viewportWidth = window.innerWidth
+    const menuWidth = 300
+    const menuHeight = hasDependencies ? 380 : 120
+    const GAP = 4
+
+    let leftPos = rect.right - menuWidth
+    if (leftPos < 10) leftPos = rect.left
+    if (leftPos + menuWidth > viewportWidth - 10) {
+      leftPos = viewportWidth - menuWidth - 10
+    }
+
+    const spaceBelow = viewportHeight - rect.bottom
+    const spaceAbove = rect.top
+    let topPos: number
+
+    if (spaceBelow >= menuHeight + GAP) {
+      topPos = rect.bottom + GAP
+    } else if (spaceAbove >= menuHeight + GAP) {
+      topPos = rect.top - menuHeight - GAP
+    } else {
+      topPos = spaceBelow >= spaceAbove
+        ? rect.bottom + GAP
+        : Math.max(10, rect.top - menuHeight - GAP)
+    }
+
+    setMenuPosition({ top: topPos, left: leftPos })
+  }, [hasDependencies, isOpen])
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
