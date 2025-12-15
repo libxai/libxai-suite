@@ -928,6 +928,10 @@ interface ColumnProps {
     onToggleCollapse?: () => void;
     /** Column rename handler */
     onColumnRename?: (columnId: string, newTitle: string) => void;
+    /** v0.17.55: Column delete handler */
+    onColumnDelete?: (columnId: string) => void;
+    /** v0.17.55: Whether column can be deleted (false for default columns) */
+    isDeletable?: boolean;
     /** Custom className */
     className?: string;
 }
@@ -1484,7 +1488,7 @@ interface Task {
         initials: string;
         color: string;
     }>;
-    status?: 'todo' | 'in-progress' | 'completed';
+    status?: string;
     dependencies?: string[];
     subtasks?: Task[];
     isExpanded?: boolean;
@@ -2213,13 +2217,18 @@ declare const MenuIcons: {
 };
 
 type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
+interface CustomStatus {
+    id: string;
+    title: string;
+    color?: string;
+}
 interface TaskFormData {
     name: string;
     description?: string;
     startDate?: Date;
     endDate?: Date;
     progress: number;
-    status: 'todo' | 'in-progress' | 'completed';
+    status: string;
     priority?: TaskPriority;
     isMilestone: boolean;
     color?: string;
@@ -2254,8 +2263,10 @@ interface TaskFormModalProps {
     mode?: 'create' | 'edit';
     /** Theme: dark, light, or neutral (zen) */
     theme?: Theme$1;
+    /** v0.17.54: Custom statuses from Kanban columns */
+    customStatuses?: CustomStatus[];
 }
-declare function TaskFormModal({ isOpen, onClose, task, availableTasks, availableUsers, onSubmit, isLoading, mode, theme, }: TaskFormModalProps): react_jsx_runtime.JSX.Element;
+declare function TaskFormModal({ isOpen, onClose, task, availableTasks, availableUsers, onSubmit, isLoading, mode, theme, customStatuses, }: TaskFormModalProps): react_jsx_runtime.JSX.Element;
 
 interface GanttAIAssistantProps {
     /** All current tasks in the Gantt */

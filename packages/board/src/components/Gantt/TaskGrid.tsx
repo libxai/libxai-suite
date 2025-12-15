@@ -731,12 +731,15 @@ export function TaskGrid({
             }`}
             style={{
               width: `${column.width}px`,
-              minWidth: `${column.width}px`,
-              maxWidth: `${column.width}px`,
+              // v0.17.56: Use column's actual minWidth for proper resize behavior
+              minWidth: `${column.minWidth ?? 60}px`,
+              maxWidth: `${column.maxWidth ?? 2000}px`,
               // Only add border-right between columns, not on the last one (GanttBoard container has the divider)
               borderRight: colIndex < visibleColumns.length - 1 ? `1px solid ${theme.borderLight}` : 'none',
               height: '100%',
               boxSizing: 'border-box',
+              flexShrink: 0, // v0.17.56: Prevent unwanted shrinking
+              overflow: 'hidden', // v0.17.56: Prevent content overflow
             }}
             onContextMenu={(e) => {
               e.preventDefault();
@@ -761,17 +764,27 @@ export function TaskGrid({
                 color: theme.textTertiary,
                 fontFamily: 'Inter, sans-serif',
                 fontWeight: 600,
+                // v0.17.56: Truncate long labels elegantly
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                maxWidth: '100%',
               }}
+              title={column.label} // v0.17.56: Show full label on hover
             >
               {column.label}
             </span>
 
             {/* v0.13.8: Resize handle for resizable columns */}
+            {/* v0.17.56: Improved resize handle - wider for easier grabbing */}
             {column.resizable && (
               <div
-                className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-blue-500 transition-colors group"
+                className="absolute right-0 top-0 bottom-0 cursor-col-resize transition-colors group"
                 style={{
-                  backgroundColor: resizingColumn === column.id ? theme.accent : 'transparent',
+                  width: '8px', // v0.17.56: Wider grab area
+                  marginRight: '-4px', // v0.17.56: Center on border
+                  backgroundColor: resizingColumn === column.id ? `${theme.accent}30` : 'transparent',
+                  zIndex: 5, // v0.17.56: Above column content
                 }}
                 onMouseDown={(e) => {
                   e.preventDefault();
@@ -784,23 +797,27 @@ export function TaskGrid({
               >
                 {/* Visual indicator line on hover */}
                 <div
-                  className="absolute right-0 top-2 bottom-2 w-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                  style={{ backgroundColor: theme.accent }}
+                  className="absolute top-2 bottom-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                  style={{
+                    left: '3px',
+                    width: '2px',
+                    backgroundColor: theme.accent,
+                    borderRadius: '1px',
+                  }}
                 />
               </div>
             )}
           </div>
         ))}
         
-        {/* Add Column Button - v0.17.23: Sticky to prevent overlap when resizing columns */}
+        {/* Add Column Button - v0.17.56: Fixed layout issues */}
         <div
           className="px-3 flex items-center gap-2 h-full"
           style={{
-            position: 'sticky',
-            right: 0,
             backgroundColor: theme.bgGrid,
-            zIndex: 15,
             flexShrink: 0,
+            minWidth: '60px', // v0.17.56: Ensure minimum space for buttons
+            borderLeft: `1px solid ${theme.borderLight}`, // v0.17.56: Visual separator
           }}
         >
           <ColumnManager
@@ -990,11 +1007,14 @@ export function TaskGrid({
               } ${colIndex < visibleColumns.length - 1 ? 'border-r' : ''}`}
               style={{
                 width: `${column.width}px`,
-                minWidth: `${column.width}px`,
-                maxWidth: `${column.width}px`,
+                // v0.17.56: Use column's actual minWidth for proper resize behavior
+                minWidth: `${column.minWidth ?? 60}px`,
+                maxWidth: `${column.maxWidth ?? 2000}px`,
                 borderColor: hoveredTaskId === task.id ? theme.border : theme.borderLight,
                 height: '100%',
                 boxSizing: 'border-box',
+                flexShrink: 0, // v0.17.56: Prevent unwanted shrinking
+                overflow: 'hidden', // v0.17.56: Prevent content overflow
               }}
             >
               {renderCellContent(column, task, column.id === 'name' ? level : 0)}

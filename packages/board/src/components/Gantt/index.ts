@@ -47,8 +47,9 @@ export type {
   PersistHistoryConfig, // v0.17.42: AI history persistence config
 } from './types';
 
-// Task Form Types (v0.9.0, v0.17.28: added TaskPriority)
-export type { TaskFormModalProps, TaskFormData, TaskPriority } from './TaskFormModal';
+// Task Form Types (v0.9.0, v0.17.28: added TaskPriority, v0.17.54: added CustomStatus)
+export type { TaskFormModalProps, TaskFormData, TaskPriority, CustomStatus } from './TaskFormModal';
+export { DEFAULT_STATUSES } from './TaskFormModal';
 
 // Imperative API (v0.8.0)
 export type { GanttBoardRef } from './GanttBoardRef';

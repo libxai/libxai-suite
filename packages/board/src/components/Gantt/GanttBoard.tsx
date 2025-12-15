@@ -202,15 +202,16 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   // v0.13.8: Name column is resizable with min/max width constraints
   // v0.13.9: Increased default width to 320px for better readability of long task names
   // v0.15.0: Column labels now use translations
+  // v0.17.56: All columns are now resizable with proper min/max constraints
   const getDefaultColumns = useCallback((t: GanttTranslations): GanttColumn[] => [
-    { id: 'name', label: t.columns.taskName, width: 400, minWidth: 200, maxWidth: 2000, visible: true, sortable: true, resizable: false },
-    { id: 'startDate', label: t.columns.startDate, width: 110, visible: false, sortable: true },
-    { id: 'endDate', label: t.columns.endDate, width: 110, visible: false, sortable: true },
-    { id: 'duration', label: t.columns.duration, width: 80, visible: false, sortable: true },
-    { id: 'assignees', label: t.columns.assignees, width: 120, visible: false, sortable: false },
-    { id: 'status', label: t.columns.status, width: 80, visible: false, sortable: true },
-    { id: 'progress', label: t.columns.progress, width: 120, visible: false, sortable: true },
-    { id: 'priority', label: t.columns.priority, width: 90, visible: false, sortable: true }, // v0.17.29
+    { id: 'name', label: t.columns.taskName, width: 400, minWidth: 200, maxWidth: 2000, visible: true, sortable: true, resizable: true },
+    { id: 'startDate', label: t.columns.startDate, width: 110, minWidth: 80, maxWidth: 200, visible: false, sortable: true, resizable: true },
+    { id: 'endDate', label: t.columns.endDate, width: 110, minWidth: 80, maxWidth: 200, visible: false, sortable: true, resizable: true },
+    { id: 'duration', label: t.columns.duration, width: 80, minWidth: 60, maxWidth: 150, visible: false, sortable: true, resizable: true },
+    { id: 'assignees', label: t.columns.assignees, width: 120, minWidth: 80, maxWidth: 300, visible: false, sortable: false, resizable: true },
+    { id: 'status', label: t.columns.status, width: 100, minWidth: 70, maxWidth: 180, visible: false, sortable: true, resizable: true },
+    { id: 'progress', label: t.columns.progress, width: 120, minWidth: 80, maxWidth: 200, visible: false, sortable: true, resizable: true },
+    { id: 'priority', label: t.columns.priority, width: 90, minWidth: 70, maxWidth: 150, visible: false, sortable: true, resizable: true }, // v0.17.29
   ], []);
 
   const [columns, setColumns] = useState<GanttColumn[]>(() => getDefaultColumns(translations));

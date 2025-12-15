@@ -53,6 +53,17 @@ export function KanbanBoard({
     [callbacks]
   )
 
+  // v0.17.55: Handler for column delete
+  const handleColumnDelete = useCallback(
+    (columnId: string) => {
+      callbacks.onColumnDelete?.(columnId)
+    },
+    [callbacks]
+  )
+
+  // v0.17.55: Default column IDs that cannot be deleted
+  const DEFAULT_COLUMN_IDS = ['todo', 'in-progress', 'completed']
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -226,6 +237,9 @@ export function KanbanBoard({
             .map((column) => {
               const cards = cardsByColumn.get(column.id) || []
 
+              // v0.17.55: Check if column is deletable (not a default column)
+              const isDeletable = !DEFAULT_COLUMN_IDS.includes(column.id)
+
               return (
                 <Column
                   key={column.id}
@@ -238,6 +252,8 @@ export function KanbanBoard({
                   onCardClick={handleCardClick}
                   onCardUpdate={handleCardUpdate}
                   onColumnRename={handleColumnRename}
+                  onColumnDelete={handleColumnDelete}
+                  isDeletable={isDeletable}
                   availableUsers={availableUsers}
                   allCards={board.cards}
                   enableVirtualization={config?.enableVirtualization}

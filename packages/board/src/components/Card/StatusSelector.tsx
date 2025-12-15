@@ -2,17 +2,27 @@
  * Status Selector Component
  * Reusable status selector for both Card and Gantt
  * Follows the same pattern as PrioritySelector
+ * v0.17.54: Added support for custom statuses from Kanban columns
  */
 
 import { useState, useRef, useEffect } from 'react'
 import { Portal } from '../Portal'
 
+// v0.17.54: Keep for backward compatibility, but allow string type for custom statuses
 export type TaskStatus = 'todo' | 'in-progress' | 'completed'
 
+// v0.17.54: Custom status interface for dynamic Kanban columns
+export interface CustomStatusOption {
+  id: string
+  title: string
+  color?: string
+}
+
 export interface StatusSelectorProps {
-  status?: TaskStatus
-  onChange: (status: TaskStatus) => void
+  status?: string // v0.17.54: Changed to string to support custom statuses
+  onChange: (status: string) => void // v0.17.54: Changed to string
   className?: string
+  customStatuses?: CustomStatusOption[] // v0.17.54: Custom statuses from Kanban columns
 }
 
 const STATUS_CONFIG = {
@@ -64,20 +74,123 @@ export function StatusSelector({
   status = 'todo',
   onChange,
   className,
+  customStatuses = [],
 }: StatusSelectorProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 })
   const menuRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
 
+  // v0.17.54: Build combined status list (default + custom)
+  const allStatuses: Array<{ id: string; label: string; color: string; icon: string }> = [
+    ...Object.entries(STATUS_CONFIG).map(([id, config]) => ({
+      id,
+      label: config.label,
+      color: config.color,
+      icon: config.icon,
+    })),
+    ...customStatuses
+      .filter(cs => !Object.keys(STATUS_CONFIG).includes(cs.id))
+      .map(cs => ({
+        id: cs.id,
+        label: cs.title,
+        color: cs.color || '#8B5CF6', // Default purple for custom statuses
+        icon: 'circle-dot', // Default icon for custom
+      })),
+  ]
+
+  // v0.17.54: Get current status config (from defaults or custom)
+  const getCurrentConfig = () => {
+    const defaultConfig = STATUS_CONFIG[status as TaskStatus]
+    if (defaultConfig) {
+      return { ...defaultConfig, id: status }
+    }
+    const customConfig = customStatuses.find(cs => cs.id === status)
+    if (customConfig) {
+      return {
+        id: customConfig.id,
+        label: customConfig.title,
+        color: customConfig.color || '#8B5CF6',
+        icon: 'circle-dot',
+      }
+    }
+    // Fallback to todo
+    return { ...STATUS_CONFIG['todo'], id: 'todo' }
+  }
+
+  // v0.17.60: Smart positioning - menu appears adjacent to button in ALL cases
   useEffect(() => {
     if (isOpen && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect()
-      setMenuPosition({
-        top: rect.bottom + window.scrollY + 8,
-        left: rect.left + window.scrollX,
-      })
+      const menuHeight = 280
+      const menuWidth = 180
+      const viewportHeight = window.innerHeight
+      const viewportWidth = window.innerWidth
+      const spaceBelow = viewportHeight - rect.bottom
+      const spaceAbove = rect.top
+      const GAP = 4
+
+      // Horizontal: Right-align menu with button's right edge
+      let leftPos = rect.right - menuWidth
+      if (leftPos < 10) {
+        leftPos = rect.left
+      }
+      if (leftPos + menuWidth > viewportWidth - 10) {
+        leftPos = viewportWidth - menuWidth - 10
+      }
+
+      // Vertical: Smart positioning based on available space
+      let topPos: number
+
+      if (spaceBelow >= menuHeight + 20) {
+        // Enough space below - open downward (preferred)
+        topPos = rect.bottom + GAP
+      } else if (spaceAbove >= menuHeight + 20) {
+        // Enough space above - open upward, menu bottom touches button top
+        topPos = rect.top - menuHeight - GAP
+      } else {
+        // Not enough space either way - choose best option and constrain
+        if (spaceBelow >= spaceAbove) {
+          topPos = rect.bottom + GAP
+        } else {
+          topPos = Math.max(10, rect.top - Math.min(menuHeight, spaceAbove - 10) - GAP)
+        }
+      }
+
+      // Final safety: ensure menu stays within viewport
+      topPos = Math.max(10, Math.min(topPos, viewportHeight - menuHeight - 10))
+
+      setMenuPosition({ top: topPos, left: leftPos })
     }
+  }, [isOpen])
+
+  // v0.17.60: Lock scroll on the actual scrollable column container
+  useEffect(() => {
+    if (isOpen && buttonRef.current) {
+      const columnCards = buttonRef.current.closest('.asakaa-column-cards') as HTMLElement
+      const scrollLockTargets: { element: HTMLElement; original: string }[] = []
+
+      if (columnCards) {
+        scrollLockTargets.push({
+          element: columnCards,
+          original: columnCards.style.overflow
+        })
+        columnCards.style.overflow = 'hidden'
+      }
+
+      scrollLockTargets.push({
+        element: document.body,
+        original: document.body.style.overflow
+      })
+      document.body.style.overflow = 'hidden'
+
+      return () => {
+        scrollLockTargets.forEach(({ element, original }) => {
+          element.style.overflow = original
+        })
+      }
+    }
+    return undefined
   }, [isOpen])
 
   useEffect(() => {
@@ -110,12 +223,13 @@ export function StatusSelector({
     return undefined
   }, [isOpen])
 
-  const handleSelect = (newStatus: TaskStatus) => {
+  const handleSelect = (newStatus: string) => {
     onChange(newStatus)
     setIsOpen(false)
   }
 
-  const currentConfig = STATUS_CONFIG[status]
+  // v0.17.54: Use dynamic config lookup
+  const currentConfig = getCurrentConfig()
   const statusColor = currentConfig.color
 
   return (
@@ -133,17 +247,20 @@ export function StatusSelector({
         <StatusIcon icon={currentConfig.icon} color={statusColor} />
       </button>
 
+      {/* v0.17.57: Fixed positioning for proper viewport handling */}
       {isOpen && (
         <Portal>
           <div
             ref={menuRef}
             className="status-selector-menu"
             style={{
-              position: 'absolute',
+              position: 'fixed',
               top: `${menuPosition.top}px`,
               left: `${menuPosition.left}px`,
               zIndex: 99999,
               minWidth: '180px',
+              maxHeight: 'calc(100vh - 40px)',
+              overflowY: 'auto',
               borderRadius: '8px',
               background: 'var(--modal-v2-bg, #1f1f1f)',
               border: '1px solid var(--modal-v2-border, rgba(255, 255, 255, 0.15))',
@@ -163,14 +280,14 @@ export function StatusSelector({
           </div>
 
           <div className="py-1">
-            {(Object.entries(STATUS_CONFIG) as [TaskStatus, typeof STATUS_CONFIG[TaskStatus]][]).map(
-              ([key, config]) => (
+            {/* v0.17.54: Render all statuses (default + custom) */}
+            {allStatuses.map((statusOption) => (
                 <button
-                  key={key}
-                  onClick={() => handleSelect(key)}
+                  key={statusOption.id}
+                  onClick={() => handleSelect(statusOption.id)}
                   className="w-full px-3 py-2 flex items-center gap-2.5 text-sm font-medium transition-all active:scale-[0.98] status-option"
                   style={{
-                    color: config.color,
+                    color: statusOption.color,
                     background: 'transparent'
                   }}
                   onMouseEnter={(e) => {
@@ -180,9 +297,9 @@ export function StatusSelector({
                     e.currentTarget.style.background = 'transparent'
                   }}
                 >
-                  <StatusIcon icon={config.icon} color={config.color} />
-                  <span className="font-semibold">{config.label}</span>
-                  {status === key && (
+                  <StatusIcon icon={statusOption.icon} color={statusOption.color} />
+                  <span className="font-semibold">{statusOption.label}</span>
+                  {status === statusOption.id && (
                     <svg className="ml-auto" width="16" height="16" viewBox="0 0 16 16" fill="none">
                       <path d="M13.5 4.5L6 12L2.5 8.5" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>

@@ -26,7 +26,8 @@ export interface Task {
   endDate?: Date;   // Optional - tasks without dates can be created by clicking on timeline
   progress: number;
   assignees?: Array<{ name: string; avatar?: string; initials: string; color: string }>;
-  status?: 'todo' | 'in-progress' | 'completed';
+  // v0.17.54: Changed to string to support custom Kanban column statuses
+  status?: string; // Default statuses: 'todo' | 'in-progress' | 'completed', plus custom column IDs
   dependencies?: string[];
   subtasks?: Task[];
   isExpanded?: boolean;

@@ -45,6 +45,10 @@ export interface ColumnProps {
   onToggleCollapse?: () => void
   /** Column rename handler */
   onColumnRename?: (columnId: string, newTitle: string) => void
+  /** v0.17.55: Column delete handler */
+  onColumnDelete?: (columnId: string) => void
+  /** v0.17.55: Whether column can be deleted (false for default columns) */
+  isDeletable?: boolean
   /** Custom className */
   className?: string
 }
@@ -70,6 +74,8 @@ export const Column = memo<ColumnProps>(
     isCollapsed,
     onToggleCollapse,
     onColumnRename,
+    onColumnDelete,
+    isDeletable = false,
     className,
   }) => {
     const { setNodeRef, isOver } = useDroppable({
@@ -185,10 +191,12 @@ export const Column = memo<ColumnProps>(
                   )}
                 </span>
               )}
-              {onColumnRename && (
+              {(onColumnRename || onColumnDelete) && (
                 <ColumnMenu
                   columnTitle={column.title}
-                  onRename={(newTitle) => onColumnRename(column.id, newTitle)}
+                  onRename={(newTitle) => onColumnRename?.(column.id, newTitle)}
+                  onDelete={onColumnDelete ? () => onColumnDelete(column.id) : undefined}
+                  isDeletable={isDeletable}
                 />
               )}
               {onToggleCollapse && (

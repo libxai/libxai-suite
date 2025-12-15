@@ -26,13 +26,27 @@ import { ColorPicker } from './ColorPicker'
 // v0.17.28: Priority type for Kanban sync
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent'
 
+// v0.17.54: Custom status type for dynamic Kanban columns
+export interface CustomStatus {
+  id: string
+  title: string
+  color?: string
+}
+
+// v0.17.54: Default statuses that are always available
+export const DEFAULT_STATUSES: CustomStatus[] = [
+  { id: 'todo', title: 'Por Hacer', color: '#6B7280' },
+  { id: 'in-progress', title: 'En Progreso', color: '#F59E0B' },
+  { id: 'completed', title: 'Completada', color: '#10B981' },
+]
+
 export interface TaskFormData {
   name: string
   description?: string // v0.17.28: Task description for Kanban cards
   startDate?: Date
   endDate?: Date
   progress: number
-  status: 'todo' | 'in-progress' | 'completed'
+  status: string // v0.17.54: Changed to string to support custom statuses
   priority?: TaskPriority // v0.17.28: Task priority for Kanban cards
   isMilestone: boolean
   color?: string // v0.11.0: Custom task color
@@ -59,6 +73,8 @@ export interface TaskFormModalProps {
   mode?: 'create' | 'edit'
   /** Theme: dark, light, or neutral (zen) */
   theme?: Theme
+  /** v0.17.54: Custom statuses from Kanban columns */
+  customStatuses?: CustomStatus[]
 }
 
 export function TaskFormModal({
@@ -71,7 +87,13 @@ export function TaskFormModal({
   isLoading = false,
   mode = task ? 'edit' : 'create',
   theme = 'dark',
+  customStatuses = [],
 }: TaskFormModalProps) {
+  // v0.17.54: Combine default statuses with custom ones
+  const allStatuses: CustomStatus[] = [
+    ...DEFAULT_STATUSES,
+    ...customStatuses.filter(cs => !DEFAULT_STATUSES.some(ds => ds.id === cs.id)),
+  ]
   // Get theme colors (with fallback to dark theme)
   const themeColors = (themes[theme] || themes.dark)!
 
@@ -335,7 +357,7 @@ export function TaskFormModal({
 
                 {/* Status and Priority Row */}
                 <div className="grid grid-cols-2 gap-4">
-                  {/* Status */}
+                  {/* Status - v0.17.54: Dynamic statuses */}
                   <div>
                     <label className="block text-sm font-medium mb-2 flex items-center gap-2" style={labelStyle}>
                       <CheckCircle2 className="w-4 h-4" />
@@ -348,9 +370,11 @@ export function TaskFormModal({
                       style={inputStyle}
                       disabled={isLoading}
                     >
-                      <option value="todo">Por Hacer</option>
-                      <option value="in-progress">En Progreso</option>
-                      <option value="completed">Completada</option>
+                      {allStatuses.map((status) => (
+                        <option key={status.id} value={status.id}>
+                          {status.title}
+                        </option>
+                      ))}
                     </select>
                   </div>
 

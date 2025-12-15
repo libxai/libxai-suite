@@ -31,18 +31,93 @@ export function UserAssignmentSelector({
 }: UserAssignmentSelectorProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 })
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0, openUpward: false })
   const menuRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
 
+  // v0.17.60: Smart positioning - menu appears adjacent to button in ALL cases
   useEffect(() => {
     if (isOpen && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect()
-      setMenuPosition({
-        top: rect.bottom + window.scrollY + 8,
-        left: rect.left + window.scrollX,
-      })
+      const viewportHeight = window.innerHeight
+      const viewportWidth = window.innerWidth
+      const spaceBelow = viewportHeight - rect.bottom
+      const spaceAbove = rect.top
+      const menuWidth = 300
+      const menuHeight = 350
+      const GAP = 4
+
+      // Horizontal: Right-align menu with button's right edge
+      let leftPos = rect.right - menuWidth
+      if (leftPos < 10) {
+        leftPos = rect.left
+      }
+      if (leftPos + menuWidth > viewportWidth - 10) {
+        leftPos = viewportWidth - menuWidth - 10
+      }
+
+      // Vertical: Smart positioning based on available space
+      let topPos: number
+      let openUpward = false
+
+      if (spaceBelow >= menuHeight + 20) {
+        // Enough space below - open downward (preferred)
+        topPos = rect.bottom + GAP
+        openUpward = false
+      } else if (spaceAbove >= menuHeight + 20) {
+        // Enough space above - open upward, menu bottom touches button top
+        topPos = rect.top - menuHeight - GAP
+        openUpward = true
+      } else {
+        // Not enough space either way - choose best option and constrain
+        if (spaceBelow >= spaceAbove) {
+          // More space below - open downward
+          topPos = rect.bottom + GAP
+          openUpward = false
+        } else {
+          // More space above - position menu so its bottom is near button top
+          // Use available space, don't go offscreen
+          topPos = Math.max(10, rect.top - Math.min(menuHeight, spaceAbove - 10) - GAP)
+          openUpward = true
+        }
+      }
+
+      // Final safety: ensure menu stays within viewport
+      topPos = Math.max(10, Math.min(topPos, viewportHeight - menuHeight - 10))
+
+      setMenuPosition({ top: topPos, left: leftPos, openUpward })
     }
+  }, [isOpen])
+
+  // v0.17.60: Lock scroll on the actual scrollable column container
+  useEffect(() => {
+    if (isOpen && buttonRef.current) {
+      // Find the actual scrollable column container (.asakaa-column-cards)
+      const columnCards = buttonRef.current.closest('.asakaa-column-cards') as HTMLElement
+      const scrollLockTargets: { element: HTMLElement; original: string }[] = []
+
+      if (columnCards) {
+        scrollLockTargets.push({
+          element: columnCards,
+          original: columnCards.style.overflow
+        })
+        columnCards.style.overflow = 'hidden'
+      }
+
+      // Also lock body as safety net
+      scrollLockTargets.push({
+        element: document.body,
+        original: document.body.style.overflow
+      })
+      document.body.style.overflow = 'hidden'
+
+      return () => {
+        scrollLockTargets.forEach(({ element, original }) => {
+          element.style.overflow = original
+        })
+      }
+    }
+    return undefined
   }, [isOpen])
 
   useEffect(() => {
@@ -176,14 +251,20 @@ export function UserAssignmentSelector({
       </button>
 
       {/* User selection menu - Using Portal to escape stacking context */}
+      {/* v0.17.57: Fixed positioning + smart upward/downward + maxHeight for viewport safety */}
       {isOpen && (
         <Portal>
           <div
             ref={menuRef}
-            className="user-selector-menu absolute rounded-xl shadow-2xl border min-w-[300px]"
+            className="user-selector-menu rounded-xl shadow-2xl border min-w-[300px]"
             style={{
+              position: 'fixed',
               top: `${menuPosition.top}px`,
               left: `${menuPosition.left}px`,
+              maxHeight: 'calc(100vh - 40px)',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
               background: 'var(--modal-v2-bg, #1f1f1f)',
               border: '1px solid var(--modal-v2-border, rgba(255, 255, 255, 0.15))',
               boxShadow: '0 20px 60px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1)',

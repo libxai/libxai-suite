@@ -12,3 +12,6 @@ export { DragPhysics, useDragPhysics, dragPhysicsPresets } from './DragPhysics'
 export type { DragPhysicsProps, DragPhysicsPreset } from './DragPhysics'
 export { FlipCard, StackedFlipCards, CarouselFlipCard, useFlipCard, flipCardPresets } from './FlipCard'
 export type { FlipCardProps, FlipCardPreset } from './FlipCard'
+// v0.17.54: StatusSelector for reusable status dropdowns
+export { StatusSelector } from './StatusSelector'
+export type { StatusSelectorProps, TaskStatus, CustomStatusOption } from './StatusSelector'

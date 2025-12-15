@@ -34,14 +34,79 @@ export function PrioritySelector({
   const menuRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
 
+  // v0.17.60: Smart positioning - menu appears adjacent to button in ALL cases
   useEffect(() => {
     if (isOpen && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect()
-      setMenuPosition({
-        top: rect.bottom + window.scrollY + 8,
-        left: rect.left + window.scrollX,
-      })
+      const menuHeight = 220
+      const menuWidth = 160
+      const viewportHeight = window.innerHeight
+      const viewportWidth = window.innerWidth
+      const spaceBelow = viewportHeight - rect.bottom
+      const spaceAbove = rect.top
+      const GAP = 4
+
+      // Horizontal: Right-align menu with button's right edge
+      let leftPos = rect.right - menuWidth
+      if (leftPos < 10) {
+        leftPos = rect.left
+      }
+      if (leftPos + menuWidth > viewportWidth - 10) {
+        leftPos = viewportWidth - menuWidth - 10
+      }
+
+      // Vertical: Smart positioning based on available space
+      let topPos: number
+
+      if (spaceBelow >= menuHeight + 20) {
+        // Enough space below - open downward (preferred)
+        topPos = rect.bottom + GAP
+      } else if (spaceAbove >= menuHeight + 20) {
+        // Enough space above - open upward, menu bottom touches button top
+        topPos = rect.top - menuHeight - GAP
+      } else {
+        // Not enough space either way - choose best option and constrain
+        if (spaceBelow >= spaceAbove) {
+          topPos = rect.bottom + GAP
+        } else {
+          topPos = Math.max(10, rect.top - Math.min(menuHeight, spaceAbove - 10) - GAP)
+        }
+      }
+
+      // Final safety: ensure menu stays within viewport
+      topPos = Math.max(10, Math.min(topPos, viewportHeight - menuHeight - 10))
+
+      setMenuPosition({ top: topPos, left: leftPos })
     }
+  }, [isOpen])
+
+  // v0.17.60: Lock scroll on the actual scrollable column container
+  useEffect(() => {
+    if (isOpen && buttonRef.current) {
+      const columnCards = buttonRef.current.closest('.asakaa-column-cards') as HTMLElement
+      const scrollLockTargets: { element: HTMLElement; original: string }[] = []
+
+      if (columnCards) {
+        scrollLockTargets.push({
+          element: columnCards,
+          original: columnCards.style.overflow
+        })
+        columnCards.style.overflow = 'hidden'
+      }
+
+      scrollLockTargets.push({
+        element: document.body,
+        original: document.body.style.overflow
+      })
+      document.body.style.overflow = 'hidden'
+
+      return () => {
+        scrollLockTargets.forEach(({ element, original }) => {
+          element.style.overflow = original
+        })
+      }
+    }
+    return undefined
   }, [isOpen])
 
   useEffect(() => {
@@ -113,17 +178,19 @@ export function PrioritySelector({
         </svg>
       </button>
 
+      {/* v0.17.57: Fixed positioning for proper viewport handling */}
       {isOpen && (
         <Portal>
           <div
             ref={menuRef}
             className="priority-selector-menu"
             style={{
-              position: 'absolute',
+              position: 'fixed',
               top: `${menuPosition.top}px`,
               left: `${menuPosition.left}px`,
               zIndex: 99999,
               minWidth: '160px',
+              maxHeight: 'calc(100vh - 40px)',
               borderRadius: '8px',
               background: 'var(--modal-v2-bg, #1f1f1f)',
               border: '1px solid var(--modal-v2-border, rgba(255, 255, 255, 0.15))',

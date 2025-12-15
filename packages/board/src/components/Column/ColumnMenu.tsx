@@ -1,6 +1,7 @@
 /**
  * Column Menu Component
- * Three-dot menu for column actions (rename, etc.)
+ * Three-dot menu for column actions (rename, delete, etc.)
+ * v0.17.55: Added delete functionality for custom columns
  */
 
 import { useState, useRef, useEffect } from 'react'
@@ -11,6 +12,10 @@ export interface ColumnMenuProps {
   columnTitle: string
   /** Rename handler */
   onRename: (newTitle: string) => void
+  /** v0.17.55: Delete handler - if provided, shows delete option */
+  onDelete?: () => void
+  /** v0.17.55: Whether column can be deleted (default columns cannot) */
+  isDeletable?: boolean
   /** Custom className */
   className?: string
 }
@@ -18,6 +23,8 @@ export interface ColumnMenuProps {
 export function ColumnMenu({
   columnTitle,
   onRename,
+  onDelete,
+  isDeletable = false,
   className,
 }: ColumnMenuProps) {
   const [isOpen, setIsOpen] = useState(false)
@@ -188,6 +195,43 @@ export function ColumnMenu({
                   </svg>
                   <span className="font-medium">Rename</span>
                 </button>
+
+                {/* v0.17.55: Delete option - only for custom columns */}
+                {isDeletable && onDelete && (
+                  <>
+                    <div className="h-px bg-white/10 mx-2 my-1" />
+                    <button
+                      onClick={() => {
+                        onDelete()
+                        setIsOpen(false)
+                      }}
+                      className="w-full px-4 py-2.5 flex items-center gap-3 text-sm text-red-400 hover:bg-red-500/10 transition-all"
+                    >
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 16 16"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          d="M2 4H14M5 4V2.5C5 2.22386 5.22386 2 5.5 2H10.5C10.7761 2 11 2.22386 11 2.5V4M12.5 4V13.5C12.5 13.7761 12.2761 14 12 14H4C3.72386 14 3.5 13.7761 3.5 13.5V4"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                        <path
+                          d="M6.5 7V11M9.5 7V11"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                      <span className="font-medium">Delete</span>
+                    </button>
+                  </>
+                )}
               </div>
             )}
           </div>

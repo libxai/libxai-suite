@@ -30,10 +30,12 @@ function mapCardStatusToTaskStatus(
 
 /**
  * Maps Gantt task status to ASAKAA CardStatus
+ * v0.17.54: Updated to accept string for custom statuses
  */
 function mapTaskStatusToCardStatus(
-  status?: 'todo' | 'in-progress' | 'completed'
-): 'TODO' | 'IN_PROGRESS' | 'DONE' {
+  status?: string
+): string {
+  // Default statuses map to card statuses
   switch (status) {
     case 'todo':
       return 'TODO'
@@ -42,7 +44,8 @@ function mapTaskStatusToCardStatus(
     case 'completed':
       return 'DONE'
     default:
-      return 'TODO'
+      // v0.17.54: For custom statuses, return as-is (column ID)
+      return status || 'TODO'
   }
 }
 
