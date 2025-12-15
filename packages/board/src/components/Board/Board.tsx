@@ -238,10 +238,21 @@ export function KanbanBoard({
                   onCardClick={handleCardClick}
                   onCardUpdate={handleCardUpdate}
                   onColumnRename={handleColumnRename}
+                  onAddCard={callbacks.onCardCreate ? (data) => callbacks.onCardCreate?.({
+                    title: data.name,
+                    columnId: data.columnId,
+                    position: cards.length,
+                    assignedUserIds: data.assigneeIds,
+                    startDate: data.startDate,
+                    endDate: data.endDate,
+                    priority: data.priority?.toUpperCase() as any,
+                  }) : undefined}
                   availableUsers={availableUsers}
                   allCards={board.cards}
                   enableVirtualization={config?.enableVirtualization}
                   cardHeight={config?.cardHeight}
+                  theme={config?.theme === 'light' ? 'light' : 'dark'}
+                  locale={config?.locale === 'en' ? 'en' : 'es'}
                 />
               )
             })}

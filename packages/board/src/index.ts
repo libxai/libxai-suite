@@ -12,6 +12,7 @@ export {
   KanbanBoard,
   KanbanToolbar, // v0.17.26: Kanban toolbar component
   AddColumnButton, // v0.9.0: Button to add new columns
+  AddCardButton, // v0.17.49: Inline form to add new cards to columns
   Column,
   Card,
   EditableColumnTitle,
@@ -226,6 +227,8 @@ export type {
   ThemeModalProps,
   KanbanToolbarProps, // v0.17.26
   AddColumnButtonProps, // v0.9.0
+  AddCardButtonProps, // v0.17.49
+  AddCardData, // v0.17.49
   // LazyLoadWrapperProps,
 } from './components'
 

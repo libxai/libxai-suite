@@ -1,5 +1,7 @@
 export { KanbanBoard } from './Board'
 export { KanbanToolbar } from './KanbanToolbar'
 export { AddColumnButton } from './AddColumnButton'
+export { AddCardButton } from './AddCardButton'
 export type { KanbanToolbarProps } from './KanbanToolbar'
 export type { AddColumnButtonProps } from './AddColumnButton'
+export type { AddCardButtonProps, AddCardData } from './AddCardButton'
