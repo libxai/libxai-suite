@@ -99,17 +99,17 @@ export function DependenciesSelector({
   const menuRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
 
-  // v0.17.60: Smart positioning - menu appears adjacent to button in ALL cases
+  // v0.17.61: Smart positioning - menu appears DIRECTLY adjacent to button
   useEffect(() => {
-    if (isOpen && buttonRef.current) {
+    if (isOpen && buttonRef.current && menuRef.current) {
       const rect = buttonRef.current.getBoundingClientRect()
-      const menuHeight = 380
-      const menuWidth = 300
       const viewportHeight = window.innerHeight
       const viewportWidth = window.innerWidth
-      const spaceBelow = viewportHeight - rect.bottom
-      const spaceAbove = rect.top
+      const menuWidth = 300
       const GAP = 4
+
+      // Measure actual menu height after render
+      const actualMenuHeight = menuRef.current.offsetHeight || 380
 
       // Horizontal: Right-align menu with button's right edge
       let leftPos = rect.right - menuWidth
@@ -120,43 +120,51 @@ export function DependenciesSelector({
         leftPos = viewportWidth - menuWidth - 10
       }
 
-      // Vertical: Smart positioning based on available space
+      // Vertical: Position directly adjacent to button
+      const spaceBelow = viewportHeight - rect.bottom
+      const spaceAbove = rect.top
       let topPos: number
 
-      if (spaceBelow >= menuHeight + 20) {
-        // Enough space below - open downward (preferred)
+      if (spaceBelow >= actualMenuHeight + GAP) {
+        // Enough space below - open downward
         topPos = rect.bottom + GAP
-      } else if (spaceAbove >= menuHeight + 20) {
-        // Enough space above - open upward, menu bottom touches button top
-        topPos = rect.top - menuHeight - GAP
+      } else if (spaceAbove >= actualMenuHeight + GAP) {
+        // Open upward - bottom of menu touches top of button
+        topPos = rect.top - actualMenuHeight - GAP
       } else {
-        // Not enough space either way - choose best option and constrain
+        // Constrained - use direction with more space
         if (spaceBelow >= spaceAbove) {
           topPos = rect.bottom + GAP
         } else {
-          topPos = Math.max(10, rect.top - Math.min(menuHeight, spaceAbove - 10) - GAP)
+          topPos = Math.max(10, rect.top - actualMenuHeight - GAP)
         }
       }
-
-      // Final safety: ensure menu stays within viewport
-      topPos = Math.max(10, Math.min(topPos, viewportHeight - menuHeight - 10))
 
       setMenuPosition({ top: topPos, left: leftPos })
     }
   }, [isOpen])
 
-  // v0.17.60: Lock scroll on the actual scrollable column container
+  // v0.17.61: Lock scroll on ALL scrollable ancestors (column, modal, body)
   useEffect(() => {
     if (isOpen && buttonRef.current) {
-      const columnCards = buttonRef.current.closest('.asakaa-column-cards') as HTMLElement
       const scrollLockTargets: { element: HTMLElement; original: string }[] = []
 
-      if (columnCards) {
-        scrollLockTargets.push({
-          element: columnCards,
-          original: columnCards.style.overflow
-        })
-        columnCards.style.overflow = 'hidden'
+      const scrollableSelectors = [
+        '.asakaa-column-cards',
+        '.modal-v2-container',
+        '.modal-content',
+        '[data-scroll-container]',
+      ]
+
+      for (const selector of scrollableSelectors) {
+        const container = buttonRef.current.closest(selector) as HTMLElement
+        if (container) {
+          scrollLockTargets.push({
+            element: container,
+            original: container.style.overflow
+          })
+          container.style.overflow = 'hidden'
+        }
       }
 
       scrollLockTargets.push({
