@@ -90,7 +90,7 @@ export function AddCardButton({
   // Translations
   const t = {
     placeholder: placeholder || (locale === 'es' ? 'Nombre de la tarea...' : 'Task Name...'),
-    buttonLabel: buttonLabel || (locale === 'es' ? '+ Agregar Tarea' : '+ Add Task'),
+    buttonLabel: buttonLabel || (locale === 'es' ? 'Agregar Tarea' : 'Add Task'),
     save: locale === 'es' ? 'Guardar' : 'Save',
     addAssignee: locale === 'es' ? 'Agregar asignado' : 'Add assignee',
     addDates: locale === 'es' ? 'Agregar fechas' : 'Add dates',
