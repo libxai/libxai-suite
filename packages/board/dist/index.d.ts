@@ -928,12 +928,6 @@ interface ColumnProps {
     onToggleCollapse?: () => void;
     /** Column rename handler */
     onColumnRename?: (columnId: string, newTitle: string) => void;
-    /** v0.17.49: Add card handler - when provided, shows AddCardButton at bottom of column */
-    onAddCard?: (data: AddCardData) => void | Promise<void>;
-    /** v0.17.49: Theme for AddCardButton */
-    theme?: 'light' | 'dark';
-    /** v0.17.49: Locale for AddCardButton */
-    locale?: 'en' | 'es';
     /** Custom className */
     className?: string;
 }

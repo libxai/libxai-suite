@@ -13,7 +13,6 @@ import type { User } from '../Card/UserAssignmentSelector'
 import { Card } from '../Card'
 import { ColumnMenu } from './ColumnMenu'
 import { cn, shouldVirtualize } from '../../utils'
-import { AddCardButton, type AddCardData } from '../Board/AddCardButton'
 
 export interface ColumnProps {
   /** Column data */
@@ -46,12 +45,6 @@ export interface ColumnProps {
   onToggleCollapse?: () => void
   /** Column rename handler */
   onColumnRename?: (columnId: string, newTitle: string) => void
-  /** v0.17.49: Add card handler - when provided, shows AddCardButton at bottom of column */
-  onAddCard?: (data: AddCardData) => void | Promise<void>
-  /** v0.17.49: Theme for AddCardButton */
-  theme?: 'light' | 'dark'
-  /** v0.17.49: Locale for AddCardButton */
-  locale?: 'en' | 'es'
   /** Custom className */
   className?: string
 }
@@ -77,9 +70,6 @@ export const Column = memo<ColumnProps>(
     isCollapsed,
     onToggleCollapse,
     onColumnRename,
-    onAddCard,
-    theme = 'dark',
-    locale = 'es',
     className,
   }) => {
     const { setNodeRef, isOver } = useDroppable({
@@ -286,19 +276,6 @@ export const Column = memo<ColumnProps>(
                 ))
               )}
             </SortableContext>
-
-            {/* v0.17.49: Add Card Button - shown when onAddCard is provided */}
-            {onAddCard && (
-              <div className="mt-2">
-                <AddCardButton
-                  columnId={column.id}
-                  onAddCard={onAddCard}
-                  availableUsers={availableUsers}
-                  theme={theme}
-                  locale={locale}
-                />
-              </div>
-            )}
           </div>
         )}
       </div>
