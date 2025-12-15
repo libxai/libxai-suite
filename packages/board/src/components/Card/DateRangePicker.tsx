@@ -38,15 +38,42 @@ export function DateRangePicker({
   // Only 'dark' theme uses dark colors, 'light' and 'neutral' use light colors
   const isDark = themeName === 'dark'
 
-  useEffect(() => {
-    if (isOpen && buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect()
-      setMenuPosition({
-        top: rect.bottom + window.scrollY + 8,
-        left: rect.left + window.scrollX,
-      })
+  // v0.17.65: Calculate position and open menu synchronously (same as other selectors)
+  const openMenu = () => {
+    if (!buttonRef.current) return
+
+    const rect = buttonRef.current.getBoundingClientRect()
+    const viewportHeight = window.innerHeight
+    const viewportWidth = window.innerWidth
+    const menuWidth = 320
+    const menuHeight = 380
+    const GAP = 4
+
+    // Horizontal positioning
+    let leftPos = rect.left
+    if (leftPos + menuWidth > viewportWidth - 10) {
+      leftPos = viewportWidth - menuWidth - 10
     }
-  }, [isOpen])
+    if (leftPos < 10) leftPos = 10
+
+    // Vertical positioning - open upward if no space below
+    const spaceBelow = viewportHeight - rect.bottom
+    const spaceAbove = rect.top
+    let topPos: number
+
+    if (spaceBelow >= menuHeight + GAP) {
+      topPos = rect.bottom + GAP
+    } else if (spaceAbove >= menuHeight + GAP) {
+      topPos = rect.top - menuHeight - GAP
+    } else {
+      topPos = spaceBelow >= spaceAbove
+        ? rect.bottom + GAP
+        : Math.max(10, rect.top - menuHeight - GAP)
+    }
+
+    setMenuPosition({ top: topPos, left: leftPos })
+    setIsOpen(true)
+  }
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -149,7 +176,7 @@ export function DateRangePicker({
     <div className={`relative ${className || ''}`}>
       <button
         ref={buttonRef}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => isOpen ? setIsOpen(false) : openMenu()}
         className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-xs transition-all hover:bg-white/5 ${
           overdue ? 'asakaa-date-overdue' : 'asakaa-date'
         }`}
@@ -184,8 +211,9 @@ export function DateRangePicker({
         <Portal>
           <div
             ref={menuRef}
-            className="date-picker-menu absolute rounded-xl shadow-2xl border min-w-[320px]"
+            className="date-picker-menu rounded-xl shadow-2xl border min-w-[320px]"
             style={{
+              position: 'fixed',
               top: `${menuPosition.top}px`,
               left: `${menuPosition.left}px`,
               background: isDark ? '#1A1D25' : '#FFFFFF',

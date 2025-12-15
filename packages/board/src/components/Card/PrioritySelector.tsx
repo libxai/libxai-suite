@@ -69,30 +69,8 @@ export function PrioritySelector({
     setIsOpen(true)
   }
 
-  // v0.17.62: Lock scroll on ALL scrollable ancestors
-  useEffect(() => {
-    if (!isOpen || !buttonRef.current) return
-
-    const scrollLockTargets: { element: HTMLElement; original: string }[] = []
-    const selectors = ['.asakaa-column-cards', '.modal-v2-container', '.modal-content']
-
-    for (const selector of selectors) {
-      const el = buttonRef.current.closest(selector) as HTMLElement
-      if (el) {
-        scrollLockTargets.push({ element: el, original: el.style.overflow })
-        el.style.overflow = 'hidden'
-      }
-    }
-
-    scrollLockTargets.push({ element: document.body, original: document.body.style.overflow })
-    document.body.style.overflow = 'hidden'
-
-    return () => {
-      scrollLockTargets.forEach(({ element, original }) => {
-        element.style.overflow = original
-      })
-    }
-  }, [isOpen])
+  // v0.17.65: Scroll lock removed - position:fixed handles positioning correctly
+  // The Portal renders outside the overflow container, so no lock needed
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

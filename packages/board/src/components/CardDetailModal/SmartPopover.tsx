@@ -87,27 +87,8 @@ export function SmartPopover({
     }
   }, [isOpen, calculatePosition])
 
-  // Lock scroll on modal container
-  useEffect(() => {
-    if (!isOpen || !triggerRef.current) return
-
-    const scrollLockTargets: { element: HTMLElement; original: string }[] = []
-    const selectors = ['.modal-v2-container', '.modal-content', '.asakaa-column-cards']
-
-    for (const selector of selectors) {
-      const el = triggerRef.current.closest(selector) as HTMLElement
-      if (el) {
-        scrollLockTargets.push({ element: el, original: el.style.overflow })
-        el.style.overflow = 'hidden'
-      }
-    }
-
-    return () => {
-      scrollLockTargets.forEach(({ element, original }) => {
-        element.style.overflow = original
-      })
-    }
-  }, [isOpen, triggerRef])
+  // v0.17.65: Scroll lock removed - position:fixed handles positioning correctly
+  // The Portal renders outside the overflow container, so no lock needed
 
   // Close on outside click
   useEffect(() => {
