@@ -31,56 +31,50 @@ export function UserAssignmentSelector({
 }: UserAssignmentSelectorProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0, openUpward: false })
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 })
   const menuRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
 
-  // v0.17.62: Calculate position IMMEDIATELY when opening (before render)
-  // This ensures menu appears in correct position from the start
-  const calculatePosition = () => {
-    if (!buttonRef.current) return { top: 0, left: 0, openUpward: false }
+  // v0.17.63: Calculate position and open menu in ONE synchronous action
+  const openMenu = () => {
+    if (!buttonRef.current) return
 
     const rect = buttonRef.current.getBoundingClientRect()
     const viewportHeight = window.innerHeight
     const viewportWidth = window.innerWidth
     const menuWidth = 300
-    const menuHeight = 380 // Fixed estimate for initial render
+    const menuHeight = 380
     const GAP = 4
 
-    // Horizontal: Right-align menu with button's right edge
+    // Horizontal positioning
     let leftPos = rect.right - menuWidth
     if (leftPos < 10) leftPos = rect.left
     if (leftPos + menuWidth > viewportWidth - 10) {
       leftPos = viewportWidth - menuWidth - 10
     }
 
-    // Vertical: Position directly adjacent to button
+    // Vertical positioning - open upward if no space below
     const spaceBelow = viewportHeight - rect.bottom
     const spaceAbove = rect.top
     let topPos: number
-    let openUpward = false
 
     if (spaceBelow >= menuHeight + GAP) {
+      // Open downward
       topPos = rect.bottom + GAP
     } else if (spaceAbove >= menuHeight + GAP) {
+      // Open upward - position so bottom of menu is at top of button
       topPos = rect.top - menuHeight - GAP
-      openUpward = true
-    } else if (spaceBelow >= spaceAbove) {
-      topPos = rect.bottom + GAP
     } else {
-      topPos = Math.max(10, rect.top - menuHeight - GAP)
-      openUpward = true
+      // Not enough space either way - use the one with more space
+      topPos = spaceBelow >= spaceAbove
+        ? rect.bottom + GAP
+        : Math.max(10, rect.top - menuHeight - GAP)
     }
 
-    return { top: topPos, left: leftPos, openUpward }
+    // Set position FIRST, then open (synchronous batch)
+    setMenuPosition({ top: topPos, left: leftPos })
+    setIsOpen(true)
   }
-
-  // Update position when menu opens
-  useEffect(() => {
-    if (isOpen) {
-      setMenuPosition(calculatePosition())
-    }
-  }, [isOpen])
 
   // v0.17.62: Lock scroll on ALL scrollable ancestors
   useEffect(() => {
@@ -163,7 +157,7 @@ export function UserAssignmentSelector({
       {/* Avatar display or add button */}
       <button
         ref={buttonRef}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => isOpen ? setIsOpen(false) : openMenu()}
         className="flex items-center gap-1 p-0.5 rounded transition-all hover:bg-white/10 hover:scale-105 active:scale-95"
         title={assignedUsers.length > 0 ? `${assignedUsers.length} assigned` : 'Assign users'}
       >

@@ -99,15 +99,15 @@ export function DependenciesSelector({
   const menuRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
 
-  // v0.17.62: Calculate position IMMEDIATELY when opening (before render)
-  const calculatePosition = () => {
-    if (!buttonRef.current) return { top: 0, left: 0 }
+  // v0.17.63: Calculate position and open menu synchronously
+  const openMenu = () => {
+    if (!buttonRef.current) return
 
     const rect = buttonRef.current.getBoundingClientRect()
     const viewportHeight = window.innerHeight
     const viewportWidth = window.innerWidth
     const menuWidth = 300
-    const menuHeight = 380 // Fixed estimate for initial render
+    const menuHeight = 380
     const GAP = 4
 
     let leftPos = rect.right - menuWidth
@@ -124,20 +124,15 @@ export function DependenciesSelector({
       topPos = rect.bottom + GAP
     } else if (spaceAbove >= menuHeight + GAP) {
       topPos = rect.top - menuHeight - GAP
-    } else if (spaceBelow >= spaceAbove) {
-      topPos = rect.bottom + GAP
     } else {
-      topPos = Math.max(10, rect.top - menuHeight - GAP)
+      topPos = spaceBelow >= spaceAbove
+        ? rect.bottom + GAP
+        : Math.max(10, rect.top - menuHeight - GAP)
     }
 
-    return { top: topPos, left: leftPos }
+    setMenuPosition({ top: topPos, left: leftPos })
+    setIsOpen(true)
   }
-
-  useEffect(() => {
-    if (isOpen) {
-      setMenuPosition(calculatePosition())
-    }
-  }, [isOpen])
 
   // v0.17.62: Lock scroll on ALL scrollable ancestors
   useEffect(() => {
@@ -262,7 +257,7 @@ export function DependenciesSelector({
       {/* Link icon button */}
       <button
         ref={buttonRef}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => isOpen ? setIsOpen(false) : openMenu()}
         className="flex items-center gap-1 px-2 py-1 rounded transition-all hover:bg-white/5"
         title={
           dependencies.length > 0

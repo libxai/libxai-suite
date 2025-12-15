@@ -34,9 +34,9 @@ export function PrioritySelector({
   const menuRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
 
-  // v0.17.62: Calculate position IMMEDIATELY when opening
-  const calculatePosition = () => {
-    if (!buttonRef.current) return { top: 0, left: 0 }
+  // v0.17.63: Calculate position and open menu synchronously
+  const openMenu = () => {
+    if (!buttonRef.current) return
 
     const rect = buttonRef.current.getBoundingClientRect()
     const viewportHeight = window.innerHeight
@@ -59,20 +59,15 @@ export function PrioritySelector({
       topPos = rect.bottom + GAP
     } else if (spaceAbove >= menuHeight + GAP) {
       topPos = rect.top - menuHeight - GAP
-    } else if (spaceBelow >= spaceAbove) {
-      topPos = rect.bottom + GAP
     } else {
-      topPos = Math.max(10, rect.top - menuHeight - GAP)
+      topPos = spaceBelow >= spaceAbove
+        ? rect.bottom + GAP
+        : Math.max(10, rect.top - menuHeight - GAP)
     }
 
-    return { top: topPos, left: leftPos }
+    setMenuPosition({ top: topPos, left: leftPos })
+    setIsOpen(true)
   }
-
-  useEffect(() => {
-    if (isOpen) {
-      setMenuPosition(calculatePosition())
-    }
-  }, [isOpen])
 
   // v0.17.62: Lock scroll on ALL scrollable ancestors
   useEffect(() => {
@@ -141,7 +136,7 @@ export function PrioritySelector({
     <div className={`relative ${className || ''}`}>
       <button
         ref={buttonRef}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => isOpen ? setIsOpen(false) : openMenu()}
         className="flex items-center justify-center w-8 h-8 rounded-lg transition-all hover:bg-white/15 hover:scale-110 active:scale-95"
         style={{
           background: priority ? `${flagColor}10` : 'transparent',
