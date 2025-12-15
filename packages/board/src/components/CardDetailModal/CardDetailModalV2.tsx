@@ -22,6 +22,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeSanitize from 'rehype-sanitize'
 import { Portal } from '../Portal'
+import { SmartPopover } from './SmartPopover'
 // COVER IMAGE - Commented out for future use. Uncomment to enable cover image functionality
 // import { CoverImageManager } from '../CoverImage'
 import { useKanbanTheme } from '../Board/KanbanThemeContext'
@@ -149,6 +150,11 @@ export function CardDetailModalV2({
   const assigneeMenuRef = useRef<HTMLDivElement>(null)
   const labelMenuRef = useRef<HTMLDivElement>(null)
   const datePickerRef = useRef<HTMLInputElement>(null)
+  // Button refs for SmartPopover positioning
+  const statusBtnRef = useRef<HTMLButtonElement>(null)
+  const assigneeBtnRef = useRef<HTMLButtonElement>(null)
+  const priorityBtnRef = useRef<HTMLButtonElement>(null)
+  const labelBtnRef = useRef<HTMLButtonElement>(null)
 
   // Update local card when prop changes - THIS IS THE FIX!
   // Initialize local card immediately when card prop is available
@@ -667,6 +673,7 @@ export function CardDetailModalV2({
             {/* STATUS FIELD */}
             <div className="modal-v2-field-wrapper" ref={statusMenuRef}>
               <button
+                ref={statusBtnRef}
                 className="modal-v2-field"
                 onClick={() => setShowStatusMenu(!showStatusMenu)}
               >
@@ -687,26 +694,31 @@ export function CardDetailModalV2({
                 </div>
                 <div className="modal-v2-field-value">{displayCard.columnId || 'No status'}</div>
               </button>
-              {showStatusMenu && (
-                <div className="modal-v2-popover">
-                  {(availableColumns.length > 0 ? availableColumns : STATUS_OPTIONS.map(s => ({ id: s, title: s }))).map((col) => (
-                    <button
-                      key={col.id}
-                      className={`modal-v2-popover-item ${
-                        displayCard.columnId === col.id ? 'active' : ''
-                      }`}
-                      onClick={() => handleStatusChange(col.id)}
-                    >
-                      {col.title}
-                    </button>
-                  ))}
-                </div>
-              )}
+              <SmartPopover
+                triggerRef={statusBtnRef}
+                isOpen={showStatusMenu}
+                onClose={() => setShowStatusMenu(false)}
+                width={250}
+                estimatedHeight={200}
+              >
+                {(availableColumns.length > 0 ? availableColumns : STATUS_OPTIONS.map(s => ({ id: s, title: s }))).map((col) => (
+                  <button
+                    key={col.id}
+                    className={`modal-v2-popover-item ${
+                      displayCard.columnId === col.id ? 'active' : ''
+                    }`}
+                    onClick={() => handleStatusChange(col.id)}
+                  >
+                    {col.title}
+                  </button>
+                ))}
+              </SmartPopover>
             </div>
 
             {/* ASSIGNEES FIELD */}
             <div className="modal-v2-field-wrapper" ref={assigneeMenuRef}>
               <button
+                ref={assigneeBtnRef}
                 className="modal-v2-field"
                 onClick={() => setShowAssigneeMenu(!showAssigneeMenu)}
               >
@@ -744,45 +756,50 @@ export function CardDetailModalV2({
                   )}
                 </div>
               </button>
-              {showAssigneeMenu && (
-                <div className="modal-v2-popover">
-                  {availableUsers.map((user) => (
-                    <button
-                      key={user.id}
-                      className={`modal-v2-popover-item ${
-                        displayCard.assignedUserIds?.includes(user.id) ? 'active' : ''
-                      }`}
-                      onClick={() => handleToggleAssignee(user.id)}
+              <SmartPopover
+                triggerRef={assigneeBtnRef}
+                isOpen={showAssigneeMenu}
+                onClose={() => setShowAssigneeMenu(false)}
+                width={280}
+                estimatedHeight={300}
+              >
+                {availableUsers.map((user) => (
+                  <button
+                    key={user.id}
+                    className={`modal-v2-popover-item ${
+                      displayCard.assignedUserIds?.includes(user.id) ? 'active' : ''
+                    }`}
+                    onClick={() => handleToggleAssignee(user.id)}
+                  >
+                    <div
+                      className="modal-v2-avatar-small"
+                      style={{ background: user.color }}
                     >
-                      <div
-                        className="modal-v2-avatar-small"
-                        style={{ background: user.color }}
+                      {user.initials}
+                    </div>
+                    {user.name}
+                    {displayCard.assignedUserIds?.includes(user.id) && (
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        style={{ marginLeft: 'auto' }}
                       >
-                        {user.initials}
-                      </div>
-                      {user.name}
-                      {displayCard.assignedUserIds?.includes(user.id) && (
-                        <svg
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          style={{ marginLeft: 'auto' }}
-                        >
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              )}
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    )}
+                  </button>
+                ))}
+              </SmartPopover>
             </div>
 
             {/* PRIORITY FIELD */}
             <div className="modal-v2-field-wrapper" ref={priorityMenuRef}>
               <button
+                ref={priorityBtnRef}
                 className="modal-v2-field"
                 onClick={() => setShowPriorityMenu(!showPriorityMenu)}
               >
@@ -806,32 +823,37 @@ export function CardDetailModalV2({
                   {displayCard.priority || 'None'}
                 </div>
               </button>
-              {showPriorityMenu && (
-                <div className="modal-v2-popover">
-                  {PRIORITY_OPTIONS.map((priority) => (
-                    <button
-                      key={priority}
-                      className={`modal-v2-popover-item priority-${priority.toLowerCase()} ${
-                        displayCard.priority === priority ? 'active' : ''
-                      }`}
-                      onClick={() => handlePriorityChange(priority)}
-                    >
-                      {priority}
-                    </button>
-                  ))}
+              <SmartPopover
+                triggerRef={priorityBtnRef}
+                isOpen={showPriorityMenu}
+                onClose={() => setShowPriorityMenu(false)}
+                width={180}
+                estimatedHeight={220}
+              >
+                {PRIORITY_OPTIONS.map((priority) => (
                   <button
-                    className="modal-v2-popover-item"
-                    onClick={() => handlePriorityChange('')}
+                    key={priority}
+                    className={`modal-v2-popover-item priority-${priority.toLowerCase()} ${
+                      displayCard.priority === priority ? 'active' : ''
+                    }`}
+                    onClick={() => handlePriorityChange(priority)}
                   >
-                    None
+                    {priority}
                   </button>
-                </div>
-              )}
+                ))}
+                <button
+                  className="modal-v2-popover-item"
+                  onClick={() => handlePriorityChange('')}
+                >
+                  None
+                </button>
+              </SmartPopover>
             </div>
 
             {/* LABELS FIELD */}
             <div className="modal-v2-field-wrapper" ref={labelMenuRef}>
               <button
+                ref={labelBtnRef}
                 className="modal-v2-field"
                 onClick={() => setShowLabelMenu(!showLabelMenu)}
               >
@@ -858,34 +880,38 @@ export function CardDetailModalV2({
                   )}
                 </div>
               </button>
-              {showLabelMenu && (
-                <div className="modal-v2-popover">
-                  {(availableLabels.length > 0 ? availableLabels : ['Bug', 'Feature', 'Enhancement', 'Documentation']).map((label) => (
-                    <button
-                      key={label}
-                      className={`modal-v2-popover-item ${
-                        displayCard.labels?.includes(label) ? 'active' : ''
-                      }`}
-                      onClick={() => handleToggleLabel(label)}
-                    >
-                      {label}
-                      {displayCard.labels?.includes(label) && (
-                        <svg
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          style={{ marginLeft: 'auto' }}
-                        >
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              )}
+              <SmartPopover
+                triggerRef={labelBtnRef}
+                isOpen={showLabelMenu}
+                onClose={() => setShowLabelMenu(false)}
+                width={220}
+                estimatedHeight={200}
+              >
+                {(availableLabels.length > 0 ? availableLabels : ['Bug', 'Feature', 'Enhancement', 'Documentation']).map((label) => (
+                  <button
+                    key={label}
+                    className={`modal-v2-popover-item ${
+                      displayCard.labels?.includes(label) ? 'active' : ''
+                    }`}
+                    onClick={() => handleToggleLabel(label)}
+                  >
+                    {label}
+                    {displayCard.labels?.includes(label) && (
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        style={{ marginLeft: 'auto' }}
+                      >
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    )}
+                  </button>
+                ))}
+              </SmartPopover>
             </div>
 
             {/* DUE DATE FIELD */}
