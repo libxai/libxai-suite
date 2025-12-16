@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { TimeScale, Task, GanttTemplates, DependentTaskPreview } from './types';
 import { TaskBar, TaskTooltipData } from './TaskBar';
 import { TaskTooltip } from './TaskTooltip';
-import { DependencyLine, DependencyDeleteButtonData } from './DependencyLine';
+import { DependencyLine, DependencyHoverData } from './DependencyLine';
 import { Milestone } from './Milestone';
 import { ganttUtils } from './ganttUtils';
 
@@ -56,17 +56,17 @@ export function Timeline({
   // v0.17.76: State for active tooltip - rendered in top layer for proper z-order
   const [activeTooltip, setActiveTooltip] = useState<TaskTooltipData | null>(null);
 
-  // v0.17.78: State for dependency delete button - rendered in top layer
-  const [activeDeleteButton, setActiveDeleteButton] = useState<DependencyDeleteButtonData | null>(null);
+  // v0.17.79: State for hovered dependency - full line + delete button rendered in top layer
+  const [hoveredDependency, setHoveredDependency] = useState<DependencyHoverData | null>(null);
 
   // v0.17.76: Callback for TaskBar hover changes
   const handleTooltipChange = useCallback((tooltipData: TaskTooltipData | null) => {
     setActiveTooltip(tooltipData);
   }, []);
 
-  // v0.17.78: Callback for DependencyLine hover changes
-  const handleDependencyHoverChange = useCallback((data: DependencyDeleteButtonData | null) => {
-    setActiveDeleteButton(data);
+  // v0.17.79: Callback for DependencyLine hover changes
+  const handleDependencyHoverChange = useCallback((data: DependencyHoverData | null) => {
+    setHoveredDependency(data);
   }, []);
 
   // Calculate dimensions
@@ -712,48 +712,101 @@ export function Timeline({
           </g>
         ))}
 
-        {/* v0.17.78: Dependency delete button layer - rendered above tasks */}
-        {activeDeleteButton && (
-          <motion.g
-            initial={{ opacity: 0, scale: 0 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0 }}
-            transition={{ duration: 0.2 }}
-            onClick={(e) => {
-              e.stopPropagation();
-              activeDeleteButton.onDelete();
-            }}
-            style={{ cursor: 'pointer' }}
-          >
-            <circle
-              cx={activeDeleteButton.x}
-              cy={activeDeleteButton.y}
-              r={10}
-              fill={theme.bgSecondary}
-              stroke={theme.error || '#ef4444'}
-              strokeWidth={2}
-            />
-            {/* X icon */}
-            <line
-              x1={activeDeleteButton.x - 4}
-              y1={activeDeleteButton.y - 4}
-              x2={activeDeleteButton.x + 4}
-              y2={activeDeleteButton.y + 4}
-              stroke={theme.error || '#ef4444'}
-              strokeWidth={2}
-              strokeLinecap="round"
-            />
-            <line
-              x1={activeDeleteButton.x + 4}
-              y1={activeDeleteButton.y - 4}
-              x2={activeDeleteButton.x - 4}
-              y2={activeDeleteButton.y + 4}
-              stroke={theme.error || '#ef4444'}
-              strokeWidth={2}
-              strokeLinecap="round"
-            />
-          </motion.g>
-        )}
+        {/* v0.17.79: Hovered dependency layer - full line + delete button rendered above tasks */}
+        {hoveredDependency && (() => {
+          const { x1, y1, x2, y2, onDelete } = hoveredDependency;
+          const dx = x2 - x1;
+          const dy = y2 - y1;
+          const midX = x1 + dx / 2;
+          const midY = (y1 + y2) / 2;
+          const path = `M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}`;
+          const arrowSize = 6;
+          const angle = Math.atan2(dy, dx);
+          const arrowX = x2 - arrowSize * Math.cos(angle - Math.PI / 6);
+          const arrowY = y2 - arrowSize * Math.sin(angle - Math.PI / 6);
+          const arrowX2 = x2 - arrowSize * Math.cos(angle + Math.PI / 6);
+          const arrowY2 = y2 - arrowSize * Math.sin(angle + Math.PI / 6);
+          const lineColor = theme.dependency;
+
+          return (
+            <g style={{ pointerEvents: 'none' }}>
+              {/* Highlighted dependency line */}
+              <motion.path
+                d={path}
+                fill="none"
+                stroke={lineColor}
+                strokeWidth={2.5}
+                strokeLinecap="round"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.15 }}
+              />
+
+              {/* Arrow head */}
+              <motion.path
+                d={`M ${x2} ${y2} L ${arrowX} ${arrowY} M ${x2} ${y2} L ${arrowX2} ${arrowY2}`}
+                fill="none"
+                stroke={lineColor}
+                strokeWidth={2.5}
+                strokeLinecap="round"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.15 }}
+              />
+
+              {/* Endpoint dot */}
+              <motion.circle
+                cx={x2}
+                cy={y2}
+                r={4}
+                fill={lineColor}
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ duration: 0.15 }}
+              />
+
+              {/* Delete button */}
+              <motion.g
+                initial={{ opacity: 0, scale: 0 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.2 }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete();
+                }}
+                style={{ cursor: 'pointer', pointerEvents: 'auto' }}
+              >
+                <circle
+                  cx={midX}
+                  cy={midY}
+                  r={10}
+                  fill={theme.bgSecondary}
+                  stroke={theme.error || '#ef4444'}
+                  strokeWidth={2}
+                />
+                {/* X icon */}
+                <line
+                  x1={midX - 4}
+                  y1={midY - 4}
+                  x2={midX + 4}
+                  y2={midY + 4}
+                  stroke={theme.error || '#ef4444'}
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                />
+                <line
+                  x1={midX + 4}
+                  y1={midY - 4}
+                  x2={midX - 4}
+                  y2={midY + 4}
+                  stroke={theme.error || '#ef4444'}
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                />
+              </motion.g>
+            </g>
+          );
+        })()}
 
         {/* v0.17.76: Tooltip layer - rendered last to ensure it's always on top */}
         {activeTooltip && (

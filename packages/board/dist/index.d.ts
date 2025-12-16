@@ -2164,9 +2164,11 @@ onContextMenu, // v0.8.0
 onDateChange, onDependencyCreate, allTaskPositions, onDragMove, // v0.13.0
 onHoverChange, }: TaskBarProps): react_jsx_runtime.JSX.Element;
 
-interface DependencyDeleteButtonData {
-    x: number;
-    y: number;
+interface DependencyHoverData {
+    x1: number;
+    y1: number;
+    x2: number;
+    y2: number;
     onDelete: () => void;
 }
 interface DependencyLineProps {
@@ -2176,7 +2178,7 @@ interface DependencyLineProps {
     y2: number;
     theme: any;
     onDelete?: () => void;
-    onHoverChange?: (data: DependencyDeleteButtonData | null) => void;
+    onHoverChange?: (data: DependencyHoverData | null) => void;
 }
 declare function DependencyLine({ x1, y1, x2, y2, theme, onDelete, onHoverChange }: DependencyLineProps): react_jsx_runtime.JSX.Element;
 

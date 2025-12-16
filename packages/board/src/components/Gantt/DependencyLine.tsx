@@ -1,12 +1,17 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 
-// v0.17.78: Data for rendering delete button in top layer
-export interface DependencyDeleteButtonData {
-  x: number;
-  y: number;
+// v0.17.79: Data for rendering FULL dependency line + delete button in top layer
+export interface DependencyHoverData {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
   onDelete: () => void;
 }
+
+// Keep old interface name for backwards compatibility
+export type DependencyDeleteButtonData = DependencyHoverData;
 
 interface DependencyLineProps {
   x1: number;
@@ -15,8 +20,8 @@ interface DependencyLineProps {
   y2: number;
   theme: any;
   onDelete?: () => void;
-  // v0.17.78: Callback to render delete button in top layer (above tasks)
-  onHoverChange?: (data: DependencyDeleteButtonData | null) => void;
+  // v0.17.79: Callback to render full line + delete button in top layer (above tasks)
+  onHoverChange?: (data: DependencyHoverData | null) => void;
 }
 
 export function DependencyLine({ x1, y1, x2, y2, theme, onDelete, onHoverChange }: DependencyLineProps) {
@@ -41,20 +46,22 @@ export function DependencyLine({ x1, y1, x2, y2, theme, onDelete, onHoverChange 
   // Dependencies are always gray - critical path only affects TASK BARS, not dependency lines
   const lineColor = theme.dependency;
 
-  // v0.17.78: Notify parent of hover state for top-layer delete button rendering
+  // v0.17.79: Notify parent of hover state for top-layer rendering (full line + delete button)
   useEffect(() => {
     if (onHoverChange && onDelete) {
       if (isHovered) {
         onHoverChange({
-          x: midX,
-          y: (y1 + y2) / 2,
+          x1,
+          y1,
+          x2,
+          y2,
           onDelete,
         });
       } else {
         onHoverChange(null);
       }
     }
-  }, [isHovered, midX, y1, y2, onDelete, onHoverChange]);
+  }, [isHovered, x1, y1, x2, y2, onDelete, onHoverChange]);
 
   return (
     <g
