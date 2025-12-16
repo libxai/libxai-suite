@@ -712,7 +712,8 @@ export function Timeline({
           </g>
         ))}
 
-        {/* v0.17.79: Hovered dependency layer - full line + delete button rendered above tasks */}
+        {/* v0.17.81: Hovered dependency layer - full line + delete button rendered above tasks */}
+        {/* This renders AFTER tasks in the SVG, so it appears on top */}
         {hoveredDependency && (() => {
           const { x1, y1, x2, y2, onDelete } = hoveredDependency;
           const dx = x2 - x1;
@@ -730,39 +731,32 @@ export function Timeline({
 
           return (
             <g style={{ pointerEvents: 'none' }}>
-              {/* Highlighted dependency line */}
-              <motion.path
+              {/* Highlighted dependency line - NO animation, instant display */}
+              <path
                 d={path}
                 fill="none"
                 stroke={lineColor}
-                strokeWidth={2.5}
+                strokeWidth={3}
                 strokeLinecap="round"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.15 }}
+                opacity={1}
               />
 
               {/* Arrow head */}
-              <motion.path
+              <path
                 d={`M ${x2} ${y2} L ${arrowX} ${arrowY} M ${x2} ${y2} L ${arrowX2} ${arrowY2}`}
                 fill="none"
                 stroke={lineColor}
-                strokeWidth={2.5}
+                strokeWidth={3}
                 strokeLinecap="round"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.15 }}
+                opacity={1}
               />
 
               {/* Endpoint dot */}
-              <motion.circle
+              <circle
                 cx={x2}
                 cy={y2}
-                r={4}
+                r={5}
                 fill={lineColor}
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ duration: 0.15 }}
               />
 
               {/* Delete button */}
