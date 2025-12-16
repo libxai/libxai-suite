@@ -275,16 +275,19 @@ export function TaskGrid({
 
             {/* v0.11.0: Color Indicator - Simple dot showing task color */}
             {/* v0.14.7: Changed default from #6366F1 (indigo) to #3B82F6 (electric blue) */}
-            <div
-              className="w-3 h-3 rounded-full flex-shrink-0 border"
-              style={{
-                backgroundColor: task.color || '#3B82F6',
-                opacity: task.parentId ? 0.6 : 1, // Subtasks more transparent
-                borderColor: task.isMilestone ? theme.accent : 'transparent',
-                borderWidth: task.isMilestone ? '2px' : '0px',
-              }}
-              title={task.isMilestone ? 'Milestone' : task.parentId ? 'Subtask' : 'Task'}
-            />
+            {/* v0.17.67: Don't show dot for master tasks (with subtasks) - they already have chevron */}
+            {!(task.subtasks && task.subtasks.length > 0) && (
+              <div
+                className="w-3 h-3 rounded-full flex-shrink-0 border"
+                style={{
+                  backgroundColor: task.color || '#3B82F6',
+                  opacity: task.parentId ? 0.6 : 1, // Subtasks more transparent
+                  borderColor: task.isMilestone ? theme.accent : 'transparent',
+                  borderWidth: task.isMilestone ? '2px' : '0px',
+                }}
+                title={task.isMilestone ? 'Milestone' : task.parentId ? 'Subtask' : 'Task'}
+              />
+            )}
 
             {/* Task Name or Input */}
             {isEditing ? (
