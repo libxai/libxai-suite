@@ -1,5 +1,6 @@
 /**
  * Task Form Modal - Complete CRUD for Gantt Tasks
+ * v0.17.70: Redesigned layout - more compact, assignees at top
  * Full-featured task creation/editing with user assignment, dates, dependencies, etc.
  * Similar to DHTMLX Gantt lightbox
  */
@@ -18,6 +19,8 @@ import {
   Palette,
   Flag,
   FileText,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react'
 import { Task, Theme } from './types'
 import { themes } from './themes'
@@ -97,6 +100,9 @@ export function TaskFormModal({
   // Get theme colors (with fallback to dark theme)
   const themeColors = (themes[theme] || themes.dark)!
 
+  // v0.17.70: Collapsible sections state
+  const [showAdvanced, setShowAdvanced] = useState(false)
+
   // Common styles
   const inputStyle = {
     backgroundColor: themeColors.bgSecondary,
@@ -138,6 +144,10 @@ export function TaskFormModal({
         assignees: task.assignees || [],
         dependencies: task.dependencies || [],
       })
+      // Show advanced if task has dependencies or is milestone
+      if ((task.dependencies && task.dependencies.length > 0) || task.isMilestone) {
+        setShowAdvanced(true)
+      }
     } else {
       // Reset for create mode
       setFormData({
@@ -151,6 +161,7 @@ export function TaskFormModal({
         assignees: [],
         dependencies: [],
       })
+      setShowAdvanced(false)
     }
   }, [task, isOpen])
 
@@ -253,7 +264,7 @@ export function TaskFormModal({
                 style={{ borderBottom: `1px solid ${themeColors.border}` }}
               >
                 <h2 className="text-lg font-semibold" style={{ color: themeColors.textPrimary }}>
-                  {mode === 'create' ? 'Crear Nueva Tarea' : 'Editar Tarea'}
+                  {mode === 'create' ? 'Nueva Tarea' : 'Editar Tarea'}
                 </h2>
                 <button
                   onClick={onClose}
@@ -269,11 +280,11 @@ export function TaskFormModal({
                 </button>
               </div>
 
-              {/* Form */}
-              <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[calc(100vh-200px)] overflow-y-auto">
+              {/* Form - v0.17.70: Redesigned compact layout */}
+              <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[calc(100vh-200px)] overflow-y-auto">
                 {/* Task Name */}
                 <div>
-                  <label className="block text-sm font-medium mb-2" style={labelStyle}>
+                  <label className="block text-sm font-medium mb-1.5" style={labelStyle}>
                     Nombre de la Tarea *
                   </label>
                   <input
@@ -286,6 +297,7 @@ export function TaskFormModal({
                     onBlur={(e) => (e.currentTarget.style.borderColor = themeColors.borderLight)}
                     placeholder="Ej: Diseñar mockups de la aplicación"
                     disabled={isLoading}
+                    autoFocus
                   />
                   {errors.name && (
                     <p className="mt-1 text-sm text-red-400 flex items-center gap-1">
@@ -295,78 +307,133 @@ export function TaskFormModal({
                   )}
                 </div>
 
-                {/* v0.17.28: Description */}
-                <div>
-                  <label className="block text-sm font-medium mb-2 flex items-center gap-2" style={labelStyle}>
-                    <FileText className="w-4 h-4" />
-                    Descripción
-                  </label>
-                  <textarea
-                    value={formData.description || ''}
-                    onChange={(e) => handleChange('description', e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent resize-none"
-                    style={inputStyle}
-                    onFocus={(e) => (e.currentTarget.style.borderColor = themeColors.accent)}
-                    onBlur={(e) => (e.currentTarget.style.borderColor = themeColors.borderLight)}
-                    placeholder="Describe los detalles de la tarea..."
-                    rows={3}
-                    disabled={isLoading}
-                  />
-                </div>
-
-                {/* Dates Row */}
+                {/* v0.17.70: Two-column layout for dates + assignees */}
                 <div className="grid grid-cols-2 gap-4">
-                  {/* Start Date */}
-                  <div>
-                    <label className="block text-sm font-medium mb-2 flex items-center gap-2" style={labelStyle}>
+                  {/* Left column: Dates */}
+                  <div className="space-y-3">
+                    <label className="block text-sm font-medium flex items-center gap-2" style={labelStyle}>
                       <Calendar className="w-4 h-4" />
-                      Fecha de Inicio
+                      Fechas
                     </label>
-                    <input
-                      type="date"
-                      value={formData.startDate ? formData.startDate.toISOString().split('T')[0] : ''}
-                      onChange={(e) => handleChange('startDate', e.target.value ? new Date(e.target.value) : undefined)}
-                      className="w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent"
-                      style={inputStyle}
-                      disabled={isLoading || formData.isMilestone}
-                    />
-                  </div>
-
-                  {/* End Date */}
-                  <div>
-                    <label className="block text-sm font-medium mb-2 flex items-center gap-2" style={labelStyle}>
-                      <Calendar className="w-4 h-4" />
-                      Fecha de Fin
-                    </label>
-                    <input
-                      type="date"
-                      value={formData.endDate ? formData.endDate.toISOString().split('T')[0] : ''}
-                      onChange={(e) => handleChange('endDate', e.target.value ? new Date(e.target.value) : undefined)}
-                      className="w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent"
-                      style={inputStyle}
-                      disabled={isLoading || formData.isMilestone}
-                    />
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <span className="text-xs block mb-1" style={{ color: themeColors.textTertiary }}>Inicio</span>
+                        <input
+                          type="date"
+                          value={formData.startDate ? formData.startDate.toISOString().split('T')[0] : ''}
+                          onChange={(e) => handleChange('startDate', e.target.value ? new Date(e.target.value) : undefined)}
+                          className="w-full px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent text-sm"
+                          style={inputStyle}
+                          disabled={isLoading || formData.isMilestone}
+                        />
+                      </div>
+                      <div>
+                        <span className="text-xs block mb-1" style={{ color: themeColors.textTertiary }}>Fin</span>
+                        <input
+                          type="date"
+                          value={formData.endDate ? formData.endDate.toISOString().split('T')[0] : ''}
+                          onChange={(e) => handleChange('endDate', e.target.value ? new Date(e.target.value) : undefined)}
+                          className="w-full px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent text-sm"
+                          style={inputStyle}
+                          disabled={isLoading || formData.isMilestone}
+                        />
+                      </div>
+                    </div>
                     {errors.endDate && (
-                      <p className="mt-1 text-sm text-red-400 flex items-center gap-1">
-                        <AlertCircle className="w-4 h-4" />
+                      <p className="text-xs text-red-400 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
                         {errors.endDate}
                       </p>
                     )}
                   </div>
+
+                  {/* Right column: Assignees - v0.17.70: Moved to top */}
+                  <div>
+                    <label className="block text-sm font-medium mb-1.5 flex items-center gap-2" style={labelStyle}>
+                      <Users className="w-4 h-4" />
+                      Asignar a
+                    </label>
+                    {availableUsers.length > 0 ? (
+                      <div
+                        className="space-y-1 max-h-[88px] overflow-y-auto p-2 rounded-lg"
+                        style={{
+                          backgroundColor: themeColors.bgSecondary,
+                          border: `1px solid ${themeColors.borderLight}`,
+                        }}
+                      >
+                        {availableUsers.map((user) => (
+                          <label
+                            key={user.id}
+                            className="flex items-center gap-2 cursor-pointer p-1.5 rounded text-sm"
+                            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = themeColors.hoverBg)}
+                            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={formData.assignees?.some((a) => a.name === user.name)}
+                              onChange={(e) => {
+                                const newAssignees = e.target.checked
+                                  ? [
+                                      ...(formData.assignees || []),
+                                      {
+                                        id: user.id,
+                                        name: user.name,
+                                        avatar: user.avatar,
+                                        initials: user.name
+                                          .split(' ')
+                                          .map((n) => n[0])
+                                          .join('')
+                                          .toUpperCase()
+                                          .slice(0, 2),
+                                        color: themeColors.accent,
+                                      },
+                                    ]
+                                  : (formData.assignees || []).filter((a) => a.name !== user.name)
+                                handleChange('assignees', newAssignees)
+                              }}
+                              className="w-4 h-4 rounded flex-shrink-0"
+                              style={{
+                                accentColor: themeColors.accent,
+                              }}
+                              disabled={isLoading}
+                            />
+                            <div
+                              className="w-6 h-6 rounded-full flex items-center justify-center text-xs text-white font-semibold flex-shrink-0"
+                              style={{ backgroundColor: themeColors.accent }}
+                            >
+                              {user.name.charAt(0).toUpperCase()}
+                            </div>
+                            <span className="truncate" style={{ color: themeColors.textPrimary }}>{user.name}</span>
+                          </label>
+                        ))}
+                      </div>
+                    ) : (
+                      <div
+                        className="p-3 rounded-lg text-sm text-center"
+                        style={{
+                          backgroundColor: themeColors.bgSecondary,
+                          border: `1px solid ${themeColors.borderLight}`,
+                          color: themeColors.textTertiary,
+                        }}
+                      >
+                        No hay usuarios disponibles
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                {/* Status and Priority Row */}
-                <div className="grid grid-cols-2 gap-4">
-                  {/* Status - v0.17.54: Dynamic statuses */}
+                {/* v0.17.70: Three-column layout for Status, Priority, Progress */}
+                <div className="grid grid-cols-3 gap-3">
+                  {/* Status */}
                   <div>
-                    <label className="block text-sm font-medium mb-2 flex items-center gap-2" style={labelStyle}>
-                      <CheckCircle2 className="w-4 h-4" />
+                    <label className="block text-xs font-medium mb-1.5 flex items-center gap-1.5" style={labelStyle}>
+                      <CheckCircle2 className="w-3.5 h-3.5" />
                       Estado
                     </label>
                     <select
                       value={formData.status}
                       onChange={(e) => handleChange('status', e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent"
+                      className="w-full px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent text-sm"
                       style={inputStyle}
                       disabled={isLoading}
                     >
@@ -378,16 +445,16 @@ export function TaskFormModal({
                     </select>
                   </div>
 
-                  {/* v0.17.28: Priority */}
+                  {/* Priority */}
                   <div>
-                    <label className="block text-sm font-medium mb-2 flex items-center gap-2" style={labelStyle}>
-                      <Flag className="w-4 h-4" />
+                    <label className="block text-xs font-medium mb-1.5 flex items-center gap-1.5" style={labelStyle}>
+                      <Flag className="w-3.5 h-3.5" />
                       Prioridad
                     </label>
                     <select
                       value={formData.priority || 'medium'}
                       onChange={(e) => handleChange('priority', e.target.value as TaskPriority)}
-                      className="w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent"
+                      className="w-full px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent text-sm"
                       style={inputStyle}
                       disabled={isLoading}
                     >
@@ -397,93 +464,58 @@ export function TaskFormModal({
                       <option value="urgent">🔴 Urgente</option>
                     </select>
                   </div>
-                </div>
 
-                {/* v0.11.0: Color Picker */}
-                <div>
-                  <label className="block text-sm font-medium mb-3 flex items-center gap-2" style={labelStyle}>
-                    <Palette className="w-4 h-4" />
-                    Color de la Tarea
-                  </label>
-                  <ColorPicker
-                    value={formData.color}
-                    onChange={(color) => handleChange('color', color)}
-                    disabled={isLoading}
-                  />
-                  <p className="text-xs mt-2" style={{ color: themeColors.textTertiary }}>
-                    {task?.parentId
-                      ? 'Esta subtarea hereda el color de su tarea padre'
-                      : task?.subtasks && task.subtasks.length > 0
-                      ? 'Las subtareas heredarán este color con menor opacidad'
-                      : 'Elige un color para organizar visualmente tus tareas'
-                    }
-                  </p>
-                </div>
-
-                {/* Progress */}
-                <div>
-                  <label className="block text-sm font-medium mb-2 flex items-center justify-between" style={labelStyle}>
-                    <span className="flex items-center gap-2">
-                      <Clock className="w-4 h-4" />
-                      Progreso
-                    </span>
-                    <span
-                      className="font-semibold px-2 py-0.5 rounded text-sm"
-                      style={{
-                        color: formData.progress < 30 ? '#EF4444' : formData.progress < 70 ? '#F59E0B' : '#10B981',
-                        backgroundColor: formData.progress < 30 ? 'rgba(239, 68, 68, 0.1)' : formData.progress < 70 ? 'rgba(245, 158, 11, 0.1)' : 'rgba(16, 185, 129, 0.1)',
-                      }}
-                    >
-                      {formData.progress}%
-                    </span>
-                  </label>
-
-                  {/* Progress Slider with Color Gradient */}
-                  <div className="relative">
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      step="5"
-                      value={formData.progress}
-                      onChange={(e) => handleChange('progress', parseInt(e.target.value))}
-                      className="w-full h-2 rounded-lg appearance-none cursor-pointer"
-                      style={{
-                        backgroundColor: themeColors.bgSecondary,
-                        accentColor: formData.progress < 30 ? '#EF4444' : formData.progress < 70 ? '#F59E0B' : '#10B981',
-                      }}
-                      disabled={isLoading}
-                    />
-                    {/* Visual progress bar underneath */}
-                    <div
-                      className="absolute top-0 left-0 h-2 rounded-lg pointer-events-none transition-all duration-300"
-                      style={{
-                        width: `${formData.progress}%`,
-                        backgroundColor: formData.progress < 30 ? 'rgba(239, 68, 68, 0.3)' : formData.progress < 70 ? 'rgba(245, 158, 11, 0.3)' : 'rgba(16, 185, 129, 0.3)',
-                      }}
-                    />
-                  </div>
-
-                  {/* Quick Progress Buttons */}
-                  <div className="flex items-center justify-between mt-3 gap-2">
-                    <span className="text-xs" style={{ color: themeColors.textTertiary }}>Accesos rápidos:</span>
-                    <div className="flex gap-1.5">
-                      {[0, 25, 50, 75, 100].map((value) => (
+                  {/* Progress - Compact */}
+                  <div>
+                    <label className="block text-xs font-medium mb-1.5 flex items-center justify-between" style={labelStyle}>
+                      <span className="flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5" />
+                        Progreso
+                      </span>
+                      <span
+                        className="font-semibold px-1.5 py-0.5 rounded text-xs"
+                        style={{
+                          color: formData.progress < 30 ? '#EF4444' : formData.progress < 70 ? '#F59E0B' : '#10B981',
+                          backgroundColor: formData.progress < 30 ? 'rgba(239, 68, 68, 0.1)' : formData.progress < 70 ? 'rgba(245, 158, 11, 0.1)' : 'rgba(16, 185, 129, 0.1)',
+                        }}
+                      >
+                        {formData.progress}%
+                      </span>
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        step="5"
+                        value={formData.progress}
+                        onChange={(e) => handleChange('progress', parseInt(e.target.value))}
+                        className="flex-1 h-2 rounded-lg appearance-none cursor-pointer"
+                        style={{
+                          backgroundColor: themeColors.bgSecondary,
+                          accentColor: formData.progress < 30 ? '#EF4444' : formData.progress < 70 ? '#F59E0B' : '#10B981',
+                        }}
+                        disabled={isLoading}
+                      />
+                    </div>
+                    {/* Quick buttons */}
+                    <div className="flex gap-1 mt-1.5">
+                      {[0, 50, 100].map((value) => (
                         <button
                           key={value}
                           type="button"
                           onClick={() => handleChange('progress', value)}
                           disabled={isLoading}
-                          className="px-3 py-1 text-xs font-medium rounded-md transition-all duration-200 hover:scale-105 active:scale-95"
+                          className="flex-1 px-1 py-0.5 text-xs font-medium rounded transition-all"
                           style={{
                             backgroundColor: formData.progress === value
                               ? (value < 30 ? '#EF4444' : value < 70 ? '#F59E0B' : '#10B981')
                               : themeColors.bgSecondary,
                             color: formData.progress === value
                               ? '#FFFFFF'
-                              : themeColors.textSecondary,
+                              : themeColors.textTertiary,
                             border: `1px solid ${formData.progress === value
-                              ? (value < 30 ? '#EF4444' : value < 70 ? '#F59E0B' : '#10B981')
+                              ? 'transparent'
                               : themeColors.borderLight}`,
                           }}
                         >
@@ -492,151 +524,146 @@ export function TaskFormModal({
                       ))}
                     </div>
                   </div>
-
-                  {/* Progress Labels */}
-                  <div className="flex justify-between text-xs mt-2" style={{ color: themeColors.textTertiary }}>
-                    <span>0%</span>
-                    <span>25%</span>
-                    <span>50%</span>
-                    <span>75%</span>
-                    <span>100%</span>
-                  </div>
                 </div>
 
-                {/* Milestone Checkbox */}
-                <div
-                  className="flex items-center gap-3 p-4 rounded-lg"
-                  style={{
-                    backgroundColor: themeColors.bgSecondary,
-                    border: `1px solid ${themeColors.borderLight}`,
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    id="isMilestone"
-                    checked={formData.isMilestone}
-                    onChange={(e) => handleChange('isMilestone', e.target.checked)}
-                    className="w-4 h-4 rounded focus:ring-2"
-                    style={{
-                      accentColor: themeColors.accent,
-                    }}
+                {/* v0.17.70: Color picker - Inline compact version */}
+                <div>
+                  <label className="block text-xs font-medium mb-2 flex items-center gap-1.5" style={labelStyle}>
+                    <Palette className="w-3.5 h-3.5" />
+                    Color
+                  </label>
+                  <ColorPicker
+                    value={formData.color}
+                    onChange={(color) => handleChange('color', color)}
                     disabled={isLoading}
                   />
-                  <label htmlFor="isMilestone" className="flex items-center gap-2 text-sm cursor-pointer" style={{ color: themeColors.textPrimary }}>
-                    <MilestoneIcon className="w-4 h-4 text-yellow-500" />
-                    Marcar como Hito (Milestone)
-                  </label>
                 </div>
 
-                {/* Assignees */}
-                {availableUsers.length > 0 && (
-                  <div>
-                    <label className="block text-sm font-medium mb-2 flex items-center gap-2" style={labelStyle}>
-                      <Users className="w-4 h-4" />
-                      Asignar a
-                    </label>
-                    <div
-                      className="space-y-2 max-h-32 overflow-y-auto p-3 rounded-lg"
-                      style={{
-                        backgroundColor: themeColors.bgSecondary,
-                        border: `1px solid ${themeColors.borderLight}`,
-                      }}
-                    >
-                      {availableUsers.map((user) => (
-                        <label
-                          key={user.id}
-                          className="flex items-center gap-3 cursor-pointer p-2 rounded"
-                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = themeColors.hoverBg)}
-                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={formData.assignees?.some((a) => a.name === user.name)}
-                            onChange={(e) => {
-                              const newAssignees = e.target.checked
-                                ? [
-                                    ...(formData.assignees || []),
-                                    {
-                                      id: user.id, // v0.17.35: Include user.id for task_assignees insertion
-                                      name: user.name,
-                                      avatar: user.avatar,
-                                      initials: user.name
-                                        .split(' ')
-                                        .map((n) => n[0])
-                                        .join('')
-                                        .toUpperCase()
-                                        .slice(0, 2),
-                                      color: themeColors.accent,
-                                    },
-                                  ]
-                                : (formData.assignees || []).filter((a) => a.name !== user.name)
-                              handleChange('assignees', newAssignees)
-                            }}
-                            className="w-4 h-4 rounded"
-                            style={{
-                              accentColor: themeColors.accent,
-                            }}
-                            disabled={isLoading}
-                          />
-                          <div className="flex items-center gap-2">
-                            <div
-                              className="w-6 h-6 rounded-full flex items-center justify-center text-xs text-white font-semibold"
-                              style={{ backgroundColor: themeColors.accent }}
-                            >
-                              {user.name.charAt(0).toUpperCase()}
-                            </div>
-                            <span className="text-sm" style={{ color: themeColors.textPrimary }}>{user.name}</span>
-                          </div>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                {/* v0.17.70: Description - Collapsible */}
+                <div>
+                  <label className="block text-xs font-medium mb-1.5 flex items-center gap-1.5" style={labelStyle}>
+                    <FileText className="w-3.5 h-3.5" />
+                    Descripción
+                    <span className="text-xs font-normal" style={{ color: themeColors.textTertiary }}>(opcional)</span>
+                  </label>
+                  <textarea
+                    value={formData.description || ''}
+                    onChange={(e) => handleChange('description', e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent resize-none text-sm"
+                    style={inputStyle}
+                    onFocus={(e) => (e.currentTarget.style.borderColor = themeColors.accent)}
+                    onBlur={(e) => (e.currentTarget.style.borderColor = themeColors.borderLight)}
+                    placeholder="Describe los detalles de la tarea..."
+                    rows={2}
+                    disabled={isLoading}
+                  />
+                </div>
 
-                {/* Dependencies */}
-                {availableTasks.length > 0 && (
-                  <div>
-                    <label className="block text-sm font-medium mb-2 flex items-center gap-2" style={labelStyle}>
-                      <Link2 className="w-4 h-4" />
-                      Dependencias
-                    </label>
-                    <div
-                      className="space-y-2 max-h-32 overflow-y-auto p-3 rounded-lg"
-                      style={{
-                        backgroundColor: themeColors.bgSecondary,
-                        border: `1px solid ${themeColors.borderLight}`,
-                      }}
-                    >
-                      {availableTasks
-                        .filter((t) => t.id !== task?.id)
-                        .map((t) => (
-                          <label
-                            key={t.id}
-                            className="flex items-center gap-3 cursor-pointer p-2 rounded"
-                            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = themeColors.hoverBg)}
-                            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                {/* v0.17.70: Advanced Options - Collapsible section */}
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => setShowAdvanced(!showAdvanced)}
+                    className="flex items-center gap-2 text-sm font-medium w-full py-2 px-3 rounded-lg transition-colors"
+                    style={{
+                      color: themeColors.textSecondary,
+                      backgroundColor: themeColors.bgSecondary,
+                      border: `1px solid ${themeColors.borderLight}`,
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = themeColors.hoverBg)}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = themeColors.bgSecondary)}
+                  >
+                    {showAdvanced ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    Opciones avanzadas
+                    <span className="text-xs font-normal" style={{ color: themeColors.textTertiary }}>
+                      (hito, dependencias)
+                    </span>
+                  </button>
+
+                  <AnimatePresence>
+                    {showAdvanced && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="pt-4 space-y-4">
+                          {/* Milestone Checkbox */}
+                          <div
+                            className="flex items-center gap-3 p-3 rounded-lg"
+                            style={{
+                              backgroundColor: themeColors.bgSecondary,
+                              border: `1px solid ${themeColors.borderLight}`,
+                            }}
                           >
                             <input
                               type="checkbox"
-                              checked={formData.dependencies?.includes(t.id)}
-                              onChange={(e) => {
-                                const newDeps = e.target.checked
-                                  ? [...(formData.dependencies || []), t.id]
-                                  : (formData.dependencies || []).filter((id) => id !== t.id)
-                                handleChange('dependencies', newDeps)
-                              }}
-                              className="w-4 h-4 rounded"
+                              id="isMilestone"
+                              checked={formData.isMilestone}
+                              onChange={(e) => handleChange('isMilestone', e.target.checked)}
+                              className="w-4 h-4 rounded focus:ring-2"
                               style={{
                                 accentColor: themeColors.accent,
                               }}
                               disabled={isLoading}
                             />
-                            <span className="text-sm" style={{ color: themeColors.textPrimary }}>{t.name}</span>
-                          </label>
-                        ))}
-                    </div>
-                  </div>
-                )}
+                            <label htmlFor="isMilestone" className="flex items-center gap-2 text-sm cursor-pointer" style={{ color: themeColors.textPrimary }}>
+                              <MilestoneIcon className="w-4 h-4 text-yellow-500" />
+                              Marcar como Hito (Milestone)
+                            </label>
+                          </div>
+
+                          {/* Dependencies */}
+                          {availableTasks.length > 0 && (
+                            <div>
+                              <label className="block text-xs font-medium mb-1.5 flex items-center gap-1.5" style={labelStyle}>
+                                <Link2 className="w-3.5 h-3.5" />
+                                Dependencias
+                              </label>
+                              <div
+                                className="space-y-1 max-h-28 overflow-y-auto p-2 rounded-lg"
+                                style={{
+                                  backgroundColor: themeColors.bgSecondary,
+                                  border: `1px solid ${themeColors.borderLight}`,
+                                }}
+                              >
+                                {availableTasks
+                                  .filter((t) => t.id !== task?.id)
+                                  .map((t) => (
+                                    <label
+                                      key={t.id}
+                                      className="flex items-center gap-2 cursor-pointer p-1.5 rounded text-sm"
+                                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = themeColors.hoverBg)}
+                                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                                    >
+                                      <input
+                                        type="checkbox"
+                                        checked={formData.dependencies?.includes(t.id)}
+                                        onChange={(e) => {
+                                          const newDeps = e.target.checked
+                                            ? [...(formData.dependencies || []), t.id]
+                                            : (formData.dependencies || []).filter((id) => id !== t.id)
+                                          handleChange('dependencies', newDeps)
+                                        }}
+                                        className="w-4 h-4 rounded flex-shrink-0"
+                                        style={{
+                                          accentColor: themeColors.accent,
+                                        }}
+                                        disabled={isLoading}
+                                      />
+                                      <span className="truncate" style={{ color: themeColors.textPrimary }}>{t.name}</span>
+                                    </label>
+                                  ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               </form>
 
               {/* Footer */}

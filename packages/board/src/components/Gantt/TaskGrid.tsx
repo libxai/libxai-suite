@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useContext } from 'react';
-import { ChevronDown, ChevronRight, Keyboard, Plus, Edit3 } from 'lucide-react';
+import { ChevronDown, ChevronRight, Keyboard, Plus, Edit3, GripVertical } from 'lucide-react';
 import { Task, GanttColumn, ColumnType, GanttTemplates } from './types';
 import { motion } from 'framer-motion';
 import { ColumnManager } from './ColumnManager';
@@ -41,6 +41,8 @@ interface TaskGridProps {
   onOpenTaskModal?: (task: Task) => void;
   // v0.17.34: Delete confirmation request (shows modal instead of deleting directly)
   onDeleteRequest?: (taskId: string, taskName: string) => void;
+  // v0.17.68: Reparent task via drag & drop
+  onTaskReparent?: (taskId: string, newParentId: string | null, position?: number) => void;
 }
 
 export function TaskGrid({
@@ -68,6 +70,7 @@ export function TaskGrid({
   onCreateSubtask,
   onOpenTaskModal,
   onDeleteRequest, // v0.17.34
+  onTaskReparent, // v0.17.68
 }: TaskGridProps) {
   // v0.16.2: Get translations from context
   const translations = useContext(GanttI18nContext);
@@ -96,6 +99,14 @@ export function TaskGrid({
     y: 0,
     type: 'header',
   });
+
+  // v0.17.68: Drag & drop state for reparenting tasks
+  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
+  const [dropTargetTaskId, setDropTargetTaskId] = useState<string | null>(null);
+  const [dropPosition, setDropPosition] = useState<'above' | 'below' | 'child' | null>(null);
+  const dragStartY = useRef<number>(0);
+  const dragThreshold = 5; // Minimum pixels to move before drag starts
+  const isDragging = useRef<boolean>(false);
 
   // Close keyboard help when clicking outside
   useEffect(() => {
@@ -243,6 +254,123 @@ export function TaskGrid({
     onCreateSubtask?.(task.id);
   };
 
+  // v0.17.68: Drag handlers for reparenting
+  const handleDragStart = (taskId: string, e: React.MouseEvent) => {
+    // Only start drag from the drag handle area
+    e.preventDefault();
+    dragStartY.current = e.clientY;
+    setDraggedTaskId(taskId);
+    isDragging.current = false;
+  };
+
+  const handleDragMove = (e: MouseEvent) => {
+    if (!draggedTaskId) return;
+
+    const deltaY = Math.abs(e.clientY - dragStartY.current);
+    if (deltaY > dragThreshold) {
+      isDragging.current = true;
+    }
+
+    if (!isDragging.current) return;
+
+    // Find which task we're hovering over
+    const rows = document.querySelectorAll('[data-task-row]');
+    let foundTarget: string | null = null;
+    let position: 'above' | 'below' | 'child' | null = null;
+
+    rows.forEach((row) => {
+      const rect = row.getBoundingClientRect();
+      const taskId = row.getAttribute('data-task-row');
+
+      if (taskId && taskId !== draggedTaskId && e.clientY >= rect.top && e.clientY <= rect.bottom) {
+        foundTarget = taskId;
+
+        // Determine drop position based on Y position within the row
+        const relativeY = e.clientY - rect.top;
+        const rowHeight = rect.height;
+
+        if (relativeY < rowHeight * 0.25) {
+          position = 'above';
+        } else if (relativeY > rowHeight * 0.75) {
+          position = 'below';
+        } else {
+          // Middle zone = make it a child
+          position = 'child';
+        }
+      }
+    });
+
+    setDropTargetTaskId(foundTarget);
+    setDropPosition(position);
+  };
+
+  const handleDragEnd = () => {
+    if (isDragging.current && draggedTaskId && dropTargetTaskId && dropPosition) {
+      // Determine the new parent and position
+      if (dropPosition === 'child') {
+        // Make it a child of the target task
+        onTaskReparent?.(draggedTaskId, dropTargetTaskId);
+      } else if (dropPosition === 'above' || dropPosition === 'below') {
+        // Find the parent of the target task
+        const findParent = (tasks: Task[], targetId: string, parent: string | null = null): string | null => {
+          for (const t of tasks) {
+            if (t.id === targetId) return parent;
+            if (t.subtasks) {
+              const found = findParent(t.subtasks, targetId, t.id);
+              if (found !== undefined) return found;
+            }
+          }
+          return undefined as unknown as string | null;
+        };
+
+        const targetParent = findParent(tasks, dropTargetTaskId, null);
+
+        // Find position within siblings
+        const findPositionInSiblings = (taskList: Task[], targetId: string): number => {
+          const idx = taskList.findIndex(t => t.id === targetId);
+          return dropPosition === 'below' ? idx + 1 : idx;
+        };
+
+        if (targetParent === null) {
+          // Target is at root level
+          const pos = findPositionInSiblings(tasks, dropTargetTaskId);
+          onTaskReparent?.(draggedTaskId, null, pos);
+        } else {
+          // Target has a parent
+          const parentTask = flatTasks.find(ft => ft.task.id === targetParent)?.task;
+          if (parentTask?.subtasks) {
+            const pos = findPositionInSiblings(parentTask.subtasks, dropTargetTaskId);
+            onTaskReparent?.(draggedTaskId, targetParent, pos);
+          }
+        }
+      }
+    }
+
+    // Reset drag state
+    setDraggedTaskId(null);
+    setDropTargetTaskId(null);
+    setDropPosition(null);
+    isDragging.current = false;
+  };
+
+  // v0.17.68: Set up global drag listeners
+  useEffect(() => {
+    if (draggedTaskId) {
+      document.addEventListener('mousemove', handleDragMove);
+      document.addEventListener('mouseup', handleDragEnd);
+      document.body.style.cursor = 'grabbing';
+      document.body.style.userSelect = 'none';
+
+      return () => {
+        document.removeEventListener('mousemove', handleDragMove);
+        document.removeEventListener('mouseup', handleDragEnd);
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      };
+    }
+    return undefined;
+  }, [draggedTaskId, dropTargetTaskId, dropPosition]);
+
   // Render cell content based on column type
   const renderCellContent = (column: GanttColumn, task: Task, level: number) => {
     switch (column.id) {
@@ -252,6 +380,21 @@ export function TaskGrid({
 
         return (
           <div className="flex items-center gap-2 flex-1 min-w-0 relative" style={{ paddingLeft: `${level * 20}px` }}>
+            {/* v0.17.68: Drag handle for reparenting - always visible, more prominent on hover */}
+            {onTaskReparent && (
+              <div
+                className="cursor-grab active:cursor-grabbing p-0.5 rounded hover:bg-white/10 transition-all flex-shrink-0"
+                style={{
+                  color: theme.textTertiary,
+                  opacity: isHovered ? 1 : 0.3,
+                }}
+                onMouseDown={(e) => handleDragStart(task.id, e)}
+                title="Arrastrar para mover tarea"
+              >
+                <GripVertical className="w-4 h-4" />
+              </div>
+            )}
+
             {/* Expand/Collapse Button - Always show space for alignment */}
             {task.subtasks && task.subtasks.length > 0 ? (
               <button
@@ -955,16 +1098,38 @@ export function TaskGrid({
       {flatTasks.map(({ task, level }, index) => {
         const isSelected = isTaskSelected(task.id);
 
+        // v0.17.68: Calculate drop indicator styles
+        const isDropTarget = dropTargetTaskId === task.id;
+        const dropStyles: React.CSSProperties = {};
+        if (isDropTarget && dropPosition) {
+          if (dropPosition === 'above') {
+            dropStyles.borderTopWidth = '2px';
+            dropStyles.borderTopStyle = 'solid';
+            dropStyles.borderTopColor = theme.accent;
+          } else if (dropPosition === 'below') {
+            dropStyles.borderBottomWidth = '2px';
+            dropStyles.borderBottomStyle = 'solid';
+            dropStyles.borderBottomColor = theme.accent;
+          } else if (dropPosition === 'child') {
+            dropStyles.backgroundColor = theme.accentLight;
+            dropStyles.boxShadow = `inset 0 0 0 2px ${theme.accent}`;
+          }
+        }
+
         return (
           <motion.div
             key={task.id}
-            className="flex items-center cursor-pointer group"
+            data-task-row={task.id}
+            className={`flex items-center cursor-pointer group ${draggedTaskId === task.id ? 'opacity-50' : ''}`}
             style={{
               height: `${ROW_HEIGHT}px`,
               borderLeft: isSelected ? `3px solid ${theme.accent}` : `3px solid transparent`,
               backgroundColor: isSelected
                 ? theme.accentLight
-                : (index % 2 === 0 ? theme.bgPrimary : theme.bgGrid),
+                : isDropTarget && dropPosition === 'child'
+                  ? theme.accentLight
+                  : (index % 2 === 0 ? theme.bgPrimary : theme.bgGrid),
+              ...dropStyles,
             }}
             onMouseEnter={() => setHoveredTaskId(task.id)}
             onMouseLeave={() => setHoveredTaskId(null)}

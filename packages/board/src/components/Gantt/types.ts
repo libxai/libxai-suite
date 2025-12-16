@@ -466,4 +466,7 @@ export interface GanttConfig {
   onTaskOutdent?: (taskId: string) => void;
   onTaskRename?: (taskId: string, newName: string) => void;
   onTaskToggleExpand?: (taskId: string) => void;
+
+  // v0.17.68: Reparent callback - move task to a different parent via drag & drop
+  onTaskReparent?: (taskId: string, newParentId: string | null, position?: number) => void;
 }

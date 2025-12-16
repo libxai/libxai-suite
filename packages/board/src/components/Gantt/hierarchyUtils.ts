@@ -401,3 +401,117 @@ export function createSubtask(
 
   return { tasks: addSubtask(tasks), newTask };
 }
+
+/**
+ * v0.17.68: Reparent a task - move it to become a child of another task
+ * This allows dragging subtasks between different parent tasks
+ *
+ * @param tasks - The task tree
+ * @param taskId - The ID of the task to move
+ * @param newParentId - The ID of the new parent task (null to move to root level)
+ * @param position - Optional position index within the new parent's subtasks
+ * @returns Updated task tree
+ */
+export function reparentTask(
+  tasks: Task[],
+  taskId: string,
+  newParentId: string | null,
+  position?: number
+): Task[] {
+  // Prevent moving a task to itself
+  if (taskId === newParentId) return tasks;
+
+  // Find the task to move
+  const taskToMove = findTask(tasks, taskId);
+  if (!taskToMove) return tasks;
+
+  // Prevent moving a parent to its own descendant (would create circular reference)
+  if (newParentId) {
+    const isDescendant = (parentTask: Task, childId: string): boolean => {
+      if (!parentTask.subtasks) return false;
+      for (const subtask of parentTask.subtasks) {
+        if (subtask.id === childId) return true;
+        if (isDescendant(subtask, childId)) return true;
+      }
+      return false;
+    };
+    if (isDescendant(taskToMove, newParentId)) return tasks;
+  }
+
+  // Step 1: Remove the task from its current location
+  const removeTask = (taskList: Task[]): Task[] => {
+    return taskList
+      .filter((t) => t.id !== taskId)
+      .map((t) => {
+        if (t.subtasks && t.subtasks.length > 0) {
+          return { ...t, subtasks: removeTask(t.subtasks) };
+        }
+        return t;
+      });
+  };
+
+  let result = removeTask(tasks);
+
+  // Step 2: Add the task to its new location
+  if (newParentId === null) {
+    // Move to root level
+    const insertPos = position !== undefined ? position : result.length;
+    result.splice(insertPos, 0, { ...taskToMove, parentId: undefined });
+  } else {
+    // Move to be a child of newParentId
+    const addToParent = (taskList: Task[]): Task[] => {
+      return taskList.map((t) => {
+        if (t.id === newParentId) {
+          const subtasks = t.subtasks || [];
+          const insertPos = position !== undefined ? position : subtasks.length;
+          const newSubtasks = [...subtasks];
+          newSubtasks.splice(insertPos, 0, { ...taskToMove, parentId: newParentId });
+          return {
+            ...t,
+            subtasks: newSubtasks,
+            isExpanded: true, // Auto-expand to show the moved task
+          };
+        }
+        if (t.subtasks && t.subtasks.length > 0) {
+          return { ...t, subtasks: addToParent(t.subtasks) };
+        }
+        return t;
+      });
+    };
+    result = addToParent(result);
+  }
+
+  return result;
+}
+
+/**
+ * v0.17.68: Check if a task can be reparented to a new parent
+ * Returns false if the move would create a circular reference
+ */
+export function canReparent(
+  tasks: Task[],
+  taskId: string,
+  newParentId: string | null
+): boolean {
+  // Can always move to root
+  if (newParentId === null) return true;
+
+  // Can't be parent of itself
+  if (taskId === newParentId) return false;
+
+  // Find the task
+  const task = findTask(tasks, taskId);
+  if (!task) return false;
+
+  // Check if newParentId is a descendant of taskId (would create circular ref)
+  const isDescendant = (parentTask: Task, childId: string): boolean => {
+    if (!parentTask.subtasks) return false;
+    for (const subtask of parentTask.subtasks) {
+      if (subtask.id === childId) return true;
+      if (isDescendant(subtask, childId)) return true;
+    }
+    return false;
+  };
+
+  return !isDescendant(task, newParentId);
+}

@@ -29,6 +29,7 @@ import {
   renameTask,
   toggleTaskExpansion,
   createSubtask,
+  reparentTask,
 } from './hierarchyUtils';
 
 interface GanttBoardProps {
@@ -651,6 +652,12 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     config.onTaskOutdent?.(taskIds[0]!);
   }, [config]);
 
+  // v0.17.68: Handle task reparenting via drag & drop
+  const handleTaskReparent = useCallback((taskId: string, newParentId: string | null, position?: number) => {
+    setLocalTasks((prev) => reparentTask(prev, taskId, newParentId, position));
+    config.onTaskReparent?.(taskId, newParentId, position);
+  }, [config]);
+
   const handleTaskMove = useCallback((taskIds: string[], direction: 'up' | 'down') => {
     if (taskIds.length === 0) return;
     setLocalTasks((prev) => moveTasks(prev, taskIds, direction));
@@ -1147,6 +1154,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
             onCreateSubtask={handleCreateSubtask}
             onOpenTaskModal={onTaskClick ? (task: Task) => onTaskClick(task) : undefined}
             onDeleteRequest={(taskId: string, taskName: string) => setDeleteConfirmation({ taskId, taskName })} // v0.17.34
+            onTaskReparent={handleTaskReparent} // v0.17.68
           />
         </div>
 
