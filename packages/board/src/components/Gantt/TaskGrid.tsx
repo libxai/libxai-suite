@@ -463,16 +463,29 @@ export function TaskGrid({
                 <span
                   className="flex-1"
                   style={{
-                    color: theme.textPrimary,
+                    // v0.17.71: Enhanced visual hierarchy - Phases "jump" out, tasks recede
+                    // Phases (with subtasks): Pure primary color, heavier weight, slightly larger
+                    // Tasks (children): Secondary color, lighter weight, normal size
+                    color: (task.subtasks && task.subtasks.length > 0)
+                      ? theme.textPrimary  // Phases: Brightest (#FFFFFF dark / #0F172A light)
+                      : task.parentId
+                        ? theme.textSecondary  // Subtasks: Muted (#CBD5E1 dark / #334155 light)
+                        : theme.textPrimary,  // Root tasks without children: Still bright
                     fontFamily: 'Inter, sans-serif',
-                    fontSize: level === 0 ? '14px' : level === 1 ? '13px' : '12px',
-                    // World-class hierarchy: Containers (with subtasks) have more weight
+                    fontSize: (task.subtasks && task.subtasks.length > 0)
+                      ? '14px'  // Phases: Slightly larger
+                      : level === 0
+                        ? '13px'  // Root tasks
+                        : '13px',  // All child tasks same size
+                    // v0.17.71: Font weight creates clear hierarchy
                     fontWeight: task.isMilestone
                       ? 600  // Milestones: Semibold (most important)
                       : (task.subtasks && task.subtasks.length > 0)
-                      ? 500  // Containers: Medium (guide the eye)
-                      : 400,  // Regular tasks: Normal
-                    opacity: level === 0 ? 1 : level === 1 ? 0.95 : 0.88,
+                        ? 600  // Phases/Containers: Semibold - "jump" to view
+                        : 400,  // Regular tasks: Normal weight
+                    letterSpacing: (task.subtasks && task.subtasks.length > 0)
+                      ? '-0.01em'  // Phases: Tighter tracking for headers
+                      : '0',
                   }}
                   title={task.name} // v0.13.8: Show full name on hover tooltip
                 >

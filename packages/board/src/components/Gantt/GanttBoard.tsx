@@ -38,17 +38,17 @@ interface GanttBoardProps {
   onTasksChange?: (tasks: Task[]) => void;
 }
 
-// Utility function to get row height based on density
+// v0.17.71: Increased row heights for better "breathing" - less Excel, more SaaS
 const getRowHeight = (density: RowDensity): number => {
   switch (density) {
     case 'compact':
-      return 40;
+      return 44;  // Was 40 - still compact but not cramped
     case 'comfortable':
-      return 48;
+      return 52;  // Was 48 - default: luxurious spacing like Linear
     case 'spacious':
-      return 56;
+      return 60;  // Was 56 - generous for touch/accessibility
     default:
-      return 48;
+      return 52;
   }
 };
 
