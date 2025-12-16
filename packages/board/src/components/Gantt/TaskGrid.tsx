@@ -463,28 +463,25 @@ export function TaskGrid({
                 <span
                   className="flex-1"
                   style={{
-                    // v0.17.71: Enhanced visual hierarchy - Phases "jump" out, tasks recede
-                    // Phases (with subtasks): Pure primary color, heavier weight, slightly larger
-                    // Tasks (children): Secondary color, lighter weight, normal size
-                    color: (task.subtasks && task.subtasks.length > 0)
-                      ? theme.textPrimary  // Phases: Brightest (#FFFFFF dark / #0F172A light)
-                      : task.parentId
-                        ? theme.textSecondary  // Subtasks: Muted (#CBD5E1 dark / #334155 light)
-                        : theme.textPrimary,  // Root tasks without children: Still bright
+                    // v0.17.72: Enhanced visual hierarchy - Root tasks (level 0) are always "phases"
+                    // Root tasks (no parentId): Pure primary color, heavier weight - even without children
+                    // Subtasks (has parentId): Secondary color, lighter weight
+                    // This ensures master tasks look prominent even before adding children
+                    color: !task.parentId
+                      ? theme.textPrimary  // Root/Master: Brightest (#FFFFFF dark / #0F172A light)
+                      : theme.textSecondary,  // Subtasks: Muted (#CBD5E1 dark / #334155 light)
                     fontFamily: 'Inter, sans-serif',
-                    fontSize: (task.subtasks && task.subtasks.length > 0)
-                      ? '14px'  // Phases: Slightly larger
-                      : level === 0
-                        ? '13px'  // Root tasks
-                        : '13px',  // All child tasks same size
-                    // v0.17.71: Font weight creates clear hierarchy
+                    fontSize: !task.parentId
+                      ? '14px'  // Root/Master: Slightly larger
+                      : '13px',  // Subtasks: Normal size
+                    // v0.17.72: Font weight based on hierarchy level, not children count
                     fontWeight: task.isMilestone
                       ? 600  // Milestones: Semibold (most important)
-                      : (task.subtasks && task.subtasks.length > 0)
-                        ? 600  // Phases/Containers: Semibold - "jump" to view
-                        : 400,  // Regular tasks: Normal weight
-                    letterSpacing: (task.subtasks && task.subtasks.length > 0)
-                      ? '-0.01em'  // Phases: Tighter tracking for headers
+                      : !task.parentId
+                        ? 600  // Root/Master: Semibold - always "jump" to view
+                        : 400,  // Subtasks: Normal weight
+                    letterSpacing: !task.parentId
+                      ? '-0.01em'  // Root/Master: Tighter tracking for headers
                       : '0',
                   }}
                   title={task.name} // v0.13.8: Show full name on hover tooltip
