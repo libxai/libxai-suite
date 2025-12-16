@@ -4,6 +4,16 @@ import { Task, GanttTemplates } from './types';
 import { TaskPosition } from './Timeline';
 import { useDragState } from './hooks/useDragState';
 
+// v0.17.76: Tooltip data structure for external rendering
+export interface TaskTooltipData {
+  task: Task;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  showBelow: boolean;
+}
+
 interface TaskBarProps {
   task: Task;
   x: number;
@@ -21,6 +31,8 @@ interface TaskBarProps {
   allTaskPositions?: TaskPosition[];
   // v0.13.0: Callback for dependency cascade preview during drag
   onDragMove?: (taskId: string, daysDelta: number, isDragging: boolean) => void;
+  // v0.17.76: Callback for tooltip hover state - enables rendering tooltips in a top layer
+  onHoverChange?: (tooltipData: TaskTooltipData | null) => void;
 }
 
 type DragMode = 'none' | 'move' | 'resize-start' | 'resize-end' | 'connect';
@@ -41,6 +53,7 @@ export function TaskBar({
   onDependencyCreate,
   allTaskPositions = [],
   onDragMove, // v0.13.0
+  onHoverChange, // v0.17.76
 }: TaskBarProps) {
   // v0.8.1: Centralized drag state management for better modularity
   const dragState = useDragState(x, width);
@@ -108,6 +121,26 @@ export function TaskBar({
   const RESIZE_ZONE = getResizeZone(width);
   const isSmallBar = width < 50;          // Flag for special handling
   const isVerySmallBar = width < 40;      // Flag for ultra-small bars (simplified UX)
+
+  // v0.17.76: Notify parent of hover state changes for top-layer tooltip rendering
+  // This ensures tooltips always appear above all task bars (SVG z-order fix)
+  useEffect(() => {
+    if (onHoverChange) {
+      if (isHovered && !isDragging && !task.segments) {
+        const showBelow = y < 100; // Same threshold as internal tooltip logic
+        onHoverChange({
+          task,
+          x, // Use base x since tooltip hidden during drag anyway
+          y,
+          width, // Use base width since tooltip hidden during drag anyway
+          height,
+          showBelow,
+        });
+      } else {
+        onHoverChange(null);
+      }
+    }
+  }, [isHovered, isDragging, task, x, y, width, height, onHoverChange]);
 
   // Format date for tooltip
   const formatDate = (date: Date) => {
@@ -1033,8 +1066,9 @@ export function TaskBar({
 
       {/* Enhanced Detailed Tooltip (shown on hover, hidden while dragging) - v0.8.1: Disabled for split tasks (segments are independent) */}
       {/* v0.17.31: Adaptive positioning - shows below task when not enough space above */}
+      {/* v0.17.76: Only render internal tooltip if external handler not provided (backwards compatibility) */}
       <AnimatePresence>
-        {isHovered && !isDragging && !task.segments && (() => {
+        {isHovered && !isDragging && !task.segments && !onHoverChange && (() => {
           // v0.17.31: Calculate if tooltip should appear below the task bar
           // Tooltip height is 82px + 13px for arrow = ~95px needed above
           // If task is within 100px of top, show tooltip below instead

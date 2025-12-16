@@ -1,7 +1,9 @@
 import { useMemo, useCallback, useState } from 'react';
+import { motion } from 'framer-motion';
 import { TimeScale, Task, GanttTemplates, DependentTaskPreview } from './types';
-import { TaskBar } from './TaskBar';
-import { DependencyLine } from './DependencyLine';
+import { TaskBar, TaskTooltipData } from './TaskBar';
+import { TaskTooltip } from './TaskTooltip';
+import { DependencyLine, DependencyDeleteButtonData } from './DependencyLine';
 import { Milestone } from './Milestone';
 import { ganttUtils } from './ganttUtils';
 
@@ -50,6 +52,22 @@ export function Timeline({
 
   // v0.13.0: State for dependency cascade preview
   const [cascadePreviews, setCascadePreviews] = useState<DependentTaskPreview[]>([]);
+
+  // v0.17.76: State for active tooltip - rendered in top layer for proper z-order
+  const [activeTooltip, setActiveTooltip] = useState<TaskTooltipData | null>(null);
+
+  // v0.17.78: State for dependency delete button - rendered in top layer
+  const [activeDeleteButton, setActiveDeleteButton] = useState<DependencyDeleteButtonData | null>(null);
+
+  // v0.17.76: Callback for TaskBar hover changes
+  const handleTooltipChange = useCallback((tooltipData: TaskTooltipData | null) => {
+    setActiveTooltip(tooltipData);
+  }, []);
+
+  // v0.17.78: Callback for DependencyLine hover changes
+  const handleDependencyHoverChange = useCallback((data: DependencyDeleteButtonData | null) => {
+    setActiveDeleteButton(data);
+  }, []);
 
   // Calculate dimensions
   const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -511,6 +529,7 @@ export function Timeline({
                 y2={toIndex * ROW_HEIGHT + ROW_HEIGHT / 2}
                 theme={theme}
                 onDelete={() => onDependencyDelete?.(task.id, depId)}
+                onHoverChange={handleDependencyHoverChange} // v0.17.78: Top-layer delete button
               />
             );
           });
@@ -648,6 +667,7 @@ export function Timeline({
               onDependencyCreate={onDependencyCreate}
               allTaskPositions={taskPositions}
               onDragMove={handleTaskDragMove} // v0.13.0
+              onHoverChange={handleTooltipChange} // v0.17.76: Top-layer tooltip
             />
           );
         })}
@@ -691,6 +711,54 @@ export function Timeline({
             )}
           </g>
         ))}
+
+        {/* v0.17.78: Dependency delete button layer - rendered above tasks */}
+        {activeDeleteButton && (
+          <motion.g
+            initial={{ opacity: 0, scale: 0 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              activeDeleteButton.onDelete();
+            }}
+            style={{ cursor: 'pointer' }}
+          >
+            <circle
+              cx={activeDeleteButton.x}
+              cy={activeDeleteButton.y}
+              r={10}
+              fill={theme.bgSecondary}
+              stroke={theme.error || '#ef4444'}
+              strokeWidth={2}
+            />
+            {/* X icon */}
+            <line
+              x1={activeDeleteButton.x - 4}
+              y1={activeDeleteButton.y - 4}
+              x2={activeDeleteButton.x + 4}
+              y2={activeDeleteButton.y + 4}
+              stroke={theme.error || '#ef4444'}
+              strokeWidth={2}
+              strokeLinecap="round"
+            />
+            <line
+              x1={activeDeleteButton.x + 4}
+              y1={activeDeleteButton.y - 4}
+              x2={activeDeleteButton.x - 4}
+              y2={activeDeleteButton.y + 4}
+              stroke={theme.error || '#ef4444'}
+              strokeWidth={2}
+              strokeLinecap="round"
+            />
+          </motion.g>
+        )}
+
+        {/* v0.17.76: Tooltip layer - rendered last to ensure it's always on top */}
+        {activeTooltip && (
+          <TaskTooltip tooltipData={activeTooltip} theme={theme} />
+        )}
       </svg>
     </div>
   );

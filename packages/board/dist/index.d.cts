@@ -2133,6 +2133,14 @@ declare function Timeline({ tasks, theme, rowHeight: ROW_HEIGHT, timeScale, star
 onTaskContextMenu, // v0.8.0
 onTaskDateChange, onDependencyCreate, onDependencyDelete, }: TimelineProps): react_jsx_runtime.JSX.Element;
 
+interface TaskTooltipData {
+    task: Task;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    showBelow: boolean;
+}
 interface TaskBarProps {
     task: Task;
     x: number;
@@ -2149,11 +2157,18 @@ interface TaskBarProps {
     onDependencyCreate?: (fromTask: Task, toTaskId: string) => void;
     allTaskPositions?: TaskPosition[];
     onDragMove?: (taskId: string, daysDelta: number, isDragging: boolean) => void;
+    onHoverChange?: (tooltipData: TaskTooltipData | null) => void;
 }
 declare function TaskBar({ task, x, y, width, theme, dayWidth, startDate, templates, onClick, onDoubleClick, // v0.8.0
 onContextMenu, // v0.8.0
-onDateChange, onDependencyCreate, allTaskPositions, onDragMove, }: TaskBarProps): react_jsx_runtime.JSX.Element;
+onDateChange, onDependencyCreate, allTaskPositions, onDragMove, // v0.13.0
+onHoverChange, }: TaskBarProps): react_jsx_runtime.JSX.Element;
 
+interface DependencyDeleteButtonData {
+    x: number;
+    y: number;
+    onDelete: () => void;
+}
 interface DependencyLineProps {
     x1: number;
     y1: number;
@@ -2161,8 +2176,9 @@ interface DependencyLineProps {
     y2: number;
     theme: any;
     onDelete?: () => void;
+    onHoverChange?: (data: DependencyDeleteButtonData | null) => void;
 }
-declare function DependencyLine({ x1, y1, x2, y2, theme, onDelete }: DependencyLineProps): react_jsx_runtime.JSX.Element;
+declare function DependencyLine({ x1, y1, x2, y2, theme, onDelete, onHoverChange }: DependencyLineProps): react_jsx_runtime.JSX.Element;
 
 interface MilestoneProps {
     task: Task;

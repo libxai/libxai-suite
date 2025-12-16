@@ -1,5 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+
+// v0.17.78: Data for rendering delete button in top layer
+export interface DependencyDeleteButtonData {
+  x: number;
+  y: number;
+  onDelete: () => void;
+}
 
 interface DependencyLineProps {
   x1: number;
@@ -8,9 +15,11 @@ interface DependencyLineProps {
   y2: number;
   theme: any;
   onDelete?: () => void;
+  // v0.17.78: Callback to render delete button in top layer (above tasks)
+  onHoverChange?: (data: DependencyDeleteButtonData | null) => void;
 }
 
-export function DependencyLine({ x1, y1, x2, y2, theme, onDelete }: DependencyLineProps) {
+export function DependencyLine({ x1, y1, x2, y2, theme, onDelete, onHoverChange }: DependencyLineProps) {
   const [isHovered, setIsHovered] = useState(false);
 
   // Calculate control points for smooth Bézier curve
@@ -31,6 +40,21 @@ export function DependencyLine({ x1, y1, x2, y2, theme, onDelete }: DependencyLi
 
   // Dependencies are always gray - critical path only affects TASK BARS, not dependency lines
   const lineColor = theme.dependency;
+
+  // v0.17.78: Notify parent of hover state for top-layer delete button rendering
+  useEffect(() => {
+    if (onHoverChange && onDelete) {
+      if (isHovered) {
+        onHoverChange({
+          x: midX,
+          y: (y1 + y2) / 2,
+          onDelete,
+        });
+      } else {
+        onHoverChange(null);
+      }
+    }
+  }, [isHovered, midX, y1, y2, onDelete, onHoverChange]);
 
   return (
     <g
@@ -99,7 +123,8 @@ export function DependencyLine({ x1, y1, x2, y2, theme, onDelete }: DependencyLi
       />
 
       {/* Delete button (appears on hover) */}
-      {isHovered && onDelete && (
+      {/* v0.17.78: Only render internally if no external handler (backwards compatibility) */}
+      {isHovered && onDelete && !onHoverChange && (
         <motion.g
           initial={{ opacity: 0, scale: 0 }}
           animate={{ opacity: 1, scale: 1 }}

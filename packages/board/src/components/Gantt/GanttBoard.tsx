@@ -233,7 +233,17 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     [columns]
   );
 
-  const gridWidth = gridWidthOverride || calculatedGridWidth;
+  // v0.17.76: When columns are added/removed, auto-expand panel if needed
+  // gridWidthOverride is user's manual resize, but if columns need more space, expand automatically
+  const gridWidth = useMemo(() => {
+    const minRequired = 280;
+    // If user has manually resized, use the larger of: their size OR calculated size
+    // This ensures new columns are always visible
+    if (gridWidthOverride !== null) {
+      return Math.max(minRequired, gridWidthOverride, calculatedGridWidth);
+    }
+    return Math.max(minRequired, calculatedGridWidth);
+  }, [gridWidthOverride, calculatedGridWidth]);
 
   const gridScrollRef = useRef<HTMLDivElement>(null);
   const timelineScrollRef = useRef<HTMLDivElement>(null);
@@ -1044,7 +1054,9 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         const newWidth = e.clientX - containerLeft;
 
         // Clamp between reasonable min/max values
-        const minWidth = 200;
+        // v0.17.73: Increased minWidth from 200 to 280 to ensure "NOMBRE DE TAREA" title
+        // and action buttons (+, keyboard icon) are always visible when column is resized
+        const minWidth = 280;
         const maxWidth = Math.min(window.innerWidth - 300, 800);
 
         if (newWidth >= minWidth && newWidth <= maxWidth) {
