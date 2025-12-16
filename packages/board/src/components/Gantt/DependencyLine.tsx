@@ -79,6 +79,7 @@ export function DependencyLine({ x1, y1, x2, y2, theme, onDelete, onHoverChange 
       />
 
       {/* Main dependency line */}
+      {/* v0.17.80: Hide when hovered AND using top-layer rendering (onHoverChange) */}
       <motion.path
         d={path}
         fill="none"
@@ -88,12 +89,13 @@ export function DependencyLine({ x1, y1, x2, y2, theme, onDelete, onHoverChange 
         initial={{ pathLength: 0, opacity: 0 }}
         animate={{
           pathLength: 1,
-          opacity: isHovered ? 1 : 0.6,
+          // Hide original line when hover renders in top layer
+          opacity: (isHovered && onHoverChange) ? 0 : (isHovered ? 1 : 0.6),
           strokeWidth: isHovered ? 2.5 : 2,
         }}
         transition={{
           pathLength: { duration: 0.5, ease: 'easeInOut' },
-          opacity: { duration: 0.2 },
+          opacity: { duration: 0.15 },
           strokeWidth: { duration: 0.2 },
         }}
       />
@@ -107,11 +109,12 @@ export function DependencyLine({ x1, y1, x2, y2, theme, onDelete, onHoverChange 
         strokeLinecap="round"
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{
-          opacity: isHovered ? 1 : 0.6,
+          // Hide original arrow when hover renders in top layer
+          opacity: (isHovered && onHoverChange) ? 0 : (isHovered ? 1 : 0.6),
           scale: isHovered ? 1.1 : 1,
           strokeWidth: isHovered ? 2.5 : 2,
         }}
-        transition={{ duration: 0.2 }}
+        transition={{ duration: 0.15 }}
       />
 
       {/* Endpoint dot */}
@@ -122,10 +125,11 @@ export function DependencyLine({ x1, y1, x2, y2, theme, onDelete, onHoverChange 
         fill={lineColor}
         initial={{ scale: 0 }}
         animate={{
-          scale: isHovered ? 1.33 : 1,
+          // Hide original dot when hover renders in top layer
+          scale: (isHovered && onHoverChange) ? 0 : (isHovered ? 1.33 : 1),
         }}
         transition={{
-          scale: { delay: 0.3, duration: 0.2 },
+          scale: { delay: 0.3, duration: 0.15 },
         }}
       />
 
