@@ -464,9 +464,9 @@ export function CalendarBoard({
                   );
                 })()}
 
-                {/* v0.17.82: Day Number - bottom right like ClickUp */}
-                <div className="flex items-center justify-between mt-1">
-                  {/* v0.17.99: Quick create button - shows on hover */}
+                {/* v0.17.100: Day Number + Quick create button - bottom right like ClickUp */}
+                <div className="flex items-center justify-end gap-1.5 mt-1">
+                  {/* v0.17.100: Quick create button - shows on hover, positioned left of day number */}
                   <div className="relative">
                     <button
                       onClick={(e) => {
@@ -475,12 +475,13 @@ export function CalendarBoard({
                         setQuickCreateName('');
                       }}
                       className={cn(
-                        "w-5 h-5 rounded flex items-center justify-center transition-all opacity-0 group-hover:opacity-100",
+                        "w-5 h-5 rounded flex items-center justify-center transition-all",
                         quickCreateCell === index
                           ? "opacity-100 bg-[#7C3AED] text-white"
-                          : isDark
-                            ? "hover:bg-white/10 text-[#6B7280] hover:text-white"
-                            : "hover:bg-gray-200 text-gray-400 hover:text-gray-700"
+                          : "opacity-0 group-hover:opacity-100",
+                        isDark
+                          ? "hover:bg-[#7C3AED] text-[#6B7280] hover:text-white"
+                          : "hover:bg-[#7C3AED] text-gray-400 hover:text-white"
                       )}
                     >
                       <Plus className={cn("w-3.5 h-3.5 transition-transform", quickCreateCell === index && "rotate-45")} />
@@ -503,7 +504,7 @@ export function CalendarBoard({
                             exit={{ opacity: 0, y: 5, scale: 0.95 }}
                             transition={{ duration: 0.12 }}
                             className={cn(
-                              "absolute left-0 top-full mt-1 w-[280px] rounded-lg shadow-2xl z-50 overflow-hidden",
+                              "absolute right-0 top-full mt-1 w-[280px] rounded-lg shadow-2xl z-50 overflow-hidden",
                               isDark ? "bg-[#1A1D25] border border-white/10" : "bg-white border border-gray-200"
                             )}
                             onClick={(e) => e.stopPropagation()}
