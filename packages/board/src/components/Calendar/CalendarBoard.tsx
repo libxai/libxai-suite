@@ -504,7 +504,7 @@ export function CalendarBoard({
                             exit={{ opacity: 0, y: 5, scale: 0.95 }}
                             transition={{ duration: 0.12 }}
                             className={cn(
-                              "absolute right-0 top-full mt-1 w-[280px] rounded-lg shadow-2xl z-50 overflow-hidden",
+                              "absolute left-0 top-full mt-1 w-[320px] rounded-lg shadow-2xl z-50 overflow-hidden",
                               isDark ? "bg-[#1A1D25] border border-white/10" : "bg-white border border-gray-200"
                             )}
                             onClick={(e) => e.stopPropagation()}
