@@ -121,6 +121,11 @@ export function CalendarBoard({
   // v0.17.99: Quick create task popover state (per cell)
   const [quickCreateCell, setQuickCreateCell] = useState<number | null>(null); // Which cell index has the popover open
   const [quickCreateName, setQuickCreateName] = useState('');
+  // v0.17.104: Quick create functional dropdowns
+  const [quickCreatePriority, setQuickCreatePriority] = useState<Task['priority']>(undefined);
+  const [quickCreateAssignee, setQuickCreateAssignee] = useState<string | null>(null);
+  const [showQuickPriorityDropdown, setShowQuickPriorityDropdown] = useState(false);
+  const [showQuickAssigneeDropdown, setShowQuickAssigneeDropdown] = useState(false);
 
   // Navigate months
   const goToPreviousMonth = useCallback(() => {
@@ -477,8 +482,16 @@ export function CalendarBoard({
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            setQuickCreateCell(quickCreateCell === index ? null : index);
-                            setQuickCreateName('');
+                            if (quickCreateCell === index) {
+                              setQuickCreateCell(null);
+                            } else {
+                              setQuickCreateCell(index);
+                              setQuickCreateName('');
+                              setQuickCreatePriority(undefined);
+                              setQuickCreateAssignee(null);
+                              setShowQuickPriorityDropdown(false);
+                              setShowQuickAssigneeDropdown(false);
+                            }
                           }}
                           className={cn(
                             "w-5 h-5 rounded flex items-center justify-center transition-all",
@@ -502,6 +515,10 @@ export function CalendarBoard({
                                 onClick={() => {
                                   setQuickCreateCell(null);
                                   setQuickCreateName('');
+                                  setQuickCreatePriority(undefined);
+                                  setQuickCreateAssignee(null);
+                                  setShowQuickPriorityDropdown(false);
+                                  setShowQuickAssigneeDropdown(false);
                                 }}
                               />
                               <motion.div
@@ -532,45 +549,205 @@ export function CalendarBoard({
                                     autoFocus
                                     onKeyDown={(e) => {
                                       if (e.key === 'Enter' && quickCreateName.trim()) {
+                                        // v0.17.104: Include priority and assignee in task creation
+                                        const selectedUser = config.availableUsers?.find(u => u.id === quickCreateAssignee);
                                         callbacks.onTaskCreate?.({
                                           name: quickCreateName.trim(),
                                           startDate: day.date,
                                           endDate: day.date,
+                                          priority: quickCreatePriority,
+                                          assignees: selectedUser ? [selectedUser] : undefined,
                                         });
                                         setQuickCreateName('');
+                                        setQuickCreatePriority(undefined);
+                                        setQuickCreateAssignee(null);
                                         setQuickCreateCell(null);
                                       }
                                       if (e.key === 'Escape') {
                                         setQuickCreateCell(null);
                                         setQuickCreateName('');
+                                        setQuickCreatePriority(undefined);
+                                        setQuickCreateAssignee(null);
                                       }
                                     }}
                                   />
                                 </div>
                                 <div className={cn("px-2.5 py-2 flex items-center justify-between border-t", isDark ? "border-white/10" : "border-gray-100")}>
                                   <div className="flex items-center gap-1">
-                                    <button className={cn("p-1 rounded", isDark ? "hover:bg-white/10 text-[#6B7280]" : "hover:bg-gray-100 text-gray-400")}>
-                                      <Flag className="w-3.5 h-3.5" />
-                                    </button>
+                                    {/* v0.17.104: Priority dropdown - functional */}
+                                    <div className="relative">
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setShowQuickPriorityDropdown(!showQuickPriorityDropdown);
+                                          setShowQuickAssigneeDropdown(false);
+                                        }}
+                                        className={cn(
+                                          "p-1 rounded transition-colors",
+                                          quickCreatePriority
+                                            ? quickCreatePriority === 'urgent' || quickCreatePriority === 'high'
+                                              ? "text-red-400 bg-red-500/20"
+                                              : quickCreatePriority === 'medium'
+                                                ? "text-yellow-400 bg-yellow-500/20"
+                                                : "text-green-400 bg-green-500/20"
+                                            : isDark ? "hover:bg-white/10 text-[#6B7280]" : "hover:bg-gray-100 text-gray-400"
+                                        )}
+                                      >
+                                        <Flag className="w-3.5 h-3.5" />
+                                      </button>
+                                      {/* Priority Dropdown */}
+                                      <AnimatePresence>
+                                        {showQuickPriorityDropdown && (
+                                          <motion.div
+                                            initial={{ opacity: 0, y: -5 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: -5 }}
+                                            className={cn(
+                                              "absolute left-0 bottom-full mb-1 z-[60] rounded-lg shadow-xl overflow-hidden min-w-[120px]",
+                                              isDark ? "bg-[#1A1D25] border border-white/10" : "bg-white border border-gray-200"
+                                            )}
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            {[
+                                              { id: 'urgent', label: locale === 'es' ? 'Urgente' : 'Urgent', color: 'bg-red-500' },
+                                              { id: 'high', label: locale === 'es' ? 'Alta' : 'High', color: 'bg-orange-500' },
+                                              { id: 'medium', label: locale === 'es' ? 'Media' : 'Medium', color: 'bg-yellow-500' },
+                                              { id: 'low', label: locale === 'es' ? 'Baja' : 'Low', color: 'bg-green-500' },
+                                              { id: undefined, label: locale === 'es' ? 'Sin prioridad' : 'No priority', color: 'bg-gray-400' },
+                                            ].map((priority) => (
+                                              <button
+                                                key={priority.id || 'none'}
+                                                onClick={() => {
+                                                  setQuickCreatePriority(priority.id as Task['priority']);
+                                                  setShowQuickPriorityDropdown(false);
+                                                }}
+                                                className={cn(
+                                                  "w-full flex items-center gap-2 px-3 py-1.5 text-xs transition-colors text-left",
+                                                  isDark ? "hover:bg-white/5" : "hover:bg-gray-50",
+                                                  quickCreatePriority === priority.id && (isDark ? "bg-white/5" : "bg-gray-50")
+                                                )}
+                                              >
+                                                <span className={cn("w-2 h-2 rounded-full", priority.color)} />
+                                                <span className={isDark ? "text-white" : "text-gray-900"}>{priority.label}</span>
+                                              </button>
+                                            ))}
+                                          </motion.div>
+                                        )}
+                                      </AnimatePresence>
+                                    </div>
+
+                                    {/* Date badge */}
                                     <span className={cn("text-xs px-1.5 py-0.5 rounded", isDark ? "bg-white/5 text-[#9CA3AF]" : "bg-gray-100 text-gray-500")}>
                                       {day.date.toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', { day: 'numeric', month: 'short', year: '2-digit' })}
                                     </span>
-                                    <button className={cn("p-1 rounded", isDark ? "hover:bg-white/10 text-[#6B7280]" : "hover:bg-gray-100 text-gray-400")}>
-                                      <User className="w-3.5 h-3.5" />
-                                    </button>
-                                    <button className={cn("p-1 rounded", isDark ? "hover:bg-white/10 text-[#6B7280]" : "hover:bg-gray-100 text-gray-400")}>
-                                      <MoreHorizontal className="w-3.5 h-3.5" />
-                                    </button>
+
+                                    {/* v0.17.104: Assignee dropdown - functional */}
+                                    <div className="relative">
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setShowQuickAssigneeDropdown(!showQuickAssigneeDropdown);
+                                          setShowQuickPriorityDropdown(false);
+                                        }}
+                                        className={cn(
+                                          "p-1 rounded transition-colors",
+                                          quickCreateAssignee
+                                            ? "text-[#7C3AED] bg-[#7C3AED]/20"
+                                            : isDark ? "hover:bg-white/10 text-[#6B7280]" : "hover:bg-gray-100 text-gray-400"
+                                        )}
+                                      >
+                                        {quickCreateAssignee ? (
+                                          <div
+                                            className="w-4 h-4 rounded-full flex items-center justify-center text-white text-[8px] font-medium"
+                                            style={{ backgroundColor: config.availableUsers?.find(u => u.id === quickCreateAssignee)?.color || '#7C3AED' }}
+                                          >
+                                            {config.availableUsers?.find(u => u.id === quickCreateAssignee)?.initials ||
+                                             config.availableUsers?.find(u => u.id === quickCreateAssignee)?.name?.slice(0, 2).toUpperCase()}
+                                          </div>
+                                        ) : (
+                                          <User className="w-3.5 h-3.5" />
+                                        )}
+                                      </button>
+                                      {/* Assignee Dropdown */}
+                                      <AnimatePresence>
+                                        {showQuickAssigneeDropdown && (
+                                          <motion.div
+                                            initial={{ opacity: 0, y: -5 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: -5 }}
+                                            className={cn(
+                                              "absolute left-0 bottom-full mb-1 z-[60] rounded-lg shadow-xl overflow-hidden min-w-[160px] max-h-[200px] overflow-y-auto",
+                                              isDark ? "bg-[#1A1D25] border border-white/10" : "bg-white border border-gray-200"
+                                            )}
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            {/* Unassigned option */}
+                                            <button
+                                              onClick={() => {
+                                                setQuickCreateAssignee(null);
+                                                setShowQuickAssigneeDropdown(false);
+                                              }}
+                                              className={cn(
+                                                "w-full flex items-center gap-2 px-3 py-1.5 text-xs transition-colors text-left",
+                                                isDark ? "hover:bg-white/5" : "hover:bg-gray-50",
+                                                !quickCreateAssignee && (isDark ? "bg-white/5" : "bg-gray-50")
+                                              )}
+                                            >
+                                              <div className={cn("w-5 h-5 rounded-full flex items-center justify-center", isDark ? "bg-white/10" : "bg-gray-200")}>
+                                                <User className="w-3 h-3 text-gray-400" />
+                                              </div>
+                                              <span className={isDark ? "text-[#9CA3AF]" : "text-gray-500"}>
+                                                {locale === 'es' ? 'Sin asignar' : 'Unassigned'}
+                                              </span>
+                                            </button>
+                                            {/* Available users */}
+                                            {config.availableUsers?.map((user) => (
+                                              <button
+                                                key={user.id}
+                                                onClick={() => {
+                                                  setQuickCreateAssignee(user.id);
+                                                  setShowQuickAssigneeDropdown(false);
+                                                }}
+                                                className={cn(
+                                                  "w-full flex items-center gap-2 px-3 py-1.5 text-xs transition-colors text-left",
+                                                  isDark ? "hover:bg-white/5" : "hover:bg-gray-50",
+                                                  quickCreateAssignee === user.id && (isDark ? "bg-white/5" : "bg-gray-50")
+                                                )}
+                                              >
+                                                <div
+                                                  className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[9px] font-medium"
+                                                  style={{ backgroundColor: user.color || '#7C3AED' }}
+                                                >
+                                                  {user.initials || user.name?.slice(0, 2).toUpperCase()}
+                                                </div>
+                                                <span className={isDark ? "text-white" : "text-gray-900"}>{user.name}</span>
+                                              </button>
+                                            ))}
+                                            {(!config.availableUsers || config.availableUsers.length === 0) && (
+                                              <div className={cn("px-3 py-2 text-xs", isDark ? "text-[#6B7280]" : "text-gray-400")}>
+                                                {locale === 'es' ? 'No hay usuarios disponibles' : 'No users available'}
+                                              </div>
+                                            )}
+                                          </motion.div>
+                                        )}
+                                      </AnimatePresence>
+                                    </div>
                                   </div>
                                   <button
                                     onClick={() => {
                                       if (quickCreateName.trim()) {
+                                        // v0.17.104: Include priority and assignee in task creation
+                                        const selectedUser = config.availableUsers?.find(u => u.id === quickCreateAssignee);
                                         callbacks.onTaskCreate?.({
                                           name: quickCreateName.trim(),
                                           startDate: day.date,
                                           endDate: day.date,
+                                          priority: quickCreatePriority,
+                                          assignees: selectedUser ? [selectedUser] : undefined,
                                         });
                                         setQuickCreateName('');
+                                        setQuickCreatePriority(undefined);
+                                        setQuickCreateAssignee(null);
                                         setQuickCreateCell(null);
                                       }
                                     }}
