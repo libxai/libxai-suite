@@ -543,7 +543,13 @@ export function CalendarBoard({
                                   isNearRight ? "right-0" : "left-0",
                                   isDark ? "bg-[#1A1D25] border border-white/10" : "bg-white border border-gray-200"
                                 )}
-                                onClick={(e) => e.stopPropagation()}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  // v0.17.107: Close any open dropdown when clicking inside the main popover
+                                  setShowQuickPriorityDropdown(false);
+                                  setShowQuickAssigneeDropdown(false);
+                                  setShowQuickDatePicker(false);
+                                }}
                               >
                                 <div className="p-2.5">
                                   <input
