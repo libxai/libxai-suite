@@ -424,13 +424,6 @@ export function CalendarBoard({
                             <StatusIcon task={event.task} />
                             <span className="truncate">{event.title}</span>
                           </motion.button>
-                          {/* v0.17.82: Tooltip on hover */}
-                          <div className={cn(
-                            "absolute left-0 bottom-full mb-1 px-2 py-1 rounded text-xs whitespace-nowrap z-50 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity shadow-lg",
-                            isDark ? "bg-[#1A1D25] text-white border border-white/10" : "bg-gray-900 text-white"
-                          )}>
-                            {event.title}
-                          </div>
                         </div>
                       ))}
                       {/* v0.17.91: "+X MÁS" / "+X MORE" button to expand cell */}
