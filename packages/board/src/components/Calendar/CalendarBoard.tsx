@@ -118,10 +118,9 @@ export function CalendarBoard({
   const [showPriorityDropdown, setShowPriorityDropdown] = useState(false);
   const [editingProgress, setEditingProgress] = useState(false);
 
-  // v0.17.99: Quick create task popover state
-  const [showQuickCreate, setShowQuickCreate] = useState(false);
+  // v0.17.99: Quick create task popover state (per cell)
+  const [quickCreateCell, setQuickCreateCell] = useState<number | null>(null); // Which cell index has the popover open
   const [quickCreateName, setQuickCreateName] = useState('');
-  const [quickCreateDate, setQuickCreateDate] = useState<Date | null>(null);
 
   // Navigate months
   const goToPreviousMonth = useCallback(() => {
@@ -377,7 +376,7 @@ export function CalendarBoard({
               <div
                 key={index}
                 className={cn(
-                  "min-h-[120px] p-2 transition-colors flex flex-col relative",
+                  "min-h-[120px] p-2 transition-colors flex flex-col relative group",
                   // v0.17.89: Weekends have SAME color regardless of month (like ClickUp)
                   // Only weekdays vary based on current month
                   isDark
@@ -466,15 +465,132 @@ export function CalendarBoard({
                 })()}
 
                 {/* v0.17.82: Day Number - bottom right like ClickUp */}
-                <div className={cn(
-                  "text-sm font-medium mt-1 text-right",
-                  day.isToday
-                    ? "text-[#3B82F6]"
-                    : day.isCurrentMonth
-                      ? (isDark ? "text-white" : "text-gray-900")
-                      : (isDark ? "text-[#6B7280]" : "text-gray-400")
-                )}>
-                  {day.date.getDate()}
+                <div className="flex items-center justify-between mt-1">
+                  {/* v0.17.99: Quick create button - shows on hover */}
+                  <div className="relative">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setQuickCreateCell(quickCreateCell === index ? null : index);
+                        setQuickCreateName('');
+                      }}
+                      className={cn(
+                        "w-5 h-5 rounded flex items-center justify-center transition-all opacity-0 group-hover:opacity-100",
+                        quickCreateCell === index
+                          ? "opacity-100 bg-[#7C3AED] text-white"
+                          : isDark
+                            ? "hover:bg-white/10 text-[#6B7280] hover:text-white"
+                            : "hover:bg-gray-200 text-gray-400 hover:text-gray-700"
+                      )}
+                    >
+                      <Plus className={cn("w-3.5 h-3.5 transition-transform", quickCreateCell === index && "rotate-45")} />
+                    </button>
+
+                    {/* Quick create popover */}
+                    <AnimatePresence>
+                      {quickCreateCell === index && (
+                        <>
+                          <div
+                            className="fixed inset-0 z-40"
+                            onClick={() => {
+                              setQuickCreateCell(null);
+                              setQuickCreateName('');
+                            }}
+                          />
+                          <motion.div
+                            initial={{ opacity: 0, y: 5, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 5, scale: 0.95 }}
+                            transition={{ duration: 0.12 }}
+                            className={cn(
+                              "absolute left-0 top-full mt-1 w-[280px] rounded-lg shadow-2xl z-50 overflow-hidden",
+                              isDark ? "bg-[#1A1D25] border border-white/10" : "bg-white border border-gray-200"
+                            )}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div className="p-2.5">
+                              <input
+                                type="text"
+                                value={quickCreateName}
+                                onChange={(e) => setQuickCreateName(e.target.value)}
+                                placeholder={locale === 'es' ? 'Escribe el nombre de la tarea o "/" para los comandos' : 'Type task name or "/" for commands'}
+                                className={cn(
+                                  "w-full bg-transparent text-sm outline-none placeholder:opacity-40",
+                                  isDark ? "text-white" : "text-gray-900"
+                                )}
+                                autoFocus
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && quickCreateName.trim()) {
+                                    callbacks.onTaskCreate?.({
+                                      name: quickCreateName.trim(),
+                                      startDate: day.date,
+                                      endDate: day.date,
+                                    });
+                                    setQuickCreateName('');
+                                    setQuickCreateCell(null);
+                                  }
+                                  if (e.key === 'Escape') {
+                                    setQuickCreateCell(null);
+                                    setQuickCreateName('');
+                                  }
+                                }}
+                              />
+                            </div>
+                            <div className={cn("px-2.5 py-2 flex items-center justify-between border-t", isDark ? "border-white/10" : "border-gray-100")}>
+                              <div className="flex items-center gap-1">
+                                <button className={cn("p-1 rounded", isDark ? "hover:bg-white/10 text-[#6B7280]" : "hover:bg-gray-100 text-gray-400")}>
+                                  <Flag className="w-3.5 h-3.5" />
+                                </button>
+                                <span className={cn("text-xs px-1.5 py-0.5 rounded", isDark ? "bg-white/5 text-[#9CA3AF]" : "bg-gray-100 text-gray-500")}>
+                                  {day.date.toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', { day: 'numeric', month: 'short', year: '2-digit' })}
+                                </span>
+                                <button className={cn("p-1 rounded", isDark ? "hover:bg-white/10 text-[#6B7280]" : "hover:bg-gray-100 text-gray-400")}>
+                                  <User className="w-3.5 h-3.5" />
+                                </button>
+                                <button className={cn("p-1 rounded", isDark ? "hover:bg-white/10 text-[#6B7280]" : "hover:bg-gray-100 text-gray-400")}>
+                                  <MoreHorizontal className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                              <button
+                                onClick={() => {
+                                  if (quickCreateName.trim()) {
+                                    callbacks.onTaskCreate?.({
+                                      name: quickCreateName.trim(),
+                                      startDate: day.date,
+                                      endDate: day.date,
+                                    });
+                                    setQuickCreateName('');
+                                    setQuickCreateCell(null);
+                                  }
+                                }}
+                                disabled={!quickCreateName.trim()}
+                                className={cn(
+                                  "px-2.5 py-1 rounded text-xs font-medium transition-colors",
+                                  quickCreateName.trim()
+                                    ? "bg-[#7C3AED] hover:bg-[#6D28D9] text-white"
+                                    : isDark ? "bg-white/5 text-[#4B5563]" : "bg-gray-100 text-gray-400"
+                                )}
+                              >
+                                {locale === 'es' ? 'Guardar' : 'Save'}
+                              </button>
+                            </div>
+                          </motion.div>
+                        </>
+                      )}
+                    </AnimatePresence>
+                  </div>
+
+                  {/* Day number */}
+                  <span className={cn(
+                    "text-sm font-medium",
+                    day.isToday
+                      ? "text-[#3B82F6]"
+                      : day.isCurrentMonth
+                        ? (isDark ? "text-white" : "text-gray-900")
+                        : (isDark ? "text-[#6B7280]" : "text-gray-400")
+                  )}>
+                    {day.date.getDate()}
+                  </span>
                 </div>
               </div>
             );
@@ -1321,153 +1437,6 @@ export function CalendarBoard({
         )}
       </AnimatePresence>
 
-      {/* v0.17.99: Quick Create Task - Floating button + popover (ClickUp style) */}
-      <div className="absolute bottom-6 right-6 z-30">
-        <AnimatePresence>
-          {showQuickCreate && (
-            <>
-              {/* Overlay to close */}
-              <div
-                className="fixed inset-0 z-40"
-                onClick={() => {
-                  setShowQuickCreate(false);
-                  setQuickCreateName('');
-                  setQuickCreateDate(null);
-                }}
-              />
-              {/* Popover */}
-              <motion.div
-                initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                transition={{ duration: 0.15 }}
-                className={cn(
-                  "absolute bottom-14 right-0 w-[340px] rounded-xl shadow-2xl z-50 overflow-hidden",
-                  isDark ? "bg-[#1A1D25] border border-white/10" : "bg-white border border-gray-200"
-                )}
-                onClick={(e) => e.stopPropagation()}
-              >
-                {/* Input area */}
-                <div className="p-3">
-                  <input
-                    type="text"
-                    value={quickCreateName}
-                    onChange={(e) => setQuickCreateName(e.target.value)}
-                    placeholder={locale === 'es' ? 'Escribe el nombre de la tarea o "/" para los comandos' : 'Type task name or "/" for commands'}
-                    className={cn(
-                      "w-full bg-transparent text-sm outline-none placeholder:opacity-50",
-                      isDark ? "text-white" : "text-gray-900"
-                    )}
-                    autoFocus
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && quickCreateName.trim()) {
-                        callbacks.onTaskCreate?.({
-                          name: quickCreateName.trim(),
-                          startDate: quickCreateDate || new Date(),
-                          endDate: quickCreateDate || new Date(),
-                        } as any);
-                        setQuickCreateName('');
-                        setQuickCreateDate(null);
-                        setShowQuickCreate(false);
-                      }
-                      if (e.key === 'Escape') {
-                        setShowQuickCreate(false);
-                        setQuickCreateName('');
-                        setQuickCreateDate(null);
-                      }
-                    }}
-                  />
-                </div>
-                {/* Action bar */}
-                <div className={cn("px-3 py-2 flex items-center justify-between border-t", isDark ? "border-white/10" : "border-gray-200")}>
-                  <div className="flex items-center gap-2">
-                    {/* Status button */}
-                    <button
-                      className={cn(
-                        "p-1.5 rounded transition-colors",
-                        isDark ? "hover:bg-white/10 text-[#9CA3AF]" : "hover:bg-gray-100 text-gray-500"
-                      )}
-                      title={locale === 'es' ? 'Estado' : 'Status'}
-                    >
-                      <Flag className="w-4 h-4" />
-                    </button>
-                    {/* Date button */}
-                    <button
-                      className={cn(
-                        "flex items-center gap-1.5 px-2 py-1 rounded text-xs transition-colors",
-                        isDark ? "hover:bg-white/10 text-[#9CA3AF]" : "hover:bg-gray-100 text-gray-500"
-                      )}
-                    >
-                      <Calendar className="w-3.5 h-3.5" />
-                      {quickCreateDate
-                        ? quickCreateDate.toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', { day: 'numeric', month: 'short', year: '2-digit' })
-                        : (locale === 'es' ? 'Fecha' : 'Date')}
-                    </button>
-                    {/* Assignee button */}
-                    <button
-                      className={cn(
-                        "p-1.5 rounded transition-colors",
-                        isDark ? "hover:bg-white/10 text-[#9CA3AF]" : "hover:bg-gray-100 text-gray-500"
-                      )}
-                      title={locale === 'es' ? 'Asignar' : 'Assign'}
-                    >
-                      <User className="w-4 h-4" />
-                    </button>
-                    {/* Settings button */}
-                    <button
-                      className={cn(
-                        "p-1.5 rounded transition-colors",
-                        isDark ? "hover:bg-white/10 text-[#9CA3AF]" : "hover:bg-gray-100 text-gray-500"
-                      )}
-                    >
-                      <MoreHorizontal className="w-4 h-4" />
-                    </button>
-                  </div>
-                  {/* Save button */}
-                  <button
-                    onClick={() => {
-                      if (quickCreateName.trim()) {
-                        callbacks.onTaskCreate?.({
-                          name: quickCreateName.trim(),
-                          startDate: quickCreateDate || new Date(),
-                          endDate: quickCreateDate || new Date(),
-                        } as any);
-                        setQuickCreateName('');
-                        setQuickCreateDate(null);
-                        setShowQuickCreate(false);
-                      }
-                    }}
-                    disabled={!quickCreateName.trim()}
-                    className={cn(
-                      "px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5",
-                      quickCreateName.trim()
-                        ? "bg-[#7C3AED] hover:bg-[#6D28D9] text-white"
-                        : isDark ? "bg-white/5 text-[#6B7280] cursor-not-allowed" : "bg-gray-100 text-gray-400 cursor-not-allowed"
-                    )}
-                  >
-                    {locale === 'es' ? 'Guardar' : 'Save'}
-                  </button>
-                </div>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
-
-        {/* Floating + Button */}
-        <motion.button
-          onClick={() => setShowQuickCreate(!showQuickCreate)}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className={cn(
-            "w-10 h-10 rounded-lg flex items-center justify-center shadow-lg transition-colors",
-            showQuickCreate
-              ? "bg-[#7C3AED] text-white"
-              : "bg-[#7C3AED] hover:bg-[#6D28D9] text-white"
-          )}
-        >
-          <Plus className={cn("w-5 h-5 transition-transform", showQuickCreate && "rotate-45")} />
-        </motion.button>
-      </div>
     </div>
   );
 }

@@ -8123,11 +8123,6 @@ body {
 }
 
 
-.bottom-14 {
-  bottom: 3.5rem;
-}
-
-
 .bottom-2 {
   bottom: 0.5rem;
 }
@@ -8135,11 +8130,6 @@ body {
 
 .bottom-4 {
   bottom: 1rem;
-}
-
-
-.bottom-6 {
-  bottom: 1.5rem;
 }
 
 
@@ -8193,11 +8183,6 @@ body {
 }
 
 
-.right-6 {
-  right: 1.5rem;
-}
-
-
 .top-0 {
   top: 0px;
 }
@@ -8225,11 +8210,6 @@ body {
 
 .z-10 {
   z-index: 10;
-}
-
-
-.z-30 {
-  z-index: 30;
 }
 
 
@@ -8728,11 +8708,6 @@ body {
 
 .w-\[320px\] {
   width: 320px;
-}
-
-
-.w-\[340px\] {
-  width: 340px;
 }
 
 
@@ -9771,6 +9746,11 @@ body {
 }
 
 
+.p-2\.5 {
+  padding: 0.625rem;
+}
+
+
 .p-3 {
   padding: 0.75rem;
 }
@@ -9812,6 +9792,12 @@ body {
 .px-2 {
   padding-left: 0.5rem;
   padding-right: 0.5rem;
+}
+
+
+.px-2\.5 {
+  padding-left: 0.625rem;
+  padding-right: 0.625rem;
 }
 
 
