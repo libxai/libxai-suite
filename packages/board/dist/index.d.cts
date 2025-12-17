@@ -2262,29 +2262,19 @@ interface TaskFormData {
     dependencies?: string[];
 }
 interface TaskFormModalProps {
-    /** Is modal open */
     isOpen: boolean;
-    /** Close handler */
     onClose: () => void;
-    /** Task to edit (undefined for create mode) */
     task?: Task;
-    /** Available tasks for dependencies */
     availableTasks?: Task[];
-    /** Available users for assignment */
     availableUsers?: Array<{
         id: string;
         name: string;
         avatar?: string;
     }>;
-    /** Submit handler */
     onSubmit: (data: TaskFormData) => void | Promise<void>;
-    /** Is submitting */
     isLoading?: boolean;
-    /** Mode: create or edit */
     mode?: 'create' | 'edit';
-    /** Theme: dark, light, or neutral (zen) */
     theme?: Theme$1;
-    /** v0.17.54: Custom statuses from Kanban columns */
     customStatuses?: CustomStatus[];
 }
 declare function TaskFormModal({ isOpen, onClose, task, availableTasks, availableUsers, onSubmit, isLoading, mode, theme, customStatuses, }: TaskFormModalProps): react_jsx_runtime.JSX.Element;
