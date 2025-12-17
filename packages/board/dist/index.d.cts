@@ -3328,6 +3328,8 @@ interface CalendarCallbacks {
     onViewChange?: (view: CalendarViewMode) => void;
     /** Date range change handler */
     onDateRangeChange?: (start: Date, end: Date) => void;
+    /** v0.17.99: Quick create task handler */
+    onTaskCreate?: (taskData: Partial<Task>) => void;
 }
 /**
  * Main CalendarBoard props
