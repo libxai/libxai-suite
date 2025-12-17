@@ -464,122 +464,134 @@ export function CalendarBoard({
                   );
                 })()}
 
-                {/* v0.17.100: Day Number + Quick create button - bottom right like ClickUp */}
+                {/* v0.17.103: Day Number + Quick create button - bottom right like ClickUp */}
                 <div className="flex items-center justify-end gap-1.5 mt-1">
-                  {/* v0.17.100: Quick create button - shows on hover, positioned left of day number */}
-                  <div className="relative">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setQuickCreateCell(quickCreateCell === index ? null : index);
-                        setQuickCreateName('');
-                      }}
-                      className={cn(
-                        "w-5 h-5 rounded flex items-center justify-center transition-all",
-                        quickCreateCell === index
-                          ? "opacity-100 bg-[#7C3AED] text-white"
-                          : "opacity-0 group-hover:opacity-100",
-                        isDark
-                          ? "hover:bg-[#7C3AED] text-[#6B7280] hover:text-white"
-                          : "hover:bg-[#7C3AED] text-gray-400 hover:text-white"
-                      )}
-                    >
-                      <Plus className={cn("w-3.5 h-3.5 transition-transform", quickCreateCell === index && "rotate-45")} />
-                    </button>
+                  {/* v0.17.103: Quick create button with smart positioning */}
+                  {(() => {
+                    // Detect position: last 2 rows (index >= 28) open upward, last 2 columns (index % 7 >= 5) open left
+                    const isNearBottom = index >= 28;
+                    const isNearRight = index % 7 >= 5;
 
-                    {/* Quick create popover */}
-                    <AnimatePresence>
-                      {quickCreateCell === index && (
-                        <>
-                          <div
-                            className="fixed inset-0 z-40"
-                            onClick={() => {
-                              setQuickCreateCell(null);
-                              setQuickCreateName('');
-                            }}
-                          />
-                          <motion.div
-                            initial={{ opacity: 0, y: 5, scale: 0.95 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, y: 5, scale: 0.95 }}
-                            transition={{ duration: 0.12 }}
-                            className={cn(
-                              "absolute left-0 top-full mt-1 w-[320px] rounded-lg shadow-2xl z-50 overflow-hidden",
-                              isDark ? "bg-[#1A1D25] border border-white/10" : "bg-white border border-gray-200"
-                            )}
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <div className="p-2.5">
-                              <input
-                                type="text"
-                                value={quickCreateName}
-                                onChange={(e) => setQuickCreateName(e.target.value)}
-                                placeholder={locale === 'es' ? 'Escribe el nombre de la tarea o "/" para los comandos' : 'Type task name or "/" for commands'}
-                                className={cn(
-                                  "w-full bg-transparent text-sm outline-none placeholder:opacity-40",
-                                  isDark ? "text-white" : "text-gray-900"
-                                )}
-                                autoFocus
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter' && quickCreateName.trim()) {
-                                    callbacks.onTaskCreate?.({
-                                      name: quickCreateName.trim(),
-                                      startDate: day.date,
-                                      endDate: day.date,
-                                    });
-                                    setQuickCreateName('');
-                                    setQuickCreateCell(null);
-                                  }
-                                  if (e.key === 'Escape') {
-                                    setQuickCreateCell(null);
-                                    setQuickCreateName('');
-                                  }
+                    return (
+                      <div className="relative">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setQuickCreateCell(quickCreateCell === index ? null : index);
+                            setQuickCreateName('');
+                          }}
+                          className={cn(
+                            "w-5 h-5 rounded flex items-center justify-center transition-all",
+                            quickCreateCell === index
+                              ? "opacity-100 bg-[#7C3AED] text-white"
+                              : "opacity-0 group-hover:opacity-100",
+                            isDark
+                              ? "hover:bg-[#7C3AED] text-[#6B7280] hover:text-white"
+                              : "hover:bg-[#7C3AED] text-gray-400 hover:text-white"
+                          )}
+                        >
+                          <Plus className={cn("w-3.5 h-3.5 transition-transform", quickCreateCell === index && "rotate-45")} />
+                        </button>
+
+                        {/* Quick create popover - smart positioning */}
+                        <AnimatePresence>
+                          {quickCreateCell === index && (
+                            <>
+                              <div
+                                className="fixed inset-0 z-40"
+                                onClick={() => {
+                                  setQuickCreateCell(null);
+                                  setQuickCreateName('');
                                 }}
                               />
-                            </div>
-                            <div className={cn("px-2.5 py-2 flex items-center justify-between border-t", isDark ? "border-white/10" : "border-gray-100")}>
-                              <div className="flex items-center gap-1">
-                                <button className={cn("p-1 rounded", isDark ? "hover:bg-white/10 text-[#6B7280]" : "hover:bg-gray-100 text-gray-400")}>
-                                  <Flag className="w-3.5 h-3.5" />
-                                </button>
-                                <span className={cn("text-xs px-1.5 py-0.5 rounded", isDark ? "bg-white/5 text-[#9CA3AF]" : "bg-gray-100 text-gray-500")}>
-                                  {day.date.toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', { day: 'numeric', month: 'short', year: '2-digit' })}
-                                </span>
-                                <button className={cn("p-1 rounded", isDark ? "hover:bg-white/10 text-[#6B7280]" : "hover:bg-gray-100 text-gray-400")}>
-                                  <User className="w-3.5 h-3.5" />
-                                </button>
-                                <button className={cn("p-1 rounded", isDark ? "hover:bg-white/10 text-[#6B7280]" : "hover:bg-gray-100 text-gray-400")}>
-                                  <MoreHorizontal className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                              <button
-                                onClick={() => {
-                                  if (quickCreateName.trim()) {
-                                    callbacks.onTaskCreate?.({
-                                      name: quickCreateName.trim(),
-                                      startDate: day.date,
-                                      endDate: day.date,
-                                    });
-                                    setQuickCreateName('');
-                                    setQuickCreateCell(null);
-                                  }
-                                }}
-                                disabled={!quickCreateName.trim()}
+                              <motion.div
+                                initial={{ opacity: 0, y: isNearBottom ? -5 : 5, scale: 0.95 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: isNearBottom ? -5 : 5, scale: 0.95 }}
+                                transition={{ duration: 0.12 }}
                                 className={cn(
-                                  "px-2.5 py-1 rounded text-xs font-medium transition-colors",
-                                  quickCreateName.trim()
-                                    ? "bg-[#7C3AED] hover:bg-[#6D28D9] text-white"
-                                    : isDark ? "bg-white/5 text-[#4B5563]" : "bg-gray-100 text-gray-400"
+                                  "absolute w-[320px] rounded-lg shadow-2xl z-50 overflow-hidden",
+                                  // Vertical position: bottom or top
+                                  isNearBottom ? "bottom-full mb-1" : "top-full mt-1",
+                                  // Horizontal position: left or right
+                                  isNearRight ? "right-0" : "left-0",
+                                  isDark ? "bg-[#1A1D25] border border-white/10" : "bg-white border border-gray-200"
                                 )}
+                                onClick={(e) => e.stopPropagation()}
                               >
-                                {locale === 'es' ? 'Guardar' : 'Save'}
-                              </button>
-                            </div>
-                          </motion.div>
-                        </>
-                      )}
-                    </AnimatePresence>
-                  </div>
+                                <div className="p-2.5">
+                                  <input
+                                    type="text"
+                                    value={quickCreateName}
+                                    onChange={(e) => setQuickCreateName(e.target.value)}
+                                    placeholder={locale === 'es' ? 'Escribe el nombre de la tarea o "/" para los comandos' : 'Type task name or "/" for commands'}
+                                    className={cn(
+                                      "w-full bg-transparent text-sm outline-none placeholder:opacity-40",
+                                      isDark ? "text-white" : "text-gray-900"
+                                    )}
+                                    autoFocus
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter' && quickCreateName.trim()) {
+                                        callbacks.onTaskCreate?.({
+                                          name: quickCreateName.trim(),
+                                          startDate: day.date,
+                                          endDate: day.date,
+                                        });
+                                        setQuickCreateName('');
+                                        setQuickCreateCell(null);
+                                      }
+                                      if (e.key === 'Escape') {
+                                        setQuickCreateCell(null);
+                                        setQuickCreateName('');
+                                      }
+                                    }}
+                                  />
+                                </div>
+                                <div className={cn("px-2.5 py-2 flex items-center justify-between border-t", isDark ? "border-white/10" : "border-gray-100")}>
+                                  <div className="flex items-center gap-1">
+                                    <button className={cn("p-1 rounded", isDark ? "hover:bg-white/10 text-[#6B7280]" : "hover:bg-gray-100 text-gray-400")}>
+                                      <Flag className="w-3.5 h-3.5" />
+                                    </button>
+                                    <span className={cn("text-xs px-1.5 py-0.5 rounded", isDark ? "bg-white/5 text-[#9CA3AF]" : "bg-gray-100 text-gray-500")}>
+                                      {day.date.toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', { day: 'numeric', month: 'short', year: '2-digit' })}
+                                    </span>
+                                    <button className={cn("p-1 rounded", isDark ? "hover:bg-white/10 text-[#6B7280]" : "hover:bg-gray-100 text-gray-400")}>
+                                      <User className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button className={cn("p-1 rounded", isDark ? "hover:bg-white/10 text-[#6B7280]" : "hover:bg-gray-100 text-gray-400")}>
+                                      <MoreHorizontal className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                  <button
+                                    onClick={() => {
+                                      if (quickCreateName.trim()) {
+                                        callbacks.onTaskCreate?.({
+                                          name: quickCreateName.trim(),
+                                          startDate: day.date,
+                                          endDate: day.date,
+                                        });
+                                        setQuickCreateName('');
+                                        setQuickCreateCell(null);
+                                      }
+                                    }}
+                                    disabled={!quickCreateName.trim()}
+                                    className={cn(
+                                      "px-2.5 py-1 rounded text-xs font-medium transition-colors",
+                                      quickCreateName.trim()
+                                        ? "bg-[#7C3AED] hover:bg-[#6D28D9] text-white"
+                                        : isDark ? "bg-white/5 text-[#4B5563]" : "bg-gray-100 text-gray-400"
+                                    )}
+                                  >
+                                    {locale === 'es' ? 'Guardar' : 'Save'}
+                                  </button>
+                                </div>
+                              </motion.div>
+                            </>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    );
+                  })()}
 
                   {/* Day number */}
                   <span className={cn(
