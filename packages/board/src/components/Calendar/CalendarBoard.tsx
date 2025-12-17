@@ -126,6 +126,10 @@ export function CalendarBoard({
   const [quickCreateAssignee, setQuickCreateAssignee] = useState<string | null>(null);
   const [showQuickPriorityDropdown, setShowQuickPriorityDropdown] = useState(false);
   const [showQuickAssigneeDropdown, setShowQuickAssigneeDropdown] = useState(false);
+  // v0.17.105: Quick create date picker
+  const [quickCreateDate, setQuickCreateDate] = useState<Date | null>(null);
+  const [showQuickDatePicker, setShowQuickDatePicker] = useState(false);
+  const [quickDatePickerMonth, setQuickDatePickerMonth] = useState(new Date());
 
   // Navigate months
   const goToPreviousMonth = useCallback(() => {
@@ -489,8 +493,11 @@ export function CalendarBoard({
                               setQuickCreateName('');
                               setQuickCreatePriority(undefined);
                               setQuickCreateAssignee(null);
+                              setQuickCreateDate(null); // v0.17.105: Reset date (will use cell date by default)
                               setShowQuickPriorityDropdown(false);
                               setShowQuickAssigneeDropdown(false);
+                              setShowQuickDatePicker(false);
+                              setQuickDatePickerMonth(day.date); // Start with cell's month
                             }
                           }}
                           className={cn(
@@ -517,8 +524,10 @@ export function CalendarBoard({
                                   setQuickCreateName('');
                                   setQuickCreatePriority(undefined);
                                   setQuickCreateAssignee(null);
+                                  setQuickCreateDate(null);
                                   setShowQuickPriorityDropdown(false);
                                   setShowQuickAssigneeDropdown(false);
+                                  setShowQuickDatePicker(false);
                                 }}
                               />
                               <motion.div
@@ -549,18 +558,20 @@ export function CalendarBoard({
                                     autoFocus
                                     onKeyDown={(e) => {
                                       if (e.key === 'Enter' && quickCreateName.trim()) {
-                                        // v0.17.104: Include priority and assignee in task creation
+                                        // v0.17.105: Include priority, assignee, and selected date in task creation
                                         const selectedUser = config.availableUsers?.find(u => u.id === quickCreateAssignee);
+                                        const taskDate = quickCreateDate || day.date;
                                         callbacks.onTaskCreate?.({
                                           name: quickCreateName.trim(),
-                                          startDate: day.date,
-                                          endDate: day.date,
+                                          startDate: taskDate,
+                                          endDate: taskDate,
                                           priority: quickCreatePriority,
                                           assignees: selectedUser ? [selectedUser] : undefined,
                                         });
                                         setQuickCreateName('');
                                         setQuickCreatePriority(undefined);
                                         setQuickCreateAssignee(null);
+                                        setQuickCreateDate(null);
                                         setQuickCreateCell(null);
                                       }
                                       if (e.key === 'Escape') {
@@ -568,6 +579,7 @@ export function CalendarBoard({
                                         setQuickCreateName('');
                                         setQuickCreatePriority(undefined);
                                         setQuickCreateAssignee(null);
+                                        setQuickCreateDate(null);
                                       }
                                     }}
                                   />
@@ -636,10 +648,179 @@ export function CalendarBoard({
                                       </AnimatePresence>
                                     </div>
 
-                                    {/* Date badge */}
-                                    <span className={cn("text-xs px-1.5 py-0.5 rounded", isDark ? "bg-white/5 text-[#9CA3AF]" : "bg-gray-100 text-gray-500")}>
-                                      {day.date.toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', { day: 'numeric', month: 'short', year: '2-digit' })}
-                                    </span>
+                                    {/* v0.17.105: Date picker dropdown - ClickUp style */}
+                                    <div className="relative">
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setShowQuickDatePicker(!showQuickDatePicker);
+                                          setShowQuickPriorityDropdown(false);
+                                          setShowQuickAssigneeDropdown(false);
+                                          setQuickDatePickerMonth(quickCreateDate || day.date);
+                                        }}
+                                        className={cn(
+                                          "flex items-center gap-1 text-xs px-1.5 py-0.5 rounded transition-colors",
+                                          quickCreateDate
+                                            ? "bg-[#7C3AED]/20 text-[#7C3AED]"
+                                            : isDark ? "bg-white/5 text-[#9CA3AF] hover:bg-white/10" : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                                        )}
+                                      >
+                                        <CalendarDays className="w-3 h-3" />
+                                        {(quickCreateDate || day.date).toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', { day: 'numeric', month: 'short' })}
+                                      </button>
+                                      {/* Date Picker Dropdown */}
+                                      <AnimatePresence>
+                                        {showQuickDatePicker && (
+                                          <motion.div
+                                            initial={{ opacity: 0, y: -5 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: -5 }}
+                                            className={cn(
+                                              "absolute left-0 bottom-full mb-1 z-[60] rounded-xl shadow-2xl overflow-hidden flex",
+                                              isDark ? "bg-[#1A1D25] border border-white/10" : "bg-white border border-gray-200"
+                                            )}
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            {/* Quick Options - Left Side */}
+                                            <div className={cn("w-40 py-2 border-r", isDark ? "border-white/10" : "border-gray-200")}>
+                                              {(() => {
+                                                const today = new Date();
+                                                const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
+                                                const nextSaturday = new Date(today); nextSaturday.setDate(today.getDate() + ((6 - today.getDay() + 7) % 7 || 7));
+                                                const nextMonday = new Date(today); nextMonday.setDate(today.getDate() + ((1 - today.getDay() + 7) % 7 || 7));
+                                                const twoWeeks = new Date(today); twoWeeks.setDate(today.getDate() + 14);
+                                                const fourWeeks = new Date(today); fourWeeks.setDate(today.getDate() + 28);
+
+                                                const quickOptions = [
+                                                  { label: locale === 'es' ? 'Hoy' : 'Today', date: today, display: today.toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', { weekday: 'short' }).slice(0, 3) + '.' },
+                                                  { label: locale === 'es' ? 'Mañana' : 'Tomorrow', date: tomorrow, display: tomorrow.toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', { weekday: 'short' }).slice(0, 3) + '.' },
+                                                  { label: locale === 'es' ? 'Este fin de semana' : 'This weekend', date: nextSaturday, display: locale === 'es' ? 'sáb.' : 'sat.' },
+                                                  { label: locale === 'es' ? 'Próxima semana' : 'Next week', date: nextMonday, display: locale === 'es' ? 'lun.' : 'mon.' },
+                                                  { label: locale === 'es' ? '2 semanas' : '2 weeks', date: twoWeeks, display: twoWeeks.toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', { day: 'numeric', month: 'short' }) },
+                                                  { label: locale === 'es' ? '4 semanas' : '4 weeks', date: fourWeeks, display: fourWeeks.toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', { day: 'numeric', month: 'short' }) },
+                                                ];
+
+                                                return quickOptions.map((option, i) => (
+                                                  <button
+                                                    key={i}
+                                                    className={cn(
+                                                      "w-full flex items-center justify-between px-3 py-1.5 text-xs transition-colors",
+                                                      isDark ? "hover:bg-white/5 text-white" : "hover:bg-gray-50 text-gray-900"
+                                                    )}
+                                                    onClick={() => {
+                                                      setQuickCreateDate(option.date);
+                                                      setShowQuickDatePicker(false);
+                                                    }}
+                                                  >
+                                                    <span>{option.label}</span>
+                                                    <span className={cn("text-[10px]", isDark ? "text-[#6B7280]" : "text-gray-400")}>
+                                                      {option.display}
+                                                    </span>
+                                                  </button>
+                                                ));
+                                              })()}
+                                            </div>
+
+                                            {/* Calendar - Right Side */}
+                                            <div className="p-3">
+                                              {/* Month Header */}
+                                              <div className="flex items-center justify-between mb-3">
+                                                <span className={cn("text-xs font-medium", isDark ? "text-white" : "text-gray-900")}>
+                                                  {quickDatePickerMonth.toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', { month: 'long', year: 'numeric' })}
+                                                </span>
+                                                <div className="flex items-center gap-0.5">
+                                                  <button
+                                                    onClick={() => setQuickDatePickerMonth(new Date())}
+                                                    className={cn(
+                                                      "px-1.5 py-0.5 rounded text-[10px] transition-colors",
+                                                      isDark ? "hover:bg-white/10 text-[#9CA3AF]" : "hover:bg-gray-100 text-gray-500"
+                                                    )}
+                                                  >
+                                                    {locale === 'es' ? 'Hoy' : 'Today'}
+                                                  </button>
+                                                  <button
+                                                    onClick={() => setQuickDatePickerMonth(new Date(quickDatePickerMonth.getFullYear(), quickDatePickerMonth.getMonth() - 1))}
+                                                    className={cn("p-0.5 rounded", isDark ? "hover:bg-white/10" : "hover:bg-gray-100")}
+                                                  >
+                                                    <ChevronLeft className="w-3.5 h-3.5" />
+                                                  </button>
+                                                  <button
+                                                    onClick={() => setQuickDatePickerMonth(new Date(quickDatePickerMonth.getFullYear(), quickDatePickerMonth.getMonth() + 1))}
+                                                    className={cn("p-0.5 rounded", isDark ? "hover:bg-white/10" : "hover:bg-gray-100")}
+                                                  >
+                                                    <ChevronRight className="w-3.5 h-3.5" />
+                                                  </button>
+                                                </div>
+                                              </div>
+
+                                              {/* Weekday Headers */}
+                                              <div className="grid grid-cols-7 gap-0.5 mb-1">
+                                                {(locale === 'es'
+                                                  ? ['do', 'lu', 'ma', 'mi', 'ju', 'vi', 'sá']
+                                                  : ['su', 'mo', 'tu', 'we', 'th', 'fr', 'sa']
+                                                ).map((d) => (
+                                                  <div key={d} className={cn("w-6 h-6 flex items-center justify-center text-[10px]", isDark ? "text-[#6B7280]" : "text-gray-400")}>
+                                                    {d}
+                                                  </div>
+                                                ))}
+                                              </div>
+
+                                              {/* Calendar Days */}
+                                              <div className="grid grid-cols-7 gap-0.5">
+                                                {(() => {
+                                                  const year = quickDatePickerMonth.getFullYear();
+                                                  const month = quickDatePickerMonth.getMonth();
+                                                  const firstDay = new Date(year, month, 1).getDay();
+                                                  const daysInMonth = new Date(year, month + 1, 0).getDate();
+                                                  const daysInPrevMonth = new Date(year, month, 0).getDate();
+                                                  const todayDate = new Date();
+                                                  const calDays = [];
+
+                                                  // Previous month days
+                                                  for (let i = firstDay - 1; i >= 0; i--) {
+                                                    calDays.push({ dayNum: daysInPrevMonth - i, isCurrentMonth: false, date: new Date(year, month - 1, daysInPrevMonth - i) });
+                                                  }
+                                                  // Current month days
+                                                  for (let i = 1; i <= daysInMonth; i++) {
+                                                    calDays.push({ dayNum: i, isCurrentMonth: true, date: new Date(year, month, i) });
+                                                  }
+                                                  // Next month days
+                                                  const remaining = 42 - calDays.length;
+                                                  for (let i = 1; i <= remaining; i++) {
+                                                    calDays.push({ dayNum: i, isCurrentMonth: false, date: new Date(year, month + 1, i) });
+                                                  }
+
+                                                  return calDays.map((d, i) => {
+                                                    const isToday = d.date.toDateString() === todayDate.toDateString();
+                                                    const isSelected = (quickCreateDate || day.date).toDateString() === d.date.toDateString();
+
+                                                    return (
+                                                      <button
+                                                        key={i}
+                                                        className={cn(
+                                                          "w-6 h-6 rounded-full flex items-center justify-center text-[10px] transition-colors",
+                                                          !d.isCurrentMonth && (isDark ? "text-[#4B5563]" : "text-gray-300"),
+                                                          d.isCurrentMonth && (isDark ? "text-white" : "text-gray-900"),
+                                                          isToday && "ring-1 ring-[#3B82F6]",
+                                                          isSelected && "bg-[#7C3AED] text-white",
+                                                          !isSelected && (isDark ? "hover:bg-white/10" : "hover:bg-gray-100")
+                                                        )}
+                                                        onClick={() => {
+                                                          setQuickCreateDate(d.date);
+                                                          setShowQuickDatePicker(false);
+                                                        }}
+                                                      >
+                                                        {d.dayNum}
+                                                      </button>
+                                                    );
+                                                  });
+                                                })()}
+                                              </div>
+                                            </div>
+                                          </motion.div>
+                                        )}
+                                      </AnimatePresence>
+                                    </div>
 
                                     {/* v0.17.104: Assignee dropdown - functional */}
                                     <div className="relative">
@@ -736,18 +917,20 @@ export function CalendarBoard({
                                   <button
                                     onClick={() => {
                                       if (quickCreateName.trim()) {
-                                        // v0.17.104: Include priority and assignee in task creation
+                                        // v0.17.105: Include priority, assignee, and selected date in task creation
                                         const selectedUser = config.availableUsers?.find(u => u.id === quickCreateAssignee);
+                                        const taskDate = quickCreateDate || day.date;
                                         callbacks.onTaskCreate?.({
                                           name: quickCreateName.trim(),
-                                          startDate: day.date,
-                                          endDate: day.date,
+                                          startDate: taskDate,
+                                          endDate: taskDate,
                                           priority: quickCreatePriority,
                                           assignees: selectedUser ? [selectedUser] : undefined,
                                         });
                                         setQuickCreateName('');
                                         setQuickCreatePriority(undefined);
                                         setQuickCreateAssignee(null);
+                                        setQuickCreateDate(null);
                                         setQuickCreateCell(null);
                                       }
                                     }}
