@@ -536,7 +536,7 @@ export function CalendarBoard({
                                 exit={{ opacity: 0, y: isNearBottom ? -5 : 5, scale: 0.95 }}
                                 transition={{ duration: 0.12 }}
                                 className={cn(
-                                  "absolute w-[320px] rounded-lg shadow-2xl z-50 overflow-hidden",
+                                  "absolute w-[320px] rounded-lg shadow-2xl z-50",
                                   // Vertical position: bottom or top
                                   isNearBottom ? "bottom-full mb-1" : "top-full mt-1",
                                   // Horizontal position: left or right
