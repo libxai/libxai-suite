@@ -691,22 +691,37 @@ export function Timeline({
             const dx = x2 - x1;
             const midX = x1 + dx / 2;
 
-            // v0.17.153: Hover zone from t=0.10 to t=0.90 (80% of curve)
+            // v0.17.154: Hover zone from t=0.10 to t=0.90 (80% of curve)
             // Only 10% at each end is reserved for resize handles
             // strokeWidth=12 → 6px from center each side
-            const bezierPoint = (t: number) => {
-              const px = (1-t)*(1-t)*(1-t)*x1 + 3*(1-t)*(1-t)*t*midX + 3*(1-t)*t*t*midX + t*t*t*x2;
-              const py = (1-t)*(1-t)*(1-t)*y1 + 3*(1-t)*(1-t)*t*y1 + 3*(1-t)*t*t*y2 + t*t*t*y2;
+            // FIX: Use correct cubic Bézier formula matching the actual line:
+            // Original: C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}
+            // Control points: P1=(midX, y1), P2=(midX, y2)
+            const cubicBezierPoint = (t: number) => {
+              // P0 = (x1, y1), P1 = (midX, y1), P2 = (midX, y2), P3 = (x2, y2)
+              const mt = 1 - t;
+              const mt2 = mt * mt;
+              const mt3 = mt2 * mt;
+              const t2 = t * t;
+              const t3 = t2 * t;
+              const px = mt3 * x1 + 3 * mt2 * t * midX + 3 * mt * t2 * midX + t3 * x2;
+              const py = mt3 * y1 + 3 * mt2 * t * y1 + 3 * mt * t2 * y2 + t3 * y2;
               return { x: px, y: py };
             };
 
-            // Get points at t=0.10 and t=0.90 for expanded hover zone
-            const p1 = bezierPoint(0.10);
-            const p2 = bezierPoint(0.5);  // Control point for smoother curve
-            const p3 = bezierPoint(0.90);
+            // Generate multiple points along the curve for accurate path
+            // More points = smoother curve that matches the original line exactly
+            const numPoints = 20;
+            const pathPoints: Array<{x: number, y: number}> = [];
+            for (let i = 0; i <= numPoints; i++) {
+              const t = 0.10 + (i / numPoints) * 0.80; // t from 0.10 to 0.90
+              pathPoints.push(cubicBezierPoint(t));
+            }
 
-            // Create a path for the middle segment using quadratic curve
-            const middlePath = `M ${p1.x} ${p1.y} Q ${p2.x} ${p2.y} ${p3.x} ${p3.y}`;
+            // Create a polyline path through these points
+            const firstPoint = pathPoints[0]!;
+            const middlePath = `M ${firstPoint.x} ${firstPoint.y} ` +
+              pathPoints.slice(1).map(p => `L ${p.x} ${p.y}`).join(' ');
 
             const isThisHovered = hoveredDependency &&
               hoveredDependency.x1 === x1 && hoveredDependency.y1 === y1 &&
