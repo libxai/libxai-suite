@@ -1323,70 +1323,34 @@ export function TaskGrid({
               backgroundColor: isSelected ? theme.accentLight : theme.hoverBg,
             }}
           >
-            {/* v0.17.146: Drop indicator line ABOVE - ClickUp style */}
+            {/* v0.17.147: Drop indicator line ABOVE - clean horizontal line */}
             {showDropAbove && (
               <div
                 style={{
                   position: 'absolute',
-                  top: -1,
+                  top: 0,
                   left: 0,
                   right: 0,
-                  height: '3px',
+                  height: '2px',
                   backgroundColor: theme.accent,
                   zIndex: 10,
-                  borderRadius: '2px',
-                  boxShadow: `0 0 8px ${theme.accent}80`,
                 }}
-              >
-                {/* Circle indicator at left */}
-                <div
-                  style={{
-                    position: 'absolute',
-                    left: 8,
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    width: 8,
-                    height: 8,
-                    borderRadius: '50%',
-                    backgroundColor: theme.accent,
-                    border: `2px solid ${theme.bgPrimary}`,
-                    boxShadow: `0 0 4px ${theme.accent}`,
-                  }}
-                />
-              </div>
+              />
             )}
 
-            {/* v0.17.146: Drop indicator line BELOW - ClickUp style */}
+            {/* v0.17.147: Drop indicator line BELOW - clean horizontal line */}
             {showDropBelow && (
               <div
                 style={{
                   position: 'absolute',
-                  bottom: -1,
+                  bottom: 0,
                   left: 0,
                   right: 0,
-                  height: '3px',
+                  height: '2px',
                   backgroundColor: theme.accent,
                   zIndex: 10,
-                  borderRadius: '2px',
-                  boxShadow: `0 0 8px ${theme.accent}80`,
                 }}
-              >
-                {/* Circle indicator at left */}
-                <div
-                  style={{
-                    position: 'absolute',
-                    left: 8,
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    width: 8,
-                    height: 8,
-                    borderRadius: '50%',
-                    backgroundColor: theme.accent,
-                    border: `2px solid ${theme.bgPrimary}`,
-                    boxShadow: `0 0 4px ${theme.accent}`,
-                  }}
-                />
-              </div>
+              />
             )}
 
           {visibleColumns.map((column, colIndex) => {
@@ -1438,57 +1402,40 @@ export function TaskGrid({
         theme={theme}
       />
 
-      {/* v0.17.146: Ghost/Phantom drag preview - follows cursor */}
+      {/* v0.17.147: Ghost/Phantom drag preview - subtle horizontal line style */}
       {isDraggingState && ghostPosition && draggedTaskId && typeof document !== 'undefined' && createPortal(
         <div
           style={{
             position: 'fixed',
-            left: ghostPosition.x + 15,
-            top: ghostPosition.y - ROW_HEIGHT / 2,
+            left: ghostPosition.x + 12,
+            top: ghostPosition.y - 10,
             zIndex: 99999,
             pointerEvents: 'none',
-            opacity: 0.85,
-            transform: 'scale(0.98)',
-            cursor: 'grabbing',
           }}
         >
-          {/* Ghost card - semi-transparent preview */}
-          <div
-            className="flex items-center gap-2 px-3 py-2 rounded-lg shadow-2xl"
-            style={{
-              backgroundColor: theme.bgPrimary,
-              border: `2px solid ${theme.accent}`,
-              minWidth: '200px',
-              maxWidth: '350px',
-              height: `${ROW_HEIGHT - 8}px`,
-              boxShadow: `0 10px 40px rgba(0,0,0,0.4), 0 0 0 1px ${theme.border}`,
-            }}
-          >
-            {/* Grip icon */}
-            <GripVertical
-              className="w-4 h-4 flex-shrink-0"
-              style={{ color: theme.accent }}
-            />
-            {/* Task color dot */}
-            {(() => {
-              const draggedTask = flatTasks.find(ft => ft.task.id === draggedTaskId)?.task;
-              return draggedTask ? (
-                <>
-                  <div
-                    className="w-3 h-3 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: draggedTask.color || '#3B82F6' }}
-                  />
-                  {/* Task name */}
-                  <span
-                    className="text-sm font-medium truncate"
-                    style={{ color: theme.textPrimary }}
-                  >
-                    {draggedTask.name}
-                  </span>
-                </>
-              ) : null;
-            })()}
-          </div>
+          {/* Subtle ghost - just text with slight background */}
+          {(() => {
+            const draggedTask = flatTasks.find(ft => ft.task.id === draggedTaskId)?.task;
+            return draggedTask ? (
+              <div
+                className="flex items-center gap-2 px-2 py-1 rounded"
+                style={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                  backdropFilter: 'blur(4px)',
+                }}
+              >
+                <span
+                  className="text-xs font-medium"
+                  style={{
+                    color: theme.textSecondary,
+                    opacity: 0.9,
+                  }}
+                >
+                  {draggedTask.name}
+                </span>
+              </div>
+            ) : null;
+          })()}
         </div>,
         document.body
       )}
