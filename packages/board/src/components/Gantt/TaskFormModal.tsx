@@ -538,9 +538,9 @@ export function TaskFormModal({
                               boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)'
                             }}
                           >
-                            {/* v0.17.118: Minimal inline color picker - single row */}
-                            <div className="px-3 py-2.5">
-                              <div className="flex items-center gap-2">
+                            {/* v0.17.119: Two row color picker grid 8x2 */}
+                            <div className="p-3">
+                              <div className="grid grid-cols-8 gap-2.5">
                                 {TASK_COLORS.slice(0, 16).map((color) => {
                                   const isSelected = formData.color === color.value;
                                   return (
@@ -548,7 +548,7 @@ export function TaskFormModal({
                                       key={color.value}
                                       type="button"
                                       onClick={() => { handleChange('color', color.value); setShowColorPicker(false) }}
-                                      className="w-5 h-5 rounded-full flex-shrink-0"
+                                      className="w-5 h-5 rounded-full"
                                       style={{
                                         backgroundColor: color.value,
                                         boxShadow: isSelected ? `0 0 0 2px ${themeColors.bgPrimary}, 0 0 0 4px ${color.value}` : 'none',
