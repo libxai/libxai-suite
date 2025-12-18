@@ -691,13 +691,18 @@ export function Timeline({
             const dx = x2 - x1;
             const midX = x1 + dx / 2;
 
-            // v0.17.148: Offset the hover path from endpoints to not block task resize handles
-            // Start 25px after x1 and end 25px before x2
-            const hoverOffset = 25;
-            const hoverX1 = x1 + hoverOffset;
-            const hoverX2 = x2 - hoverOffset;
-            // Only render if there's enough space for hover zone
-            if (hoverX2 <= hoverX1) return null;
+            // v0.17.149: Smart offset - only offset endpoints near task bars, not the middle
+            // This preserves hoverable area while keeping resize handles accessible
+            const lineLength = Math.abs(x2 - x1);
+            const minHoverLength = 30; // Minimum hoverable length
+
+            // Calculate dynamic offset based on line length
+            const maxOffset = 20;
+            const availableSpace = lineLength - minHoverLength;
+            const offset = availableSpace > 0 ? Math.min(maxOffset, availableSpace / 2) : 0;
+
+            const hoverX1 = x1 + offset;
+            const hoverX2 = x2 - offset;
 
             const hoverPath = `M ${hoverX1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${hoverX2} ${y2}`;
 
