@@ -48,7 +48,6 @@ export function TaskTooltip({ tooltipData, theme }: TaskTooltipProps) {
   const row1Y = tooltipY + 40;
   const row2Y = tooltipY + 55;
   const assigneesY = tooltipY + 70;
-  const hintsY = showBelow ? tooltipY + tooltipHeight - 5 : y - 18;
 
   // Format date
   const formatDate = (date: Date) => {
@@ -223,25 +222,7 @@ export function TaskTooltip({ tooltipData, theme }: TaskTooltipProps) {
           </>
         )}
 
-        {/* Interaction Hints - only show when tooltip is above */}
-        {!showBelow && (
-          <text
-            x={x + width / 2}
-            y={hintsY}
-            textAnchor="middle"
-            fill={theme.textTertiary}
-            fontSize="9"
-            fontFamily="Inter, sans-serif"
-            style={{ opacity: 0.7 }}
-          >
-            {isVerySmallBar
-              ? 'Left: move \u2022 Right: resize'
-              : isSmallBar
-              ? 'Drag to move \u2022 Hold ALT + drag edge to resize'
-              : 'Drag edges to resize \u2022 Drag center to move \u2022 Click \u26AB to link'
-            }
-          </text>
-        )}
+        {/* v0.17.137: Removed interaction hints text for cleaner tooltip */}
       </motion.g>
     </AnimatePresence>
   );
