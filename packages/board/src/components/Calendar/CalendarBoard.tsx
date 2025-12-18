@@ -323,7 +323,7 @@ export function CalendarBoard({
   }
 
   return (
-    <div className={cn("flex-1 flex flex-col w-full h-full overflow-hidden", isDark ? "bg-[#0F1117]" : "bg-white", className)} style={style}>
+    <div className={cn("flex-1 flex flex-col w-full h-full overflow-auto", isDark ? "bg-[#0F1117]" : "bg-white", className)} style={style}>
       {/* Calendar Header */}
       <div className={cn("flex-shrink-0 px-6 py-4 border-b", isDark ? "border-white/10" : "border-gray-200")}>
         <div className="flex items-center justify-between">
@@ -361,8 +361,8 @@ export function CalendarBoard({
       </div>
 
       {/* Calendar Grid */}
-      <div className="flex-1 p-6 overflow-auto">
-        <div className="h-full flex flex-col">
+      <div className="flex-1 p-6 min-h-0">
+        <div className="flex flex-col">
           {/* Day Headers */}
           <div className="grid grid-cols-7 gap-px mb-2">
             {dayNames.map((day) => (
@@ -376,7 +376,7 @@ export function CalendarBoard({
           </div>
 
           {/* Calendar Days - v0.17.90: Auto-expanding rows to show all tasks like ClickUp */}
-          <div className={cn("grid grid-cols-7 auto-rows-min gap-px rounded-lg overflow-hidden", isDark ? "bg-white/5" : "bg-gray-200")}>
+          <div className={cn("grid grid-cols-7 auto-rows-min gap-px rounded-lg", isDark ? "bg-white/5" : "bg-gray-200")}>
             {calendarDays.map((day, index) => {
               // v0.17.87: Weekend detection (Saturday=6, Sunday=0)
               const isWeekend = day.date.getDay() === 0 || day.date.getDay() === 6;

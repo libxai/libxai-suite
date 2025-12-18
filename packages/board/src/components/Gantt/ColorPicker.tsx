@@ -12,7 +12,7 @@ export interface TaskColor {
   light: string;
 }
 
-// Professional pastel color palette - carefully curated for task management
+// v0.17.112: Professional vibrant color palette - all colors are eye-catching
 export const TASK_COLORS: TaskColor[] = [
   { name: 'Azul', value: '#6366F1', light: '#818CF8' },
   { name: 'Púrpura', value: '#A855F7', light: '#C084FC' },
@@ -28,8 +28,8 @@ export const TASK_COLORS: TaskColor[] = [
   { name: 'Índigo', value: '#4F46E5', light: '#6366F1' },
   { name: 'Violeta', value: '#8B5CF6', light: '#A78BFA' },
   { name: 'Fucsia', value: '#D946EF', light: '#E879F9' },
-  { name: 'Gris', value: '#6B7280', light: '#9CA3AF' },
-  { name: 'Piedra', value: '#78716C', light: '#A8A29E' },
+  { name: 'Coral', value: '#F97316', light: '#FB923C' },
+  { name: 'Magenta', value: '#E11D48', light: '#FB7185' },
 ];
 
 interface ColorPickerProps {

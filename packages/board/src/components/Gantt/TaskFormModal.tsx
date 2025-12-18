@@ -200,6 +200,18 @@ export function TaskFormModal({
   const handleChange = (field: keyof TaskFormData, value: any) => {
     setFormData((prev) => {
       const updated = { ...prev, [field]: value }
+      // v0.17.110: Sync progress when status changes
+      if (field === 'status') {
+        const statusValue = value as string
+        if (statusValue === 'todo') updated.progress = 0
+        else if (statusValue === 'in-progress') {
+          // If coming from completed/todo, set to 50%, otherwise keep current
+          if (prev.progress === 0 || prev.progress === 100) updated.progress = 50
+        }
+        else if (statusValue === 'completed' || statusValue === 'closed') updated.progress = 100
+        else if (statusValue === 'in-review' || statusValue === 'review') updated.progress = 75
+      }
+      // Sync status when progress changes
       if (field === 'progress') {
         const progressValue = typeof value === 'number' ? value : parseInt(value, 10)
         if (progressValue === 100 && prev.status !== 'completed') updated.status = 'completed'
@@ -518,25 +530,39 @@ export function TaskFormModal({
                             initial={{ opacity: 0, y: -5 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -5 }}
-                            className="absolute left-0 top-full mt-1 z-50 p-3 rounded-lg shadow-xl"
-                            style={{ backgroundColor: themeColors.bgPrimary, border: `1px solid ${themeColors.border}` }}
+                            transition={{ duration: 0.12 }}
+                            className="absolute left-0 top-full mt-1.5 z-50 rounded-lg"
+                            style={{
+                              backgroundColor: themeColors.bgPrimary,
+                              border: `1px solid ${themeColors.border}`,
+                              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)'
+                            }}
                           >
-                            <div className="grid grid-cols-8 gap-1.5">
-                              {TASK_COLORS.map((color) => (
-                                <button
-                                  key={color.value}
-                                  type="button"
-                                  onClick={() => { handleChange('color', color.value); setShowColorPicker(false) }}
-                                  className="w-6 h-6 rounded-full transition-transform hover:scale-110 flex items-center justify-center"
-                                  style={{
-                                    backgroundColor: color.value,
-                                    boxShadow: formData.color === color.value ? `0 0 0 2px ${themeColors.bgPrimary}, 0 0 0 3px ${color.value}` : 'none',
-                                  }}
-                                  title={color.name}
-                                >
-                                  {formData.color === color.value && <Check className="w-3 h-3 text-white" />}
-                                </button>
-                              ))}
+                            {/* v0.17.115: ClickUp style color picker - wider container */}
+                            <div className="p-3">
+                              <div className="grid grid-cols-8 gap-2.5">
+                                {TASK_COLORS.slice(0, 16).map((color) => {
+                                  const isSelected = formData.color === color.value;
+                                  return (
+                                    <motion.button
+                                      key={color.value}
+                                      type="button"
+                                      onClick={() => { handleChange('color', color.value); setShowColorPicker(false) }}
+                                      className="w-5 h-5 rounded-full flex items-center justify-center transition-transform"
+                                      style={{
+                                        backgroundColor: color.value,
+                                        outline: isSelected ? `2px solid ${color.value}` : 'none',
+                                        outlineOffset: '2px',
+                                      }}
+                                      whileHover={{ scale: 1.2 }}
+                                      whileTap={{ scale: 0.9 }}
+                                      title={color.name}
+                                    >
+                                      {isSelected && <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />}
+                                    </motion.button>
+                                  );
+                                })}
+                              </div>
                             </div>
                           </motion.div>
                         )}
