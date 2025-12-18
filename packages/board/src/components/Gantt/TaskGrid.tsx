@@ -107,7 +107,10 @@ export function TaskGrid({
   const [dropPosition, setDropPosition] = useState<'above' | 'below' | 'child' | null>(null);
   const dragStartY = useRef<number>(0);
   const dragThreshold = 5; // Minimum pixels to move before drag starts
-  const isDragging = useRef<boolean>(false);
+  const isDraggingRef = useRef<boolean>(false);
+  // v0.17.146: Ghost position for drag preview + isDragging state for re-render
+  const [ghostPosition, setGhostPosition] = useState<{ x: number; y: number } | null>(null);
+  const [isDraggingState, setIsDraggingState] = useState(false);
 
   // v0.17.132: Date picker state for column cells
   const [datePickerState, setDatePickerState] = useState<{
@@ -269,18 +272,25 @@ export function TaskGrid({
     e.preventDefault();
     dragStartY.current = e.clientY;
     setDraggedTaskId(taskId);
-    isDragging.current = false;
+    isDraggingRef.current = false;
+    setIsDraggingState(false);
+    // v0.17.146: Initialize ghost position
+    setGhostPosition({ x: e.clientX, y: e.clientY });
   };
 
   const handleDragMove = (e: MouseEvent) => {
     if (!draggedTaskId) return;
 
     const deltaY = Math.abs(e.clientY - dragStartY.current);
-    if (deltaY > dragThreshold) {
-      isDragging.current = true;
+    if (deltaY > dragThreshold && !isDraggingRef.current) {
+      isDraggingRef.current = true;
+      setIsDraggingState(true);
     }
 
-    if (!isDragging.current) return;
+    // v0.17.146: Update ghost position
+    setGhostPosition({ x: e.clientX, y: e.clientY });
+
+    if (!isDraggingRef.current) return;
 
     // Find which task we're hovering over
     const rows = document.querySelectorAll('[data-task-row]');
@@ -314,7 +324,7 @@ export function TaskGrid({
   };
 
   const handleDragEnd = () => {
-    if (isDragging.current && draggedTaskId && dropTargetTaskId && dropPosition) {
+    if (isDraggingRef.current && draggedTaskId && dropTargetTaskId && dropPosition) {
       // Determine the new parent and position
       if (dropPosition === 'child') {
         // Make it a child of the target task
@@ -359,7 +369,9 @@ export function TaskGrid({
     setDraggedTaskId(null);
     setDropTargetTaskId(null);
     setDropPosition(null);
-    isDragging.current = false;
+    setGhostPosition(null); // v0.17.146: Clear ghost
+    isDraggingRef.current = false;
+    setIsDraggingState(false);
   };
 
   // v0.17.68: Set up global drag listeners
@@ -1248,22 +1260,15 @@ export function TaskGrid({
       {flatTasks.map(({ task, level }, index) => {
         const isSelected = isTaskSelected(task.id);
 
-        // v0.17.68: Calculate drop indicator styles
+        // v0.17.146: Calculate drop indicator styles - ClickUp style with prominent line
         const isDropTarget = dropTargetTaskId === task.id;
+        const showDropAbove = isDropTarget && dropPosition === 'above';
+        const showDropBelow = isDropTarget && dropPosition === 'below';
+        const showDropChild = isDropTarget && dropPosition === 'child';
         const dropStyles: React.CSSProperties = {};
-        if (isDropTarget && dropPosition) {
-          if (dropPosition === 'above') {
-            dropStyles.borderTopWidth = '2px';
-            dropStyles.borderTopStyle = 'solid';
-            dropStyles.borderTopColor = theme.accent;
-          } else if (dropPosition === 'below') {
-            dropStyles.borderBottomWidth = '2px';
-            dropStyles.borderBottomStyle = 'solid';
-            dropStyles.borderBottomColor = theme.accent;
-          } else if (dropPosition === 'child') {
-            dropStyles.backgroundColor = theme.accentLight;
-            dropStyles.boxShadow = `inset 0 0 0 2px ${theme.accent}`;
-          }
+        if (showDropChild) {
+          dropStyles.backgroundColor = `${theme.accent}15`;
+          dropStyles.boxShadow = `inset 0 0 0 2px ${theme.accent}`;
         }
 
         return (
@@ -1272,12 +1277,13 @@ export function TaskGrid({
             data-task-row={task.id}
             className={`flex items-center cursor-pointer group ${draggedTaskId === task.id ? 'opacity-50' : ''}`}
             style={{
+              position: 'relative', // v0.17.146: For drop indicator positioning
               height: `${ROW_HEIGHT}px`,
               borderLeft: isSelected ? `3px solid ${theme.accent}` : `3px solid transparent`,
               backgroundColor: isSelected
                 ? theme.accentLight
-                : isDropTarget && dropPosition === 'child'
-                  ? theme.accentLight
+                : showDropChild
+                  ? `${theme.accent}15`
                   : (index % 2 === 0 ? theme.bgPrimary : theme.bgGrid),
               ...dropStyles,
             }}
@@ -1317,6 +1323,72 @@ export function TaskGrid({
               backgroundColor: isSelected ? theme.accentLight : theme.hoverBg,
             }}
           >
+            {/* v0.17.146: Drop indicator line ABOVE - ClickUp style */}
+            {showDropAbove && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: -1,
+                  left: 0,
+                  right: 0,
+                  height: '3px',
+                  backgroundColor: theme.accent,
+                  zIndex: 10,
+                  borderRadius: '2px',
+                  boxShadow: `0 0 8px ${theme.accent}80`,
+                }}
+              >
+                {/* Circle indicator at left */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: 8,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    backgroundColor: theme.accent,
+                    border: `2px solid ${theme.bgPrimary}`,
+                    boxShadow: `0 0 4px ${theme.accent}`,
+                  }}
+                />
+              </div>
+            )}
+
+            {/* v0.17.146: Drop indicator line BELOW - ClickUp style */}
+            {showDropBelow && (
+              <div
+                style={{
+                  position: 'absolute',
+                  bottom: -1,
+                  left: 0,
+                  right: 0,
+                  height: '3px',
+                  backgroundColor: theme.accent,
+                  zIndex: 10,
+                  borderRadius: '2px',
+                  boxShadow: `0 0 8px ${theme.accent}80`,
+                }}
+              >
+                {/* Circle indicator at left */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: 8,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    backgroundColor: theme.accent,
+                    border: `2px solid ${theme.bgPrimary}`,
+                    boxShadow: `0 0 4px ${theme.accent}`,
+                  }}
+                />
+              </div>
+            )}
+
           {visibleColumns.map((column, colIndex) => {
             const isLastColumn = colIndex === visibleColumns.length - 1;
             const isNameColumn = column.id === 'name';
@@ -1365,6 +1437,61 @@ export function TaskGrid({
         onClose={() => setContextMenu({ ...contextMenu, isOpen: false })}
         theme={theme}
       />
+
+      {/* v0.17.146: Ghost/Phantom drag preview - follows cursor */}
+      {isDraggingState && ghostPosition && draggedTaskId && typeof document !== 'undefined' && createPortal(
+        <div
+          style={{
+            position: 'fixed',
+            left: ghostPosition.x + 15,
+            top: ghostPosition.y - ROW_HEIGHT / 2,
+            zIndex: 99999,
+            pointerEvents: 'none',
+            opacity: 0.85,
+            transform: 'scale(0.98)',
+            cursor: 'grabbing',
+          }}
+        >
+          {/* Ghost card - semi-transparent preview */}
+          <div
+            className="flex items-center gap-2 px-3 py-2 rounded-lg shadow-2xl"
+            style={{
+              backgroundColor: theme.bgPrimary,
+              border: `2px solid ${theme.accent}`,
+              minWidth: '200px',
+              maxWidth: '350px',
+              height: `${ROW_HEIGHT - 8}px`,
+              boxShadow: `0 10px 40px rgba(0,0,0,0.4), 0 0 0 1px ${theme.border}`,
+            }}
+          >
+            {/* Grip icon */}
+            <GripVertical
+              className="w-4 h-4 flex-shrink-0"
+              style={{ color: theme.accent }}
+            />
+            {/* Task color dot */}
+            {(() => {
+              const draggedTask = flatTasks.find(ft => ft.task.id === draggedTaskId)?.task;
+              return draggedTask ? (
+                <>
+                  <div
+                    className="w-3 h-3 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: draggedTask.color || '#3B82F6' }}
+                  />
+                  {/* Task name */}
+                  <span
+                    className="text-sm font-medium truncate"
+                    style={{ color: theme.textPrimary }}
+                  >
+                    {draggedTask.name}
+                  </span>
+                </>
+              ) : null;
+            })()}
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
