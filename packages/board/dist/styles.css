@@ -8989,11 +8989,6 @@ body {
 }
 
 
-.grid-cols-8 {
-  grid-template-columns: repeat(8, minmax(0, 1fr));
-}
-
-
 .flex-col {
   flex-direction: column;
 }
@@ -9066,11 +9061,6 @@ body {
 
 .gap-4 {
   gap: 1rem;
-}
-
-
-.gap-5 {
-  gap: 1.25rem;
 }
 
 
@@ -10521,11 +10511,6 @@ body {
 .outline-none {
   outline: 2px solid transparent;
   outline-offset: 2px;
-}
-
-
-.outline {
-  outline-style: solid;
 }
 
 

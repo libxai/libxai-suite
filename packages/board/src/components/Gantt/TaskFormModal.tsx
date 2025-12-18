@@ -538,9 +538,9 @@ export function TaskFormModal({
                               boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)'
                             }}
                           >
-                            {/* v0.17.117: Extra wide color picker container */}
-                            <div className="p-5">
-                              <div className="grid grid-cols-8 gap-5">
+                            {/* v0.17.118: Minimal inline color picker - single row */}
+                            <div className="px-3 py-2.5">
+                              <div className="flex items-center gap-2">
                                 {TASK_COLORS.slice(0, 16).map((color) => {
                                   const isSelected = formData.color === color.value;
                                   return (
@@ -548,18 +548,15 @@ export function TaskFormModal({
                                       key={color.value}
                                       type="button"
                                       onClick={() => { handleChange('color', color.value); setShowColorPicker(false) }}
-                                      className="w-7 h-7 rounded-full flex items-center justify-center transition-transform"
+                                      className="w-5 h-5 rounded-full flex-shrink-0"
                                       style={{
                                         backgroundColor: color.value,
-                                        outline: isSelected ? `2px solid ${color.value}` : 'none',
-                                        outlineOffset: '2px',
+                                        boxShadow: isSelected ? `0 0 0 2px ${themeColors.bgPrimary}, 0 0 0 4px ${color.value}` : 'none',
                                       }}
-                                      whileHover={{ scale: 1.15 }}
+                                      whileHover={{ scale: 1.2 }}
                                       whileTap={{ scale: 0.9 }}
                                       title={color.name}
-                                    >
-                                      {isSelected && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
-                                    </motion.button>
+                                    />
                                   );
                                 })}
                               </div>
