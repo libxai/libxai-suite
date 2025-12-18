@@ -691,20 +691,19 @@ export function Timeline({
             const dx = x2 - x1;
             const midX = x1 + dx / 2;
 
-            // v0.17.152: Hover zone from t=0.15 to t=0.85 (closer to tasks but not blocking resize)
-            // Near task bars (t=0 to 0.15 and t=0.85 to 1): NO hover - resize handles work
-            // Most of curve (t=0.15 to 0.85): hoverable - can delete dependency
-            // strokeWidth=12 → 6px from center each side (more precise)
+            // v0.17.153: Hover zone from t=0.10 to t=0.90 (80% of curve)
+            // Only 10% at each end is reserved for resize handles
+            // strokeWidth=12 → 6px from center each side
             const bezierPoint = (t: number) => {
               const px = (1-t)*(1-t)*(1-t)*x1 + 3*(1-t)*(1-t)*t*midX + 3*(1-t)*t*t*midX + t*t*t*x2;
               const py = (1-t)*(1-t)*(1-t)*y1 + 3*(1-t)*(1-t)*t*y1 + 3*(1-t)*t*t*y2 + t*t*t*y2;
               return { x: px, y: py };
             };
 
-            // Get points at t=0.15 and t=0.85 for expanded middle segment
-            const p1 = bezierPoint(0.15);
+            // Get points at t=0.10 and t=0.90 for expanded hover zone
+            const p1 = bezierPoint(0.10);
             const p2 = bezierPoint(0.5);  // Control point for smoother curve
-            const p3 = bezierPoint(0.85);
+            const p3 = bezierPoint(0.90);
 
             // Create a path for the middle segment using quadratic curve
             const middlePath = `M ${p1.x} ${p1.y} Q ${p2.x} ${p2.y} ${p3.x} ${p3.y}`;
