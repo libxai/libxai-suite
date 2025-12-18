@@ -538,9 +538,9 @@ export function TaskFormModal({
                               boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)'
                             }}
                           >
-                            {/* v0.17.122: ClickUp exact style - 4 cols, large circles, generous spacing */}
-                            <div className="px-4 py-3">
-                              <div className="grid grid-cols-4" style={{ gap: '14px' }}>
+                            {/* v0.17.123: ClickUp exact replica - small circles, wide spacing, 6 cols x 3 rows */}
+                            <div style={{ padding: '12px 16px' }}>
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 20px)', gap: '16px' }}>
                                 {TASK_COLORS.slice(0, 16).map((color) => {
                                   const isSelected = formData.color === color.value;
                                   return (
@@ -549,14 +549,16 @@ export function TaskFormModal({
                                       type="button"
                                       onClick={() => { handleChange('color', color.value); setShowColorPicker(false) }}
                                       style={{
-                                        width: '30px',
-                                        height: '30px',
+                                        width: '20px',
+                                        height: '20px',
                                         borderRadius: '50%',
                                         backgroundColor: color.value,
                                         outline: isSelected ? `2px solid ${color.value}` : 'none',
                                         outlineOffset: '3px',
+                                        cursor: 'pointer',
+                                        border: 'none',
                                       }}
-                                      whileHover={{ scale: 1.08 }}
+                                      whileHover={{ scale: 1.15 }}
                                       whileTap={{ scale: 0.95 }}
                                       title={color.name}
                                     />
