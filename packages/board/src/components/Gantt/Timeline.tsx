@@ -668,8 +668,9 @@ export function Timeline({
           );
         })}
 
-        {/* v0.17.142: Dependency hover detection layer - rendered AFTER tasks so hover works above task bars */}
+        {/* v0.17.148: Dependency hover detection layer - rendered AFTER tasks so hover works above task bars */}
         {/* Each dependency gets a hover zone that activates the highlighted state */}
+        {/* IMPORTANT: Hover zone is offset from endpoints to not block task resize handles */}
         {flatTasks.map((task, toIndex) => {
           if (!task.dependencies || task.dependencies.length === 0) return null;
           if (!task.startDate || !task.endDate) return null;
@@ -689,7 +690,17 @@ export function Timeline({
             const y2 = toIndex * ROW_HEIGHT + ROW_HEIGHT / 2;
             const dx = x2 - x1;
             const midX = x1 + dx / 2;
-            const path = `M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}`;
+
+            // v0.17.148: Offset the hover path from endpoints to not block task resize handles
+            // Start 25px after x1 and end 25px before x2
+            const hoverOffset = 25;
+            const hoverX1 = x1 + hoverOffset;
+            const hoverX2 = x2 - hoverOffset;
+            // Only render if there's enough space for hover zone
+            if (hoverX2 <= hoverX1) return null;
+
+            const hoverPath = `M ${hoverX1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${hoverX2} ${y2}`;
+
             const isThisHovered = hoveredDependency &&
               hoveredDependency.x1 === x1 && hoveredDependency.y1 === y1 &&
               hoveredDependency.x2 === x2 && hoveredDependency.y2 === y2;
@@ -701,10 +712,10 @@ export function Timeline({
             return (
               <path
                 key={`dep-hover-${depId}-${task.id}`}
-                d={path}
+                d={hoverPath}
                 fill="none"
                 stroke="transparent"
-                strokeWidth={24}
+                strokeWidth={20}
                 strokeLinecap="round"
                 style={{ cursor: 'pointer' }}
                 onMouseEnter={() => {
