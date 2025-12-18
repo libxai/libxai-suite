@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useContext } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronDown, ChevronRight, ChevronLeft, Keyboard, Plus, Edit3, GripVertical, Calendar } from 'lucide-react';
 import { Task, GanttColumn, ColumnType, GanttTemplates } from './types';
 import { motion } from 'framer-motion';
@@ -575,8 +576,8 @@ export function TaskGrid({
               <span>{formatDisplayDate(dateValue)}</span>
             </button>
 
-            {/* Date Picker Popover */}
-            {isDatePickerOpen && (
+            {/* Date Picker Popover - Using Portal to render outside overflow:hidden containers */}
+            {isDatePickerOpen && typeof document !== 'undefined' && createPortal(
               <>
                 <div className="fixed inset-0 z-[9998]" onClick={() => setDatePickerState(null)} />
                 <motion.div
@@ -708,11 +709,12 @@ export function TaskGrid({
                     </div>
                   </div>
                 </motion.div>
-              </>
+              </>,
+              document.body
             )}
           </div>
         );
-      
+
       case 'duration':
         return (
           <div className="flex items-center justify-center w-full">
