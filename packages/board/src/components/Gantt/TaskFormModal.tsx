@@ -538,9 +538,9 @@ export function TaskFormModal({
                               boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)'
                             }}
                           >
-                            {/* v0.17.120: ClickUp style - large circles in 8x2 grid */}
-                            <div className="p-4">
-                              <div className="grid grid-cols-8 gap-4">
+                            {/* v0.17.121: Minimal style like ClickUp - small circles with spacing */}
+                            <div className="p-3">
+                              <div className="grid grid-cols-6 gap-3">
                                 {TASK_COLORS.slice(0, 16).map((color) => {
                                   const isSelected = formData.color === color.value;
                                   return (
@@ -548,13 +548,13 @@ export function TaskFormModal({
                                       key={color.value}
                                       type="button"
                                       onClick={() => { handleChange('color', color.value); setShowColorPicker(false) }}
-                                      className="w-7 h-7 rounded-full"
+                                      className="w-6 h-6 rounded-full"
                                       style={{
                                         backgroundColor: color.value,
-                                        boxShadow: isSelected ? `0 0 0 2px ${themeColors.bgPrimary}, 0 0 0 4px ${color.value}` : 'none',
+                                        boxShadow: isSelected ? `0 0 0 2px ${themeColors.bgPrimary}, 0 0 0 3px ${color.value}` : 'none',
                                       }}
-                                      whileHover={{ scale: 1.15 }}
-                                      whileTap={{ scale: 0.9 }}
+                                      whileHover={{ scale: 1.1 }}
+                                      whileTap={{ scale: 0.95 }}
                                       title={color.name}
                                     />
                                   );
