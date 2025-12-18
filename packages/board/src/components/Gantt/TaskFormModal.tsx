@@ -106,6 +106,7 @@ export function TaskFormModal({
   const [showPriorityDropdown, setShowPriorityDropdown] = useState(false)
   const [showAssigneesDropdown, setShowAssigneesDropdown] = useState(false)
   const [showColorPicker, setShowColorPicker] = useState(false)
+  const [colorPickerPosition, setColorPickerPosition] = useState({ top: 0, left: 0 }) // v0.17.155
   const [showDatePicker, setShowDatePicker] = useState<'start' | 'end' | null>(null)
   const [datePickerMonth, setDatePickerMonth] = useState(new Date())
   const [datePickerPosition, setDatePickerPosition] = useState({ top: 0, left: 0 })
@@ -520,7 +521,24 @@ export function TaskFormModal({
                     <div ref={colorRef} className="relative">
                       <button
                         type="button"
-                        onClick={() => !isLoading && setShowColorPicker(!showColorPicker)}
+                        onClick={() => {
+                          if (!isLoading) {
+                            if (showColorPicker) {
+                              setShowColorPicker(false)
+                            } else {
+                              // v0.17.155: Calculate position for Portal
+                              if (colorRef.current) {
+                                const rect = colorRef.current.getBoundingClientRect()
+                                const viewportHeight = window.innerHeight
+                                const pickerHeight = 120 // Approximate height of color picker
+                                const spaceBelow = viewportHeight - rect.bottom
+                                const top = spaceBelow < pickerHeight ? rect.top - pickerHeight - 8 : rect.bottom + 8
+                                setColorPickerPosition({ top, left: rect.left })
+                              }
+                              setShowColorPicker(true)
+                            }
+                          }
+                        }}
                         className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm transition-all hover:opacity-80"
                         style={pillStyle}
                         disabled={isLoading}
@@ -530,49 +548,58 @@ export function TaskFormModal({
                         <ChevronDown className="w-3 h-3" style={{ color: themeColors.textTertiary }} />
                       </button>
 
+                      {/* v0.17.155: Color Picker using Portal to escape overflow:hidden */}
                       <AnimatePresence>
                         {showColorPicker && (
-                          <motion.div
-                            initial={{ opacity: 0, y: -5 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -5 }}
-                            transition={{ duration: 0.12 }}
-                            className="absolute left-0 top-full mt-1.5 z-50 rounded-lg"
-                            style={{
-                              backgroundColor: themeColors.bgPrimary,
-                              border: `1px solid ${themeColors.border}`,
-                              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)'
-                            }}
-                          >
-                            {/* v0.17.124: Smaller circles, extra padding to prevent clipping */}
-                            <div style={{ padding: '14px 18px' }}>
-                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 16px)', gap: '14px' }}>
-                                {TASK_COLORS.slice(0, 16).map((color) => {
-                                  const isSelected = formData.color === color.value;
-                                  return (
-                                    <motion.button
-                                      key={color.value}
-                                      type="button"
-                                      onClick={() => { handleChange('color', color.value); setShowColorPicker(false) }}
-                                      style={{
-                                        width: '16px',
-                                        height: '16px',
-                                        borderRadius: '50%',
-                                        backgroundColor: color.value,
-                                        outline: isSelected ? `2px solid ${color.value}` : 'none',
-                                        outlineOffset: '3px',
-                                        cursor: 'pointer',
-                                        border: 'none',
-                                      }}
-                                      whileHover={{ scale: 1.2 }}
-                                      whileTap={{ scale: 0.95 }}
-                                      title={color.name}
-                                    />
-                                  );
-                                })}
+                          <Portal>
+                            <div className="fixed inset-0" style={{ zIndex: 99998 }} onClick={() => setShowColorPicker(false)} />
+                            <motion.div
+                              initial={{ opacity: 0, y: -5 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -5 }}
+                              transition={{ duration: 0.12 }}
+                              className="rounded-lg"
+                              style={{
+                                position: 'fixed',
+                                top: `${colorPickerPosition.top}px`,
+                                left: `${colorPickerPosition.left}px`,
+                                zIndex: 99999,
+                                backgroundColor: themeColors.bgPrimary,
+                                border: `1px solid ${themeColors.border}`,
+                                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)'
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {/* v0.17.124: Smaller circles, extra padding to prevent clipping */}
+                              <div style={{ padding: '14px 18px' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 16px)', gap: '14px' }}>
+                                  {TASK_COLORS.slice(0, 18).map((color) => {
+                                    const isSelected = formData.color === color.value;
+                                    return (
+                                      <motion.button
+                                        key={color.value}
+                                        type="button"
+                                        onClick={() => { handleChange('color', color.value); setShowColorPicker(false) }}
+                                        style={{
+                                          width: '16px',
+                                          height: '16px',
+                                          borderRadius: '50%',
+                                          backgroundColor: color.value,
+                                          outline: isSelected ? `2px solid ${color.value}` : 'none',
+                                          outlineOffset: '3px',
+                                          cursor: 'pointer',
+                                          border: 'none',
+                                        }}
+                                        whileHover={{ scale: 1.2 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        title={color.name}
+                                      />
+                                    );
+                                  })}
+                                </div>
                               </div>
-                            </div>
-                          </motion.div>
+                            </motion.div>
+                          </Portal>
                         )}
                       </AnimatePresence>
                     </div>
