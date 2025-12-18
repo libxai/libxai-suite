@@ -879,25 +879,28 @@ export function TaskGrid({
           boxSizing: 'border-box', // Border included in height
         }}
       >
-        {visibleColumns.map((column, colIndex) => (
+        {visibleColumns.map((column, colIndex) => {
+          const isLastColumn = colIndex === visibleColumns.length - 1;
+          const isNameColumn = column.id === 'name';
+
+          return (
           <div
             key={column.id}
             className={`flex items-center px-4 cursor-pointer hover:bg-opacity-50 transition-colors relative ${
-              column.id === 'name' ? 'justify-between' : 'justify-center'
+              isNameColumn ? '' : 'justify-center'
             }`}
             style={{
-              // v0.17.125: All columns (including 'name') use fixed width for consistent behavior
-              // This prevents the name column from recalculating width when toggling other columns
+              // v0.17.129: All columns use fixed width for consistent resize behavior
               width: `${column.width}px`,
-              minWidth: `${column.minWidth ?? (column.id === 'name' ? 200 : 60)}px`,
+              minWidth: `${column.minWidth ?? (isNameColumn ? 200 : 60)}px`,
               maxWidth: `${column.maxWidth ?? 2000}px`,
               flexShrink: 0,
               flexGrow: 0,
-              // Only add border-right between columns, not on the last one (GanttBoard container has the divider)
-              borderRight: colIndex < visibleColumns.length - 1 ? `1px solid ${theme.borderLight}` : 'none',
+              // v0.17.129: Border between columns, none on last (GanttBoard has the main divider)
+              borderRight: !isLastColumn ? `1px solid ${theme.borderLight}` : 'none',
               height: '100%',
               boxSizing: 'border-box',
-              overflow: 'hidden', // v0.17.56: Prevent content overflow
+              overflow: 'hidden',
             }}
             onContextMenu={(e) => {
               e.preventDefault();
@@ -922,22 +925,30 @@ export function TaskGrid({
                 color: theme.textTertiary,
                 fontFamily: 'Inter, sans-serif',
                 fontWeight: 600,
-                // v0.17.56: Truncate long labels elegantly
+                // v0.17.129: Truncate long labels elegantly
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
-                // v0.17.74: Allow text to shrink when buttons need space
-                flex: column.id === 'name' ? '1 1 auto' : 'none',
                 minWidth: 0,
+                // v0.17.129: Name column needs right padding to not overlap with action buttons
+                paddingRight: isNameColumn ? '70px' : '0',
               }}
-              title={column.label} // v0.17.56: Show full label on hover
+              title={column.label}
             >
               {column.label}
             </span>
 
-            {/* v0.17.74: Action buttons inside the name column - move dynamically with column width */}
-            {column.id === 'name' && (
-              <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+            {/* v0.17.129: Action buttons (+ and keyboard) at right edge, synced with resize handle */}
+            {isNameColumn && (
+              <div
+                className="absolute flex items-center gap-1"
+                style={{
+                  right: '4px', // Aligned with resize handle position
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  zIndex: 4, // Below resize handle (z-5) but above content
+                }}
+              >
                 <ColumnManager
                   columns={columns}
                   onToggleColumn={onToggleColumn}
@@ -987,7 +998,8 @@ export function TaskGrid({
               </div>
             )}
           </div>
-        ))}
+        );
+        })}
 
         {/* v0.17.74: Keyboard help tooltip - rendered outside the header flow */}
         {showKeyboardHelp && (
@@ -1173,28 +1185,34 @@ export function TaskGrid({
               backgroundColor: isSelected ? theme.accentLight : theme.hoverBg,
             }}
           >
-          {visibleColumns.map((column, colIndex) => (
+          {visibleColumns.map((column, colIndex) => {
+            const isLastColumn = colIndex === visibleColumns.length - 1;
+            const isNameColumn = column.id === 'name';
+
+            return (
             <div
               key={`${task.id}-${column.id}`}
               className={`px-4 flex items-center ${
-                column.id === 'name' ? 'justify-start' : 'justify-center'
-              } ${colIndex < visibleColumns.length - 1 ? 'border-r' : ''}`}
+                isNameColumn ? 'justify-start' : 'justify-center'
+              }`}
               style={{
-                // v0.17.125: All columns (including 'name') use fixed width for consistent behavior
+                // v0.17.129: All columns use fixed width for consistent resize behavior
                 width: `${column.width}px`,
-                minWidth: `${column.minWidth ?? (column.id === 'name' ? 200 : 60)}px`,
+                minWidth: `${column.minWidth ?? (isNameColumn ? 200 : 60)}px`,
                 maxWidth: `${column.maxWidth ?? 2000}px`,
                 flexShrink: 0,
                 flexGrow: 0,
-                borderColor: hoveredTaskId === task.id ? theme.border : theme.borderLight,
+                // v0.17.129: Consistent border handling - inline style like header
+                borderRight: !isLastColumn ? `1px solid ${hoveredTaskId === task.id ? theme.border : theme.borderLight}` : 'none',
                 height: '100%',
                 boxSizing: 'border-box',
-                overflow: 'hidden', // v0.17.56: Prevent content overflow
+                overflow: 'hidden',
               }}
             >
-              {renderCellContent(column, task, column.id === 'name' ? level : 0)}
+              {renderCellContent(column, task, isNameColumn ? level : 0)}
             </div>
-          ))}
+          );
+          })}
           </motion.div>
         );
       })}

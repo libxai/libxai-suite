@@ -226,12 +226,27 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   }, [translations]);
 
   // Calculate grid width based on visible columns (memoized)
-  const calculatedGridWidth = useMemo(() =>
-    columns
-      .filter(col => col.visible)
-      .reduce((sum, col) => sum + col.width, 0) + 60, // +60 for add button and padding
-    [columns]
-  );
+  // v0.17.127: Only add extra padding when there are additional columns beyond 'name'
+  const calculatedGridWidth = useMemo(() => {
+    const visibleCols = columns.filter(col => col.visible);
+    const hasAdditionalColumns = visibleCols.some(col => col.id !== 'name');
+    const baseWidth = visibleCols.reduce((sum, col) => sum + col.width, 0);
+    // Only add padding for additional columns area when there are extra columns
+    return baseWidth + (hasAdditionalColumns ? 20 : 0);
+  }, [columns]);
+
+  // v0.17.130: Reset gridWidthOverride when columns are removed and less space is needed
+  // This ensures the panel contracts back when removing columns
+  useEffect(() => {
+    if (gridWidthOverride !== null && gridWidthOverride > calculatedGridWidth) {
+      // Only reset if there are no additional columns (user removed all extra columns)
+      const visibleCols = columns.filter(col => col.visible);
+      const hasAdditionalColumns = visibleCols.some(col => col.id !== 'name');
+      if (!hasAdditionalColumns) {
+        setGridWidthOverride(null); // Reset to auto-calculated width
+      }
+    }
+  }, [columns, calculatedGridWidth, gridWidthOverride]);
 
   // v0.17.76: When columns are added/removed, auto-expand panel if needed
   // gridWidthOverride is user's manual resize, but if columns need more space, expand automatically
@@ -1069,12 +1084,25 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       setIsResizing(false);
     };
 
+    // v0.17.131: Handle wheel events on grid to enable mouse wheel scroll on left panel
+    const gridScrollContainer = gridContainer.querySelector('.gantt-grid-scroll') as HTMLElement || gridContainer;
+    const handleGridWheel = (e: Event) => {
+      const wheelEvent = e as WheelEvent;
+      // Propagate wheel scroll to timeline (which handles the actual scrolling)
+      if (wheelEvent.deltaY !== 0) {
+        timelineScroll.scrollTop += wheelEvent.deltaY;
+        e.preventDefault(); // Prevent default to avoid double-scroll
+      }
+    };
+
     timelineScroll.addEventListener('scroll', handleTimelineScroll);
+    gridScrollContainer.addEventListener('wheel', handleGridWheel, { passive: false });
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
 
     return () => {
       timelineScroll.removeEventListener('scroll', handleTimelineScroll);
+      gridScrollContainer.removeEventListener('wheel', handleGridWheel);
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
