@@ -297,14 +297,14 @@ export function UserAssignmentSelector({
                     </div>
 
                     {/* Name */}
-                    <span className="font-semibold flex-1 text-left" style={{ color: 'var(--modal-v2-text-primary, rgba(255, 255, 255, 0.95))' }}>
+                    <span className="font-semibold flex-1 text-left truncate" style={{ color: 'var(--modal-v2-text-primary, rgba(255, 255, 255, 0.95))' }}>
                       {user.name}
                     </span>
 
-                    {/* Checkmark */}
-                    {isAssigned && (
-                      <span className="text-lg" style={{ color: '#3b82f6' }}>✓</span>
-                    )}
+                    {/* Checkmark - fixed width for consistent alignment */}
+                    <span className="w-5 text-lg flex-shrink-0 text-right" style={{ color: isAssigned ? '#3b82f6' : 'transparent' }}>
+                      {isAssigned ? '✓' : ''}
+                    </span>
                   </button>
                 )
               })

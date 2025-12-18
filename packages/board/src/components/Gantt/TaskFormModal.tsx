@@ -28,6 +28,7 @@ import {
 import { Task, Theme } from './types'
 import { themes } from './themes'
 import { TASK_COLORS } from './ColorPicker'
+import { Portal } from '../Portal'
 
 // v0.17.28: Priority type for Kanban sync
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent'
@@ -107,6 +108,7 @@ export function TaskFormModal({
   const [showColorPicker, setShowColorPicker] = useState(false)
   const [showDatePicker, setShowDatePicker] = useState<'start' | 'end' | null>(null)
   const [datePickerMonth, setDatePickerMonth] = useState(new Date())
+  const [datePickerPosition, setDatePickerPosition] = useState({ top: 0, left: 0 })
   const [showAdvanced, setShowAdvanced] = useState(false)
 
   // Refs for click outside
@@ -114,6 +116,7 @@ export function TaskFormModal({
   const priorityRef = useRef<HTMLDivElement>(null)
   const assigneesRef = useRef<HTMLDivElement>(null)
   const colorRef = useRef<HTMLDivElement>(null)
+  const dateRowRef = useRef<HTMLDivElement>(null)
 
   const [formData, setFormData] = useState<TaskFormData>({
     name: '',
@@ -494,13 +497,16 @@ export function TaskFormModal({
                                     }}
                                   >
                                     <div
-                                      className="w-6 h-6 rounded-full flex items-center justify-center text-xs text-white font-medium"
+                                      className="w-6 h-6 rounded-full flex items-center justify-center text-xs text-white font-medium flex-shrink-0"
                                       style={{ backgroundColor: themeColors.accent }}
                                     >
                                       {user.name.charAt(0).toUpperCase()}
                                     </div>
-                                    <span className="truncate flex-1">{user.name}</span>
-                                    {isSelected && <Check className="w-3.5 h-3.5" style={{ color: themeColors.accent }} />}
+                                    <span className="truncate flex-1 text-left">{user.name}</span>
+                                    {/* Fixed width checkmark area for consistent alignment */}
+                                    <div className="w-4 flex-shrink-0 flex justify-end">
+                                      {isSelected && <Check className="w-3.5 h-3.5" style={{ color: themeColors.accent }} />}
+                                    </div>
                                   </button>
                                 )
                               })}
@@ -575,10 +581,29 @@ export function TaskFormModal({
                   {/* Dates Row */}
                   <div className="flex items-center gap-3">
                     <Calendar className="w-4 h-4" style={{ color: themeColors.textTertiary }} />
-                    <div className="flex items-center gap-2 flex-1 relative">
+                    <div ref={dateRowRef} className="flex items-center gap-2 flex-1 relative">
                       <button
                         type="button"
-                        onClick={() => { if (!isLoading && !formData.isMilestone) { setShowDatePicker(showDatePicker === 'start' ? null : 'start'); setDatePickerMonth(formData.startDate || new Date()) } }}
+                        onClick={() => {
+                          if (!isLoading && !formData.isMilestone) {
+                            if (showDatePicker === 'start') {
+                              setShowDatePicker(null)
+                            } else {
+                              // Calculate position for Portal
+                              if (dateRowRef.current) {
+                                const rect = dateRowRef.current.getBoundingClientRect()
+                                const viewportHeight = window.innerHeight
+                                const pickerHeight = 320 // Approximate height
+                                // Open upward if not enough space below
+                                const spaceBelow = viewportHeight - rect.bottom
+                                const top = spaceBelow < pickerHeight ? rect.top - pickerHeight - 8 : rect.bottom + 8
+                                setDatePickerPosition({ top, left: rect.left })
+                              }
+                              setShowDatePicker('start')
+                              setDatePickerMonth(formData.startDate || new Date())
+                            }
+                          }
+                        }}
                         className="px-3 py-1.5 rounded-lg text-sm transition-colors"
                         style={{
                           ...pillStyle,
@@ -592,7 +617,25 @@ export function TaskFormModal({
                       <span style={{ color: themeColors.textTertiary }}>→</span>
                       <button
                         type="button"
-                        onClick={() => { if (!isLoading && !formData.isMilestone) { setShowDatePicker(showDatePicker === 'end' ? null : 'end'); setDatePickerMonth(formData.endDate || formData.startDate || new Date()) } }}
+                        onClick={() => {
+                          if (!isLoading && !formData.isMilestone) {
+                            if (showDatePicker === 'end') {
+                              setShowDatePicker(null)
+                            } else {
+                              // Calculate position for Portal
+                              if (dateRowRef.current) {
+                                const rect = dateRowRef.current.getBoundingClientRect()
+                                const viewportHeight = window.innerHeight
+                                const pickerHeight = 320
+                                const spaceBelow = viewportHeight - rect.bottom
+                                const top = spaceBelow < pickerHeight ? rect.top - pickerHeight - 8 : rect.bottom + 8
+                                setDatePickerPosition({ top, left: rect.left })
+                              }
+                              setShowDatePicker('end')
+                              setDatePickerMonth(formData.endDate || formData.startDate || new Date())
+                            }
+                          }
+                        }}
                         className="px-3 py-1.5 rounded-lg text-sm transition-colors"
                         style={{
                           ...pillStyle,
@@ -604,17 +647,24 @@ export function TaskFormModal({
                         {formData.endDate ? formData.endDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) : 'Fin'}
                       </button>
 
-                      {/* Date Picker Popover */}
+                      {/* Date Picker Popover - Using Portal to escape overflow:hidden */}
                       <AnimatePresence>
                         {showDatePicker && (
-                          <>
-                            <div className="fixed inset-0 z-40" onClick={() => setShowDatePicker(null)} />
+                          <Portal>
+                            <div className="fixed inset-0" style={{ zIndex: 99998 }} onClick={() => setShowDatePicker(null)} />
                             <motion.div
                               initial={{ opacity: 0, y: -10 }}
                               animate={{ opacity: 1, y: 0 }}
                               exit={{ opacity: 0, y: -10 }}
-                              className="absolute left-0 top-full mt-2 z-50 rounded-xl shadow-2xl overflow-hidden flex"
-                              style={{ backgroundColor: themeColors.bgPrimary, border: `1px solid ${themeColors.border}` }}
+                              className="rounded-xl shadow-2xl overflow-hidden flex"
+                              style={{
+                                position: 'fixed',
+                                top: `${datePickerPosition.top}px`,
+                                left: `${datePickerPosition.left}px`,
+                                zIndex: 99999,
+                                backgroundColor: themeColors.bgPrimary,
+                                border: `1px solid ${themeColors.border}`,
+                              }}
                               onClick={(e) => e.stopPropagation()}
                             >
                               {/* Quick Options */}
@@ -730,7 +780,7 @@ export function TaskFormModal({
                                 </div>
                               </div>
                             </motion.div>
-                          </>
+                          </Portal>
                         )}
                       </AnimatePresence>
                     </div>

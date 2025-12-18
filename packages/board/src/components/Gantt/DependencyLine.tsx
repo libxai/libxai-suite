@@ -31,7 +31,7 @@ export function DependencyLine({ x1, y1, x2, y2, theme, onDelete, onHoverChange 
   const dx = x2 - x1;
   const dy = y2 - y1;
   const midX = x1 + dx / 2;
-  
+
   // Create elegant S-curve path
   const path = `M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}`;
 
@@ -63,40 +63,49 @@ export function DependencyLine({ x1, y1, x2, y2, theme, onDelete, onHoverChange 
     }
   }, [isHovered, x1, y1, x2, y2, onDelete, onHoverChange]);
 
+  // v0.17.140: If no onDelete/onHoverChange, this is a static line (hover handled by top layer)
+  const isStaticLine = !onDelete && !onHoverChange;
+
   return (
     <g
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={() => !isStaticLine && setIsHovered(true)}
+      onMouseLeave={() => !isStaticLine && setIsHovered(false)}
+      style={{ pointerEvents: isStaticLine ? 'none' : 'auto' }}
     >
-      {/* Invisible wider path for easier hover detection */}
-      <path
-        d={path}
-        fill="none"
-        stroke="transparent"
-        strokeWidth={20}
-        strokeLinecap="round"
-        style={{ cursor: 'pointer' }}
-      />
+      {/* Invisible wider path for easier hover detection - only if interactive */}
+      {!isStaticLine && (
+        <path
+          d={path}
+          fill="none"
+          stroke="transparent"
+          strokeWidth={20}
+          strokeLinecap="round"
+          style={{ cursor: 'pointer' }}
+        />
+      )}
 
-      {/* Main dependency line */}
-      {/* v0.17.80: Hide when hovered AND using top-layer rendering (onHoverChange) */}
+      {/* v0.17.143: Premium dependency line - subtle in default state, prominent on hover */}
+      {/* Main dependency line - dashed style for subtle appearance */}
       <motion.path
         d={path}
         fill="none"
         stroke={lineColor}
-        strokeWidth={2}
+        strokeWidth={1.5}
         strokeLinecap="round"
+        strokeDasharray="6 4"
         initial={{ pathLength: 0, opacity: 0 }}
         animate={{
           pathLength: 1,
           // Hide original line when hover renders in top layer
-          opacity: (isHovered && onHoverChange) ? 0 : (isHovered ? 1 : 0.6),
-          strokeWidth: isHovered ? 2.5 : 2,
+          opacity: (isHovered && onHoverChange) ? 0 : (isHovered ? 0.9 : 0.35),
+          strokeWidth: isHovered ? 2 : 1.5,
+          strokeDasharray: isHovered ? '0 0' : '6 4',
         }}
         transition={{
           pathLength: { duration: 0.5, ease: 'easeInOut' },
-          opacity: { duration: 0.15 },
+          opacity: { duration: 0.2 },
           strokeWidth: { duration: 0.2 },
+          strokeDasharray: { duration: 0.2 },
         }}
       />
 
@@ -105,31 +114,33 @@ export function DependencyLine({ x1, y1, x2, y2, theme, onDelete, onHoverChange 
         d={`M ${x2} ${y2} L ${arrowX} ${arrowY} M ${x2} ${y2} L ${arrowX2} ${arrowY2}`}
         fill="none"
         stroke={lineColor}
-        strokeWidth={2}
+        strokeWidth={1.5}
         strokeLinecap="round"
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{
           // Hide original arrow when hover renders in top layer
-          opacity: (isHovered && onHoverChange) ? 0 : (isHovered ? 1 : 0.6),
+          opacity: (isHovered && onHoverChange) ? 0 : (isHovered ? 0.9 : 0.35),
           scale: isHovered ? 1.1 : 1,
-          strokeWidth: isHovered ? 2.5 : 2,
+          strokeWidth: isHovered ? 2 : 1.5,
         }}
-        transition={{ duration: 0.15 }}
+        transition={{ duration: 0.2 }}
       />
 
       {/* Endpoint dot */}
       <motion.circle
         cx={x2}
         cy={y2}
-        r={3}
+        r={2.5}
         fill={lineColor}
         initial={{ scale: 0 }}
         animate={{
           // Hide original dot when hover renders in top layer
-          scale: (isHovered && onHoverChange) ? 0 : (isHovered ? 1.33 : 1),
+          scale: (isHovered && onHoverChange) ? 0 : (isHovered ? 1.4 : 1),
+          opacity: (isHovered && onHoverChange) ? 0 : (isHovered ? 0.9 : 0.35),
         }}
         transition={{
           scale: { delay: 0.3, duration: 0.15 },
+          opacity: { duration: 0.2 },
         }}
       />
 

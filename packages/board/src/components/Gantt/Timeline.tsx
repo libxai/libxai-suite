@@ -64,10 +64,7 @@ export function Timeline({
     setActiveTooltip(tooltipData);
   }, []);
 
-  // v0.17.79: Callback for DependencyLine hover changes
-  const handleDependencyHoverChange = useCallback((data: DependencyHoverData | null) => {
-    setHoveredDependency(data);
-  }, []);
+  // v0.17.140: handleDependencyHoverChange removed - hover now handled directly in Timeline via top layer
 
   // Calculate dimensions
   const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -528,8 +525,7 @@ export function Timeline({
                 x2={toPos.x}
                 y2={toIndex * ROW_HEIGHT + ROW_HEIGHT / 2}
                 theme={theme}
-                onDelete={() => onDependencyDelete?.(task.id, depId)}
-                onHoverChange={handleDependencyHoverChange} // v0.17.78: Top-layer delete button
+                // v0.17.140: Removed onDelete and onHoverChange - hover now handled by top layer
               />
             );
           });
@@ -672,6 +668,56 @@ export function Timeline({
           );
         })}
 
+        {/* v0.17.142: Dependency hover detection layer - rendered AFTER tasks so hover works above task bars */}
+        {/* Each dependency gets a hover zone that activates the highlighted state */}
+        {flatTasks.map((task, toIndex) => {
+          if (!task.dependencies || task.dependencies.length === 0) return null;
+          if (!task.startDate || !task.endDate) return null;
+
+          return task.dependencies.map((depId) => {
+            const depTask = flatTasks.find((t) => t.id === depId);
+            if (!depTask) return null;
+            if (!depTask.startDate || !depTask.endDate) return null;
+
+            const fromIndex = flatTasks.findIndex((t) => t.id === depId);
+            const fromPos = getTaskPosition(depTask);
+            const toPos = getTaskPosition(task);
+
+            const x1 = fromPos.x + fromPos.width;
+            const y1 = fromIndex * ROW_HEIGHT + ROW_HEIGHT / 2;
+            const x2 = toPos.x;
+            const y2 = toIndex * ROW_HEIGHT + ROW_HEIGHT / 2;
+            const dx = x2 - x1;
+            const midX = x1 + dx / 2;
+            const path = `M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}`;
+            const isThisHovered = hoveredDependency &&
+              hoveredDependency.x1 === x1 && hoveredDependency.y1 === y1 &&
+              hoveredDependency.x2 === x2 && hoveredDependency.y2 === y2;
+
+            // Only render hover zone if this dependency is NOT currently hovered
+            // (when hovered, the top layer handles everything)
+            if (isThisHovered) return null;
+
+            return (
+              <path
+                key={`dep-hover-${depId}-${task.id}`}
+                d={path}
+                fill="none"
+                stroke="transparent"
+                strokeWidth={24}
+                strokeLinecap="round"
+                style={{ cursor: 'pointer' }}
+                onMouseEnter={() => {
+                  setHoveredDependency({
+                    x1, y1, x2, y2,
+                    onDelete: () => onDependencyDelete?.(task.id, depId),
+                  });
+                }}
+              />
+            );
+          });
+        })}
+
         {/* v0.13.0: Dependency Cascade Preview - Ghost bars showing where dependent tasks will move */}
         {/* v0.13.4: Simplified - no conflicting animation, direct position */}
         {/* v0.13.7: Adjusted Y positions for cascade previews */}
@@ -712,7 +758,7 @@ export function Timeline({
           </g>
         ))}
 
-        {/* v0.17.81: Hovered dependency layer - full line + delete button rendered above tasks */}
+        {/* v0.17.143: Premium hovered dependency layer - elegant glow + refined delete button */}
         {/* This renders AFTER tasks in the SVG, so it appears on top */}
         {hoveredDependency && (() => {
           const { x1, y1, x2, y2, onDelete } = hoveredDependency;
@@ -728,17 +774,51 @@ export function Timeline({
           const arrowX2 = x2 - arrowSize * Math.cos(angle + Math.PI / 6);
           const arrowY2 = y2 - arrowSize * Math.sin(angle + Math.PI / 6);
           const lineColor = theme.dependency;
+          // Premium soft red - less aggressive, more SaaS-friendly
+          const deleteColor = '#f87171';
+          const deleteColorSoft = 'rgba(248, 113, 113, 0.15)';
 
           return (
-            <g style={{ pointerEvents: 'none' }}>
-              {/* Highlighted dependency line - NO animation, instant display */}
+            <g onMouseLeave={() => setHoveredDependency(null)}>
+              {/* Large invisible hover area along the entire path */}
+              <path
+                d={path}
+                fill="none"
+                stroke="transparent"
+                strokeWidth={50}
+                strokeLinecap="round"
+                style={{ cursor: 'pointer' }}
+              />
+
+              {/* Extra hover area around delete button */}
+              <circle
+                cx={midX}
+                cy={midY}
+                r={25}
+                fill="transparent"
+                style={{ cursor: 'pointer' }}
+              />
+
+              {/* Glow effect layer - subtle gradient glow */}
               <path
                 d={path}
                 fill="none"
                 stroke={lineColor}
-                strokeWidth={3}
+                strokeWidth={8}
                 strokeLinecap="round"
-                opacity={1}
+                opacity={0.15}
+                style={{ pointerEvents: 'none', filter: 'blur(4px)' }}
+              />
+
+              {/* Highlighted dependency line - solid, prominent */}
+              <path
+                d={path}
+                fill="none"
+                stroke={lineColor}
+                strokeWidth={2.5}
+                strokeLinecap="round"
+                opacity={0.9}
+                style={{ pointerEvents: 'none' }}
               />
 
               {/* Arrow head */}
@@ -746,55 +826,61 @@ export function Timeline({
                 d={`M ${x2} ${y2} L ${arrowX} ${arrowY} M ${x2} ${y2} L ${arrowX2} ${arrowY2}`}
                 fill="none"
                 stroke={lineColor}
-                strokeWidth={3}
+                strokeWidth={2.5}
                 strokeLinecap="round"
-                opacity={1}
+                opacity={0.9}
+                style={{ pointerEvents: 'none' }}
               />
 
               {/* Endpoint dot */}
               <circle
                 cx={x2}
                 cy={y2}
-                r={5}
+                r={4}
                 fill={lineColor}
+                opacity={0.9}
+                style={{ pointerEvents: 'none' }}
               />
 
-              {/* Delete button */}
+              {/* v0.17.144: Premium delete button - instant clear on click */}
               <motion.g
-                initial={{ opacity: 0, scale: 0 }}
+                initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.2 }}
+                transition={{ duration: 0.15, ease: 'easeOut' }}
                 onClick={(e) => {
                   e.stopPropagation();
+                  setHoveredDependency(null); // Clear hover state immediately
                   onDelete();
                 }}
-                style={{ cursor: 'pointer', pointerEvents: 'auto' }}
+                style={{ cursor: 'pointer' }}
               >
+                {/* Button background - subtle, transparent with soft border */}
                 <circle
                   cx={midX}
                   cy={midY}
-                  r={10}
-                  fill={theme.bgSecondary}
-                  stroke={theme.error || '#ef4444'}
-                  strokeWidth={2}
+                  r={9}
+                  fill={deleteColorSoft}
+                  stroke={deleteColor}
+                  strokeWidth={1.5}
+                  style={{ transition: 'all 0.15s ease' }}
                 />
-                {/* X icon */}
+                {/* X icon - refined, smaller strokes */}
                 <line
-                  x1={midX - 4}
-                  y1={midY - 4}
-                  x2={midX + 4}
-                  y2={midY + 4}
-                  stroke={theme.error || '#ef4444'}
-                  strokeWidth={2}
+                  x1={midX - 3}
+                  y1={midY - 3}
+                  x2={midX + 3}
+                  y2={midY + 3}
+                  stroke={deleteColor}
+                  strokeWidth={1.5}
                   strokeLinecap="round"
                 />
                 <line
-                  x1={midX + 4}
-                  y1={midY - 4}
-                  x2={midX - 4}
-                  y2={midY + 4}
-                  stroke={theme.error || '#ef4444'}
-                  strokeWidth={2}
+                  x1={midX + 3}
+                  y1={midY - 3}
+                  x2={midX - 3}
+                  y2={midY + 3}
+                  stroke={deleteColor}
+                  strokeWidth={1.5}
                   strokeLinecap="round"
                 />
               </motion.g>
