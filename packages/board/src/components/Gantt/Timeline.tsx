@@ -691,37 +691,27 @@ export function Timeline({
             const dx = x2 - x1;
             const midX = x1 + dx / 2;
 
-            // v0.17.149: Smart offset - only offset endpoints near task bars, not the middle
-            // This preserves hoverable area while keeping resize handles accessible
-            const lineLength = Math.abs(x2 - x1);
-            const minHoverLength = 30; // Minimum hoverable length
-
-            // Calculate dynamic offset based on line length
-            const maxOffset = 20;
-            const availableSpace = lineLength - minHoverLength;
-            const offset = availableSpace > 0 ? Math.min(maxOffset, availableSpace / 2) : 0;
-
-            const hoverX1 = x1 + offset;
-            const hoverX2 = x2 - offset;
-
-            const hoverPath = `M ${hoverX1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${hoverX2} ${y2}`;
+            // v0.17.150: Hover zone ONLY at the center of the curve (not near task bars)
+            // This allows resize handles to work while still enabling dependency deletion
+            // Calculate the center point of the Bézier curve (t=0.5)
+            const t = 0.5;
+            const centerX = (1-t)*(1-t)*(1-t)*x1 + 3*(1-t)*(1-t)*t*midX + 3*(1-t)*t*t*midX + t*t*t*x2;
+            const centerY = (1-t)*(1-t)*(1-t)*y1 + 3*(1-t)*(1-t)*t*y1 + 3*(1-t)*t*t*y2 + t*t*t*y2;
 
             const isThisHovered = hoveredDependency &&
               hoveredDependency.x1 === x1 && hoveredDependency.y1 === y1 &&
               hoveredDependency.x2 === x2 && hoveredDependency.y2 === y2;
 
             // Only render hover zone if this dependency is NOT currently hovered
-            // (when hovered, the top layer handles everything)
             if (isThisHovered) return null;
 
             return (
-              <path
+              <circle
                 key={`dep-hover-${depId}-${task.id}`}
-                d={hoverPath}
-                fill="none"
-                stroke="transparent"
-                strokeWidth={20}
-                strokeLinecap="round"
+                cx={centerX}
+                cy={centerY}
+                r={18}
+                fill="transparent"
                 style={{ cursor: 'pointer' }}
                 onMouseEnter={() => {
                   setHoveredDependency({
