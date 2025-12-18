@@ -691,12 +691,22 @@ export function Timeline({
             const dx = x2 - x1;
             const midX = x1 + dx / 2;
 
-            // v0.17.150: Hover zone ONLY at the center of the curve (not near task bars)
-            // This allows resize handles to work while still enabling dependency deletion
-            // Calculate the center point of the Bézier curve (t=0.5)
-            const t = 0.5;
-            const centerX = (1-t)*(1-t)*(1-t)*x1 + 3*(1-t)*(1-t)*t*midX + 3*(1-t)*t*t*midX + t*t*t*x2;
-            const centerY = (1-t)*(1-t)*(1-t)*y1 + 3*(1-t)*(1-t)*t*y1 + 3*(1-t)*t*t*y2 + t*t*t*y2;
+            // v0.17.151: Hover zone only in the MIDDLE SEGMENT of the curve (t=0.25 to t=0.75)
+            // Near task bars (t=0 to 0.25 and t=0.75 to 1): NO hover - resize handles work
+            // Middle of curve (t=0.25 to 0.75): hoverable - can delete dependency
+            const bezierPoint = (t: number) => {
+              const px = (1-t)*(1-t)*(1-t)*x1 + 3*(1-t)*(1-t)*t*midX + 3*(1-t)*t*t*midX + t*t*t*x2;
+              const py = (1-t)*(1-t)*(1-t)*y1 + 3*(1-t)*(1-t)*t*y1 + 3*(1-t)*t*t*y2 + t*t*t*y2;
+              return { x: px, y: py };
+            };
+
+            // Get points at t=0.25 and t=0.75 for the middle segment
+            const p1 = bezierPoint(0.25);
+            const p2 = bezierPoint(0.5);  // Control point for smoother curve
+            const p3 = bezierPoint(0.75);
+
+            // Create a path for the middle segment using quadratic curve
+            const middlePath = `M ${p1.x} ${p1.y} Q ${p2.x} ${p2.y} ${p3.x} ${p3.y}`;
 
             const isThisHovered = hoveredDependency &&
               hoveredDependency.x1 === x1 && hoveredDependency.y1 === y1 &&
@@ -706,12 +716,13 @@ export function Timeline({
             if (isThisHovered) return null;
 
             return (
-              <circle
+              <path
                 key={`dep-hover-${depId}-${task.id}`}
-                cx={centerX}
-                cy={centerY}
-                r={18}
-                fill="transparent"
+                d={middlePath}
+                fill="none"
+                stroke="transparent"
+                strokeWidth={24}
+                strokeLinecap="round"
                 style={{ cursor: 'pointer' }}
                 onMouseEnter={() => {
                   setHoveredDependency({
