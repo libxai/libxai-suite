@@ -538,9 +538,9 @@ export function TaskFormModal({
                               boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)'
                             }}
                           >
-                            {/* v0.17.121: Minimal style like ClickUp - small circles with spacing */}
-                            <div className="p-3">
-                              <div className="grid grid-cols-6 gap-3">
+                            {/* v0.17.122: ClickUp exact style - 4 cols, large circles, generous spacing */}
+                            <div className="px-4 py-3">
+                              <div className="grid grid-cols-4" style={{ gap: '14px' }}>
                                 {TASK_COLORS.slice(0, 16).map((color) => {
                                   const isSelected = formData.color === color.value;
                                   return (
@@ -548,12 +548,15 @@ export function TaskFormModal({
                                       key={color.value}
                                       type="button"
                                       onClick={() => { handleChange('color', color.value); setShowColorPicker(false) }}
-                                      className="w-6 h-6 rounded-full"
                                       style={{
+                                        width: '30px',
+                                        height: '30px',
+                                        borderRadius: '50%',
                                         backgroundColor: color.value,
-                                        boxShadow: isSelected ? `0 0 0 2px ${themeColors.bgPrimary}, 0 0 0 3px ${color.value}` : 'none',
+                                        outline: isSelected ? `2px solid ${color.value}` : 'none',
+                                        outlineOffset: '3px',
                                       }}
-                                      whileHover={{ scale: 1.1 }}
+                                      whileHover={{ scale: 1.08 }}
                                       whileTap={{ scale: 0.95 }}
                                       title={color.name}
                                     />

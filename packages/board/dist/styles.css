@@ -8984,8 +8984,8 @@ body {
 }
 
 
-.grid-cols-6 {
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+.grid-cols-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 
@@ -10516,6 +10516,11 @@ body {
 .outline-none {
   outline: 2px solid transparent;
   outline-offset: 2px;
+}
+
+
+.outline {
+  outline-style: solid;
 }
 
 
