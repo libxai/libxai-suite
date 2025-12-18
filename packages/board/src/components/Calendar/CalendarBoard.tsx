@@ -376,7 +376,8 @@ export function CalendarBoard({
           </div>
 
           {/* Calendar Days - v0.17.90: Auto-expanding rows to show all tasks like ClickUp */}
-          <div className={cn("grid grid-cols-7 auto-rows-min gap-px rounded-lg", isDark ? "bg-white/5" : "bg-gray-200")}>
+          {/* v0.17.136: Improved grid border visibility - bg-white/10 for clearer borders */}
+          <div className={cn("grid grid-cols-7 auto-rows-min gap-px rounded-lg", isDark ? "bg-[#2D2D2D]" : "bg-gray-300")}>
             {calendarDays.map((day, index) => {
               // v0.17.87: Weekend detection (Saturday=6, Sunday=0)
               const isWeekend = day.date.getDay() === 0 || day.date.getDay() === 6;
@@ -386,12 +387,11 @@ export function CalendarBoard({
                 key={index}
                 className={cn(
                   "min-h-[120px] p-2 transition-colors flex flex-col relative group",
-                  // v0.17.89: Weekends have SAME color regardless of month (like ClickUp)
-                  // Only weekdays vary based on current month
+                  // v0.17.136: ClickUp-style weekends - slightly lighter than weekdays
                   isDark
                     ? (isWeekend
-                        ? "bg-[#1A1D21]"  // ALL weekends: same lighter gray
-                        : (day.isCurrentMonth ? "bg-[#0F1117]" : "bg-[#0A0C10]"))  // Weekdays vary
+                        ? "bg-[#1C1F26]"  // ALL weekends: subtle lighter gray
+                        : (day.isCurrentMonth ? "bg-[#13161B]" : "bg-[#0D0F13]"))  // Weekdays: darker
                     : (isWeekend
                         ? "bg-gray-100"  // ALL weekends: same light gray
                         : (day.isCurrentMonth ? "bg-white" : "bg-gray-50")),  // Weekdays vary
