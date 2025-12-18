@@ -886,12 +886,13 @@ export function TaskGrid({
               column.id === 'name' ? 'justify-between' : 'justify-center'
             }`}
             style={{
-              // v0.17.75: "name" column uses flex:1 to fill remaining space and respond to panel resize
-              // Other columns keep fixed width
-              ...(column.id === 'name'
-                ? { flex: '1 1 auto', minWidth: `${column.minWidth ?? 150}px` }
-                : { width: `${column.width}px`, minWidth: `${column.minWidth ?? 60}px`, maxWidth: `${column.maxWidth ?? 2000}px`, flexShrink: 0 }
-              ),
+              // v0.17.125: All columns (including 'name') use fixed width for consistent behavior
+              // This prevents the name column from recalculating width when toggling other columns
+              width: `${column.width}px`,
+              minWidth: `${column.minWidth ?? (column.id === 'name' ? 200 : 60)}px`,
+              maxWidth: `${column.maxWidth ?? 2000}px`,
+              flexShrink: 0,
+              flexGrow: 0,
               // Only add border-right between columns, not on the last one (GanttBoard container has the divider)
               borderRight: colIndex < visibleColumns.length - 1 ? `1px solid ${theme.borderLight}` : 'none',
               height: '100%',
@@ -1179,12 +1180,12 @@ export function TaskGrid({
                 column.id === 'name' ? 'justify-start' : 'justify-center'
               } ${colIndex < visibleColumns.length - 1 ? 'border-r' : ''}`}
               style={{
-                // v0.17.75: "name" column uses flex:1 to fill remaining space (same as header)
-                // Other columns (status, progress, etc.) keep their fixed width
-                ...(column.id === 'name'
-                  ? { flex: '1 1 auto', minWidth: `${column.minWidth ?? 150}px` }
-                  : { width: `${column.width}px`, minWidth: `${column.minWidth ?? 60}px`, maxWidth: `${column.maxWidth ?? 2000}px`, flexShrink: 0 }
-                ),
+                // v0.17.125: All columns (including 'name') use fixed width for consistent behavior
+                width: `${column.width}px`,
+                minWidth: `${column.minWidth ?? (column.id === 'name' ? 200 : 60)}px`,
+                maxWidth: `${column.maxWidth ?? 2000}px`,
+                flexShrink: 0,
+                flexGrow: 0,
                 borderColor: hoveredTaskId === task.id ? theme.border : theme.borderLight,
                 height: '100%',
                 boxSizing: 'border-box',
