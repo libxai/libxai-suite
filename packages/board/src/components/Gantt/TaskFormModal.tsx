@@ -538,9 +538,9 @@ export function TaskFormModal({
                               boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)'
                             }}
                           >
-                            {/* v0.17.119: Two row color picker grid 8x2 */}
-                            <div className="p-3">
-                              <div className="grid grid-cols-8 gap-2.5">
+                            {/* v0.17.120: ClickUp style - large circles in 8x2 grid */}
+                            <div className="p-4">
+                              <div className="grid grid-cols-8 gap-4">
                                 {TASK_COLORS.slice(0, 16).map((color) => {
                                   const isSelected = formData.color === color.value;
                                   return (
@@ -548,12 +548,12 @@ export function TaskFormModal({
                                       key={color.value}
                                       type="button"
                                       onClick={() => { handleChange('color', color.value); setShowColorPicker(false) }}
-                                      className="w-5 h-5 rounded-full"
+                                      className="w-7 h-7 rounded-full"
                                       style={{
                                         backgroundColor: color.value,
                                         boxShadow: isSelected ? `0 0 0 2px ${themeColors.bgPrimary}, 0 0 0 4px ${color.value}` : 'none',
                                       }}
-                                      whileHover={{ scale: 1.2 }}
+                                      whileHover={{ scale: 1.15 }}
                                       whileTap={{ scale: 0.9 }}
                                       title={color.name}
                                     />
