@@ -578,12 +578,12 @@ export function TaskGrid({
             {/* Date Picker Popover */}
             {isDatePickerOpen && (
               <>
-                <div className="fixed inset-0 z-40" onClick={() => setDatePickerState(null)} />
+                <div className="fixed inset-0 z-[9998]" onClick={() => setDatePickerState(null)} />
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="fixed z-[9999] rounded-xl shadow-2xl overflow-hidden flex"
+                  className="fixed z-[9999] rounded-xl shadow-2xl overflow-visible flex"
                   style={{
                     backgroundColor: theme.bgPrimary,
                     border: `1px solid ${theme.border}`,
