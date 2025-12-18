@@ -113,6 +113,7 @@ export function TaskGrid({
     taskId: string;
     field: 'startDate' | 'endDate';
     month: Date;
+    position: { top: number; left: number };
   } | null>(null);
 
   // Close keyboard help when clicking outside
@@ -556,14 +557,16 @@ export function TaskGrid({
               type="button"
               className="flex items-center gap-1.5 px-2 py-1 rounded text-xs transition-colors hover:bg-white/5"
               style={{ color: theme.textSecondary }}
-              onClick={() => {
+              onClick={(e) => {
                 if (isDatePickerOpen) {
                   setDatePickerState(null);
                 } else {
+                  const rect = e.currentTarget.getBoundingClientRect();
                   setDatePickerState({
                     taskId: task.id,
                     field: dateField,
-                    month: (dateValue ? (typeof dateValue === 'string' ? new Date(dateValue) : dateValue) : new Date())
+                    month: (dateValue ? (typeof dateValue === 'string' ? new Date(dateValue) : dateValue) : new Date()),
+                    position: { top: rect.bottom + 4, left: rect.left }
                   });
                 }
               }}
@@ -580,8 +583,13 @@ export function TaskGrid({
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="absolute left-0 top-full mt-1 z-50 rounded-xl shadow-2xl overflow-hidden flex"
-                  style={{ backgroundColor: theme.bgPrimary, border: `1px solid ${theme.border}` }}
+                  className="fixed z-[9999] rounded-xl shadow-2xl overflow-hidden flex"
+                  style={{
+                    backgroundColor: theme.bgPrimary,
+                    border: `1px solid ${theme.border}`,
+                    top: datePickerState?.position.top,
+                    left: datePickerState?.position.left,
+                  }}
                   onClick={(e) => e.stopPropagation()}
                 >
                   {/* Quick Options */}
