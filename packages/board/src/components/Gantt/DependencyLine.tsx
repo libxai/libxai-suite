@@ -84,7 +84,7 @@ export function DependencyLine({ x1, y1, x2, y2, theme, onDelete, onHoverChange 
         />
       )}
 
-      {/* v0.17.143: Premium dependency line - subtle in default state, prominent on hover */}
+      {/* v0.17.156: Dependency line - more visible in default state, prominent on hover */}
       {/* Main dependency line - dashed style for subtle appearance */}
       <motion.path
         d={path}
@@ -97,7 +97,7 @@ export function DependencyLine({ x1, y1, x2, y2, theme, onDelete, onHoverChange 
         animate={{
           pathLength: 1,
           // Hide original line when hover renders in top layer
-          opacity: (isHovered && onHoverChange) ? 0 : (isHovered ? 0.9 : 0.35),
+          opacity: (isHovered && onHoverChange) ? 0 : (isHovered ? 0.9 : 0.55),
           strokeWidth: isHovered ? 2 : 1.5,
           strokeDasharray: isHovered ? '0 0' : '6 4',
         }}
@@ -119,7 +119,7 @@ export function DependencyLine({ x1, y1, x2, y2, theme, onDelete, onHoverChange 
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{
           // Hide original arrow when hover renders in top layer
-          opacity: (isHovered && onHoverChange) ? 0 : (isHovered ? 0.9 : 0.35),
+          opacity: (isHovered && onHoverChange) ? 0 : (isHovered ? 0.9 : 0.55),
           scale: isHovered ? 1.1 : 1,
           strokeWidth: isHovered ? 2 : 1.5,
         }}
@@ -136,7 +136,7 @@ export function DependencyLine({ x1, y1, x2, y2, theme, onDelete, onHoverChange 
         animate={{
           // Hide original dot when hover renders in top layer
           scale: (isHovered && onHoverChange) ? 0 : (isHovered ? 1.4 : 1),
-          opacity: (isHovered && onHoverChange) ? 0 : (isHovered ? 0.9 : 0.35),
+          opacity: (isHovered && onHoverChange) ? 0 : (isHovered ? 0.9 : 0.55),
         }}
         transition={{
           scale: { delay: 0.3, duration: 0.15 },
