@@ -293,6 +293,7 @@ export function TaskFormModal({
           >
             <div
               className="w-full max-w-xl rounded-xl shadow-2xl pointer-events-auto overflow-hidden"
+              data-theme={theme}
               style={{
                 backgroundColor: themeColors.bgPrimary,
                 border: `1px solid ${themeColors.border}`,
