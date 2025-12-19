@@ -425,19 +425,6 @@ export function Timeline({
           );
         })}
 
-        {/* Today Line - Solid, prominent indicator - v0.13.7: Adjusted Y (no header offset) */}
-        {todayX >= 0 && todayX <= timelineWidth && (
-          <line
-            x1={todayX}
-            y1={0}
-            x2={todayX}
-            y2={flatTasks.length * ROW_HEIGHT}
-            stroke={theme.today}
-            strokeWidth={2}
-            opacity={1}
-          />
-        )}
-
         {/* Row Backgrounds with Click-to-Create functionality - v0.13.7: Adjusted Y positions */}
         {flatTasks.map((task, index) => {
           const hasTaskBar = task.startDate && task.endDate;
@@ -919,6 +906,20 @@ export function Timeline({
             </g>
           );
         })()}
+
+        {/* v0.17.178: Today Line - Rendered LAST to appear on top of all task bars (ClickUp style) */}
+        {todayX >= 0 && todayX <= timelineWidth && (
+          <line
+            x1={todayX}
+            y1={0}
+            x2={todayX}
+            y2={contentHeight}
+            stroke={theme.today}
+            strokeWidth={2}
+            opacity={1}
+            style={{ pointerEvents: 'none' }}
+          />
+        )}
 
         {/* v0.17.76: Tooltip layer - rendered last to ensure it's always on top */}
         {activeTooltip && (
