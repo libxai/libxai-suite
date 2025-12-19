@@ -410,61 +410,62 @@ export function AttachmentUploader({
         </div>
       )}
 
-      {/* Image Lightbox */}
+      {/* Image Lightbox - Clean, borderless modal */}
       {lightboxImage && (
         <div className="attachment-lightbox" onClick={closeLightbox}>
-          <div className="attachment-lightbox-backdrop" />
+          {/* Image - Full size, no borders */}
+          <img
+            src={lightboxImage.url}
+            alt={lightboxImage.name}
+            className="attachment-lightbox-image"
+            onClick={(e) => e.stopPropagation()}
+          />
 
-          {/* Close button */}
-          <button
-            type="button"
-            className="attachment-lightbox-close"
-            onClick={closeLightbox}
-            title="Close (Esc)"
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
+          {/* Minimal close hint */}
+          <div className="attachment-lightbox-hint">
+            Click anywhere or press ESC to close
+          </div>
 
-          {/* Navigation arrows */}
+          {/* Navigation dots for multiple images */}
+          {attachments.filter(a => isImage(a.type)).length > 1 && (
+            <div className="attachment-lightbox-dots" onClick={(e) => e.stopPropagation()}>
+              {attachments.filter(a => isImage(a.type)).map((img, idx) => (
+                <button
+                  key={img.id}
+                  type="button"
+                  className={`attachment-lightbox-dot ${img.id === lightboxImage.id ? 'active' : ''}`}
+                  onClick={() => setLightboxImage(img)}
+                  title={`Image ${idx + 1}`}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Invisible navigation areas */}
           {attachments.filter(a => isImage(a.type)).length > 1 && (
             <>
               <button
                 type="button"
-                className="attachment-lightbox-nav attachment-lightbox-prev"
+                className="attachment-lightbox-nav-area attachment-lightbox-nav-prev"
                 onClick={(e) => navigateLightbox('prev', e)}
-                title="Previous image (Left arrow)"
+                title="Previous (←)"
               >
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </button>
               <button
                 type="button"
-                className="attachment-lightbox-nav attachment-lightbox-next"
+                className="attachment-lightbox-nav-area attachment-lightbox-nav-next"
                 onClick={(e) => navigateLightbox('next', e)}
-                title="Next image (Right arrow)"
+                title="Next (→)"
               >
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </button>
             </>
           )}
-
-          {/* Image container */}
-          <div className="attachment-lightbox-content" onClick={(e) => e.stopPropagation()}>
-            <img
-              src={lightboxImage.url}
-              alt={lightboxImage.name}
-              className="attachment-lightbox-image"
-            />
-            <div className="attachment-lightbox-info">
-              <span className="attachment-lightbox-name">{lightboxImage.name}</span>
-              <span className="attachment-lightbox-size">{formatFileSize(lightboxImage.size)}</span>
-            </div>
-          </div>
         </div>
       )}
     </div>
