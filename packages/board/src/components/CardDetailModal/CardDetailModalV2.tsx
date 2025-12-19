@@ -26,6 +26,9 @@ import { SmartPopover } from './SmartPopover'
 // COVER IMAGE - Commented out for future use. Uncomment to enable cover image functionality
 // import { CoverImageManager } from '../CoverImage'
 import { useKanbanTheme } from '../Board/KanbanThemeContext'
+import { TagPicker } from '../Gantt/TagPicker'
+import { themes as ganttThemes } from '../Gantt/themes'
+import type { TaskTag } from '../Gantt/types'
 import type { Card, User, Comment, Activity, Subtask } from '../../types'
 import './card-detail-modal-v2.css'
 
@@ -75,8 +78,14 @@ export interface CardDetailModalV2Props {
   /** Available columns for status */
   availableColumns?: Array<{ id: string; title: string }>
 
-  /** Available labels */
+  /** Available labels (legacy - use availableTags for colored tags) */
   availableLabels?: string[]
+
+  /** v0.17.158: Available tags with colors (ClickUp-style) */
+  availableTags?: TaskTag[]
+
+  /** v0.17.158: Callback to create a new tag */
+  onCreateTag?: (name: string, color: string) => Promise<TaskTag | null>
 
   /** Upload cover image callback (optional - returns public URL) */
   onUploadCoverImage?: (file: File) => Promise<string>
@@ -111,6 +120,8 @@ export function CardDetailModalV2({
   onAIFindSimilar: _onAIFindSimilar,
   availableColumns = [],
   availableLabels = [],
+  availableTags = [],
+  onCreateTag,
   // COVER IMAGE - Commented out for future use
   onUploadCoverImage: _onUploadCoverImage,
   unsplashAccessKey: _unsplashAccessKey,
@@ -368,6 +379,18 @@ export function CardDetailModalV2({
         const updated = { ...localCard, labels: newLabels }
         setLocalCard(updated)
         onUpdate?.(localCard.id, { labels: newLabels })
+      }
+    },
+    [localCard, onUpdate]
+  )
+
+  // v0.17.158: Handle tags change (with colors)
+  const handleTagsChange = useCallback(
+    (tags: TaskTag[]) => {
+      if (localCard) {
+        const updated = { ...localCard, tags }
+        setLocalCard(updated)
+        onUpdate?.(localCard.id, { tags } as any)
       }
     },
     [localCard, onUpdate]
@@ -850,69 +873,99 @@ export function CardDetailModalV2({
               </SmartPopover>
             </div>
 
-            {/* LABELS FIELD */}
-            <div className="modal-v2-field-wrapper" ref={labelMenuRef}>
-              <button
-                ref={labelBtnRef}
-                className="modal-v2-field"
-                onClick={() => setShowLabelMenu(!showLabelMenu)}
-              >
-                <div className="modal-v2-field-label">
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" />
-                    <line x1="7" y1="7" x2="7.01" y2="7" />
-                  </svg>
-                  <span>Labels</span>
-                  <kbd className="modal-v2-shortcut">L</kbd>
+            {/* LABELS/TAGS FIELD - v0.17.158: Use TagPicker when tags available */}
+            {availableTags.length > 0 || onCreateTag ? (
+              <div className="modal-v2-field-wrapper">
+                <div className="modal-v2-field" style={{ cursor: 'default' }}>
+                  <div className="modal-v2-field-label">
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" />
+                      <line x1="7" y1="7" x2="7.01" y2="7" />
+                    </svg>
+                    <span>Etiquetas</span>
+                  </div>
+                  <div className="modal-v2-field-value">
+                    <TagPicker
+                      selectedTags={((displayCard as any).tags || []) as TaskTag[]}
+                      availableTags={availableTags}
+                      onChange={handleTagsChange}
+                      onCreateTag={onCreateTag}
+                      theme={ganttThemes[themeName] || ganttThemes.dark}
+                    />
+                  </div>
                 </div>
-                <div className="modal-v2-field-value">
-                  {displayCard.labels && displayCard.labels.length > 0 ? (
-                    <span>{displayCard.labels.join(', ')}</span>
-                  ) : (
-                    <span className="modal-v2-empty">Empty</span>
-                  )}
-                </div>
-              </button>
-              <SmartPopover
-                triggerRef={labelBtnRef}
-                isOpen={showLabelMenu}
-                onClose={() => setShowLabelMenu(false)}
-                width={220}
-                estimatedHeight={200}
-              >
-                {(availableLabels.length > 0 ? availableLabels : ['Bug', 'Feature', 'Enhancement', 'Documentation']).map((label) => (
-                  <button
-                    key={label}
-                    className={`modal-v2-popover-item ${
-                      displayCard.labels?.includes(label) ? 'active' : ''
-                    }`}
-                    onClick={() => handleToggleLabel(label)}
-                  >
-                    {label}
-                    {displayCard.labels?.includes(label) && (
-                      <svg
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        style={{ marginLeft: 'auto' }}
-                      >
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
+              </div>
+            ) : (
+              <div className="modal-v2-field-wrapper" ref={labelMenuRef}>
+                <button
+                  ref={labelBtnRef}
+                  className="modal-v2-field"
+                  onClick={() => setShowLabelMenu(!showLabelMenu)}
+                >
+                  <div className="modal-v2-field-label">
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" />
+                      <line x1="7" y1="7" x2="7.01" y2="7" />
+                    </svg>
+                    <span>Labels</span>
+                    <kbd className="modal-v2-shortcut">L</kbd>
+                  </div>
+                  <div className="modal-v2-field-value">
+                    {displayCard.labels && displayCard.labels.length > 0 ? (
+                      <span>{displayCard.labels.join(', ')}</span>
+                    ) : (
+                      <span className="modal-v2-empty">Empty</span>
                     )}
-                  </button>
-                ))}
-              </SmartPopover>
-            </div>
+                  </div>
+                </button>
+                <SmartPopover
+                  triggerRef={labelBtnRef}
+                  isOpen={showLabelMenu}
+                  onClose={() => setShowLabelMenu(false)}
+                  width={220}
+                  estimatedHeight={200}
+                >
+                  {(availableLabels.length > 0 ? availableLabels : ['Bug', 'Feature', 'Enhancement', 'Documentation']).map((label) => (
+                    <button
+                      key={label}
+                      className={`modal-v2-popover-item ${
+                        displayCard.labels?.includes(label) ? 'active' : ''
+                      }`}
+                      onClick={() => handleToggleLabel(label)}
+                    >
+                      {label}
+                      {displayCard.labels?.includes(label) && (
+                        <svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          style={{ marginLeft: 'auto' }}
+                        >
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      )}
+                    </button>
+                  ))}
+                </SmartPopover>
+              </div>
+            )}
 
             {/* DUE DATE FIELD */}
             <button

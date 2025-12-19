@@ -4,6 +4,7 @@
  */
 
 import type { Dependency } from '@libxai/core'
+import type { TaskTag } from '../components/Gantt/types'
 
 // ============================================================================
 // CORE DATA TYPES
@@ -85,6 +86,8 @@ export interface Card {
   subtasks?: Subtask[]
   /** v0.17.29: Custom color for visual identification (hex color) */
   color?: string
+  /** v0.17.158: Tags with colors (ClickUp-style) */
+  tags?: TaskTag[]
   /** Custom metadata */
   metadata?: Record<string, unknown>
 

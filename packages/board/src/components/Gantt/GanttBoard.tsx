@@ -833,16 +833,22 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
 
   // v0.10.0: Handle task double click - open edit modal
   // v0.16.1: If onTaskEdit is provided, let the user handle editing (don't open built-in modal)
+  // v0.17.162: Fix bug where inline rename changes weren't reflected in edit modal
+  // We now look up the current task from localTasks to get the latest state
   const handleTaskDblClickInternal = useCallback((task: Task) => {
+    // Look up the current version of the task from localTasks
+    // This ensures we get the latest data (e.g., after inline rename)
+    const currentTask = ganttUtils.findTaskById(localTasks, task.id) || task;
+
     // Call user's custom handler if provided
-    onTaskDblClick?.(task);
+    onTaskDblClick?.(currentTask);
 
     // Only open built-in edit modal if user hasn't provided a custom edit handler
     // This prevents double modals when user handles editing themselves
     if (!onTaskEdit) {
-      setEditingTask(task);
+      setEditingTask(currentTask);
     }
-  }, [onTaskDblClick, onTaskEdit]);
+  }, [localTasks, onTaskDblClick, onTaskEdit]);
 
   // Helper function to detect circular dependencies using DFS
   const wouldCreateCircularDependency = useCallback((fromTaskId: string, toTaskId: string, tasks: Task[]): boolean => {
@@ -1254,9 +1260,11 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
           theme={theme}
           onClose={() => setContextMenu({ isOpen: false, x: 0, y: 0, task: null })}
           items={(() => {
-            const task = contextMenu.task;
-            if (!task) return [];
+            const staleTask = contextMenu.task;
+            if (!staleTask) return [];
 
+            // v0.17.162: Look up current task from localTasks to get latest data (e.g., after inline rename)
+            const task = ganttUtils.findTaskById(localTasks, staleTask.id) || staleTask;
             const isParentTask = task.subtasks && task.subtasks.length > 0;
 
             // v0.17.46: Parent tasks can only add subtasks and delete - status/progress is auto-calculated

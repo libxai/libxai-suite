@@ -259,6 +259,11 @@
   z-index: 100;
 }
 
+/* v0.17.159: Support TagPicker dropdown z-index */
+.modal-v2-field-wrapper:has([class*="absolute"]) {
+  z-index: 100;
+}
+
 .modal-v2-field {
   display: flex;
   flex-direction: column;

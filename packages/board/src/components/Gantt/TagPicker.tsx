@@ -10,6 +10,7 @@
  */
 
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Tag, Plus, X, Check, ChevronDown } from 'lucide-react';
 import { TaskTag } from './types';
@@ -65,7 +66,10 @@ export function TagPicker({
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [newTagColor, setNewTagColor] = useState(TAG_COLORS[10] || '#3B82F6'); // Default blue
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Filter available tags based on search
@@ -78,10 +82,25 @@ export function TagPicker({
     tag => tag.name.toLowerCase() === searchQuery.toLowerCase()
   );
 
+  // Calculate dropdown position when opening
+  useEffect(() => {
+    if (isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + 6,
+        left: rect.left,
+      });
+    }
+  }, [isOpen]);
+
   // Close on click outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      const isInsideContainer = containerRef.current?.contains(target);
+      const isInsideDropdown = dropdownRef.current?.contains(target);
+
+      if (!isInsideContainer && !isInsideDropdown) {
         setIsOpen(false);
         setSearchQuery('');
         setIsCreating(false);
@@ -142,6 +161,7 @@ export function TagPicker({
     <div ref={containerRef} className="relative">
       {/* Trigger Button */}
       <button
+        ref={buttonRef}
         type="button"
         onClick={() => !disabled && setIsOpen(!isOpen)}
         className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-all hover:opacity-80"
@@ -172,21 +192,27 @@ export function TagPicker({
         <ChevronDown className="w-3 h-3" style={{ color: theme.textTertiary }} />
       </button>
 
-      {/* Dropdown */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -5 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -5 }}
-            transition={{ duration: 0.12 }}
-            className="absolute left-0 top-full mt-1.5 z-50 rounded-lg min-w-[240px]"
-            style={{
-              backgroundColor: theme.bgPrimary,
-              border: `1px solid ${theme.border}`,
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)',
-            }}
-          >
+      {/* Dropdown - rendered via Portal to escape overflow:hidden containers */}
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div
+              ref={dropdownRef}
+              initial={{ opacity: 0, y: -5 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -5 }}
+              transition={{ duration: 0.12 }}
+              className="rounded-lg min-w-[240px]"
+              style={{
+                position: 'fixed',
+                top: dropdownPosition.top,
+                left: dropdownPosition.left,
+                zIndex: 99999,
+                backgroundColor: theme.bgPrimary,
+                border: `1px solid ${theme.border}`,
+                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)',
+              }}
+            >
             {/* Search Input */}
             <div className="p-2 border-b" style={{ borderColor: theme.border }}>
               <input
@@ -323,8 +349,10 @@ export function TagPicker({
               </div>
             )}
           </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </div>
   );
 }
