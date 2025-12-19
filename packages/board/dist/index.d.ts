@@ -1581,8 +1581,14 @@ interface CardDetailModalV2Props {
     theme?: 'dark' | 'light' | 'neutral';
     /** Callback when subtasks are changed (for persistence) */
     onSubtasksChange?: (cardId: string, subtasks: Subtask[]) => void;
+    /** Attachments for this card */
+    attachments?: Attachment[];
+    /** Upload attachments callback */
+    onUploadAttachments?: (cardId: string, files: File[]) => Promise<void> | void;
+    /** Delete attachment callback */
+    onDeleteAttachment?: (attachmentId: string) => void;
 }
-declare function CardDetailModalV2({ card, isOpen, onClose, onUpdate, onDelete: _onDelete, availableUsers, comments, activities, onAddComment, onDeleteComment: _onDeleteComment, currentUser, onAIGenerateDescription: _onAIGenerateDescription, onAICreateSubtasks: _onAICreateSubtasks, onAIFindSimilar: _onAIFindSimilar, availableColumns, availableLabels, availableTags, onCreateTag, onUploadCoverImage: _onUploadCoverImage, unsplashAccessKey: _unsplashAccessKey, theme, onSubtasksChange, }: CardDetailModalV2Props): react_jsx_runtime.JSX.Element | null;
+declare function CardDetailModalV2({ card, isOpen, onClose, onUpdate, onDelete: _onDelete, availableUsers, comments, activities, onAddComment, onDeleteComment: _onDeleteComment, currentUser, onAIGenerateDescription: _onAIGenerateDescription, onAICreateSubtasks: _onAICreateSubtasks, onAIFindSimilar: _onAIFindSimilar, availableColumns, availableLabels, availableTags, onCreateTag, onUploadCoverImage: _onUploadCoverImage, unsplashAccessKey: _unsplashAccessKey, theme, onSubtasksChange, attachments, onUploadAttachments, onDeleteAttachment, }: CardDetailModalV2Props): react_jsx_runtime.JSX.Element | null;
 
 interface AttachmentUploaderProps {
     /** Card ID for attachments */

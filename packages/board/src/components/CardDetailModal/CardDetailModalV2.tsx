@@ -25,11 +25,12 @@ import { Portal } from '../Portal'
 import { SmartPopover } from './SmartPopover'
 // COVER IMAGE - Commented out for future use. Uncomment to enable cover image functionality
 // import { CoverImageManager } from '../CoverImage'
+import { AttachmentUploader } from '../Attachments'
 import { useKanbanTheme } from '../Board/KanbanThemeContext'
 import { TagPicker } from '../Gantt/TagPicker'
 import { themes as ganttThemes } from '../Gantt/themes'
 import type { TaskTag } from '../Gantt/types'
-import type { Card, User, Comment, Activity, Subtask } from '../../types'
+import type { Card, User, Comment, Activity, Subtask, Attachment } from '../../types'
 import './card-detail-modal-v2.css'
 
 export interface CardDetailModalV2Props {
@@ -98,6 +99,15 @@ export interface CardDetailModalV2Props {
 
   /** Callback when subtasks are changed (for persistence) */
   onSubtasksChange?: (cardId: string, subtasks: Subtask[]) => void
+
+  /** Attachments for this card */
+  attachments?: Attachment[]
+
+  /** Upload attachments callback */
+  onUploadAttachments?: (cardId: string, files: File[]) => Promise<void> | void
+
+  /** Delete attachment callback */
+  onDeleteAttachment?: (attachmentId: string) => void
 }
 
 const PRIORITY_OPTIONS = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'] as const
@@ -127,6 +137,9 @@ export function CardDetailModalV2({
   unsplashAccessKey: _unsplashAccessKey,
   theme,
   onSubtasksChange,
+  attachments = [],
+  onUploadAttachments,
+  onDeleteAttachment,
 }: CardDetailModalV2Props) {
   // Get theme: prop > context > fallback
   const kanbanTheme = useKanbanTheme()
@@ -1231,6 +1244,37 @@ export function CardDetailModalV2({
               )}
             </div>
           </section>
+
+          {/* ATTACHMENTS */}
+          {(onUploadAttachments || attachments.length > 0) && (
+            <section className="modal-v2-section">
+              <div className="modal-v2-section-header">
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
+                </svg>
+                <h2>Attachments</h2>
+                {attachments.length > 0 && (
+                  <span className="modal-v2-count">{attachments.length}</span>
+                )}
+              </div>
+
+              <AttachmentUploader
+                cardId={displayCard.id}
+                attachments={attachments}
+                onUpload={onUploadAttachments ? (files) => onUploadAttachments(displayCard.id, files) : undefined}
+                onDelete={onDeleteAttachment}
+                maxSizeMB={10}
+                maxFiles={20}
+              />
+            </section>
+          )}
 
           {/* ACTIVITY & COMMENTS */}
           <section className="modal-v2-section">

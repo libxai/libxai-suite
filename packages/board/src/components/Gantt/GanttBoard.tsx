@@ -160,9 +160,34 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     clearHistory,
   } = useUndoRedo<Task[]>(tasks, 50);
 
+  // v0.17.163: Track expanded states separately to preserve them across task reloads
+  // This ref stores the isExpanded state for each task ID, updated whenever tasks are toggled
+  const expandedStatesRef = useRef<Map<string, boolean>>(new Map());
+
   // Sync parent tasks prop changes to local state (e.g., after external DB operations)
+  // v0.17.163: Preserve isExpanded state using ref to prevent subtasks from auto-expanding
   useEffect(() => {
-    setLocalTasks(tasks);
+    // Apply preserved expanded states to incoming tasks
+    const applyExpandedState = (taskList: Task[]): Task[] => {
+      return taskList.map(task => {
+        const preservedState = expandedStatesRef.current.get(task.id);
+        const newTask = preservedState !== undefined
+          ? { ...task, isExpanded: preservedState }
+          : task;
+
+        if (newTask.subtasks?.length) {
+          return { ...newTask, subtasks: applyExpandedState(newTask.subtasks) };
+        }
+        return newTask;
+      });
+    };
+
+    // If we have preserved states, apply them; otherwise just use tasks as-is
+    if (expandedStatesRef.current.size > 0) {
+      setLocalTasks(applyExpandedState(tasks));
+    } else {
+      setLocalTasks(tasks);
+    }
   }, [tasks, setLocalTasks]);
 
   // v0.17.19: Track previous tasks for comparison to avoid unnecessary onTasksChange calls
@@ -617,8 +642,27 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   }, []);
 
   // Handle task toggle (memoized)
+  // v0.17.163: Also update expandedStatesRef to persist state across task reloads
   const handleTaskToggle = useCallback((taskId: string) => {
-    setLocalTasks((prev) => toggleTaskExpansion(prev, taskId));
+    setLocalTasks((prev) => {
+      const newTasks = toggleTaskExpansion(prev, taskId);
+
+      // Find the toggled task and update the ref with its new expanded state
+      const findAndUpdateExpandedState = (taskList: Task[]) => {
+        for (const task of taskList) {
+          if (task.id === taskId) {
+            expandedStatesRef.current.set(taskId, task.isExpanded ?? true);
+            return;
+          }
+          if (task.subtasks?.length) {
+            findAndUpdateExpandedState(task.subtasks);
+          }
+        }
+      };
+      findAndUpdateExpandedState(newTasks);
+
+      return newTasks;
+    });
     config.onTaskToggleExpand?.(taskId);
   }, [config]);
 
