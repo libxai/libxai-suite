@@ -9,19 +9,19 @@
   gap: 16px;
 }
 
-/* Drop zone - v0.17.172: Always visible border and content */
+/* Drop zone - Original dark theme styles */
 .attachment-dropzone {
   position: relative;
   min-height: 180px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px dashed rgba(99, 102, 241, 0.5);
+  border: 2px dashed rgba(255, 255, 255, 0.15);
   border-radius: 12px;
   background: linear-gradient(
     135deg,
-    rgba(99, 102, 241, 0.08) 0%,
-    rgba(99, 102, 241, 0.03) 100%
+    rgba(255, 255, 255, 0.03) 0%,
+    rgba(255, 255, 255, 0.01) 100%
   );
   backdrop-filter: blur(10px);
   cursor: pointer;
@@ -63,30 +63,30 @@
 }
 
 .attachment-dropzone-icon {
-  color: rgba(99, 102, 241, 0.7);
+  color: rgba(255, 255, 255, 0.4);
   transition: color 0.3s ease;
 }
 
 .attachment-dropzone:hover .attachment-dropzone-icon {
-  color: rgba(99, 102, 241, 1);
+  color: rgba(59, 130, 246, 0.8);
 }
 
 .attachment-dropzone-text {
   font-size: 16px;
   font-weight: 600;
-  color: rgba(99, 102, 241, 0.9);
+  color: rgba(255, 255, 255, 0.9);
   margin: 0;
 }
 
 .attachment-dropzone-subtext {
   font-size: 14px;
-  color: rgba(99, 102, 241, 0.7);
+  color: rgba(255, 255, 255, 0.5);
   margin: 0;
 }
 
 .attachment-dropzone-info {
   font-size: 12px;
-  color: rgba(99, 102, 241, 0.6);
+  color: rgba(255, 255, 255, 0.4);
   margin: 0;
   margin-top: 4px;
 }
