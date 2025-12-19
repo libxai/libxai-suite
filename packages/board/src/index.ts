@@ -74,6 +74,9 @@ export {
   cardsToGanttTasks,
   ganttUtils, // v0.8.0 - Public utilities
   GanttAIAssistant, // v0.14.0 - AI Assistant for natural language task editing
+  TagPicker, // v0.17.158 - Tags/Labels picker
+  TagBadge, // v0.17.158 - Tag badge component
+  TagList, // v0.17.158 - Tag list component
   // AI Command Parser utilities (v0.14.0)
   GANTT_AI_SYSTEM_PROMPT,
   generateTasksContext,
@@ -87,6 +90,7 @@ export {
 } from './components/Gantt'
 export type {
   Task as GanttTask,
+  TaskTag, // v0.17.158 - Tags/Labels type
   TimeScale,
   Theme as GanttTheme,
   GanttConfig as GanttBoardConfig,

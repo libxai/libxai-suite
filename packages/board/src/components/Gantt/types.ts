@@ -4,6 +4,16 @@ export interface TaskSegment {
 }
 
 /**
+ * v0.17.158: Tag/Label for tasks (ClickUp-style)
+ * Tags are workspace-scoped and can be applied to multiple tasks
+ */
+export interface TaskTag {
+  id: string;
+  name: string;
+  color: string; // Hex color (e.g., '#EF4444')
+}
+
+/**
  * v0.13.0: Dependency cascade preview - shows where dependent tasks will move during drag
  * Used to visualize the impact of moving a task before committing the change
  */
@@ -39,6 +49,9 @@ export interface Task {
 
   // v0.17.29: Task priority for Kanban sync
   priority?: 'low' | 'medium' | 'high' | 'urgent';
+
+  // v0.17.158: Tags/Labels (ClickUp-style)
+  tags?: TaskTag[];
 
   // v0.8.1: Split task support - multiple time segments with gaps
   segments?: TaskSegment[]; // When task is split, contains multiple date ranges

@@ -25,10 +25,11 @@ import {
   Check,
   CircleDot,
 } from 'lucide-react'
-import { Task, Theme } from './types'
+import { Task, Theme, TaskTag } from './types'
 import { themes } from './themes'
 import { TASK_COLORS } from './ColorPicker'
 import { Portal } from '../Portal'
+import { TagPicker } from './TagPicker'
 
 // v0.17.28: Priority type for Kanban sync
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent'
@@ -59,6 +60,7 @@ export interface TaskFormData {
   color?: string
   assignees?: Array<{ name: string; avatar?: string; initials: string; color: string }>
   dependencies?: string[]
+  tags?: TaskTag[] // v0.17.158: Tags/Labels support
 }
 
 export interface TaskFormModalProps {
@@ -72,6 +74,9 @@ export interface TaskFormModalProps {
   mode?: 'create' | 'edit'
   theme?: Theme
   customStatuses?: CustomStatus[]
+  // v0.17.158: Tags support
+  availableTags?: TaskTag[]
+  onCreateTag?: (name: string, color: string) => Promise<TaskTag | null>
 }
 
 // Priority configuration
@@ -93,6 +98,8 @@ export function TaskFormModal({
   mode = task ? 'edit' : 'create',
   theme = 'dark',
   customStatuses = [],
+  availableTags = [],
+  onCreateTag,
 }: TaskFormModalProps) {
   const allStatuses: CustomStatus[] = [
     ...DEFAULT_STATUSES,
@@ -129,6 +136,7 @@ export function TaskFormModal({
     color: '#6366F1',
     assignees: [],
     dependencies: [],
+    tags: [], // v0.17.158
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -148,6 +156,7 @@ export function TaskFormModal({
         color: task.color || '#6366F1',
         assignees: task.assignees || [],
         dependencies: task.dependencies || [],
+        tags: task.tags || [], // v0.17.158
       })
       if ((task.dependencies && task.dependencies.length > 0) || task.isMilestone) {
         setShowAdvanced(true)
@@ -163,6 +172,7 @@ export function TaskFormModal({
         color: '#6366F1',
         assignees: [],
         dependencies: [],
+        tags: [], // v0.17.158
       })
       setShowAdvanced(false)
     }
@@ -603,6 +613,18 @@ export function TaskFormModal({
                         )}
                       </AnimatePresence>
                     </div>
+
+                    {/* v0.17.158: Tags Picker */}
+                    {availableTags.length > 0 || onCreateTag ? (
+                      <TagPicker
+                        selectedTags={formData.tags || []}
+                        availableTags={availableTags}
+                        onChange={(tags) => handleChange('tags', tags)}
+                        onCreateTag={onCreateTag}
+                        theme={themeColors}
+                        disabled={isLoading}
+                      />
+                    ) : null}
                   </div>
 
                   {/* Dates Row */}

@@ -14,6 +14,7 @@ export { ColumnManager } from './ColumnManager';
 export { ContextMenu, MenuIcons } from './ContextMenu';
 export { TaskFormModal } from './TaskFormModal'; // v0.9.0: Task CRUD modal
 export { GanttAIAssistant } from './GanttAIAssistant'; // v0.14.0: AI Assistant
+export { TagPicker, TagBadge, TagList } from './TagPicker'; // v0.17.158: Tags support
 
 // AI Command Parser utilities (v0.14.0)
 export {
@@ -32,6 +33,7 @@ export {
 export type {
   Task,
   TaskSegment, // v0.8.1: Split task support
+  TaskTag, // v0.17.158: Tags/Labels
   TimeScale,
   Theme,
   GanttConfig,
