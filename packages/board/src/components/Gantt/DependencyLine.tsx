@@ -84,28 +84,24 @@ export function DependencyLine({ x1, y1, x2, y2, theme, onDelete, onHoverChange 
         />
       )}
 
-      {/* v0.17.156: Dependency line - more visible in default state, prominent on hover */}
-      {/* Main dependency line - dashed style for subtle appearance */}
+      {/* v0.17.157: ClickUp-style dependency line - solid, visible, professional */}
       <motion.path
         d={path}
         fill="none"
         stroke={lineColor}
-        strokeWidth={1.5}
+        strokeWidth={2}
         strokeLinecap="round"
-        strokeDasharray="6 4"
         initial={{ pathLength: 0, opacity: 0 }}
         animate={{
           pathLength: 1,
           // Hide original line when hover renders in top layer
-          opacity: (isHovered && onHoverChange) ? 0 : (isHovered ? 0.9 : 0.55),
-          strokeWidth: isHovered ? 2 : 1.5,
-          strokeDasharray: isHovered ? '0 0' : '6 4',
+          opacity: (isHovered && onHoverChange) ? 0 : (isHovered ? 1 : 0.8),
+          strokeWidth: isHovered ? 2.5 : 2,
         }}
         transition={{
           pathLength: { duration: 0.5, ease: 'easeInOut' },
           opacity: { duration: 0.2 },
           strokeWidth: { duration: 0.2 },
-          strokeDasharray: { duration: 0.2 },
         }}
       />
 
@@ -114,14 +110,14 @@ export function DependencyLine({ x1, y1, x2, y2, theme, onDelete, onHoverChange 
         d={`M ${x2} ${y2} L ${arrowX} ${arrowY} M ${x2} ${y2} L ${arrowX2} ${arrowY2}`}
         fill="none"
         stroke={lineColor}
-        strokeWidth={1.5}
+        strokeWidth={2}
         strokeLinecap="round"
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{
           // Hide original arrow when hover renders in top layer
-          opacity: (isHovered && onHoverChange) ? 0 : (isHovered ? 0.9 : 0.55),
+          opacity: (isHovered && onHoverChange) ? 0 : (isHovered ? 1 : 0.8),
           scale: isHovered ? 1.1 : 1,
-          strokeWidth: isHovered ? 2 : 1.5,
+          strokeWidth: isHovered ? 2.5 : 2,
         }}
         transition={{ duration: 0.2 }}
       />
@@ -130,13 +126,13 @@ export function DependencyLine({ x1, y1, x2, y2, theme, onDelete, onHoverChange 
       <motion.circle
         cx={x2}
         cy={y2}
-        r={2.5}
+        r={3}
         fill={lineColor}
         initial={{ scale: 0 }}
         animate={{
           // Hide original dot when hover renders in top layer
-          scale: (isHovered && onHoverChange) ? 0 : (isHovered ? 1.4 : 1),
-          opacity: (isHovered && onHoverChange) ? 0 : (isHovered ? 0.9 : 0.55),
+          scale: (isHovered && onHoverChange) ? 0 : (isHovered ? 1.3 : 1),
+          opacity: (isHovered && onHoverChange) ? 0 : (isHovered ? 1 : 0.8),
         }}
         transition={{
           scale: { delay: 0.3, duration: 0.15 },
