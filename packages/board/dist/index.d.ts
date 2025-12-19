@@ -2301,8 +2301,11 @@ interface TaskFormModalProps {
     customStatuses?: CustomStatus[];
     availableTags?: TaskTag[];
     onCreateTag?: (name: string, color: string) => Promise<TaskTag | null>;
+    attachments?: Attachment[];
+    onUploadAttachments?: (taskId: string, files: File[]) => Promise<void> | void;
+    onDeleteAttachment?: (attachmentId: string) => void;
 }
-declare function TaskFormModal({ isOpen, onClose, task, availableTasks, availableUsers, onSubmit, isLoading, mode, theme, customStatuses, availableTags, onCreateTag, }: TaskFormModalProps): react_jsx_runtime.JSX.Element;
+declare function TaskFormModal({ isOpen, onClose, task, availableTasks, availableUsers, onSubmit, isLoading, mode, theme, customStatuses, availableTags, onCreateTag, attachments, onUploadAttachments, onDeleteAttachment, }: TaskFormModalProps): react_jsx_runtime.JSX.Element;
 
 interface GanttAIAssistantProps {
     /** All current tasks in the Gantt */

@@ -30,6 +30,8 @@ import { themes } from './themes'
 import { TASK_COLORS } from './ColorPicker'
 import { Portal } from '../Portal'
 import { TagPicker } from './TagPicker'
+import { AttachmentUploader } from '../Attachments'
+import type { Attachment } from '../../types'
 
 // v0.17.28: Priority type for Kanban sync
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent'
@@ -77,6 +79,10 @@ export interface TaskFormModalProps {
   // v0.17.158: Tags support
   availableTags?: TaskTag[]
   onCreateTag?: (name: string, color: string) => Promise<TaskTag | null>
+  // v0.17.165: Attachments support
+  attachments?: Attachment[]
+  onUploadAttachments?: (taskId: string, files: File[]) => Promise<void> | void
+  onDeleteAttachment?: (attachmentId: string) => void
 }
 
 // Priority configuration
@@ -100,6 +106,9 @@ export function TaskFormModal({
   customStatuses = [],
   availableTags = [],
   onCreateTag,
+  attachments = [],
+  onUploadAttachments,
+  onDeleteAttachment,
 }: TaskFormModalProps) {
   const allStatuses: CustomStatus[] = [
     ...DEFAULT_STATUSES,
@@ -865,6 +874,41 @@ export function TaskFormModal({
                       </span>
                     </div>
                   </div>
+
+                  {/* v0.17.165: Attachments Section */}
+                  {(onUploadAttachments || attachments.length > 0) && (
+                    <div className="pt-2">
+                      <div className="flex items-center gap-2 mb-2">
+                        <svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          style={{ color: themeColors.textTertiary }}
+                        >
+                          <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
+                        </svg>
+                        <span className="text-xs" style={{ color: themeColors.textTertiary }}>
+                          Adjuntos {attachments.length > 0 && `(${attachments.length})`}
+                        </span>
+                      </div>
+                      <AttachmentUploader
+                        cardId={task?.id || 'new'}
+                        attachments={attachments}
+                        onUpload={onUploadAttachments && task?.id ? (files) => onUploadAttachments(task.id, files) : undefined}
+                        onDelete={onDeleteAttachment}
+                        maxSizeMB={10}
+                        maxFiles={20}
+                      />
+                      {mode === 'create' && attachments.length === 0 && (
+                        <p className="text-xs mt-1" style={{ color: themeColors.textTertiary }}>
+                          Podrás adjuntar archivos después de crear la tarea
+                        </p>
+                      )}
+                    </div>
+                  )}
 
                   {/* Advanced Options - Collapsible */}
                   <div>
