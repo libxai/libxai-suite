@@ -3,7 +3,7 @@
  * Drag & drop file uploader with preview
  */
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import type { Attachment } from '../../types'
 import './attachments.css'
 
@@ -71,7 +71,68 @@ export function AttachmentUploader({
   const [isDragging, setIsDragging] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [lightboxImage, setLightboxImage] = useState<Attachment | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Handle keyboard events for lightbox
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!lightboxImage) return
+
+      if (e.key === 'Escape') {
+        setLightboxImage(null)
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        const imageAttachments = attachments.filter(a => isImage(a.type))
+        const currentIndex = imageAttachments.findIndex(a => a.id === lightboxImage.id)
+        if (currentIndex === -1) return
+
+        let newIndex: number
+        if (e.key === 'ArrowLeft') {
+          newIndex = currentIndex > 0 ? currentIndex - 1 : imageAttachments.length - 1
+        } else {
+          newIndex = currentIndex < imageAttachments.length - 1 ? currentIndex + 1 : 0
+        }
+        const nextImage = imageAttachments[newIndex]
+        if (nextImage) {
+          setLightboxImage(nextImage)
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [lightboxImage, attachments])
+
+  // Handle image click to open lightbox
+  const handleImageClick = useCallback((attachment: Attachment, e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setLightboxImage(attachment)
+  }, [])
+
+  // Close lightbox
+  const closeLightbox = useCallback(() => {
+    setLightboxImage(null)
+  }, [])
+
+  // Navigate to previous/next image
+  const navigateLightbox = useCallback((direction: 'prev' | 'next', e: React.MouseEvent) => {
+    e.stopPropagation()
+    const imageAttachments = attachments.filter(a => isImage(a.type))
+    const currentIndex = imageAttachments.findIndex(a => a.id === lightboxImage?.id)
+    if (currentIndex === -1) return
+
+    let newIndex: number
+    if (direction === 'prev') {
+      newIndex = currentIndex > 0 ? currentIndex - 1 : imageAttachments.length - 1
+    } else {
+      newIndex = currentIndex < imageAttachments.length - 1 ? currentIndex + 1 : 0
+    }
+    const nextImage = imageAttachments[newIndex]
+    if (nextImage) {
+      setLightboxImage(nextImage)
+    }
+  }, [attachments, lightboxImage])
 
   // Handle file validation
   const validateFiles = useCallback(
@@ -278,11 +339,26 @@ export function AttachmentUploader({
             <div key={attachment.id} className="attachment-item">
               <div className="attachment-preview">
                 {isImage(attachment.type) && attachment.url ? (
-                  <img
-                    src={attachment.thumbnailUrl || attachment.url}
-                    alt={attachment.name}
-                    className="attachment-thumbnail"
-                  />
+                  <button
+                    type="button"
+                    className="attachment-thumbnail-btn"
+                    onClick={(e) => handleImageClick(attachment, e)}
+                    title="Click to view full size"
+                  >
+                    <img
+                      src={attachment.thumbnailUrl || attachment.url}
+                      alt={attachment.name}
+                      className="attachment-thumbnail"
+                    />
+                    <div className="attachment-thumbnail-overlay">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M15 3H21V9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M9 21H3V15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M21 3L14 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M3 21L10 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </div>
+                  </button>
                 ) : (
                   <div className="attachment-icon">{getFileIcon(attachment.type)}</div>
                 )}
@@ -331,6 +407,64 @@ export function AttachmentUploader({
               </button>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Image Lightbox */}
+      {lightboxImage && (
+        <div className="attachment-lightbox" onClick={closeLightbox}>
+          <div className="attachment-lightbox-backdrop" />
+
+          {/* Close button */}
+          <button
+            type="button"
+            className="attachment-lightbox-close"
+            onClick={closeLightbox}
+            title="Close (Esc)"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+
+          {/* Navigation arrows */}
+          {attachments.filter(a => isImage(a.type)).length > 1 && (
+            <>
+              <button
+                type="button"
+                className="attachment-lightbox-nav attachment-lightbox-prev"
+                onClick={(e) => navigateLightbox('prev', e)}
+                title="Previous image (Left arrow)"
+              >
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+              <button
+                type="button"
+                className="attachment-lightbox-nav attachment-lightbox-next"
+                onClick={(e) => navigateLightbox('next', e)}
+                title="Next image (Right arrow)"
+              >
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+            </>
+          )}
+
+          {/* Image container */}
+          <div className="attachment-lightbox-content" onClick={(e) => e.stopPropagation()}>
+            <img
+              src={lightboxImage.url}
+              alt={lightboxImage.name}
+              className="attachment-lightbox-image"
+            />
+            <div className="attachment-lightbox-info">
+              <span className="attachment-lightbox-name">{lightboxImage.name}</span>
+              <span className="attachment-lightbox-size">{formatFileSize(lightboxImage.size)}</span>
+            </div>
+          </div>
         </div>
       )}
     </div>
