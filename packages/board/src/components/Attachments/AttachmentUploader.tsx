@@ -8,6 +8,15 @@ import { createPortal } from 'react-dom'
 import type { Attachment } from '../../types'
 import './attachments.css'
 
+// v0.17.170: Ensure portal is mounted before rendering lightbox
+const useMounted = () => {
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+  return mounted
+}
+
 export interface AttachmentUploaderProps {
   /** Card ID for attachments */
   cardId: string
@@ -74,6 +83,7 @@ export function AttachmentUploader({
   const [error, setError] = useState<string | null>(null)
   const [lightboxImage, setLightboxImage] = useState<Attachment | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const isMounted = useMounted() // v0.17.170: For safe portal rendering
 
   // Handle keyboard events for lightbox
   useEffect(() => {
@@ -412,7 +422,8 @@ export function AttachmentUploader({
       )}
 
       {/* Image Lightbox - Rendered via Portal to escape modal context */}
-      {lightboxImage && createPortal(
+      {/* v0.17.170: Check isMounted to ensure proper portal rendering */}
+      {lightboxImage && isMounted && typeof document !== 'undefined' && createPortal(
         <div className="attachment-lightbox" onClick={closeLightbox}>
           {/* Image - Full size, no borders */}
           <img

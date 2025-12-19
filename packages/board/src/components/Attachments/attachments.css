@@ -325,13 +325,14 @@
 .attachment-lightbox {
   position: fixed;
   inset: 0;
-  z-index: 10000;
+  z-index: 2147483647; /* Max z-index to always be on top */
   display: flex;
   align-items: center;
   justify-content: center;
   background: rgba(0, 0, 0, 0.95);
   cursor: pointer;
   animation: lightbox-fade-in 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  isolation: isolate; /* Create new stacking context */
 }
 
 @keyframes lightbox-fade-in {
