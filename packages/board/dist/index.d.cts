@@ -2283,6 +2283,7 @@ interface TaskFormData {
     }>;
     dependencies?: string[];
     tags?: TaskTag[];
+    pendingFiles?: File[];
 }
 interface TaskFormModalProps {
     isOpen: boolean;
