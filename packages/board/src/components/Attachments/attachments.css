@@ -535,3 +535,44 @@
     height: 20px;
   }
 }
+
+/* ========================================
+   Light Theme Overrides - v0.17.174
+   ======================================== */
+[data-theme="light"] .attachment-dropzone {
+  border-color: rgba(71, 85, 105, 0.4);
+  background: linear-gradient(
+    135deg,
+    rgba(71, 85, 105, 0.06) 0%,
+    rgba(71, 85, 105, 0.02) 100%
+  );
+}
+
+[data-theme="light"] .attachment-dropzone:hover {
+  border-color: rgba(59, 130, 246, 0.6);
+  background: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.08) 0%,
+    rgba(59, 130, 246, 0.03) 100%
+  );
+}
+
+[data-theme="light"] .attachment-dropzone-icon {
+  color: rgba(71, 85, 105, 0.8);
+}
+
+[data-theme="light"] .attachment-dropzone:hover .attachment-dropzone-icon {
+  color: rgba(59, 130, 246, 0.9);
+}
+
+[data-theme="light"] .attachment-dropzone-text {
+  color: rgba(30, 41, 59, 0.9);
+}
+
+[data-theme="light"] .attachment-dropzone-subtext {
+  color: rgba(71, 85, 105, 0.8);
+}
+
+[data-theme="light"] .attachment-dropzone-info {
+  color: rgba(100, 116, 139, 0.8);
+}
