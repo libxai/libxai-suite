@@ -34,9 +34,9 @@ export const themes: Record<string, GanttTheme> = {
     criticalPath: '#EF4444',
     criticalPathLight: 'rgba(239, 68, 68, 0.12)',
 
-    // Special Elements - v0.17.178: Red "Today" line like ClickUp
-    today: '#EF4444',  // Red 500 - prominent like ClickUp
-    todayLight: 'rgba(239, 68, 68, 0.12)',
+    // Special Elements - v0.17.180: Exact ClickUp "Today" line color
+    today: '#D21E24',  // Exact ClickUp red
+    todayLight: 'rgba(210, 30, 36, 0.12)',
     milestone: '#F59E0B',
     milestoneLight: 'rgba(245, 158, 11, 0.1)',
 
@@ -83,9 +83,9 @@ export const themes: Record<string, GanttTheme> = {
     criticalPath: '#DC2626',
     criticalPathLight: 'rgba(220, 38, 38, 0.1)',
 
-    // Special Elements - v0.17.178: Red "Today" line like ClickUp
-    today: '#DC2626',  // Red 600 - prominent like ClickUp
-    todayLight: 'rgba(220, 38, 38, 0.1)',
+    // Special Elements - v0.17.180: Exact ClickUp "Today" line color
+    today: '#D21E24',  // Exact ClickUp red
+    todayLight: 'rgba(210, 30, 36, 0.1)',
     milestone: '#F59E0B',
     milestoneLight: 'rgba(245, 158, 11, 0.08)',
 
