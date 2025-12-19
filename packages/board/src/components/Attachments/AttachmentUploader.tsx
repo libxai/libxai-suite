@@ -4,6 +4,7 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import type { Attachment } from '../../types'
 import './attachments.css'
 
@@ -410,8 +411,8 @@ export function AttachmentUploader({
         </div>
       )}
 
-      {/* Image Lightbox - Clean, borderless modal */}
-      {lightboxImage && (
+      {/* Image Lightbox - Rendered via Portal to escape modal context */}
+      {lightboxImage && createPortal(
         <div className="attachment-lightbox" onClick={closeLightbox}>
           {/* Image - Full size, no borders */}
           <img
@@ -466,7 +467,8 @@ export function AttachmentUploader({
               </button>
             </>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
