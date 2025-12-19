@@ -6250,7 +6250,7 @@
 }
 
 
-/* Drop zone */
+/* Drop zone - v0.17.172: Always visible border and content */
 
 
 .attachment-dropzone {
@@ -6259,12 +6259,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px dashed rgba(255, 255, 255, 0.15);
+  border: 2px dashed rgba(99, 102, 241, 0.5);
   border-radius: 12px;
   background: linear-gradient(
     135deg,
-    rgba(255, 255, 255, 0.03) 0%,
-    rgba(255, 255, 255, 0.01) 100%
+    rgba(99, 102, 241, 0.08) 0%,
+    rgba(99, 102, 241, 0.03) 100%
   );
   backdrop-filter: blur(10px);
   cursor: pointer;
@@ -6311,34 +6311,34 @@
 
 
 .attachment-dropzone-icon {
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(99, 102, 241, 0.7);
   transition: color 0.3s ease;
 }
 
 
 .attachment-dropzone:hover .attachment-dropzone-icon {
-  color: rgba(59, 130, 246, 0.8);
+  color: rgba(99, 102, 241, 1);
 }
 
 
 .attachment-dropzone-text {
   font-size: 16px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(99, 102, 241, 0.9);
   margin: 0;
 }
 
 
 .attachment-dropzone-subtext {
   font-size: 14px;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(99, 102, 241, 0.7);
   margin: 0;
 }
 
 
 .attachment-dropzone-info {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(99, 102, 241, 0.6);
   margin: 0;
   margin-top: 4px;
 }
@@ -6571,6 +6571,222 @@
 }
 
 
+/* Thumbnail button for clickable images */
+
+
+.attachment-thumbnail-btn {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  border-radius: 6px;
+}
+
+
+.attachment-thumbnail-btn:hover .attachment-thumbnail {
+  transform: scale(1.1);
+}
+
+
+.attachment-thumbnail-btn:hover .attachment-thumbnail-overlay {
+  opacity: 1;
+}
+
+
+.attachment-thumbnail-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  color: white;
+}
+
+
+.attachment-thumbnail {
+  transition: transform 0.2s ease;
+}
+
+
+/* ========================================
+   Lightbox Styles - Clean & Minimal
+   ======================================== */
+
+
+.attachment-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647; /* Max z-index to always be on top */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.95);
+  cursor: pointer;
+  animation: lightbox-fade-in 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  isolation: isolate; /* Create new stacking context */
+}
+
+
+@keyframes lightbox-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+
+/* Main image - clean, no borders */
+
+
+.attachment-lightbox-image {
+  max-width: 92vw;
+  max-height: 92vh;
+  -o-object-fit: contain;
+     object-fit: contain;
+  cursor: default;
+  animation: lightbox-image-enter 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* No border-radius, no shadows - pure image */
+}
+
+
+@keyframes lightbox-image-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+
+/* Subtle hint at bottom */
+
+
+.attachment-lightbox-hint {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
+  pointer-events: none;
+  opacity: 1;
+  animation: lightbox-hint-fade 0.5s ease 2s forwards;
+}
+
+
+@keyframes lightbox-hint-fade {
+  to {
+    opacity: 0;
+  }
+}
+
+
+/* Navigation dots */
+
+
+.attachment-lightbox-dots {
+  position: absolute;
+  bottom: 48px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 20px;
+  backdrop-filter: blur(8px);
+}
+
+
+.attachment-lightbox-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+
+.attachment-lightbox-dot:hover {
+  background: rgba(255, 255, 255, 0.6);
+  transform: scale(1.2);
+}
+
+
+.attachment-lightbox-dot.active {
+  background: white;
+  transform: scale(1.1);
+}
+
+
+/* Invisible navigation areas on sides */
+
+
+.attachment-lightbox-nav-area {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+
+.attachment-lightbox-nav-area svg {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+
+.attachment-lightbox-nav-area:hover {
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.3), transparent);
+}
+
+
+.attachment-lightbox-nav-area:hover svg {
+  opacity: 0.8;
+}
+
+
+.attachment-lightbox-nav-prev {
+  left: 0;
+  padding-left: 20px;
+}
+
+
+.attachment-lightbox-nav-next {
+  right: 0;
+  padding-right: 20px;
+}
+
+
+.attachment-lightbox-nav-next:hover {
+  background: linear-gradient(-90deg, rgba(0, 0, 0, 0.3), transparent);
+}
+
+
 /* Responsive */
 
 
@@ -6614,6 +6830,87 @@
   .attachment-meta {
     font-size: 11px;
   }
+
+  /* Lightbox responsive */
+  .attachment-lightbox-image {
+    max-width: 96vw;
+    max-height: 85vh;
+  }
+
+  .attachment-lightbox-hint {
+    bottom: 16px;
+    font-size: 11px;
+  }
+
+  .attachment-lightbox-dots {
+    bottom: 36px;
+    padding: 6px 10px;
+    gap: 6px;
+  }
+
+  .attachment-lightbox-dot {
+    width: 6px;
+    height: 6px;
+  }
+
+  .attachment-lightbox-nav-area {
+    width: 60px;
+  }
+
+  .attachment-lightbox-nav-area svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+
+/* ========================================
+   Light Theme Overrides - v0.17.176
+   ======================================== */
+
+
+[data-theme="light"] .attachment-dropzone {
+  border-color: rgba(71, 85, 105, 0.4);
+  background: linear-gradient(
+    135deg,
+    rgba(71, 85, 105, 0.06) 0%,
+    rgba(71, 85, 105, 0.02) 100%
+  );
+}
+
+
+[data-theme="light"] .attachment-dropzone:hover {
+  border-color: rgba(59, 130, 246, 0.6);
+  background: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.08) 0%,
+    rgba(59, 130, 246, 0.03) 100%
+  );
+}
+
+
+[data-theme="light"] .attachment-dropzone-icon {
+  color: rgba(71, 85, 105, 0.8);
+}
+
+
+[data-theme="light"] .attachment-dropzone:hover .attachment-dropzone-icon {
+  color: rgba(59, 130, 246, 0.9);
+}
+
+
+[data-theme="light"] .attachment-dropzone-text {
+  color: rgba(30, 41, 59, 0.9);
+}
+
+
+[data-theme="light"] .attachment-dropzone-subtext {
+  color: rgba(71, 85, 105, 0.8);
+}
+
+
+[data-theme="light"] .attachment-dropzone-info {
+  color: rgba(100, 116, 139, 0.8);
 }
 
 
