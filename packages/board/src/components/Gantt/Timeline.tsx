@@ -907,7 +907,7 @@ export function Timeline({
           );
         })()}
 
-        {/* v0.17.178: Today Line - Rendered LAST to appear on top of all task bars (ClickUp style) */}
+        {/* v0.17.179: Today Line - Thinner like ClickUp (1px) */}
         {todayX >= 0 && todayX <= timelineWidth && (
           <line
             x1={todayX}
@@ -915,7 +915,7 @@ export function Timeline({
             x2={todayX}
             y2={contentHeight}
             stroke={theme.today}
-            strokeWidth={2}
+            strokeWidth={1}
             opacity={1}
             style={{ pointerEvents: 'none' }}
           />
