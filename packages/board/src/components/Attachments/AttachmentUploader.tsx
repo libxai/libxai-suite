@@ -3,18 +3,193 @@
  * Drag & drop file uploader with preview
  */
 
-import { useState, useCallback, useRef, useEffect } from 'react'
-import { createPortal } from 'react-dom'
+import { useState, useCallback, useRef } from 'react'
 import type { Attachment } from '../../types'
 import './attachments.css'
 
-// v0.17.170: Ensure portal is mounted before rendering lightbox
-const useMounted = () => {
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-  return mounted
+// v0.17.171: Native DOM lightbox to escape all stacking contexts (framer-motion transform issue)
+function openNativeLightbox(
+  imageUrl: string,
+  imageName: string,
+  allImages: Attachment[],
+  currentIndex: number,
+  onNavigate: (newIndex: number) => void
+) {
+  // Remove any existing lightbox
+  const existing = document.getElementById('attachment-lightbox-native')
+  if (existing) existing.remove()
+
+  // Create lightbox container
+  const lightbox = document.createElement('div')
+  lightbox.id = 'attachment-lightbox-native'
+  lightbox.className = 'attachment-lightbox'
+  lightbox.style.cssText = `
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 2147483647 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: rgba(0, 0, 0, 0.95) !important;
+    cursor: pointer !important;
+  `
+
+  // Create image
+  const img = document.createElement('img')
+  img.src = imageUrl
+  img.alt = imageName
+  img.className = 'attachment-lightbox-image'
+  img.style.cssText = `
+    max-width: 92vw !important;
+    max-height: 92vh !important;
+    object-fit: contain !important;
+    cursor: default !important;
+  `
+  img.onclick = (e) => e.stopPropagation()
+
+  // Create hint
+  const hint = document.createElement('div')
+  hint.className = 'attachment-lightbox-hint'
+  hint.textContent = 'Click anywhere or press ESC to close'
+  hint.style.cssText = `
+    position: absolute !important;
+    bottom: 24px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    font-size: 12px !important;
+    color: rgba(255, 255, 255, 0.4) !important;
+    pointer-events: none !important;
+  `
+
+  // Close function
+  const closeLightbox = () => {
+    lightbox.remove()
+    document.removeEventListener('keydown', handleKeyDown)
+  }
+
+  // Keyboard handler
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      closeLightbox()
+    } else if (e.key === 'ArrowLeft' && allImages.length > 1) {
+      const newIdx = currentIndex > 0 ? currentIndex - 1 : allImages.length - 1
+      closeLightbox()
+      onNavigate(newIdx)
+    } else if (e.key === 'ArrowRight' && allImages.length > 1) {
+      const newIdx = currentIndex < allImages.length - 1 ? currentIndex + 1 : 0
+      closeLightbox()
+      onNavigate(newIdx)
+    }
+  }
+
+  lightbox.onclick = closeLightbox
+  document.addEventListener('keydown', handleKeyDown)
+
+  // Add navigation if multiple images
+  if (allImages.length > 1) {
+    // Dots container
+    const dots = document.createElement('div')
+    dots.className = 'attachment-lightbox-dots'
+    dots.style.cssText = `
+      position: absolute !important;
+      bottom: 48px !important;
+      left: 50% !important;
+      transform: translateX(-50%) !important;
+      display: flex !important;
+      gap: 8px !important;
+      padding: 8px 12px !important;
+      background: rgba(0, 0, 0, 0.4) !important;
+      border-radius: 20px !important;
+    `
+    dots.onclick = (e) => e.stopPropagation()
+
+    allImages.forEach((_, idx) => {
+      const dot = document.createElement('button')
+      dot.className = `attachment-lightbox-dot ${idx === currentIndex ? 'active' : ''}`
+      dot.style.cssText = `
+        width: 8px !important;
+        height: 8px !important;
+        border-radius: 50% !important;
+        background: ${idx === currentIndex ? 'white' : 'rgba(255, 255, 255, 0.3)'} !important;
+        border: none !important;
+        padding: 0 !important;
+        cursor: pointer !important;
+      `
+      dot.onclick = (e) => {
+        e.stopPropagation()
+        closeLightbox()
+        onNavigate(idx)
+      }
+      dots.appendChild(dot)
+    })
+
+    // Navigation arrows
+    const prevBtn = document.createElement('button')
+    prevBtn.className = 'attachment-lightbox-nav-area attachment-lightbox-nav-prev'
+    prevBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M15 18L9 12L15 6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+    prevBtn.style.cssText = `
+      position: absolute !important;
+      left: 0 !important;
+      top: 0 !important;
+      bottom: 0 !important;
+      width: 120px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      background: transparent !important;
+      border: none !important;
+      cursor: pointer !important;
+      opacity: 0.5 !important;
+    `
+    prevBtn.onmouseenter = () => { prevBtn.style.opacity = '1' }
+    prevBtn.onmouseleave = () => { prevBtn.style.opacity = '0.5' }
+    prevBtn.onclick = (e) => {
+      e.stopPropagation()
+      const newIdx = currentIndex > 0 ? currentIndex - 1 : allImages.length - 1
+      closeLightbox()
+      onNavigate(newIdx)
+    }
+
+    const nextBtn = document.createElement('button')
+    nextBtn.className = 'attachment-lightbox-nav-area attachment-lightbox-nav-next'
+    nextBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M9 18L15 12L9 6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+    nextBtn.style.cssText = `
+      position: absolute !important;
+      right: 0 !important;
+      top: 0 !important;
+      bottom: 0 !important;
+      width: 120px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      background: transparent !important;
+      border: none !important;
+      cursor: pointer !important;
+      opacity: 0.5 !important;
+    `
+    nextBtn.onmouseenter = () => { nextBtn.style.opacity = '1' }
+    nextBtn.onmouseleave = () => { nextBtn.style.opacity = '0.5' }
+    nextBtn.onclick = (e) => {
+      e.stopPropagation()
+      const newIdx = currentIndex < allImages.length - 1 ? currentIndex + 1 : 0
+      closeLightbox()
+      onNavigate(newIdx)
+    }
+
+    lightbox.appendChild(dots)
+    lightbox.appendChild(prevBtn)
+    lightbox.appendChild(nextBtn)
+  }
+
+  lightbox.appendChild(img)
+  lightbox.appendChild(hint)
+  document.body.appendChild(lightbox)
+
+  // Fade out hint after 2 seconds
+  setTimeout(() => {
+    hint.style.transition = 'opacity 0.5s ease'
+    hint.style.opacity = '0'
+  }, 2000)
 }
 
 export interface AttachmentUploaderProps {
@@ -81,69 +256,29 @@ export function AttachmentUploader({
   const [isDragging, setIsDragging] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [lightboxImage, setLightboxImage] = useState<Attachment | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const isMounted = useMounted() // v0.17.170: For safe portal rendering
+  // Store attachments ref for native lightbox navigation
+  const attachmentsRef = useRef(attachments)
+  attachmentsRef.current = attachments
 
-  // Handle keyboard events for lightbox
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!lightboxImage) return
-
-      if (e.key === 'Escape') {
-        setLightboxImage(null)
-      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-        const imageAttachments = attachments.filter(a => isImage(a.type))
-        const currentIndex = imageAttachments.findIndex(a => a.id === lightboxImage.id)
-        if (currentIndex === -1) return
-
-        let newIndex: number
-        if (e.key === 'ArrowLeft') {
-          newIndex = currentIndex > 0 ? currentIndex - 1 : imageAttachments.length - 1
-        } else {
-          newIndex = currentIndex < imageAttachments.length - 1 ? currentIndex + 1 : 0
-        }
-        const nextImage = imageAttachments[newIndex]
-        if (nextImage) {
-          setLightboxImage(nextImage)
-        }
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [lightboxImage, attachments])
-
-  // Handle image click to open lightbox
+  // v0.17.171: Handle image click - use native DOM lightbox to escape all stacking contexts
   const handleImageClick = useCallback((attachment: Attachment, e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    setLightboxImage(attachment)
-  }, [])
 
-  // Close lightbox
-  const closeLightbox = useCallback(() => {
-    setLightboxImage(null)
-  }, [])
+    const imageAttachments = attachmentsRef.current.filter(a => isImage(a.type))
+    const currentIndex = imageAttachments.findIndex(a => a.id === attachment.id)
 
-  // Navigate to previous/next image
-  const navigateLightbox = useCallback((direction: 'prev' | 'next', e: React.MouseEvent) => {
-    e.stopPropagation()
-    const imageAttachments = attachments.filter(a => isImage(a.type))
-    const currentIndex = imageAttachments.findIndex(a => a.id === lightboxImage?.id)
-    if (currentIndex === -1) return
-
-    let newIndex: number
-    if (direction === 'prev') {
-      newIndex = currentIndex > 0 ? currentIndex - 1 : imageAttachments.length - 1
-    } else {
-      newIndex = currentIndex < imageAttachments.length - 1 ? currentIndex + 1 : 0
+    const handleNavigate = (newIndex: number) => {
+      const imgs = attachmentsRef.current.filter(a => isImage(a.type))
+      const newImg = imgs[newIndex]
+      if (newImg) {
+        openNativeLightbox(newImg.url, newImg.name, imgs, newIndex, handleNavigate)
+      }
     }
-    const nextImage = imageAttachments[newIndex]
-    if (nextImage) {
-      setLightboxImage(nextImage)
-    }
-  }, [attachments, lightboxImage])
+
+    openNativeLightbox(attachment.url, attachment.name, imageAttachments, currentIndex, handleNavigate)
+  }, [])
 
   // Handle file validation
   const validateFiles = useCallback(
@@ -421,66 +556,7 @@ export function AttachmentUploader({
         </div>
       )}
 
-      {/* Image Lightbox - Rendered via Portal to escape modal context */}
-      {/* v0.17.170: Check isMounted to ensure proper portal rendering */}
-      {lightboxImage && isMounted && typeof document !== 'undefined' && createPortal(
-        <div className="attachment-lightbox" onClick={closeLightbox}>
-          {/* Image - Full size, no borders */}
-          <img
-            src={lightboxImage.url}
-            alt={lightboxImage.name}
-            className="attachment-lightbox-image"
-            onClick={(e) => e.stopPropagation()}
-          />
-
-          {/* Minimal close hint */}
-          <div className="attachment-lightbox-hint">
-            Click anywhere or press ESC to close
-          </div>
-
-          {/* Navigation dots for multiple images */}
-          {attachments.filter(a => isImage(a.type)).length > 1 && (
-            <div className="attachment-lightbox-dots" onClick={(e) => e.stopPropagation()}>
-              {attachments.filter(a => isImage(a.type)).map((img, idx) => (
-                <button
-                  key={img.id}
-                  type="button"
-                  className={`attachment-lightbox-dot ${img.id === lightboxImage.id ? 'active' : ''}`}
-                  onClick={() => setLightboxImage(img)}
-                  title={`Image ${idx + 1}`}
-                />
-              ))}
-            </div>
-          )}
-
-          {/* Invisible navigation areas */}
-          {attachments.filter(a => isImage(a.type)).length > 1 && (
-            <>
-              <button
-                type="button"
-                className="attachment-lightbox-nav-area attachment-lightbox-nav-prev"
-                onClick={(e) => navigateLightbox('prev', e)}
-                title="Previous (←)"
-              >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </button>
-              <button
-                type="button"
-                className="attachment-lightbox-nav-area attachment-lightbox-nav-next"
-                onClick={(e) => navigateLightbox('next', e)}
-                title="Next (→)"
-              >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </button>
-            </>
-          )}
-        </div>,
-        document.body
-      )}
+      {/* v0.17.171: Lightbox is now handled via native DOM (openNativeLightbox) to escape all stacking contexts */}
     </div>
   )
 }
