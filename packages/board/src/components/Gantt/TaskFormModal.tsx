@@ -600,30 +600,47 @@ export function TaskFormModal({
                               }}
                               onClick={(e) => e.stopPropagation()}
                             >
-                              {/* v0.17.124: Smaller circles, extra padding to prevent clipping */}
-                              <div style={{ padding: '14px 18px' }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 16px)', gap: '14px' }}>
+                              {/* v0.17.185: Larger click area (28px) with small visual circle (16px) */}
+                              <div style={{ padding: '6px 8px' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 28px)', gap: '2px' }}>
                                   {TASK_COLORS.slice(0, 18).map((color) => {
                                     const isSelected = formData.color === color.value;
                                     return (
                                       <motion.button
                                         key={color.value}
                                         type="button"
-                                        onClick={() => { handleChange('color', color.value); setShowColorPicker(false) }}
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          handleChange('color', color.value);
+                                          setShowColorPicker(false);
+                                        }}
                                         style={{
-                                          width: '16px',
-                                          height: '16px',
-                                          borderRadius: '50%',
-                                          backgroundColor: color.value,
-                                          outline: isSelected ? `2px solid ${color.value}` : 'none',
-                                          outlineOffset: '3px',
+                                          width: '28px',
+                                          height: '28px',
+                                          borderRadius: '6px',
+                                          backgroundColor: 'transparent',
                                           cursor: 'pointer',
                                           border: 'none',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
                                         }}
-                                        whileHover={{ scale: 1.2 }}
-                                        whileTap={{ scale: 0.95 }}
+                                        whileHover={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
+                                        whileTap={{ scale: 0.9 }}
                                         title={color.name}
-                                      />
+                                      >
+                                        <div
+                                          style={{
+                                            width: '16px',
+                                            height: '16px',
+                                            borderRadius: '50%',
+                                            backgroundColor: color.value,
+                                            outline: isSelected ? `2px solid ${color.value}` : 'none',
+                                            outlineOffset: '2px',
+                                          }}
+                                        />
+                                      </motion.button>
                                     );
                                   })}
                                 </div>
