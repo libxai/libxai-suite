@@ -11799,11 +11799,6 @@ body {
 }
 
 
-.focus\:ring-offset-2:focus {
-  --tw-ring-offset-width: 2px;
-}
-
-
 .active\:scale-95:active {
   --tw-scale-x: .95;
   --tw-scale-y: .95;

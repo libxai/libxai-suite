@@ -1,9 +1,9 @@
 /**
- * ColorPicker Component - v0.11.0
+ * ColorPicker Component - v0.17.187
  * Professional color selector for tasks with pastel palette
+ * Fixed: All colors now clickable with pointerEvents none on inner circle
  */
 
-import { motion } from 'framer-motion';
 import { Check } from 'lucide-react';
 
 export interface TaskColor {
@@ -41,41 +41,55 @@ interface ColorPickerProps {
 export function ColorPicker({ value = '#6366F1', onChange, disabled = false }: ColorPickerProps) {
   return (
     <div className="space-y-2">
-      <div className="flex flex-wrap gap-2">
+      {/* v0.17.187: Grid with larger click area (28px) and small visual circle (16px) */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 28px)', gap: '2px' }}>
         {TASK_COLORS.map((color) => {
           const isSelected = value === color.value;
 
           return (
-            <motion.button
+            <button
               key={color.value}
               type="button"
-              onClick={() => !disabled && onChange(color.value)}
-              className="relative rounded-full transition-all focus:outline-none focus:ring-2 focus:ring-offset-2"
-              style={{
-                width: '32px',
-                height: '32px',
-                backgroundColor: color.value,
-                boxShadow: isSelected
-                  ? `0 0 0 2px #FFFFFF, 0 0 0 4px ${color.value}`
-                  : '0 1px 3px rgba(0, 0, 0, 0.12)',
-                opacity: disabled ? 0.5 : 1,
-                cursor: disabled ? 'not-allowed' : 'pointer',
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (!disabled) onChange(color.value);
               }}
-              whileHover={disabled ? {} : { scale: 1.1 }}
-              whileTap={disabled ? {} : { scale: 0.95 }}
+              style={{
+                width: '28px',
+                height: '28px',
+                borderRadius: '6px',
+                backgroundColor: 'transparent',
+                cursor: disabled ? 'not-allowed' : 'pointer',
+                border: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: 0,
+                opacity: disabled ? 0.5 : 1,
+              }}
               title={color.name}
               disabled={disabled}
             >
-              {isSelected && (
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="absolute inset-0 flex items-center justify-center"
-                >
-                  <Check className="w-4 h-4 text-white drop-shadow-md" strokeWidth={3} />
-                </motion.div>
-              )}
-            </motion.button>
+              <span
+                style={{
+                  width: '16px',
+                  height: '16px',
+                  borderRadius: '50%',
+                  backgroundColor: color.value,
+                  outline: isSelected ? `2px solid ${color.value}` : 'none',
+                  outlineOffset: '2px',
+                  pointerEvents: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                {isSelected && (
+                  <Check className="w-3 h-3 text-white drop-shadow-md" strokeWidth={3} style={{ pointerEvents: 'none' }} />
+                )}
+              </span>
+            </button>
           );
         })}
       </div>
