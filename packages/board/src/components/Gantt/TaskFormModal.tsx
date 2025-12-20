@@ -600,13 +600,13 @@ export function TaskFormModal({
                               }}
                               onClick={(e) => e.stopPropagation()}
                             >
-                              {/* v0.17.185: Larger click area (28px) with small visual circle (16px) */}
+                              {/* v0.17.186: Fixed click area with pointerEvents none on inner circle */}
                               <div style={{ padding: '6px 8px' }}>
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 28px)', gap: '2px' }}>
                                   {TASK_COLORS.slice(0, 18).map((color) => {
                                     const isSelected = formData.color === color.value;
                                     return (
-                                      <motion.button
+                                      <button
                                         key={color.value}
                                         type="button"
                                         onClick={(e) => {
@@ -625,12 +625,11 @@ export function TaskFormModal({
                                           display: 'flex',
                                           alignItems: 'center',
                                           justifyContent: 'center',
+                                          padding: 0,
                                         }}
-                                        whileHover={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
-                                        whileTap={{ scale: 0.9 }}
                                         title={color.name}
                                       >
-                                        <div
+                                        <span
                                           style={{
                                             width: '16px',
                                             height: '16px',
@@ -638,9 +637,11 @@ export function TaskFormModal({
                                             backgroundColor: color.value,
                                             outline: isSelected ? `2px solid ${color.value}` : 'none',
                                             outlineOffset: '2px',
+                                            pointerEvents: 'none',
+                                            display: 'block',
                                           }}
                                         />
-                                      </motion.button>
+                                      </button>
                                     );
                                   })}
                                 </div>
