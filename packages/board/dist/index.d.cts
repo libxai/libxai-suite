@@ -354,6 +354,14 @@ interface GanttConfig {
      * @default true
      */
     enableAutoCriticalPath?: boolean;
+    /**
+     * v0.17.181: Persist task expanded/collapsed state in localStorage
+     * When true, uses default key 'gantt-expanded-tasks'
+     * When string, uses that string as the localStorage key (useful for per-project persistence)
+     * When false/undefined, expanded state only persists during the current session
+     * @default false
+     */
+    persistExpandedState?: boolean | string;
     onThemeChange?: (theme: Theme$1) => void;
     onTaskClick?: (task: Task) => void;
     onTaskDblClick?: (task: Task) => void;
@@ -488,6 +496,30 @@ interface Subtask {
  */
 type CardStatus = 'TODO' | 'IN_PROGRESS' | 'REVIEW' | 'DONE' | 'BLOCKED';
 /**
+ * File attachment on a card
+ * v0.17.182: Moved before Card interface to allow usage in Card.attachments
+ */
+interface Attachment {
+    /** Unique identifier */
+    id: string;
+    /** Card ID */
+    cardId: string;
+    /** File name */
+    name: string;
+    /** File size in bytes */
+    size: number;
+    /** MIME type */
+    type: string;
+    /** File URL or data URI */
+    url: string;
+    /** Upload timestamp */
+    uploadedAt: Date | string;
+    /** User who uploaded */
+    uploadedBy: string;
+    /** Thumbnail URL (for images) */
+    thumbnailUrl?: string;
+}
+/**
  * Card entity
  * Represents a single task/item in the Kanban board
  */
@@ -530,6 +562,8 @@ interface Card$1 {
     color?: string;
     /** v0.17.158: Tags with colors (ClickUp-style) */
     tags?: TaskTag[];
+    /** v0.17.182: Attachments for displaying thumbnails in card */
+    attachments?: Attachment[];
     /** Custom metadata */
     metadata?: Record<string, unknown>;
     createdAt?: Date | string;
@@ -846,29 +880,6 @@ interface Activity {
     newValue?: any;
     /** Additional metadata */
     metadata?: Record<string, any>;
-}
-/**
- * File attachment on a card
- */
-interface Attachment {
-    /** Unique identifier */
-    id: string;
-    /** Card ID */
-    cardId: string;
-    /** File name */
-    name: string;
-    /** File size in bytes */
-    size: number;
-    /** MIME type */
-    type: string;
-    /** File URL or data URI */
-    url: string;
-    /** Upload timestamp */
-    uploadedAt: Date | string;
-    /** User who uploaded */
-    uploadedBy: string;
-    /** Thumbnail URL (for images) */
-    thumbnailUrl?: string;
 }
 /**
  * Bulk operations callbacks

@@ -420,6 +420,15 @@ export interface GanttConfig {
    */
   enableAutoCriticalPath?: boolean;
 
+  /**
+   * v0.17.181: Persist task expanded/collapsed state in localStorage
+   * When true, uses default key 'gantt-expanded-tasks'
+   * When string, uses that string as the localStorage key (useful for per-project persistence)
+   * When false/undefined, expanded state only persists during the current session
+   * @default false
+   */
+  persistExpandedState?: boolean | string;
+
   // ==================== UI Events ====================
   onThemeChange?: (theme: Theme) => void; // v0.9.0: Theme change event
 

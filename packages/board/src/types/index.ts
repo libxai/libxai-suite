@@ -44,6 +44,31 @@ export interface Subtask {
 export type CardStatus = 'TODO' | 'IN_PROGRESS' | 'REVIEW' | 'DONE' | 'BLOCKED'
 
 /**
+ * File attachment on a card
+ * v0.17.182: Moved before Card interface to allow usage in Card.attachments
+ */
+export interface Attachment {
+  /** Unique identifier */
+  id: string
+  /** Card ID */
+  cardId: string
+  /** File name */
+  name: string
+  /** File size in bytes */
+  size: number
+  /** MIME type */
+  type: string
+  /** File URL or data URI */
+  url: string
+  /** Upload timestamp */
+  uploadedAt: Date | string
+  /** User who uploaded */
+  uploadedBy: string
+  /** Thumbnail URL (for images) */
+  thumbnailUrl?: string
+}
+
+/**
  * Card entity
  * Represents a single task/item in the Kanban board
  */
@@ -88,6 +113,8 @@ export interface Card {
   color?: string
   /** v0.17.158: Tags with colors (ClickUp-style) */
   tags?: TaskTag[]
+  /** v0.17.182: Attachments for displaying thumbnails in card */
+  attachments?: Attachment[]
   /** Custom metadata */
   metadata?: Record<string, unknown>
 
@@ -543,34 +570,6 @@ export interface Activity {
   newValue?: any
   /** Additional metadata */
   metadata?: Record<string, any>
-}
-
-// ============================================================================
-// FILE ATTACHMENT TYPES
-// ============================================================================
-
-/**
- * File attachment on a card
- */
-export interface Attachment {
-  /** Unique identifier */
-  id: string
-  /** Card ID */
-  cardId: string
-  /** File name */
-  name: string
-  /** File size in bytes */
-  size: number
-  /** MIME type */
-  type: string
-  /** File URL or data URI */
-  url: string
-  /** Upload timestamp */
-  uploadedAt: Date | string
-  /** User who uploaded */
-  uploadedBy: string
-  /** Thumbnail URL (for images) */
-  thumbnailUrl?: string
 }
 
 // ============================================================================

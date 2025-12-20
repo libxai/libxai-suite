@@ -416,7 +416,7 @@ export function TaskGrid({
               </div>
             )}
 
-            {/* Expand/Collapse Button - Always show space for alignment */}
+            {/* Expand/Collapse Button OR Color Indicator - same position for alignment */}
             {task.subtasks && task.subtasks.length > 0 ? (
               <button
                 onClick={(e) => {
@@ -433,24 +433,19 @@ export function TaskGrid({
                 )}
               </button>
             ) : (
-              /* Spacer for tasks without subtasks to maintain alignment */
-              <div className="w-5 h-5 flex-shrink-0" />
-            )}
-
-            {/* v0.11.0: Color Indicator - Simple dot showing task color */}
-            {/* v0.14.7: Changed default from #6366F1 (indigo) to #3B82F6 (electric blue) */}
-            {/* v0.17.67: Don't show dot for master tasks (with subtasks) - they already have chevron */}
-            {!(task.subtasks && task.subtasks.length > 0) && (
-              <div
-                className="w-3 h-3 rounded-full flex-shrink-0 border"
-                style={{
-                  backgroundColor: task.color || '#3B82F6',
-                  opacity: task.parentId ? 0.6 : 1, // Subtasks more transparent
-                  borderColor: task.isMilestone ? theme.accent : 'transparent',
-                  borderWidth: task.isMilestone ? '2px' : '0px',
-                }}
-                title={task.isMilestone ? 'Milestone' : task.parentId ? 'Subtask' : 'Task'}
-              />
+              /* v0.17.183: Color dot in same position as chevron for perfect alignment */
+              <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
+                <div
+                  className="w-3 h-3 rounded-full border"
+                  style={{
+                    backgroundColor: task.color || '#3B82F6',
+                    opacity: task.parentId ? 0.6 : 1, // Subtasks more transparent
+                    borderColor: task.isMilestone ? theme.accent : 'transparent',
+                    borderWidth: task.isMilestone ? '2px' : '0px',
+                  }}
+                  title={task.isMilestone ? 'Milestone' : task.parentId ? 'Subtask' : 'Task'}
+                />
+              </div>
             )}
 
             {/* Task Name or Input */}

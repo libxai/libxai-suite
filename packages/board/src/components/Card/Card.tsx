@@ -96,6 +96,11 @@ export const Card = memo<CardProps>(
     // v0.17.41: Detect completed tasks for strikethrough styling
     const isCompleted = card.progress === 100
 
+    // v0.17.182: Filter image attachments for thumbnail display
+    const imageAttachments = (card.attachments || []).filter((att) =>
+      att.type.startsWith('image/')
+    )
+
     // Default card rendering with optional color accent
     const cardStyle = {
       ...style,
@@ -144,6 +149,49 @@ export const Card = memo<CardProps>(
                 e.currentTarget.style.display = 'none'
               }}
             />
+          </div>
+        )}
+
+        {/* v0.17.182: Image Attachment Thumbnails */}
+        {imageAttachments.length > 0 && !card.coverImage && (
+          <div className="asakaa-card-attachments mb-3">
+            {imageAttachments.length === 1 && imageAttachments[0] ? (
+              // Single image: show as cover-like
+              <img
+                src={imageAttachments[0].thumbnailUrl || imageAttachments[0].url}
+                alt={imageAttachments[0].name}
+                className="w-full h-28 object-cover rounded-md"
+                loading="lazy"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none'
+                }}
+              />
+            ) : (
+              // Multiple images: show grid of thumbnails (max 4)
+              <div className="grid grid-cols-2 gap-1">
+                {imageAttachments.slice(0, 4).map((att, index) => (
+                  <div key={att.id} className="relative">
+                    <img
+                      src={att.thumbnailUrl || att.url}
+                      alt={att.name}
+                      className="w-full h-14 object-cover rounded"
+                      loading="lazy"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none'
+                      }}
+                    />
+                    {/* Show +N overlay on last image if more than 4 */}
+                    {index === 3 && imageAttachments.length > 4 && (
+                      <div className="absolute inset-0 bg-black/60 rounded flex items-center justify-center">
+                        <span className="text-white text-sm font-medium">
+                          +{imageAttachments.length - 4}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -279,7 +327,10 @@ export const Card = memo<CardProps>(
       JSON.stringify(prevProps.card.assignedUserIds) ===
         JSON.stringify(nextProps.card.assignedUserIds) &&
       JSON.stringify(prevProps.card.dependencies) ===
-        JSON.stringify(nextProps.card.dependencies)
+        JSON.stringify(nextProps.card.dependencies) &&
+      // v0.17.182: Compare attachments for thumbnail updates
+      JSON.stringify(prevProps.card.attachments?.map((a) => a.id)) ===
+        JSON.stringify(nextProps.card.attachments?.map((a) => a.id))
     )
   }
 )

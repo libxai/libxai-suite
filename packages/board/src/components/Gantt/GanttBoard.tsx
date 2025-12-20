@@ -65,6 +65,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     availableUsers = [],
     templates,
     enableAutoCriticalPath = true, // v0.11.1: Allow disabling automatic CPM calculation
+    persistExpandedState, // v0.17.181: Persist expanded state in localStorage
     aiAssistant, // v0.14.0: AI Assistant configuration
     // v0.15.0: Internationalization
     locale = 'en',
@@ -162,7 +163,51 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
 
   // v0.17.163: Track expanded states separately to preserve them across task reloads
   // This ref stores the isExpanded state for each task ID, updated whenever tasks are toggled
+  // v0.17.181: Initialize from localStorage if persistExpandedState is enabled
+  const getStorageKey = useCallback(() => {
+    if (!persistExpandedState) return null;
+    return typeof persistExpandedState === 'string'
+      ? persistExpandedState
+      : 'gantt-expanded-tasks';
+  }, [persistExpandedState]);
+
+  // Initialize expandedStatesRef from localStorage if persistExpandedState is enabled
   const expandedStatesRef = useRef<Map<string, boolean>>(new Map());
+  const hasInitializedFromStorage = useRef(false);
+
+  // Load from localStorage on first render if persistExpandedState is enabled
+  if (!hasInitializedFromStorage.current && persistExpandedState) {
+    hasInitializedFromStorage.current = true;
+    const storageKey = typeof persistExpandedState === 'string'
+      ? persistExpandedState
+      : 'gantt-expanded-tasks';
+
+    try {
+      const stored = localStorage.getItem(storageKey);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          // stored as array of [taskId, isExpanded] tuples
+          expandedStatesRef.current = new Map(parsed);
+        }
+      }
+    } catch (e) {
+      console.warn('[GanttBoard] Error loading expanded state from localStorage:', e);
+    }
+  }
+
+  // v0.17.181: Save expanded states to localStorage when they change
+  const saveExpandedStatesToStorage = useCallback(() => {
+    const storageKey = getStorageKey();
+    if (!storageKey) return;
+
+    try {
+      const entries = Array.from(expandedStatesRef.current.entries());
+      localStorage.setItem(storageKey, JSON.stringify(entries));
+    } catch (e) {
+      console.warn('[GanttBoard] Error saving expanded state to localStorage:', e);
+    }
+  }, [getStorageKey]);
 
   // Sync parent tasks prop changes to local state (e.g., after external DB operations)
   // v0.17.163: Preserve isExpanded state using ref to prevent subtasks from auto-expanding
@@ -643,6 +688,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
 
   // Handle task toggle (memoized)
   // v0.17.163: Also update expandedStatesRef to persist state across task reloads
+  // v0.17.181: Save to localStorage if persistExpandedState is enabled
   const handleTaskToggle = useCallback((taskId: string) => {
     setLocalTasks((prev) => {
       const newTasks = toggleTaskExpansion(prev, taskId);
@@ -661,10 +707,13 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       };
       findAndUpdateExpandedState(newTasks);
 
+      // v0.17.181: Persist to localStorage
+      saveExpandedStatesToStorage();
+
       return newTasks;
     });
     config.onTaskToggleExpand?.(taskId);
-  }, [config]);
+  }, [config, saveExpandedStatesToStorage]);
 
   // Handle task updates from context menu (memoized)
   const handleTaskUpdate = useCallback((taskId: string, updates: Partial<Task>) => {

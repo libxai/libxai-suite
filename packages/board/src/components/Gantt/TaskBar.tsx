@@ -400,9 +400,9 @@ export function TaskBar({
         newStartDate = pixelToDate(ghostX);
         newEndDate = task.endDate!;
 
-        // Validate: start date must be before end date
-        if (newStartDate >= newEndDate) {
-          console.warn('Invalid date range: start date must be before end date');
+        // Validate: start date must be before or equal to end date (allow same-day tasks)
+        if (newStartDate > newEndDate) {
+          console.warn('Invalid date range: start date must be before or equal to end date');
           isValid = false;
         }
       } else if (dragMode === 'resize-end') {
@@ -410,9 +410,9 @@ export function TaskBar({
         newStartDate = task.startDate!;
         newEndDate = pixelToDate(ghostX + ghostWidth);
 
-        // Validate: end date must be after start date
-        if (newEndDate <= newStartDate) {
-          console.warn('Invalid date range: end date must be after start date');
+        // Validate: end date must be after or equal to start date (allow same-day tasks)
+        if (newEndDate < newStartDate) {
+          console.warn('Invalid date range: end date must be after or equal to start date');
           isValid = false;
         }
       } else {
@@ -422,10 +422,9 @@ export function TaskBar({
 
       // Only update if valid
       if (isValid && newStartDate! && newEndDate!) {
-        // Additional validation: minimum task duration of 1 day
-        const minDuration = 24 * 60 * 60 * 1000; // 1 day in milliseconds
-        if (newEndDate.getTime() - newStartDate.getTime() < minDuration) {
-          console.warn('Invalid date range: task must be at least 1 day long');
+        // v0.17.184: Allow same-day tasks (duration = 0), only reject negative durations
+        if (newEndDate.getTime() < newStartDate.getTime()) {
+          console.warn('Invalid date range: end date cannot be before start date');
           // Reset to original dates by not calling onDateChange
         } else {
           onDateChange?.(task, newStartDate, newEndDate);
