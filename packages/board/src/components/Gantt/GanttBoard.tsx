@@ -1336,154 +1336,167 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
           />
         </div>
 
-        {/* v0.17.195: Action buttons + resize handle - buttons move with the border */}
+        {/* v0.17.197: Resize handle column - full height with buttons in header area only */}
         <div
-          className="flex-shrink-0 flex items-start"
-          style={{ zIndex: 15 }}
+          className="flex-shrink-0 flex h-full"
+          style={{
+            zIndex: 15,
+          }}
         >
-          {/* Action buttons container - positioned in header area */}
+          {/* Resize handle - full height draggable border */}
           <div
-            className="flex items-center gap-1 px-1"
-            style={{
-              position: 'relative', // v0.17.196: For keyboard help tooltip positioning
-              height: '48px', // Match header height
-              backgroundColor: theme.bgGrid,
-              borderBottom: `1px solid ${theme.border}`,
-            }}
-          >
-            <ColumnManager
-              columns={columns}
-              onToggleColumn={handleToggleColumn}
-              theme={theme}
-            />
-            <button
-              onClick={() => setShowKeyboardHelp(!showKeyboardHelp)}
-              className="p-1.5 rounded hover:bg-opacity-10 transition-colors"
-              style={{ color: theme.textTertiary }}
-              title="Keyboard shortcuts"
-            >
-              <Keyboard className="w-4 h-4" />
-            </button>
-
-            {/* v0.17.196: Keyboard help tooltip */}
-            {showKeyboardHelp && (
-              <div
-                ref={keyboardHelpRef}
-                className="absolute top-full right-0 mt-2 p-4 rounded-lg shadow-2xl z-50 min-w-[400px]"
-                style={{
-                  backgroundColor: theme.bgPrimary,
-                  border: `1px solid ${theme.border}`,
-                  color: theme.textPrimary,
-                }}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="flex items-center justify-between mb-3 pb-2 border-b" style={{ borderColor: theme.border }}>
-                  <h3 className="font-semibold text-sm" style={{ color: theme.textPrimary }}>
-                    Keyboard Shortcuts
-                  </h3>
-                  <button
-                    onClick={() => setShowKeyboardHelp(false)}
-                    className="text-xs px-2 py-1 rounded hover:bg-opacity-10"
-                    style={{ color: theme.textTertiary }}
-                  >
-                    Close
-                  </button>
-                </div>
-
-                <div className="space-y-3 text-xs">
-                  {/* Navigation */}
-                  <div>
-                    <div className="font-semibold mb-1.5" style={{ color: theme.textSecondary }}>Navigation</div>
-                    <div className="space-y-1">
-                      <div className="flex justify-between">
-                        <span style={{ color: theme.textTertiary }}>Move focus up/down</span>
-                        <kbd className="px-2 py-0.5 rounded font-mono text-xs" style={{ backgroundColor: theme.bgGrid, color: theme.textPrimary }}>↑ / ↓</kbd>
-                      </div>
-                      <div className="flex justify-between">
-                        <span style={{ color: theme.textTertiary }}>Select range</span>
-                        <kbd className="px-2 py-0.5 rounded font-mono text-xs" style={{ backgroundColor: theme.bgGrid, color: theme.textPrimary }}>Shift + ↑ / ↓</kbd>
-                      </div>
-                      <div className="flex justify-between">
-                        <span style={{ color: theme.textTertiary }}>Toggle selection</span>
-                        <kbd className="px-2 py-0.5 rounded font-mono text-xs" style={{ backgroundColor: theme.bgGrid, color: theme.textPrimary }}>Cmd/Ctrl + Click</kbd>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Hierarchy */}
-                  <div>
-                    <div className="font-semibold mb-1.5" style={{ color: theme.textSecondary }}>Hierarchy</div>
-                    <div className="space-y-1">
-                      <div className="flex justify-between">
-                        <span style={{ color: theme.textTertiary }}>Indent task</span>
-                        <kbd className="px-2 py-0.5 rounded font-mono text-xs" style={{ backgroundColor: theme.bgGrid, color: theme.textPrimary }}>Tab</kbd>
-                      </div>
-                      <div className="flex justify-between">
-                        <span style={{ color: theme.textTertiary }}>Outdent task</span>
-                        <kbd className="px-2 py-0.5 rounded font-mono text-xs" style={{ backgroundColor: theme.bgGrid, color: theme.textPrimary }}>Shift + Tab</kbd>
-                      </div>
-                      <div className="flex justify-between">
-                        <span style={{ color: theme.textTertiary }}>Expand/Collapse</span>
-                        <kbd className="px-2 py-0.5 rounded font-mono text-xs" style={{ backgroundColor: theme.bgGrid, color: theme.textPrimary }}>→ / ←</kbd>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Editing */}
-                  <div>
-                    <div className="font-semibold mb-1.5" style={{ color: theme.textSecondary }}>Editing</div>
-                    <div className="space-y-1">
-                      <div className="flex justify-between">
-                        <span style={{ color: theme.textTertiary }}>Create task below</span>
-                        <kbd className="px-2 py-0.5 rounded font-mono text-xs" style={{ backgroundColor: theme.bgGrid, color: theme.textPrimary }}>Enter</kbd>
-                      </div>
-                      <div className="flex justify-between">
-                        <span style={{ color: theme.textTertiary }}>Create task above</span>
-                        <kbd className="px-2 py-0.5 rounded font-mono text-xs" style={{ backgroundColor: theme.bgGrid, color: theme.textPrimary }}>Shift + Enter</kbd>
-                      </div>
-                      <div className="flex justify-between">
-                        <span style={{ color: theme.textTertiary }}>Open task modal</span>
-                        <kbd className="px-2 py-0.5 rounded font-mono text-xs" style={{ backgroundColor: theme.bgGrid, color: theme.textPrimary }}>Cmd/Ctrl + Enter</kbd>
-                      </div>
-                      <div className="flex justify-between">
-                        <span style={{ color: theme.textTertiary }}>Rename task</span>
-                        <kbd className="px-2 py-0.5 rounded font-mono text-xs" style={{ backgroundColor: theme.bgGrid, color: theme.textPrimary }}>F2</kbd>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div>
-                    <div className="font-semibold mb-1.5" style={{ color: theme.textSecondary }}>Actions</div>
-                    <div className="space-y-1">
-                      <div className="flex justify-between">
-                        <span style={{ color: theme.textTertiary }}>Move task up/down</span>
-                        <kbd className="px-2 py-0.5 rounded font-mono text-xs" style={{ backgroundColor: theme.bgGrid, color: theme.textPrimary }}>Alt + ↑ / ↓</kbd>
-                      </div>
-                      <div className="flex justify-between">
-                        <span style={{ color: theme.textTertiary }}>Delete task</span>
-                        <kbd className="px-2 py-0.5 rounded font-mono text-xs" style={{ backgroundColor: theme.bgGrid, color: theme.textPrimary }}>Delete</kbd>
-                      </div>
-                      <div className="flex justify-between">
-                        <span style={{ color: theme.textTertiary }}>Duplicate task</span>
-                        <kbd className="px-2 py-0.5 rounded font-mono text-xs" style={{ backgroundColor: theme.bgGrid, color: theme.textPrimary }}>Cmd/Ctrl + D</kbd>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-          {/* Resize handle */}
-          <div
-            className="cursor-col-resize hover:bg-blue-500/20 transition-colors h-full"
+            className="cursor-col-resize hover:bg-blue-500/20 transition-colors flex flex-col"
             style={{
               width: 5,
-              backgroundColor: 'transparent',
+              backgroundColor: theme.bgPrimary,
               borderLeft: `1px solid ${theme.border}`,
             }}
             onMouseDown={handleMouseDown}
-          />
+          >
+            {/* Header area matching the grid header */}
+            <div style={{ height: '48px', backgroundColor: theme.bgGrid }} />
+          </div>
+
+          {/* Action buttons - positioned in header area */}
+          <div
+            className="flex flex-col"
+            style={{ backgroundColor: theme.bgPrimary }}
+          >
+            <div
+              className="flex items-center gap-1 px-1"
+              style={{
+                position: 'relative',
+                height: '48px',
+                backgroundColor: theme.bgGrid,
+                borderBottom: `1px solid ${theme.border}`,
+              }}
+            >
+              <ColumnManager
+                columns={columns}
+                onToggleColumn={handleToggleColumn}
+                theme={theme}
+              />
+              <button
+                onClick={() => setShowKeyboardHelp(!showKeyboardHelp)}
+                className="p-1.5 rounded hover:bg-opacity-10 transition-colors"
+                style={{ color: theme.textTertiary }}
+                title="Keyboard shortcuts"
+              >
+                <Keyboard className="w-4 h-4" />
+              </button>
+
+              {/* v0.17.196: Keyboard help tooltip */}
+              {showKeyboardHelp && (
+                <div
+                  ref={keyboardHelpRef}
+                  className="absolute top-full right-0 mt-2 p-4 rounded-lg shadow-2xl z-50 min-w-[400px]"
+                  style={{
+                    backgroundColor: theme.bgPrimary,
+                    border: `1px solid ${theme.border}`,
+                    color: theme.textPrimary,
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="flex items-center justify-between mb-3 pb-2 border-b" style={{ borderColor: theme.border }}>
+                    <h3 className="font-semibold text-sm" style={{ color: theme.textPrimary }}>
+                      Keyboard Shortcuts
+                    </h3>
+                    <button
+                      onClick={() => setShowKeyboardHelp(false)}
+                      className="text-xs px-2 py-1 rounded hover:bg-opacity-10"
+                      style={{ color: theme.textTertiary }}
+                    >
+                      Close
+                    </button>
+                  </div>
+
+                  <div className="space-y-3 text-xs">
+                    {/* Navigation */}
+                    <div>
+                      <div className="font-semibold mb-1.5" style={{ color: theme.textSecondary }}>Navigation</div>
+                      <div className="space-y-1">
+                        <div className="flex justify-between">
+                          <span style={{ color: theme.textTertiary }}>Move focus up/down</span>
+                          <kbd className="px-2 py-0.5 rounded font-mono text-xs" style={{ backgroundColor: theme.bgGrid, color: theme.textPrimary }}>↑ / ↓</kbd>
+                        </div>
+                        <div className="flex justify-between">
+                          <span style={{ color: theme.textTertiary }}>Select range</span>
+                          <kbd className="px-2 py-0.5 rounded font-mono text-xs" style={{ backgroundColor: theme.bgGrid, color: theme.textPrimary }}>Shift + ↑ / ↓</kbd>
+                        </div>
+                        <div className="flex justify-between">
+                          <span style={{ color: theme.textTertiary }}>Toggle selection</span>
+                          <kbd className="px-2 py-0.5 rounded font-mono text-xs" style={{ backgroundColor: theme.bgGrid, color: theme.textPrimary }}>Cmd/Ctrl + Click</kbd>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Hierarchy */}
+                    <div>
+                      <div className="font-semibold mb-1.5" style={{ color: theme.textSecondary }}>Hierarchy</div>
+                      <div className="space-y-1">
+                        <div className="flex justify-between">
+                          <span style={{ color: theme.textTertiary }}>Indent task</span>
+                          <kbd className="px-2 py-0.5 rounded font-mono text-xs" style={{ backgroundColor: theme.bgGrid, color: theme.textPrimary }}>Tab</kbd>
+                        </div>
+                        <div className="flex justify-between">
+                          <span style={{ color: theme.textTertiary }}>Outdent task</span>
+                          <kbd className="px-2 py-0.5 rounded font-mono text-xs" style={{ backgroundColor: theme.bgGrid, color: theme.textPrimary }}>Shift + Tab</kbd>
+                        </div>
+                        <div className="flex justify-between">
+                          <span style={{ color: theme.textTertiary }}>Expand/Collapse</span>
+                          <kbd className="px-2 py-0.5 rounded font-mono text-xs" style={{ backgroundColor: theme.bgGrid, color: theme.textPrimary }}>→ / ←</kbd>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Editing */}
+                    <div>
+                      <div className="font-semibold mb-1.5" style={{ color: theme.textSecondary }}>Editing</div>
+                      <div className="space-y-1">
+                        <div className="flex justify-between">
+                          <span style={{ color: theme.textTertiary }}>Create task below</span>
+                          <kbd className="px-2 py-0.5 rounded font-mono text-xs" style={{ backgroundColor: theme.bgGrid, color: theme.textPrimary }}>Enter</kbd>
+                        </div>
+                        <div className="flex justify-between">
+                          <span style={{ color: theme.textTertiary }}>Create task above</span>
+                          <kbd className="px-2 py-0.5 rounded font-mono text-xs" style={{ backgroundColor: theme.bgGrid, color: theme.textPrimary }}>Shift + Enter</kbd>
+                        </div>
+                        <div className="flex justify-between">
+                          <span style={{ color: theme.textTertiary }}>Open task modal</span>
+                          <kbd className="px-2 py-0.5 rounded font-mono text-xs" style={{ backgroundColor: theme.bgGrid, color: theme.textPrimary }}>Cmd/Ctrl + Enter</kbd>
+                        </div>
+                        <div className="flex justify-between">
+                          <span style={{ color: theme.textTertiary }}>Rename task</span>
+                          <kbd className="px-2 py-0.5 rounded font-mono text-xs" style={{ backgroundColor: theme.bgGrid, color: theme.textPrimary }}>F2</kbd>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div>
+                      <div className="font-semibold mb-1.5" style={{ color: theme.textSecondary }}>Actions</div>
+                      <div className="space-y-1">
+                        <div className="flex justify-between">
+                          <span style={{ color: theme.textTertiary }}>Move task up/down</span>
+                          <kbd className="px-2 py-0.5 rounded font-mono text-xs" style={{ backgroundColor: theme.bgGrid, color: theme.textPrimary }}>Alt + ↑ / ↓</kbd>
+                        </div>
+                        <div className="flex justify-between">
+                          <span style={{ color: theme.textTertiary }}>Delete task</span>
+                          <kbd className="px-2 py-0.5 rounded font-mono text-xs" style={{ backgroundColor: theme.bgGrid, color: theme.textPrimary }}>Delete</kbd>
+                        </div>
+                        <div className="flex justify-between">
+                          <span style={{ color: theme.textTertiary }}>Duplicate task</span>
+                          <kbd className="px-2 py-0.5 rounded font-mono text-xs" style={{ backgroundColor: theme.bgGrid, color: theme.textPrimary }}>Cmd/Ctrl + D</kbd>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            {/* Empty area below buttons - fills remaining height with background */}
+            <div className="flex-1" />
+          </div>
         </div>
 
         {/* Timeline - v0.13.9: Has both scrolls, TaskGrid syncs to this scroll */}
