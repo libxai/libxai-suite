@@ -11455,6 +11455,23 @@ body {
 }
 
 
+/* ============================================================================
+   GANTT GRID SCROLL - v0.17.223
+   Hide scrollbar on TaskGrid while keeping scroll functional
+   ============================================================================ */
+
+
+.gantt-grid-scroll {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+
+.gantt-grid-scroll::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari, Opera */
+}
+
+
 .placeholder\:text-\[\#6B7280\]::-moz-placeholder {
   --tw-text-opacity: 1;
   color: rgb(107 114 128 / var(--tw-text-opacity, 1));

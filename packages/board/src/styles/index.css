@@ -894,3 +894,17 @@
 .asakaa-board:not(.dark) .asakaa-add-column__cancel:hover {
   background: rgba(0, 0, 0, 0.05);
 }
+
+/* ============================================================================
+   GANTT GRID SCROLL - v0.17.223
+   Hide scrollbar on TaskGrid while keeping scroll functional
+   ============================================================================ */
+
+.gantt-grid-scroll {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.gantt-grid-scroll::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari, Opera */
+}

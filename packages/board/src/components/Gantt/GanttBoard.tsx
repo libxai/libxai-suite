@@ -1287,12 +1287,15 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       >
         {/* Task Grid - v0.17.194: Horizontal scroll when columns exceed width (ClickUp style) */}
         {/* v0.17.222: Real scroll instead of transform - synced bidirectionally with Timeline */}
+        {/* v0.17.223: Hide scrollbar visually but keep scroll functional */}
         <div
           className="gantt-grid-scroll flex-shrink-0"
           style={{
             width: gridWidth,
             overflowX: 'auto', // v0.17.194: Allow horizontal scroll for many columns
-            overflowY: 'auto', // v0.17.222: Real scroll synced with Timeline
+            overflowY: 'scroll', // v0.17.222: Real scroll synced with Timeline
+            scrollbarWidth: 'none', // v0.17.223: Hide scrollbar (Firefox)
+            msOverflowStyle: 'none', // v0.17.223: Hide scrollbar (IE/Edge)
           }}
         >
           <TaskGrid
