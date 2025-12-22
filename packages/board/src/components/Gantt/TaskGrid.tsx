@@ -228,6 +228,9 @@ export function TaskGrid({
   const flatTasks = flattenTasks(tasks);
   const HEADER_HEIGHT = 48;
 
+  // v0.17.221: Calculate content height to match Timeline exactly
+  // This ensures proper scroll sync without content cutoff
+  const contentHeight = Math.max(flatTasks.length * ROW_HEIGHT, 600 - HEADER_HEIGHT);
 
   // Calculate duration
   const getDuration = (task: Task) => {
@@ -1204,8 +1207,9 @@ export function TaskGrid({
         </div>
       </div>
 
-      {/* Task Rows Container - v0.13.11: This container is targeted by CSS transform for scroll sync */}
-      <div className="gantt-taskgrid-content">
+      {/* Task Rows Container - v0.17.222: Now uses real scroll instead of CSS transform */}
+      {/* minHeight ensures scroll area matches Timeline for proper sync */}
+      <div className="gantt-taskgrid-content" style={{ minHeight: contentHeight }}>
       {flatTasks.map(({ task, level }, index) => {
         const isSelected = isTaskSelected(task.id);
 

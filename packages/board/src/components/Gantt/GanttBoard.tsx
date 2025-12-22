@@ -1164,32 +1164,43 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     setIsResizing(true);
   };
 
-  // v0.13.9: Timeline has the scrollbar, TaskGrid syncs via CSS transform
-  // This ensures only ONE scrollbar on the right side of the entire component
+  // v0.17.222: Both panels have real scroll, synchronized bidirectionally
+  // This fixes the bug where TaskGrid content was cut off when using translateY
+  const isSyncingScroll = useRef(false);
+
   useEffect(() => {
     const timelineScroll = timelineScrollRef.current;
-    const gridContainer = gridScrollRef.current;
+    const gridScroll = gridScrollRef.current?.querySelector('.gantt-grid-scroll') as HTMLElement;
 
-    if (!timelineScroll || !gridContainer) return;
+    if (!timelineScroll || !gridScroll) return;
 
-    // v0.13.11: Find the TaskGrid CONTENT container (not the whole grid) to apply transform
-    // This keeps the header fixed while only the task rows move
-    const taskGridContent = gridContainer.querySelector('.gantt-taskgrid-content');
-
+    // v0.17.222: Bidirectional scroll sync - both panels scroll together
     const handleTimelineScroll = () => {
+      if (isSyncingScroll.current) return;
+      isSyncingScroll.current = true;
       const scrollY = timelineScroll.scrollTop;
       setScrollTop(scrollY);
+      gridScroll.scrollTop = scrollY;
+      requestAnimationFrame(() => {
+        isSyncingScroll.current = false;
+      });
+    };
 
-      // Sync TaskGrid content position via CSS transform (header stays fixed)
-      if (taskGridContent) {
-        (taskGridContent as HTMLElement).style.transform = `translateY(-${scrollY}px)`;
-      }
+    const handleGridScroll = () => {
+      if (isSyncingScroll.current) return;
+      isSyncingScroll.current = true;
+      const scrollY = gridScroll.scrollTop;
+      setScrollTop(scrollY);
+      timelineScroll.scrollTop = scrollY;
+      requestAnimationFrame(() => {
+        isSyncingScroll.current = false;
+      });
     };
 
     const handleMouseMove = (e: MouseEvent) => {
-      if (isResizing && gridContainer) {
+      if (isResizing && gridScroll) {
         // Calculate width relative to the container's left edge for accuracy
-        const containerRect = gridContainer.parentElement?.getBoundingClientRect();
+        const containerRect = gridScroll.parentElement?.getBoundingClientRect();
         const containerLeft = containerRect?.left || 0;
         const newWidth = e.clientX - containerLeft;
 
@@ -1209,29 +1220,18 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       setIsResizing(false);
     };
 
-    // v0.17.131: Handle wheel events on grid to enable mouse wheel scroll on left panel
-    const gridScrollContainer = gridContainer.querySelector('.gantt-grid-scroll') as HTMLElement || gridContainer;
-    const handleGridWheel = (e: Event) => {
-      const wheelEvent = e as WheelEvent;
-      // Propagate wheel scroll to timeline (which handles the actual scrolling)
-      if (wheelEvent.deltaY !== 0) {
-        timelineScroll.scrollTop += wheelEvent.deltaY;
-        e.preventDefault(); // Prevent default to avoid double-scroll
-      }
-    };
-
     timelineScroll.addEventListener('scroll', handleTimelineScroll);
-    gridScrollContainer.addEventListener('wheel', handleGridWheel, { passive: false });
+    gridScroll.addEventListener('scroll', handleGridScroll);
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
 
     return () => {
       timelineScroll.removeEventListener('scroll', handleTimelineScroll);
-      gridScrollContainer.removeEventListener('wheel', handleGridWheel);
+      gridScroll.removeEventListener('scroll', handleGridScroll);
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isResizing]);
+  }, [isResizing, calculatedGridWidth]);
 
   return (
     <GanttI18nContext.Provider value={translations}>
@@ -1286,12 +1286,13 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         }}
       >
         {/* Task Grid - v0.17.194: Horizontal scroll when columns exceed width (ClickUp style) */}
+        {/* v0.17.222: Real scroll instead of transform - synced bidirectionally with Timeline */}
         <div
           className="gantt-grid-scroll flex-shrink-0"
           style={{
             width: gridWidth,
             overflowX: 'auto', // v0.17.194: Allow horizontal scroll for many columns
-            overflowY: 'hidden', // Vertical scroll handled by Timeline sync
+            overflowY: 'auto', // v0.17.222: Real scroll synced with Timeline
           }}
         >
           <TaskGrid
