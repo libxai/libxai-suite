@@ -1172,6 +1172,10 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     const originalGridOverflow = gridScroll?.style.overflow || '';
     const originalTimelineOverflow = timelineScroll.style.overflow;
 
+    // Store original dimensions for restoration
+    const originalContainerWidth = ganttContainer.style.width;
+    const originalTimelineWidth = timelineScroll.style.width;
+
     try {
       // Calculate full content dimensions
       const taskGridContent = gridScroll?.querySelector('.gantt-taskgrid-content') as HTMLElement;
@@ -1180,13 +1184,21 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       const gridContentHeight = taskGridContent?.scrollHeight || gridScroll?.scrollHeight || 600;
       const timelineContentHeight = timelineSvg?.getBoundingClientRect().height || timelineScroll.scrollHeight;
 
+      // v0.17.225: Get actual SVG width for full timeline capture
+      const timelineSvgWidth = timelineSvg?.getAttribute('width')
+        ? parseInt(timelineSvg.getAttribute('width')!, 10)
+        : timelineSvg?.getBoundingClientRect().width || timelineScroll.scrollWidth;
+
       // Get toolbar height (to include it)
       const toolbar = ganttContainer.querySelector('[class*="h-12"]') as HTMLElement;
       const toolbarHeight = toolbar?.offsetHeight || 48;
 
       // Calculate total dimensions needed
       const totalHeight = toolbarHeight + Math.max(gridContentHeight, timelineContentHeight) + 20;
-      const totalWidth = ganttContainer.scrollWidth;
+
+      // v0.17.225: Calculate total width = grid width + timeline SVG full width + separator
+      const gridWidth = gridScroll?.offsetWidth || 300;
+      const totalWidth = gridWidth + timelineSvgWidth + 10; // +10 for separator and padding
 
       // Reset scroll positions to capture from the beginning
       if (gridScroll) {
@@ -1199,15 +1211,17 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       // Temporarily expand container to show all content
       ganttContainer.style.overflow = 'visible';
       ganttContainer.style.height = `${totalHeight}px`;
+      ganttContainer.style.width = `${totalWidth}px`;
       if (gridScroll) {
         gridScroll.style.overflow = 'visible';
         gridScroll.style.height = `${gridContentHeight + 20}px`;
       }
       timelineScroll.style.overflow = 'visible';
       timelineScroll.style.height = `${Math.max(gridContentHeight, timelineContentHeight) + 20}px`;
+      timelineScroll.style.width = `${timelineSvgWidth + 10}px`;
 
       // Wait for DOM to update
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 150));
 
       // Capture with html2canvas
       const canvas = await html2canvas(ganttContainer, {
@@ -1218,8 +1232,8 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         allowTaint: true,
         width: totalWidth,
         height: totalHeight,
-        windowWidth: totalWidth,
-        windowHeight: totalHeight,
+        windowWidth: totalWidth + 100,
+        windowHeight: totalHeight + 100,
         scrollX: 0,
         scrollY: 0,
         // Ignore dropdown menus and modals
@@ -1248,6 +1262,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       // Restore original state
       ganttContainer.style.overflow = originalOverflow;
       ganttContainer.style.height = originalHeight;
+      ganttContainer.style.width = originalContainerWidth;
       if (gridScroll) {
         gridScroll.style.overflow = originalGridOverflow;
         gridScroll.style.height = '';
@@ -1256,6 +1271,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       }
       timelineScroll.style.overflow = originalTimelineOverflow;
       timelineScroll.style.height = '';
+      timelineScroll.style.width = originalTimelineWidth;
       timelineScroll.scrollTop = originalTimelineScrollTop;
       timelineScroll.scrollLeft = originalTimelineScrollLeft;
     }
