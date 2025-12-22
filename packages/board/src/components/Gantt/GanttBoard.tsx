@@ -1297,6 +1297,15 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
           />
         </div>
 
+        {/* v0.17.188: Visual border separator between TaskGrid and Timeline */}
+        <div
+          className="flex-shrink-0"
+          style={{
+            width: 1,
+            backgroundColor: theme.border,
+          }}
+        />
+
         {/* Resize handle - invisible but draggable area over the border */}
         <div
           className="flex-shrink-0 cursor-col-resize"
