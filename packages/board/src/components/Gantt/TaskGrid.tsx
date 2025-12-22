@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useContext } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronDown, ChevronRight, ChevronLeft, Plus, Edit3, GripVertical, Calendar } from 'lucide-react';
+import { ChevronDown, ChevronRight, ChevronLeft, Plus, Edit3, GripVertical, Calendar, Keyboard } from 'lucide-react';
 import { Task, GanttColumn, ColumnType, GanttTemplates } from './types';
 import { motion } from 'framer-motion';
-// v0.17.200: ColumnManager and Keyboard moved to GanttBoard with resize handle
+import { ColumnManager } from './ColumnManager'; // v0.17.201: Back in TaskGrid header
 import { ContextMenu, ContextMenuItem, MenuIcons } from './ContextMenu';
 import { useGanttKeyboard } from './useGanttKeyboard';
 import { useGanttSelection } from './useGanttSelection';
@@ -117,6 +117,24 @@ export function TaskGrid({
     month: Date;
     position: { top: number; left: number };
   } | null>(null);
+
+  // v0.17.201: Keyboard shortcuts help state
+  const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
+  const keyboardHelpRef = useRef<HTMLDivElement>(null);
+
+  // v0.17.201: Close keyboard help when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (keyboardHelpRef.current && !keyboardHelpRef.current.contains(event.target as Node)) {
+        setShowKeyboardHelp(false);
+      }
+    }
+    if (showKeyboardHelp) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+    return undefined;
+  }, [showKeyboardHelp]);
 
   // Focus input when editing starts
   useEffect(() => {
@@ -1102,7 +1120,82 @@ export function TaskGrid({
         );
         })}
 
-        {/* v0.17.200: Action buttons moved to GanttBoard with resize handle */}
+        {/* v0.17.201: Action buttons at end of header - moves with resize because inside TaskGrid */}
+        <div
+          className="flex items-center gap-1 px-2 flex-shrink-0"
+          style={{
+            height: '100%',
+            position: 'relative',
+          }}
+        >
+          <ColumnManager
+            columns={columns}
+            onToggleColumn={onToggleColumn}
+            theme={theme}
+          />
+          <button
+            onClick={() => setShowKeyboardHelp(!showKeyboardHelp)}
+            className="p-1.5 rounded hover:bg-opacity-10 transition-colors"
+            style={{ color: theme.textTertiary }}
+            title="Keyboard shortcuts"
+          >
+            <Keyboard className="w-4 h-4" />
+          </button>
+
+          {/* Keyboard help tooltip */}
+          {showKeyboardHelp && (
+            <div
+              ref={keyboardHelpRef}
+              className="absolute top-full right-0 mt-2 p-4 rounded-lg shadow-2xl z-50 min-w-[400px]"
+              style={{
+                backgroundColor: theme.bgPrimary,
+                border: `1px solid ${theme.border}`,
+                color: theme.textPrimary,
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-3 pb-2 border-b" style={{ borderColor: theme.border }}>
+                <h3 className="font-semibold text-sm" style={{ color: theme.textPrimary }}>Keyboard Shortcuts</h3>
+                <button onClick={() => setShowKeyboardHelp(false)} className="text-xs px-2 py-1 rounded hover:bg-opacity-10" style={{ color: theme.textTertiary }}>Close</button>
+              </div>
+              <div className="space-y-3 text-xs">
+                <div>
+                  <div className="font-semibold mb-1.5" style={{ color: theme.textSecondary }}>Navigation</div>
+                  <div className="space-y-1">
+                    <div className="flex justify-between"><span style={{ color: theme.textTertiary }}>Move focus up/down</span><kbd className="px-2 py-0.5 rounded font-mono text-xs" style={{ backgroundColor: theme.bgGrid, color: theme.textPrimary }}>↑ / ↓</kbd></div>
+                    <div className="flex justify-between"><span style={{ color: theme.textTertiary }}>Select range</span><kbd className="px-2 py-0.5 rounded font-mono text-xs" style={{ backgroundColor: theme.bgGrid, color: theme.textPrimary }}>Shift + ↑ / ↓</kbd></div>
+                    <div className="flex justify-between"><span style={{ color: theme.textTertiary }}>Toggle selection</span><kbd className="px-2 py-0.5 rounded font-mono text-xs" style={{ backgroundColor: theme.bgGrid, color: theme.textPrimary }}>Cmd/Ctrl + Click</kbd></div>
+                  </div>
+                </div>
+                <div>
+                  <div className="font-semibold mb-1.5" style={{ color: theme.textSecondary }}>Hierarchy</div>
+                  <div className="space-y-1">
+                    <div className="flex justify-between"><span style={{ color: theme.textTertiary }}>Indent task</span><kbd className="px-2 py-0.5 rounded font-mono text-xs" style={{ backgroundColor: theme.bgGrid, color: theme.textPrimary }}>Tab</kbd></div>
+                    <div className="flex justify-between"><span style={{ color: theme.textTertiary }}>Outdent task</span><kbd className="px-2 py-0.5 rounded font-mono text-xs" style={{ backgroundColor: theme.bgGrid, color: theme.textPrimary }}>Shift + Tab</kbd></div>
+                    <div className="flex justify-between"><span style={{ color: theme.textTertiary }}>Expand/Collapse</span><kbd className="px-2 py-0.5 rounded font-mono text-xs" style={{ backgroundColor: theme.bgGrid, color: theme.textPrimary }}>→ / ←</kbd></div>
+                  </div>
+                </div>
+                <div>
+                  <div className="font-semibold mb-1.5" style={{ color: theme.textSecondary }}>Editing</div>
+                  <div className="space-y-1">
+                    <div className="flex justify-between"><span style={{ color: theme.textTertiary }}>Create task below</span><kbd className="px-2 py-0.5 rounded font-mono text-xs" style={{ backgroundColor: theme.bgGrid, color: theme.textPrimary }}>Enter</kbd></div>
+                    <div className="flex justify-between"><span style={{ color: theme.textTertiary }}>Create task above</span><kbd className="px-2 py-0.5 rounded font-mono text-xs" style={{ backgroundColor: theme.bgGrid, color: theme.textPrimary }}>Shift + Enter</kbd></div>
+                    <div className="flex justify-between"><span style={{ color: theme.textTertiary }}>Open task modal</span><kbd className="px-2 py-0.5 rounded font-mono text-xs" style={{ backgroundColor: theme.bgGrid, color: theme.textPrimary }}>Cmd/Ctrl + Enter</kbd></div>
+                    <div className="flex justify-between"><span style={{ color: theme.textTertiary }}>Rename task</span><kbd className="px-2 py-0.5 rounded font-mono text-xs" style={{ backgroundColor: theme.bgGrid, color: theme.textPrimary }}>F2</kbd></div>
+                  </div>
+                </div>
+                <div>
+                  <div className="font-semibold mb-1.5" style={{ color: theme.textSecondary }}>Actions</div>
+                  <div className="space-y-1">
+                    <div className="flex justify-between"><span style={{ color: theme.textTertiary }}>Move task up/down</span><kbd className="px-2 py-0.5 rounded font-mono text-xs" style={{ backgroundColor: theme.bgGrid, color: theme.textPrimary }}>Alt + ↑ / ↓</kbd></div>
+                    <div className="flex justify-between"><span style={{ color: theme.textTertiary }}>Delete task</span><kbd className="px-2 py-0.5 rounded font-mono text-xs" style={{ backgroundColor: theme.bgGrid, color: theme.textPrimary }}>Delete</kbd></div>
+                    <div className="flex justify-between"><span style={{ color: theme.textTertiary }}>Duplicate task</span><kbd className="px-2 py-0.5 rounded font-mono text-xs" style={{ backgroundColor: theme.bgGrid, color: theme.textPrimary }}>Cmd/Ctrl + D</kbd></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Task Rows Container - v0.13.11: This container is targeted by CSS transform for scroll sync */}
