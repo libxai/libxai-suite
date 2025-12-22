@@ -1019,7 +1019,7 @@ export function TaskGrid({
           backgroundColor: theme.bgGrid,
           height: `${HEADER_HEIGHT}px`,
           paddingLeft: '3px', // Alinear con el borderLeft de las filas
-          paddingRight: '60px', // v0.17.203: Space for absolute positioned buttons
+          paddingRight: '0px', // v0.17.207: No extra padding - buttons positioned absolutely
           borderBottom: `1px solid ${theme.border}`,
           boxSizing: 'border-box', // Border included in height
           position: 'relative', // v0.17.203: For absolute children
@@ -1031,7 +1031,7 @@ export function TaskGrid({
           style={{
             height: '100%',
             position: 'absolute',
-            right: 16, // v0.17.206: 16px margin from edge so both buttons are fully visible
+            right: 4, // v0.17.207: minimal margin, buttons close to column edge
             top: 0,
             zIndex: 5,
             backgroundColor: theme.bgGrid,
