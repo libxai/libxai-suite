@@ -9,7 +9,7 @@ import { TaskFormModal } from './TaskFormModal'; // v0.10.0: Task edit modal
 import { GanttAIAssistant } from './GanttAIAssistant'; // v0.14.0: AI Assistant
 import { motion, AnimatePresence } from 'framer-motion'; // v0.17.33: For delete confirmation modal
 import { AlertTriangle, Trash2 } from 'lucide-react'; // v0.17.33: Icons for delete confirmation
-// v0.17.201: ColumnManager and Keyboard moved back to TaskGrid header
+// v0.17.215: ColumnManager and Keyboard back in TaskGrid with sticky positioning
 import { useUndoRedo } from './useUndoRedo';
 import { useGanttUndoRedoKeys } from './useGanttUndoRedoKeys';
 import { ThemeContext } from '../../theme/ThemeProvider';
@@ -128,7 +128,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   // v0.17.33: Delete confirmation modal state
   const [deleteConfirmation, setDeleteConfirmation] = useState<{ taskId: string; taskName: string } | null>(null);
 
-  // v0.17.201: Keyboard shortcuts state moved to TaskGrid
+  // v0.17.215: Keyboard shortcuts state moved back to TaskGrid (with sticky positioning)
 
   // Sync with global theme changes (from ThemeContext)
   useEffect(() => {
@@ -299,12 +299,10 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   }, [translations]);
 
   // Calculate grid width based on visible columns (memoized)
-  // v0.17.208: Always add 60px for action buttons (ColumnManager + Keyboard shortcuts)
+  // v0.17.213: Buttons now in flex flow, no extra space needed
   const calculatedGridWidth = useMemo(() => {
     const visibleCols = columns.filter(col => col.visible);
-    const baseWidth = visibleCols.reduce((sum, col) => sum + col.width, 0);
-    // Always add 60px for the action buttons that are positioned at the right edge
-    return baseWidth + 60;
+    return visibleCols.reduce((sum, col) => sum + col.width, 0);
   }, [columns]);
 
   // v0.17.193: Track previous column state for change detection
@@ -340,17 +338,22 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
 
   // v0.17.192: Grid width calculation - ClickUp style "curtain" behavior
   // User can drag to cover/uncover columns like pulling a curtain
-  // v0.17.209: minRequired increased to 340px (280 for name column + 60 for action buttons)
+  // v0.17.218: Allow expansion up to 60% of viewport width (ClickUp style)
+  const BUTTONS_WIDTH = 60; // Space for ColumnManager + Keyboard buttons
+  const MAX_VIEWPORT_PERCENT = 0.6; // 60% of viewport width max
   const gridWidth = useMemo(() => {
-    const minRequired = 340; // Minimum: 280 for name column + 60 for buttons
+    const minRequired = 200; // Minimum: just name column
+    const contentWidth = calculatedGridWidth + BUTTONS_WIDTH;
+    // Max: 60% of viewport OR content width, whichever is larger
+    const viewportMax = typeof window !== 'undefined' ? window.innerWidth * MAX_VIEWPORT_PERCENT : 800;
+    const maxAllowed = Math.max(contentWidth, viewportMax);
 
-    // If user has manually resized, ALWAYS respect their choice
-    // This allows curtain behavior - dragging left to hide ANY number of columns
+    // If user has manually resized, respect their choice within bounds
     if (gridWidthOverride !== null) {
-      return Math.max(minRequired, gridWidthOverride);
+      return Math.max(minRequired, Math.min(gridWidthOverride, maxAllowed));
     }
-    // Default: show all visible columns
-    return Math.max(minRequired, calculatedGridWidth);
+    // Default: show all visible columns + buttons (exact fit)
+    return Math.max(minRequired, contentWidth);
   }, [gridWidthOverride, calculatedGridWidth]);
 
   const gridScrollRef = useRef<HTMLDivElement>(null);
@@ -1190,10 +1193,11 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         const containerLeft = containerRect?.left || 0;
         const newWidth = e.clientX - containerLeft;
 
-        // v0.17.193: Only enforce minimum width, no maximum
-        // This allows curtain behavior to cover ANY number of columns
-        const minWidth = 280;
-        const maxWidth = window.innerWidth - 100; // Allow expansion to almost full width
+        // v0.17.218: Limit max width to 60% of viewport (ClickUp style)
+        const minWidth = 200;
+        const contentWidth = calculatedGridWidth + BUTTONS_WIDTH;
+        const viewportMax = window.innerWidth * MAX_VIEWPORT_PERCENT;
+        const maxWidth = Math.max(contentWidth, viewportMax);
 
         if (newWidth >= minWidth && newWidth <= maxWidth) {
           setGridWidthOverride(newWidth);
@@ -1319,13 +1323,12 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
           />
         </div>
 
-        {/* v0.17.201: Simple resize handle - buttons are now in TaskGrid header */}
+        {/* v0.17.220: Resize handle - 1px width */}
         <div
-          className="flex-shrink-0 cursor-col-resize hover:bg-blue-500/20 transition-colors h-full"
+          className="flex-shrink-0 cursor-col-resize hover:bg-blue-500/50 transition-colors h-full"
           style={{
-            width: 5,
-            backgroundColor: 'transparent',
-            borderLeft: `1px solid ${theme.border}`,
+            width: 1,
+            backgroundColor: theme.border,
             zIndex: 15,
           }}
           onMouseDown={handleMouseDown}

@@ -381,7 +381,7 @@ export function Timeline({
           </pattern>
         </defs>
 
-        {/* Full SVG Background */}
+        {/* Full SVG Background - v0.17.220: Matches TaskGrid bgPrimary for alignment */}
         <rect
           x={0}
           y={0}
@@ -426,19 +426,20 @@ export function Timeline({
         })}
 
         {/* Row Backgrounds with Click-to-Create functionality - v0.13.7: Adjusted Y positions */}
+        {/* v0.17.220: Aligned row colors with TaskGrid - same alternating pattern for visual consistency */}
         {flatTasks.map((task, index) => {
           const hasTaskBar = task.startDate && task.endDate;
 
           return (
             <g key={`row-group-${task.id}`}>
-              {/* Background stripe - alternating rows for better readability */}
+              {/* Background stripe - alternating rows matching TaskGrid colors for perfect alignment */}
               <rect
                 key={`row-${task.id}`}
                 x={0}
                 y={index * ROW_HEIGHT}
                 width={timelineWidth}
                 height={ROW_HEIGHT}
-                fill={index % 2 === 0 ? 'transparent' : theme.bgSecondary}
+                fill={index % 2 === 0 ? theme.bgPrimary : theme.bgGrid}
                 opacity={1}
                 style={{ pointerEvents: 'none' }}
               />
