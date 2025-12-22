@@ -305,24 +305,41 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     return baseWidth + (hasAdditionalColumns ? 20 : 0);
   }, [columns]);
 
-  // v0.17.190: Reset gridWidthOverride when all additional columns are removed
-  // This returns the panel to its natural width when no extra columns exist
+  // v0.17.192: Track previous visible column count to detect additions
+  const prevVisibleCountRef = useRef<number>(columns.filter(col => col.visible).length);
+
+  // v0.17.192: Smart width management for curtain behavior
+  // - Auto-expand ONLY when a NEW column is added (not on every render)
+  // - Auto-reset when ALL extra columns are removed
+  // - Always allow user to drag left to hide columns (curtain)
   useEffect(() => {
     const visibleCols = columns.filter(col => col.visible);
+    const currentCount = visibleCols.length;
+    const prevCount = prevVisibleCountRef.current;
     const hasAdditionalColumns = visibleCols.some(col => col.id !== 'name');
-    // Only auto-reset when no additional columns (user removed all extra columns)
-    if (!hasAdditionalColumns && gridWidthOverride !== null) {
-      setGridWidthOverride(null);
-    }
-  }, [columns, gridWidthOverride]);
 
-  // v0.17.190: Grid width calculation - ClickUp style "curtain" behavior
+    // Detect if a column was ADDED (count increased)
+    const columnWasAdded = currentCount > prevCount;
+
+    if (!hasAdditionalColumns && gridWidthOverride !== null) {
+      // All extra columns removed - reset to auto width
+      setGridWidthOverride(null);
+    } else if (columnWasAdded && gridWidthOverride !== null) {
+      // A new column was added - expand to show it
+      setGridWidthOverride(calculatedGridWidth);
+    }
+
+    // Update ref for next comparison
+    prevVisibleCountRef.current = currentCount;
+  }, [columns, calculatedGridWidth]); // Note: removed gridWidthOverride to avoid loops
+
+  // v0.17.192: Grid width calculation - ClickUp style "curtain" behavior
   // User can drag to cover/uncover columns like pulling a curtain
   const gridWidth = useMemo(() => {
     const minRequired = 280; // Minimum to show task name column
 
-    // If user has manually resized, respect their choice (even if smaller than calculated)
-    // This allows "curtain" behavior - dragging left to hide columns
+    // If user has manually resized, ALWAYS respect their choice
+    // This allows curtain behavior - dragging left to hide ANY number of columns
     if (gridWidthOverride !== null) {
       return Math.max(minRequired, gridWidthOverride);
     }
