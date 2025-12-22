@@ -1031,7 +1031,7 @@ export function TaskGrid({
           style={{
             height: '100%',
             position: 'absolute',
-            right: 8, // v0.17.204: 8px margin from edge so buttons are fully visible
+            right: 16, // v0.17.206: 16px margin from edge so both buttons are fully visible
             top: 0,
             zIndex: 5,
             backgroundColor: theme.bgGrid,
