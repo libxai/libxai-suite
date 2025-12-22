@@ -639,25 +639,65 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     clearHistory,
 
     // ==================== Export/Import ====================
+    // v0.17.224: Enhanced PNG export - captures full diagram
     exportToPNG: async () => {
-      if (!ganttContainerRef.current) {
+      if (!ganttContainerRef.current || !gridScrollRef.current || !timelineScrollRef.current) {
         throw new Error('Gantt container not found');
       }
 
-      const canvas = await html2canvas(ganttContainerRef.current, {
-        backgroundColor: theme.bgPrimary,
-        scale: 2, // Higher quality
-      });
+      const ganttContainer = ganttContainerRef.current;
+      const gridScroll = gridScrollRef.current.querySelector('.gantt-grid-scroll') as HTMLElement;
+      const timelineScroll = timelineScrollRef.current;
 
-      return new Promise<Blob>((resolve, reject) => {
-        canvas.toBlob((blob) => {
-          if (blob) {
-            resolve(blob);
-          } else {
-            reject(new Error('Failed to create blob from canvas'));
-          }
-        }, 'image/png');
-      });
+      // Store original state
+      const originalGridScrollTop = gridScroll?.scrollTop || 0;
+      const originalTimelineScrollTop = timelineScroll.scrollTop;
+      const originalOverflow = ganttContainer.style.overflow;
+      const originalHeight = ganttContainer.style.height;
+
+      try {
+        // Calculate full content dimensions
+        const taskGridContent = gridScroll?.querySelector('.gantt-taskgrid-content') as HTMLElement;
+        const timelineSvg = timelineScroll.querySelector('svg') as SVGElement;
+        const gridContentHeight = taskGridContent?.scrollHeight || gridScroll?.scrollHeight || 600;
+        const timelineContentHeight = timelineSvg?.getBoundingClientRect().height || timelineScroll.scrollHeight;
+        const toolbar = ganttContainer.querySelector('[class*="h-12"]') as HTMLElement;
+        const toolbarHeight = toolbar?.offsetHeight || 48;
+        const totalHeight = toolbarHeight + Math.max(gridContentHeight, timelineContentHeight) + 20;
+
+        // Reset scroll and expand
+        if (gridScroll) gridScroll.scrollTop = 0;
+        timelineScroll.scrollTop = 0;
+        ganttContainer.style.overflow = 'visible';
+        ganttContainer.style.height = `${totalHeight}px`;
+
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        const canvas = await html2canvas(ganttContainer, {
+          backgroundColor: theme.bgPrimary,
+          scale: 2,
+          logging: false,
+          useCORS: true,
+          ignoreElements: (element) => {
+            const style = window.getComputedStyle(element);
+            const zIndex = parseInt(style.zIndex, 10);
+            return (!isNaN(zIndex) && zIndex >= 50) || style.position === 'fixed';
+          },
+        });
+
+        return new Promise<Blob>((resolve, reject) => {
+          canvas.toBlob((blob) => {
+            if (blob) resolve(blob);
+            else reject(new Error('Failed to create blob from canvas'));
+          }, 'image/png');
+        });
+      } finally {
+        // Restore original state
+        ganttContainer.style.overflow = originalOverflow;
+        ganttContainer.style.height = originalHeight;
+        if (gridScroll) gridScroll.scrollTop = originalGridScrollTop;
+        timelineScroll.scrollTop = originalTimelineScrollTop;
+      }
     },
 
     exportToPDF: async (filename?: string) => {
@@ -1111,19 +1151,114 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   // };
 
   // v0.12.0: Export handlers for toolbar
+  // v0.17.224: Enhanced PNG export - captures full diagram without dropdown
   const handleExportPNG = useCallback(async () => {
-    if (!ganttContainerRef.current) return;
+    if (!ganttContainerRef.current || !gridScrollRef.current || !timelineScrollRef.current) return;
 
-    const canvas = await html2canvas(ganttContainerRef.current, {
-      backgroundColor: theme.bgPrimary,
-      scale: 2,
-    });
+    // Wait for dropdown to close (animation takes ~150ms)
+    await new Promise(resolve => setTimeout(resolve, 200));
 
-    // Create download link
-    const link = document.createElement('a');
-    link.download = 'gantt-chart.png';
-    link.href = canvas.toDataURL('image/png');
-    link.click();
+    const ganttContainer = ganttContainerRef.current;
+    const gridScroll = gridScrollRef.current.querySelector('.gantt-grid-scroll') as HTMLElement;
+    const timelineScroll = timelineScrollRef.current;
+
+    // Store original scroll positions and dimensions
+    const originalGridScrollTop = gridScroll?.scrollTop || 0;
+    const originalGridScrollLeft = gridScroll?.scrollLeft || 0;
+    const originalTimelineScrollTop = timelineScroll.scrollTop;
+    const originalTimelineScrollLeft = timelineScroll.scrollLeft;
+    const originalOverflow = ganttContainer.style.overflow;
+    const originalHeight = ganttContainer.style.height;
+    const originalGridOverflow = gridScroll?.style.overflow || '';
+    const originalTimelineOverflow = timelineScroll.style.overflow;
+
+    try {
+      // Calculate full content dimensions
+      const taskGridContent = gridScroll?.querySelector('.gantt-taskgrid-content') as HTMLElement;
+      const timelineSvg = timelineScroll.querySelector('svg') as SVGElement;
+
+      const gridContentHeight = taskGridContent?.scrollHeight || gridScroll?.scrollHeight || 600;
+      const timelineContentHeight = timelineSvg?.getBoundingClientRect().height || timelineScroll.scrollHeight;
+
+      // Get toolbar height (to include it)
+      const toolbar = ganttContainer.querySelector('[class*="h-12"]') as HTMLElement;
+      const toolbarHeight = toolbar?.offsetHeight || 48;
+
+      // Calculate total dimensions needed
+      const totalHeight = toolbarHeight + Math.max(gridContentHeight, timelineContentHeight) + 20;
+      const totalWidth = ganttContainer.scrollWidth;
+
+      // Reset scroll positions to capture from the beginning
+      if (gridScroll) {
+        gridScroll.scrollTop = 0;
+        gridScroll.scrollLeft = 0;
+      }
+      timelineScroll.scrollTop = 0;
+      timelineScroll.scrollLeft = 0;
+
+      // Temporarily expand container to show all content
+      ganttContainer.style.overflow = 'visible';
+      ganttContainer.style.height = `${totalHeight}px`;
+      if (gridScroll) {
+        gridScroll.style.overflow = 'visible';
+        gridScroll.style.height = `${gridContentHeight + 20}px`;
+      }
+      timelineScroll.style.overflow = 'visible';
+      timelineScroll.style.height = `${Math.max(gridContentHeight, timelineContentHeight) + 20}px`;
+
+      // Wait for DOM to update
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Capture with html2canvas
+      const canvas = await html2canvas(ganttContainer, {
+        backgroundColor: theme.bgPrimary,
+        scale: 2,
+        logging: false,
+        useCORS: true,
+        allowTaint: true,
+        width: totalWidth,
+        height: totalHeight,
+        windowWidth: totalWidth,
+        windowHeight: totalHeight,
+        scrollX: 0,
+        scrollY: 0,
+        // Ignore dropdown menus and modals
+        ignoreElements: (element) => {
+          // Ignore elements with z-index >= 50 (dropdowns, modals)
+          const style = window.getComputedStyle(element);
+          const zIndex = parseInt(style.zIndex, 10);
+          if (!isNaN(zIndex) && zIndex >= 50) {
+            return true;
+          }
+          // Ignore elements with position fixed (modals, overlays)
+          if (style.position === 'fixed') {
+            return true;
+          }
+          return false;
+        },
+      });
+
+      // Create download link
+      const link = document.createElement('a');
+      link.download = `gantt-chart-${new Date().toISOString().slice(0, 10)}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+
+    } finally {
+      // Restore original state
+      ganttContainer.style.overflow = originalOverflow;
+      ganttContainer.style.height = originalHeight;
+      if (gridScroll) {
+        gridScroll.style.overflow = originalGridOverflow;
+        gridScroll.style.height = '';
+        gridScroll.scrollTop = originalGridScrollTop;
+        gridScroll.scrollLeft = originalGridScrollLeft;
+      }
+      timelineScroll.style.overflow = originalTimelineOverflow;
+      timelineScroll.style.height = '';
+      timelineScroll.scrollTop = originalTimelineScrollTop;
+      timelineScroll.scrollLeft = originalTimelineScrollLeft;
+    }
   }, [theme]);
 
   const handleExportPDF = useCallback(async () => {
