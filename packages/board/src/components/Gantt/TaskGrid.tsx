@@ -1025,16 +1025,16 @@ export function TaskGrid({
           position: 'relative', // v0.17.203: For absolute children
         }}
       >
-        {/* v0.17.203: Action buttons positioned absolute right - always visible */}
+        {/* v0.17.204: Action buttons positioned absolute right - with margin to be fully visible */}
         <div
           className="flex items-center gap-1 px-2 flex-shrink-0"
           style={{
             height: '100%',
             position: 'absolute',
-            right: 0,
+            right: 8, // v0.17.204: 8px margin from edge so buttons are fully visible
             top: 0,
             zIndex: 5,
-            backgroundColor: theme.bgGrid, // v0.17.203: Match header background
+            backgroundColor: theme.bgGrid,
           }}
         >
           <ColumnManager
