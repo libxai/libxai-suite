@@ -340,8 +340,9 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
 
   // v0.17.192: Grid width calculation - ClickUp style "curtain" behavior
   // User can drag to cover/uncover columns like pulling a curtain
+  // v0.17.209: minRequired increased to 340px (280 for name column + 60 for action buttons)
   const gridWidth = useMemo(() => {
-    const minRequired = 280; // Minimum to show task name column
+    const minRequired = 340; // Minimum: 280 for name column + 60 for buttons
 
     // If user has manually resized, ALWAYS respect their choice
     // This allows curtain behavior - dragging left to hide ANY number of columns
