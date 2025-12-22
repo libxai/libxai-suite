@@ -305,28 +305,28 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     return baseWidth + (hasAdditionalColumns ? 20 : 0);
   }, [columns]);
 
-  // v0.17.130: Reset gridWidthOverride when columns are removed and less space is needed
-  // This ensures the panel contracts back when removing columns
+  // v0.17.190: Reset gridWidthOverride when all additional columns are removed
+  // This returns the panel to its natural width when no extra columns exist
   useEffect(() => {
-    if (gridWidthOverride !== null && gridWidthOverride > calculatedGridWidth) {
-      // Only reset if there are no additional columns (user removed all extra columns)
-      const visibleCols = columns.filter(col => col.visible);
-      const hasAdditionalColumns = visibleCols.some(col => col.id !== 'name');
-      if (!hasAdditionalColumns) {
-        setGridWidthOverride(null); // Reset to auto-calculated width
-      }
+    const visibleCols = columns.filter(col => col.visible);
+    const hasAdditionalColumns = visibleCols.some(col => col.id !== 'name');
+    // Only auto-reset when no additional columns (user removed all extra columns)
+    if (!hasAdditionalColumns && gridWidthOverride !== null) {
+      setGridWidthOverride(null);
     }
-  }, [columns, calculatedGridWidth, gridWidthOverride]);
+  }, [columns, gridWidthOverride]);
 
-  // v0.17.76: When columns are added/removed, auto-expand panel if needed
-  // gridWidthOverride is user's manual resize, but if columns need more space, expand automatically
+  // v0.17.190: Grid width calculation - ClickUp style "curtain" behavior
+  // User can drag to cover/uncover columns like pulling a curtain
   const gridWidth = useMemo(() => {
-    const minRequired = 280;
-    // If user has manually resized, use the larger of: their size OR calculated size
-    // This ensures new columns are always visible
+    const minRequired = 280; // Minimum to show task name column
+
+    // If user has manually resized, respect their choice (even if smaller than calculated)
+    // This allows "curtain" behavior - dragging left to hide columns
     if (gridWidthOverride !== null) {
-      return Math.max(minRequired, gridWidthOverride, calculatedGridWidth);
+      return Math.max(minRequired, gridWidthOverride);
     }
+    // Default: show all visible columns
     return Math.max(minRequired, calculatedGridWidth);
   }, [gridWidthOverride, calculatedGridWidth]);
 
@@ -1297,21 +1297,13 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
           />
         </div>
 
-        {/* v0.17.188: Visual border separator between TaskGrid and Timeline */}
+        {/* v0.17.189: Combined visual border + resize handle (ClickUp style) */}
         <div
-          className="flex-shrink-0"
+          className="flex-shrink-0 cursor-col-resize hover:bg-blue-500/20 transition-colors"
           style={{
-            width: 1,
-            backgroundColor: theme.border,
-          }}
-        />
-
-        {/* Resize handle - invisible but draggable area over the border */}
-        <div
-          className="flex-shrink-0 cursor-col-resize"
-          style={{
-            width: 6,
-            marginLeft: -3, // Center over the border line
+            width: 5,
+            backgroundColor: 'transparent',
+            borderLeft: `1px solid ${theme.border}`,
             zIndex: 10,
           }}
           onMouseDown={handleMouseDown}
