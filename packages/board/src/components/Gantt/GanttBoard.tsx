@@ -305,33 +305,36 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     return baseWidth + (hasAdditionalColumns ? 20 : 0);
   }, [columns]);
 
-  // v0.17.192: Track previous visible column count to detect additions
-  const prevVisibleCountRef = useRef<number>(columns.filter(col => col.visible).length);
+  // v0.17.193: Track previous column state for change detection
+  const prevVisibleColumnsRef = useRef<string>(
+    columns.filter(col => col.visible).map(c => c.id).join(',')
+  );
 
-  // v0.17.192: Smart width management for curtain behavior
-  // - Auto-expand ONLY when a NEW column is added (not on every render)
-  // - Auto-reset when ALL extra columns are removed
-  // - Always allow user to drag left to hide columns (curtain)
+  // v0.17.193: Handle column visibility changes ONLY
+  // This effect ONLY runs when columns are toggled, NOT when user drags
   useEffect(() => {
     const visibleCols = columns.filter(col => col.visible);
-    const currentCount = visibleCols.length;
-    const prevCount = prevVisibleCountRef.current;
-    const hasAdditionalColumns = visibleCols.some(col => col.id !== 'name');
+    const currentKey = visibleCols.map(c => c.id).join(',');
+    const prevKey = prevVisibleColumnsRef.current;
 
-    // Detect if a column was ADDED (count increased)
-    const columnWasAdded = currentCount > prevCount;
+    // Only act if columns actually changed (not just a re-render)
+    if (currentKey !== prevKey) {
+      const hasAdditionalColumns = visibleCols.some(col => col.id !== 'name');
+      const prevHadAdditional = prevKey.includes(','); // Had more than just 'name'
 
-    if (!hasAdditionalColumns && gridWidthOverride !== null) {
-      // All extra columns removed - reset to auto width
-      setGridWidthOverride(null);
-    } else if (columnWasAdded && gridWidthOverride !== null) {
-      // A new column was added - expand to show it
-      setGridWidthOverride(calculatedGridWidth);
+      if (!hasAdditionalColumns) {
+        // All extra columns removed - reset to auto width
+        setGridWidthOverride(null);
+      } else if (!prevHadAdditional && hasAdditionalColumns) {
+        // First additional column added - start with full width
+        setGridWidthOverride(null); // Let it auto-calculate
+      }
+      // Note: When adding more columns to existing ones, we don't change gridWidthOverride
+      // This allows the curtain behavior to work - user controls the width
+
+      prevVisibleColumnsRef.current = currentKey;
     }
-
-    // Update ref for next comparison
-    prevVisibleCountRef.current = currentCount;
-  }, [columns, calculatedGridWidth]); // Note: removed gridWidthOverride to avoid loops
+  }, [columns]);
 
   // v0.17.192: Grid width calculation - ClickUp style "curtain" behavior
   // User can drag to cover/uncover columns like pulling a curtain
@@ -1184,11 +1187,10 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         const containerLeft = containerRect?.left || 0;
         const newWidth = e.clientX - containerLeft;
 
-        // Clamp between reasonable min/max values
-        // v0.17.73: Increased minWidth from 200 to 280 to ensure "NOMBRE DE TAREA" title
-        // and action buttons (+, keyboard icon) are always visible when column is resized
+        // v0.17.193: Only enforce minimum width, no maximum
+        // This allows curtain behavior to cover ANY number of columns
         const minWidth = 280;
-        const maxWidth = Math.min(window.innerWidth - 300, 800);
+        const maxWidth = window.innerWidth - 100; // Allow expansion to almost full width
 
         if (newWidth >= minWidth && newWidth <= maxWidth) {
           setGridWidthOverride(newWidth);
