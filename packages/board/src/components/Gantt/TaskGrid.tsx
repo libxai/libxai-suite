@@ -1019,18 +1019,22 @@ export function TaskGrid({
           backgroundColor: theme.bgGrid,
           height: `${HEADER_HEIGHT}px`,
           paddingLeft: '3px', // Alinear con el borderLeft de las filas
+          paddingRight: '60px', // v0.17.203: Space for absolute positioned buttons
           borderBottom: `1px solid ${theme.border}`,
           boxSizing: 'border-box', // Border included in height
+          position: 'relative', // v0.17.203: For absolute children
         }}
       >
-        {/* v0.17.202: Action buttons FIRST (left side visually, but will be pushed right) */}
+        {/* v0.17.203: Action buttons positioned absolute right - always visible */}
         <div
-          className="flex items-center gap-1 px-2 flex-shrink-0 ml-auto"
+          className="flex items-center gap-1 px-2 flex-shrink-0"
           style={{
             height: '100%',
             position: 'absolute',
             right: 0,
+            top: 0,
             zIndex: 5,
+            backgroundColor: theme.bgGrid, // v0.17.203: Match header background
           }}
         >
           <ColumnManager
