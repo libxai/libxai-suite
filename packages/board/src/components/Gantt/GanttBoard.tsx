@@ -1278,13 +1278,13 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
           overflowClipMargin: '100px', // Allow tooltip to overflow above
         }}
       >
-        {/* Task Grid - v0.13.9: No scroll at all, content syncs with Timeline scroll */}
+        {/* Task Grid - v0.17.194: Horizontal scroll when columns exceed width (ClickUp style) */}
         <div
           className="gantt-grid-scroll flex-shrink-0"
           style={{
             width: gridWidth,
-            overflow: 'hidden',
-            // v0.17.5: Removed borderRight - causes ghost line in header
+            overflowX: 'auto', // v0.17.194: Allow horizontal scroll for many columns
+            overflowY: 'hidden', // Vertical scroll handled by Timeline sync
           }}
         >
           <TaskGrid

@@ -999,12 +999,16 @@ export function TaskGrid({
 
   const visibleColumns = columns.filter(col => col.visible);
 
+  // v0.17.194: Calculate total width of all visible columns for horizontal scroll
+  const totalColumnsWidth = visibleColumns.reduce((sum, col) => sum + col.width, 0) + 60; // +60 for buttons
+
   // v0.13.10: TaskGrid no longer has its own scroll - it syncs with Timeline scroll
   return (
     <div
-      className="h-full overflow-hidden"
+      className="h-full"
       style={{
         backgroundColor: theme.bgPrimary,
+        minWidth: totalColumnsWidth, // v0.17.194: Enable horizontal scroll when needed
       }}
     >
       {/* Header */}
