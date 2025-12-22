@@ -1009,7 +1009,7 @@ export function TaskGrid({
     >
       {/* Header */}
       <div
-        className="sticky top-0 z-10 flex items-center"
+        className="sticky top-0 z-10 flex items-center relative"
         style={{
           backgroundColor: theme.bgGrid,
           height: `${HEADER_HEIGHT}px`,
@@ -1018,6 +1018,32 @@ export function TaskGrid({
           boxSizing: 'border-box', // Border included in height
         }}
       >
+        {/* v0.17.191: Action buttons positioned outside column flow, always visible at grid edge */}
+        <div
+          className="absolute flex items-center gap-1"
+          style={{
+            right: '8px', // Always at the right edge of the visible grid
+            top: '50%',
+            transform: 'translateY(-50%)',
+            zIndex: 20, // Above everything including resize handles
+            backgroundColor: theme.bgGrid, // Match header background
+            paddingLeft: '4px',
+          }}
+        >
+          <ColumnManager
+            columns={columns}
+            onToggleColumn={onToggleColumn}
+            theme={theme}
+          />
+          <button
+            onClick={() => setShowKeyboardHelp(!showKeyboardHelp)}
+            className="p-1.5 rounded hover:bg-opacity-10 transition-colors relative group"
+            style={{ color: theme.textTertiary }}
+            title="Keyboard shortcuts"
+          >
+            <Keyboard className="w-4 h-4" />
+          </button>
+        </div>
         {visibleColumns.map((column, colIndex) => {
           const isLastColumn = colIndex === visibleColumns.length - 1;
           const isNameColumn = column.id === 'name';
@@ -1069,40 +1095,15 @@ export function TaskGrid({
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
                 minWidth: 0,
-                // v0.17.129: Name column needs right padding to not overlap with action buttons
-                paddingRight: isNameColumn ? '70px' : '0',
+                // v0.17.191: No extra padding needed - buttons are now at header level
+                paddingRight: '0',
               }}
               title={column.label}
             >
               {column.label}
             </span>
 
-            {/* v0.17.129: Action buttons (+ and keyboard) at right edge, synced with resize handle */}
-            {isNameColumn && (
-              <div
-                className="absolute flex items-center gap-1"
-                style={{
-                  right: '4px', // Aligned with resize handle position
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  zIndex: 4, // Below resize handle (z-5) but above content
-                }}
-              >
-                <ColumnManager
-                  columns={columns}
-                  onToggleColumn={onToggleColumn}
-                  theme={theme}
-                />
-                <button
-                  onClick={() => setShowKeyboardHelp(!showKeyboardHelp)}
-                  className="p-1.5 rounded hover:bg-opacity-10 transition-colors relative group"
-                  style={{ color: theme.textTertiary }}
-                  title="Keyboard shortcuts"
-                >
-                  <Keyboard className="w-4 h-4" />
-                </button>
-              </div>
-            )}
+            {/* v0.17.191: Action buttons moved outside column flow - see header level */}
 
             {/* v0.13.8: Resize handle for resizable columns */}
             {/* v0.17.56: Improved resize handle - wider for easier grabbing */}
