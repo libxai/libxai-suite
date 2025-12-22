@@ -299,13 +299,12 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   }, [translations]);
 
   // Calculate grid width based on visible columns (memoized)
-  // v0.17.127: Only add extra padding when there are additional columns beyond 'name'
+  // v0.17.208: Always add 60px for action buttons (ColumnManager + Keyboard shortcuts)
   const calculatedGridWidth = useMemo(() => {
     const visibleCols = columns.filter(col => col.visible);
-    const hasAdditionalColumns = visibleCols.some(col => col.id !== 'name');
     const baseWidth = visibleCols.reduce((sum, col) => sum + col.width, 0);
-    // Only add padding for additional columns area when there are extra columns
-    return baseWidth + (hasAdditionalColumns ? 20 : 0);
+    // Always add 60px for the action buttons that are positioned at the right edge
+    return baseWidth + 60;
   }, [columns]);
 
   // v0.17.193: Track previous column state for change detection
