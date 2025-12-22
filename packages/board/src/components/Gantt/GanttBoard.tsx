@@ -1181,8 +1181,13 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       const taskGridContent = gridScroll?.querySelector('.gantt-taskgrid-content') as HTMLElement;
       const timelineSvg = timelineScroll.querySelector('svg') as SVGElement;
 
+      // v0.17.226: Get height from SVG attribute for accurate full height
+      const svgHeight = timelineSvg?.getAttribute('height')
+        ? parseInt(timelineSvg.getAttribute('height')!, 10)
+        : timelineSvg?.getBoundingClientRect().height || 0;
+
       const gridContentHeight = taskGridContent?.scrollHeight || gridScroll?.scrollHeight || 600;
-      const timelineContentHeight = timelineSvg?.getBoundingClientRect().height || timelineScroll.scrollHeight;
+      const timelineContentHeight = Math.max(svgHeight, timelineScroll.scrollHeight);
 
       // v0.17.225: Get actual SVG width for full timeline capture
       const timelineSvgWidth = timelineSvg?.getAttribute('width')
@@ -1193,8 +1198,9 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       const toolbar = ganttContainer.querySelector('[class*="h-12"]') as HTMLElement;
       const toolbarHeight = toolbar?.offsetHeight || 48;
 
-      // Calculate total dimensions needed
-      const totalHeight = toolbarHeight + Math.max(gridContentHeight, timelineContentHeight) + 20;
+      // v0.17.226: Calculate total height with extra padding to ensure all content is captured
+      const contentHeight = Math.max(gridContentHeight, timelineContentHeight, svgHeight);
+      const totalHeight = toolbarHeight + contentHeight + 50; // +50 extra padding for safety
 
       // v0.17.225: Calculate total width = grid width + timeline SVG full width + separator
       const gridWidth = gridScroll?.offsetWidth || 300;
@@ -1214,10 +1220,10 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       ganttContainer.style.width = `${totalWidth}px`;
       if (gridScroll) {
         gridScroll.style.overflow = 'visible';
-        gridScroll.style.height = `${gridContentHeight + 20}px`;
+        gridScroll.style.height = `${contentHeight + 50}px`;
       }
       timelineScroll.style.overflow = 'visible';
-      timelineScroll.style.height = `${Math.max(gridContentHeight, timelineContentHeight) + 20}px`;
+      timelineScroll.style.height = `${contentHeight + 50}px`;
       timelineScroll.style.width = `${timelineSvgWidth + 10}px`;
 
       // Wait for DOM to update
