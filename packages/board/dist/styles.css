@@ -9011,6 +9011,11 @@ body {
 }
 
 
+.w-80 {
+  width: 20rem;
+}
+
+
 .w-96 {
   width: 24rem;
 }
@@ -10439,6 +10444,12 @@ body {
 
 .tracking-wider {
   letter-spacing: 0.05em;
+}
+
+
+.text-\[\#3B4252\] {
+  --tw-text-opacity: 1;
+  color: rgb(59 66 82 / var(--tw-text-opacity, 1));
 }
 
 

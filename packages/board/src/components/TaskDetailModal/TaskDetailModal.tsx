@@ -24,6 +24,8 @@ import {
   Maximize2,
   ListChecks,
   Upload,
+  MessageSquare,
+  Send,
 } from 'lucide-react';
 import type { Task, Assignee, TaskTag } from '../Gantt/types';
 import type { Card } from '../../types';
@@ -886,6 +888,68 @@ export function TaskDetailModal({
                       }
                     </p>
                   </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Activity Panel - Right Sidebar */}
+            <div className={cn(
+              "w-80 border-l flex flex-col",
+              isDark ? "border-white/10 bg-[#0F1117]" : "border-gray-200 bg-gray-50"
+            )}>
+              {/* Activity Header */}
+              <div className={cn(
+                "px-4 py-3 border-b",
+                isDark ? "border-white/10" : "border-gray-200"
+              )}>
+                <h3 className={cn(
+                  "text-sm font-semibold",
+                  isDark ? "text-white" : "text-gray-900"
+                )}>
+                  {locale === 'es' ? 'Actividad' : 'Activity'}
+                </h3>
+              </div>
+
+              {/* Activity Content */}
+              <div className="flex-1 overflow-y-auto p-4">
+                {/* Empty State */}
+                <div className="flex flex-col items-center justify-center h-full text-center">
+                  <MessageSquare className={cn(
+                    "w-10 h-10 mb-3",
+                    isDark ? "text-[#3B4252]" : "text-gray-300"
+                  )} />
+                  <p className={cn(
+                    "text-sm",
+                    isDark ? "text-[#6B7280]" : "text-gray-500"
+                  )}>
+                    {locale === 'es' ? 'Sin actividad reciente' : 'No recent activity'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Comment Input */}
+              <div className={cn(
+                "p-4 border-t",
+                isDark ? "border-white/10" : "border-gray-200"
+              )}>
+                <div className={cn(
+                  "flex items-center gap-2 px-3 py-2 rounded-lg",
+                  isDark ? "bg-white/5" : "bg-white border border-gray-200"
+                )}>
+                  <input
+                    type="text"
+                    placeholder={locale === 'es' ? 'Escribe un comentario...' : 'Write a comment...'}
+                    className={cn(
+                      "flex-1 bg-transparent text-sm outline-none",
+                      isDark ? "text-white placeholder:text-[#6B7280]" : "text-gray-900 placeholder:text-gray-400"
+                    )}
+                  />
+                  <button className={cn(
+                    "p-1.5 rounded transition-colors",
+                    isDark ? "hover:bg-white/10 text-[#6B7280] hover:text-white" : "hover:bg-gray-100 text-gray-400 hover:text-gray-600"
+                  )}>
+                    <Send className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             </div>
