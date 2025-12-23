@@ -303,6 +303,7 @@ export function KanbanBoard({
         onCardUpdate={handleModalCardUpdate}
         theme={isDark ? 'dark' : 'light'}
         locale={config?.locale === 'es' ? 'es' : 'en'}
+        availableUsers={availableUsers}
         availableTags={availableTags}
         onCreateTag={onCreateTag}
       />

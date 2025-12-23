@@ -26,6 +26,8 @@ import {
   Upload,
   MessageSquare,
   Send,
+  Check,
+  ChevronDown,
 } from 'lucide-react';
 import type { Task, Assignee, TaskTag } from '../Gantt/types';
 import type { Card } from '../../types';
@@ -128,7 +130,7 @@ export function TaskDetailModal({
   onCardUpdate,
   theme = 'dark',
   locale = 'es',
-  availableUsers: _availableUsers = [],
+  availableUsers = [],
   availableTags = [],
   onCreateTag,
 }: TaskDetailModalProps) {
@@ -154,6 +156,7 @@ export function TaskDetailModal({
   const [selectedTask, setSelectedTask] = useState<Task | null>(task ? normalizeToTask(task) : null);
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [showPriorityDropdown, setShowPriorityDropdown] = useState(false);
+  const [showAssigneesDropdown, setShowAssigneesDropdown] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState<'start' | 'end' | null>(null);
   const [datePickerMonth, setDatePickerMonth] = useState(new Date());
   const [editingProgress, setEditingProgress] = useState(false);
@@ -181,6 +184,7 @@ export function TaskDetailModal({
   const closeAllDropdowns = useCallback(() => {
     setShowStatusDropdown(false);
     setShowPriorityDropdown(false);
+    setShowAssigneesDropdown(false);
     setShowDatePicker(null);
   }, []);
 
@@ -408,34 +412,107 @@ export function TaskDetailModal({
                   </div>
 
                   {/* Assignees */}
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 relative">
                     <User className={cn("w-4 h-4", isDark ? "text-[#6B7280]" : "text-gray-400")} />
                     <span className={cn("text-sm w-24", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
                       {locale === 'es' ? 'Asignados' : 'Assignees'}
                     </span>
-                    {selectedTask.assignees && selectedTask.assignees.length > 0 ? (
-                      <div className="flex items-center gap-1">
-                        {selectedTask.assignees.slice(0, 3).map((assignee, i) => (
-                          <div
-                            key={i}
-                            className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-medium"
-                            style={{ backgroundColor: assignee.color || '#8B5CF6' }}
-                            title={assignee.name}
+                    <button
+                      onClick={() => {
+                        closeAllDropdowns();
+                        setShowAssigneesDropdown(!showAssigneesDropdown);
+                      }}
+                      className={cn(
+                        "flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors",
+                        isDark ? "bg-white/5 hover:bg-white/10" : "bg-gray-100 hover:bg-gray-200"
+                      )}
+                    >
+                      {selectedTask.assignees && selectedTask.assignees.length > 0 ? (
+                        <div className="flex items-center gap-1">
+                          {selectedTask.assignees.slice(0, 3).map((assignee, i) => (
+                            <div
+                              key={i}
+                              className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-medium"
+                              style={{ backgroundColor: assignee.color || '#8B5CF6' }}
+                              title={assignee.name}
+                            >
+                              {assignee.initials || assignee.name.slice(0, 2).toUpperCase()}
+                            </div>
+                          ))}
+                          {selectedTask.assignees.length > 3 && (
+                            <span className={cn("text-xs", isDark ? "text-[#6B7280]" : "text-gray-400")}>
+                              +{selectedTask.assignees.length - 3}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className={cn("text-sm", isDark ? "text-[#6B7280]" : "text-gray-400")}>
+                          {locale === 'es' ? 'Agregar' : 'Add'}
+                        </span>
+                      )}
+                      <ChevronDown className={cn("w-3 h-3", isDark ? "text-[#6B7280]" : "text-gray-400")} />
+                    </button>
+
+                    {/* Assignees Dropdown */}
+                    <AnimatePresence>
+                      {showAssigneesDropdown && (
+                        <>
+                          <div className="fixed inset-0 z-40" onClick={() => setShowAssigneesDropdown(false)} />
+                          <motion.div
+                            initial={{ opacity: 0, y: -5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -5 }}
+                            className={cn(
+                              "absolute left-32 top-full mt-1 z-50 rounded-lg shadow-xl overflow-hidden min-w-[200px] max-h-[280px] overflow-y-auto",
+                              isDark ? "bg-[#1A1D25] border border-white/10" : "bg-white border border-gray-200"
+                            )}
                           >
-                            {assignee.initials || assignee.name.slice(0, 2).toUpperCase()}
-                          </div>
-                        ))}
-                        {selectedTask.assignees.length > 3 && (
-                          <span className={cn("text-xs", isDark ? "text-[#6B7280]" : "text-gray-400")}>
-                            +{selectedTask.assignees.length - 3}
-                          </span>
-                        )}
-                      </div>
-                    ) : (
-                      <span className={cn("text-sm", isDark ? "text-[#6B7280]" : "text-gray-400")}>
-                        {locale === 'es' ? 'Sin asignar' : 'Unassigned'}
-                      </span>
-                    )}
+                            {availableUsers.length > 0 ? (
+                              availableUsers.map((user) => {
+                                const isSelected = selectedTask.assignees?.some(a => a.name === user.name);
+                                return (
+                                  <button
+                                    key={user.name}
+                                    onClick={() => {
+                                      const currentAssignees = selectedTask.assignees || [];
+                                      let newAssignees: Assignee[];
+                                      if (isSelected) {
+                                        newAssignees = currentAssignees.filter(a => a.name !== user.name);
+                                      } else {
+                                        newAssignees = [...currentAssignees, user];
+                                      }
+                                      updateTaskField('assignees', newAssignees);
+                                    }}
+                                    className={cn(
+                                      "w-full flex items-center gap-3 px-3 py-2 text-sm transition-colors text-left",
+                                      isDark ? "hover:bg-white/5" : "hover:bg-gray-50",
+                                      isSelected && (isDark ? "bg-white/5" : "bg-gray-50")
+                                    )}
+                                  >
+                                    <div
+                                      className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-medium flex-shrink-0"
+                                      style={{ backgroundColor: user.color || '#8B5CF6' }}
+                                    >
+                                      {user.initials || user.name.slice(0, 2).toUpperCase()}
+                                    </div>
+                                    <span className={cn("flex-1", isDark ? "text-white" : "text-gray-900")}>
+                                      {user.name}
+                                    </span>
+                                    {isSelected && (
+                                      <Check className="w-4 h-4 text-green-500" />
+                                    )}
+                                  </button>
+                                );
+                              })
+                            ) : (
+                              <div className={cn("px-3 py-4 text-sm text-center", isDark ? "text-[#6B7280]" : "text-gray-500")}>
+                                {locale === 'es' ? 'No hay usuarios disponibles' : 'No users available'}
+                              </div>
+                            )}
+                          </motion.div>
+                        </>
+                      )}
+                    </AnimatePresence>
                   </div>
 
                   {/* Dates */}
