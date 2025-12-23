@@ -187,7 +187,7 @@ export function TagPicker({
             )}
           </div>
         ) : (
-          <span>Etiquetas</span>
+          <span>Agregar</span>
         )}
         <ChevronDown className="w-3 h-3" style={{ color: theme.textTertiary }} />
       </button>
