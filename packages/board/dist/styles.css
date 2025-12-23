@@ -9061,11 +9061,6 @@ body {
 }
 
 
-.min-w-\[100px\] {
-  min-width: 100px;
-}
-
-
 .min-w-\[120px\] {
   min-width: 120px;
 }
@@ -10956,12 +10951,6 @@ body {
 .ring-asakaa-accent-red {
   --tw-ring-opacity: 1;
   --tw-ring-color: rgb(239 68 68 / var(--tw-ring-opacity, 1));
-}
-
-
-.ring-blue-500 {
-  --tw-ring-opacity: 1;
-  --tw-ring-color: rgb(59 130 246 / var(--tw-ring-opacity, 1));
 }
 
 

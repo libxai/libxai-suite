@@ -647,20 +647,28 @@ export function TaskDetailModal({
                             )}
                             onClick={(e) => e.stopPropagation()}
                           >
-                            {/* Quick Options */}
+                            {/* Quick Options - Left Side */}
                             <div className={cn("w-44 py-2 border-r", isDark ? "border-white/10" : "border-gray-200")}>
                               {(() => {
                                 const today = new Date();
                                 const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
-                                const nextWeek = new Date(today); nextWeek.setDate(today.getDate() + 7);
+                                const nextSaturday = new Date(today); nextSaturday.setDate(today.getDate() + ((6 - today.getDay() + 7) % 7 || 7));
+                                const nextMonday = new Date(today); nextMonday.setDate(today.getDate() + ((1 - today.getDay() + 7) % 7 || 7));
+                                const nextWeekend = new Date(today); nextWeekend.setDate(today.getDate() + ((6 - today.getDay() + 7) % 7) + 7);
                                 const twoWeeks = new Date(today); twoWeeks.setDate(today.getDate() + 14);
+                                const fourWeeks = new Date(today); fourWeeks.setDate(today.getDate() + 28);
 
-                                return [
-                                  { label: locale === 'es' ? 'Hoy' : 'Today', date: today },
-                                  { label: locale === 'es' ? 'Mañana' : 'Tomorrow', date: tomorrow },
-                                  { label: locale === 'es' ? 'Próxima semana' : 'Next week', date: nextWeek },
-                                  { label: locale === 'es' ? '2 semanas' : '2 weeks', date: twoWeeks },
-                                ].map((option, i) => (
+                                const quickOptions = [
+                                  { label: locale === 'es' ? 'Hoy' : 'Today', date: today, display: today.toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', { weekday: 'short' }).slice(0, 3) + '.' },
+                                  { label: locale === 'es' ? 'Mañana' : 'Tomorrow', date: tomorrow, display: tomorrow.toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', { weekday: 'short' }).slice(0, 3) + '.' },
+                                  { label: locale === 'es' ? 'Este fin de semana' : 'This weekend', date: nextSaturday, display: locale === 'es' ? 'sáb.' : 'sat.' },
+                                  { label: locale === 'es' ? 'Próxima semana' : 'Next week', date: nextMonday, display: locale === 'es' ? 'lun.' : 'mon.' },
+                                  { label: locale === 'es' ? 'Próximo fin de semana' : 'Next weekend', date: nextWeekend, display: nextWeekend.toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', { day: 'numeric', month: 'short' }) },
+                                  { label: locale === 'es' ? '2 semanas' : '2 weeks', date: twoWeeks, display: twoWeeks.toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', { day: 'numeric', month: 'short' }) },
+                                  { label: locale === 'es' ? '4 semanas' : '4 weeks', date: fourWeeks, display: fourWeeks.toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', { day: 'numeric', month: 'short' }) },
+                                ];
+
+                                return quickOptions.map((option, i) => (
                                   <button
                                     key={i}
                                     className={cn(
@@ -669,39 +677,74 @@ export function TaskDetailModal({
                                     )}
                                     onClick={() => {
                                       if (showDatePicker === 'start') {
-                                        updateTaskDates(option.date, selectedTask.endDate);
+                                        const newEndDate = selectedTask.endDate && option.date > selectedTask.endDate
+                                          ? option.date
+                                          : selectedTask.endDate;
+                                        updateTaskDates(option.date, newEndDate);
                                         setShowDatePicker('end');
                                       } else {
-                                        updateTaskDates(selectedTask.startDate, option.date);
+                                        const newStartDate = selectedTask.startDate && option.date < selectedTask.startDate
+                                          ? option.date
+                                          : selectedTask.startDate;
+                                        updateTaskDates(newStartDate, option.date);
                                         setShowDatePicker(null);
                                       }
                                     }}
                                   >
                                     <span>{option.label}</span>
                                     <span className={cn("text-xs", isDark ? "text-[#6B7280]" : "text-gray-400")}>
-                                      {option.date.toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', { day: 'numeric', month: 'short' })}
+                                      {option.display}
                                     </span>
                                   </button>
                                 ));
                               })()}
+                              {/* Clear dates button */}
+                              <div className={cn("border-t mt-2 pt-2", isDark ? "border-white/10" : "border-gray-200")}>
+                                <button
+                                  onClick={() => {
+                                    updateTaskDates(undefined, undefined);
+                                    setShowDatePicker(null);
+                                  }}
+                                  className={cn(
+                                    "w-full flex items-center justify-between px-3 py-2 text-sm transition-colors",
+                                    isDark ? "hover:bg-white/5 text-red-400" : "hover:bg-gray-50 text-red-500"
+                                  )}
+                                >
+                                  <span>{locale === 'es' ? 'Quitar fechas' : 'Clear dates'}</span>
+                                  <X className="w-4 h-4 opacity-50" />
+                                </button>
+                              </div>
                             </div>
 
-                            {/* Calendar Grid */}
-                            <div className="p-4 w-[280px]">
+                            {/* Calendar - Right Side */}
+                            <div className="p-4">
+                              {/* Selection indicator */}
+                              <div className={cn("text-xs mb-3 px-2 py-1 rounded", isDark ? "bg-white/5 text-[#9CA3AF]" : "bg-gray-100 text-gray-600")}>
+                                {showDatePicker === 'start'
+                                  ? (locale === 'es' ? '📅 Selecciona fecha de inicio' : '📅 Select start date')
+                                  : (locale === 'es' ? '📅 Selecciona fecha de fin' : '📅 Select end date')}
+                              </div>
+                              {/* Month Header */}
                               <div className="flex items-center justify-between mb-4">
-                                <span className={cn("text-sm font-medium", isDark ? "text-white" : "text-gray-900")}>
-                                  {showDatePicker === 'start' ? (locale === 'es' ? 'Fecha inicio' : 'Start date') : (locale === 'es' ? 'Fecha fin' : 'End date')}
+                                <span className={cn("font-medium", isDark ? "text-white" : "text-gray-900")}>
+                                  {datePickerMonth.toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', { month: 'long', year: 'numeric' })}
                                 </span>
                                 <div className="flex items-center gap-1">
+                                  <button
+                                    onClick={() => setDatePickerMonth(new Date())}
+                                    className={cn(
+                                      "p-1 rounded text-sm transition-colors",
+                                      isDark ? "hover:bg-white/10 text-white" : "hover:bg-gray-100 text-gray-700"
+                                    )}
+                                  >
+                                    {locale === 'es' ? 'Hoy' : 'Today'}
+                                  </button>
                                   <button
                                     onClick={() => setDatePickerMonth(new Date(datePickerMonth.getFullYear(), datePickerMonth.getMonth() - 1))}
                                     className={cn("p-1 rounded", isDark ? "hover:bg-white/10" : "hover:bg-gray-100")}
                                   >
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
                                   </button>
-                                  <span className={cn("text-sm min-w-[100px] text-center", isDark ? "text-white" : "text-gray-900")}>
-                                    {datePickerMonth.toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', { month: 'long', year: 'numeric' })}
-                                  </span>
                                   <button
                                     onClick={() => setDatePickerMonth(new Date(datePickerMonth.getFullYear(), datePickerMonth.getMonth() + 1))}
                                     className={cn("p-1 rounded", isDark ? "hover:bg-white/10" : "hover:bg-gray-100")}
@@ -711,19 +754,25 @@ export function TaskDetailModal({
                                 </div>
                               </div>
 
+                              {/* Weekday Headers */}
                               <div className="grid grid-cols-7 gap-1 mb-2">
-                                {(locale === 'es' ? ['L', 'M', 'M', 'J', 'V', 'S', 'D'] : ['S', 'M', 'T', 'W', 'T', 'F', 'S']).map((day, i) => (
-                                  <div key={i} className={cn("text-xs text-center py-1", isDark ? "text-[#6B7280]" : "text-gray-400")}>
+                                {(locale === 'es'
+                                  ? ['do', 'lu', 'ma', 'mi', 'ju', 'vi', 'sá']
+                                  : ['su', 'mo', 'tu', 'we', 'th', 'fr', 'sa']
+                                ).map((day) => (
+                                  <div key={day} className={cn("w-8 h-8 flex items-center justify-center text-xs", isDark ? "text-[#6B7280]" : "text-gray-400")}>
                                     {day}
                                   </div>
                                 ))}
                               </div>
 
+                              {/* Calendar Days */}
                               <div className="grid grid-cols-7 gap-1">
                                 {getDatePickerDays().map((d, i) => {
                                   const isToday = d.date.toDateString() === new Date().toDateString();
                                   const isStartDate = selectedTask.startDate?.toDateString() === d.date.toDateString();
                                   const isEndDate = selectedTask.endDate?.toDateString() === d.date.toDateString();
+                                  const isSelected = isStartDate || isEndDate;
                                   const isInRange = selectedTask.startDate && selectedTask.endDate &&
                                     d.date >= selectedTask.startDate && d.date <= selectedTask.endDate;
 
@@ -731,22 +780,30 @@ export function TaskDetailModal({
                                     <button
                                       key={i}
                                       onClick={() => {
+                                        const clickedDate = new Date(d.date);
                                         if (showDatePicker === 'start') {
-                                          updateTaskDates(d.date, selectedTask.endDate && d.date > selectedTask.endDate ? d.date : selectedTask.endDate);
+                                          const newEndDate = selectedTask.endDate && clickedDate > selectedTask.endDate
+                                            ? clickedDate
+                                            : selectedTask.endDate;
+                                          updateTaskDates(clickedDate, newEndDate);
                                           setShowDatePicker('end');
                                         } else {
-                                          updateTaskDates(selectedTask.startDate && d.date < selectedTask.startDate ? d.date : selectedTask.startDate, d.date);
+                                          const newStartDate = selectedTask.startDate && clickedDate < selectedTask.startDate
+                                            ? clickedDate
+                                            : selectedTask.startDate;
+                                          updateTaskDates(newStartDate, clickedDate);
                                           setShowDatePicker(null);
                                         }
                                       }}
                                       className={cn(
-                                        "w-8 h-8 text-xs rounded-lg transition-colors",
+                                        "w-8 h-8 rounded-full flex items-center justify-center text-sm transition-colors",
                                         !d.isCurrentMonth && (isDark ? "text-[#4B5563]" : "text-gray-300"),
                                         d.isCurrentMonth && (isDark ? "text-white" : "text-gray-900"),
-                                        isToday && "ring-1 ring-blue-500",
-                                        (isStartDate || isEndDate) && "bg-blue-500 text-white",
-                                        isInRange && !isStartDate && !isEndDate && (isDark ? "bg-blue-500/20" : "bg-blue-100"),
-                                        isDark ? "hover:bg-white/10" : "hover:bg-gray-100"
+                                        isToday && "ring-2 ring-[#3B82F6]",
+                                        isStartDate && "bg-[#3B82F6] text-white",
+                                        isEndDate && !isStartDate && "bg-[#7C3AED] text-white",
+                                        isInRange && !isSelected && (isDark ? "bg-[#7C3AED]/20" : "bg-purple-100"),
+                                        !isSelected && (isDark ? "hover:bg-white/10" : "hover:bg-gray-100")
                                       )}
                                     >
                                       {d.date.getDate()}
