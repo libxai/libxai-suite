@@ -79,3 +79,5 @@ export type { ThemeModalProps } from './ThemeModal'
 // Dropdown System (v0.7.1)
 export { Dropdown, createDropdownItem } from './Dropdown'
 export type { DropdownProps } from './Dropdown'
+export { TaskDetailModal } from './TaskDetailModal'
+export type { TaskDetailModalProps } from './TaskDetailModal'
