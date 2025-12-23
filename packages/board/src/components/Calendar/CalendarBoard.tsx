@@ -34,6 +34,7 @@ import type { Task } from '../Gantt/types';
 import type { CalendarBoardProps, CalendarDay } from './types';
 import { mergeCalendarTranslations } from './i18n';
 import { cn } from '../../utils';
+import { TagPicker } from '../Gantt/TagPicker';
 
 /**
  * Flatten hierarchical tasks to flat list
@@ -92,6 +93,8 @@ export function CalendarBoard({
   error,
   className,
   style,
+  availableTags = [],
+  onCreateTag,
 }: CalendarBoardProps) {
   const {
     theme: themeName = 'dark',
@@ -101,6 +104,18 @@ export function CalendarBoard({
 
   const t = mergeCalendarTranslations(locale, customTranslations);
   const isDark = themeName === 'dark';
+
+  // Theme object for TagPicker
+  const tagPickerTheme = {
+    textTertiary: isDark ? '#6B7280' : '#9CA3AF',
+    textSecondary: isDark ? '#9CA3AF' : '#6B7280',
+    textPrimary: isDark ? '#FFFFFF' : '#111827',
+    borderLight: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+    border: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+    bgPrimary: isDark ? '#1A1D25' : '#FFFFFF',
+    bgSecondary: isDark ? '#0F1117' : '#F9FAFB',
+    hoverBg: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
+  };
 
   // State
   const [currentDate, setCurrentDate] = useState(initialDate || new Date());
@@ -1572,9 +1587,15 @@ export function CalendarBoard({
                       <span className={cn("text-sm w-24", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
                         {locale === 'es' ? 'Etiquetas' : 'Tags'}
                       </span>
-                      <span className={cn("text-sm", isDark ? "text-[#6B7280]" : "text-gray-400")}>
-                        {locale === 'es' ? 'Vacío' : 'Empty'}
-                      </span>
+                      <TagPicker
+                        selectedTags={selectedTask.tags || []}
+                        availableTags={availableTags}
+                        onChange={(newTags) => {
+                          updateTaskField('tags', newTags);
+                        }}
+                        onCreateTag={onCreateTag}
+                        theme={tagPickerTheme}
+                      />
                     </div>
 
                     {/* Dependencies */}

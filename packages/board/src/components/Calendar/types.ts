@@ -3,7 +3,7 @@
  * @version 0.17.0
  */
 
-import type { Task } from '../Gantt/types';
+import type { Task, TaskTag } from '../Gantt/types';
 import type { User } from '../../types';
 
 /**
@@ -240,4 +240,8 @@ export interface CalendarBoardProps {
   className?: string;
   /** Inline styles */
   style?: React.CSSProperties;
+  /** Available tags in workspace for selection */
+  availableTags?: TaskTag[];
+  /** Callback to create a new tag */
+  onCreateTag?: (name: string, color: string) => Promise<TaskTag | null>;
 }

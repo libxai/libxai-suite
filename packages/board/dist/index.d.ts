@@ -3429,12 +3429,16 @@ interface CalendarBoardProps {
     className?: string;
     /** Inline styles */
     style?: React.CSSProperties;
+    /** Available tags in workspace for selection */
+    availableTags?: TaskTag[];
+    /** Callback to create a new tag */
+    onCreateTag?: (name: string, color: string) => Promise<TaskTag | null>;
 }
 
 /**
  * Main CalendarBoard Component
  */
-declare function CalendarBoard({ tasks, config, callbacks, initialDate, isLoading, error, className, style, }: CalendarBoardProps): react_jsx_runtime.JSX.Element;
+declare function CalendarBoard({ tasks, config, callbacks, initialDate, isLoading, error, className, style, availableTags, onCreateTag, }: CalendarBoardProps): react_jsx_runtime.JSX.Element;
 
 /**
  * CalendarBoard Themes
