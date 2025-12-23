@@ -420,6 +420,15 @@ export interface KanbanBoardProps {
 
   /** Callback to create a new tag */
   onCreateTag?: (name: string, color: string) => Promise<TaskTag | null>
+
+  /** v0.17.241: Attachments map by card ID (for modal display) */
+  attachmentsByCard?: Map<string, Attachment[]>
+
+  /** v0.17.241: Callback when files are dropped/selected for upload */
+  onUploadAttachments?: (cardId: string, files: File[]) => Promise<void>
+
+  /** v0.17.241: Callback to delete an attachment */
+  onDeleteAttachment?: (attachmentId: string) => Promise<void>
 }
 
 // ============================================================================

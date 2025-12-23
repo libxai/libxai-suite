@@ -1,10 +1,10 @@
 /**
  * CalendarBoard Component Types
- * @version 0.17.0
+ * @version 0.17.241
  */
 
 import type { Task, TaskTag } from '../Gantt/types';
-import type { User } from '../../types';
+import type { User, Attachment } from '../../types';
 
 /**
  * Calendar view modes
@@ -218,6 +218,10 @@ export interface CalendarCallbacks {
   onDateRangeChange?: (start: Date, end: Date) => void;
   /** v0.17.99: Quick create task handler */
   onTaskCreate?: (taskData: Partial<Task>) => void;
+  /** v0.17.241: Upload attachments handler */
+  onUploadAttachments?: (taskId: string, files: File[]) => Promise<void>;
+  /** v0.17.241: Delete attachment handler */
+  onDeleteAttachment?: (attachmentId: string) => Promise<void>;
 }
 
 /**
@@ -244,4 +248,6 @@ export interface CalendarBoardProps {
   availableTags?: TaskTag[];
   /** Callback to create a new tag */
   onCreateTag?: (name: string, color: string) => Promise<TaskTag | null>;
+  /** v0.17.241: Attachments map by task ID */
+  attachmentsByTask?: Map<string, Attachment[]>;
 }

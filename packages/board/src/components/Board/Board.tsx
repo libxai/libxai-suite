@@ -13,6 +13,7 @@ import {
 } from '@dnd-kit/core'
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import type { KanbanBoardProps, Card as CardType } from '../../types'
+import type { Task } from '../Gantt/types'
 import { Column } from '../Column'
 import { Card } from '../Card'
 import { TaskDetailModal } from '../TaskDetailModal'
@@ -34,6 +35,9 @@ export function KanbanBoard({
   children,
   availableTags = [],
   onCreateTag,
+  attachmentsByCard,
+  onUploadAttachments,
+  onDeleteAttachment,
 }: KanbanBoardProps & { children?: React.ReactNode }) {
   const [dragState, setDragState] = useDragState()
 
@@ -95,6 +99,22 @@ export function KanbanBoard({
 
     return map
   }, [board.cards, board.columns])
+
+  // v0.17.243: Convert cards to Task format for dependencies in TaskDetailModal
+  const availableTasksForDependencies = useMemo((): Task[] => {
+    return board.cards.map(card => ({
+      id: card.id,
+      name: card.title,
+      startDate: card.startDate ? new Date(card.startDate) : undefined,
+      endDate: card.endDate ? new Date(card.endDate) : undefined,
+      progress: card.progress || 0,
+      status: card.columnId as any,
+      priority: card.priority?.toLowerCase() as any,
+      dependencies: Array.isArray(card.dependencies)
+        ? card.dependencies.map(d => typeof d === 'string' ? d : d.taskId)
+        : [],
+    }))
+  }, [board.cards])
 
   const handleDragStart = useCallback(
     (event: DragStartEvent) => {
@@ -306,6 +326,10 @@ export function KanbanBoard({
         availableUsers={availableUsers}
         availableTags={availableTags}
         onCreateTag={onCreateTag}
+        attachments={selectedCard ? attachmentsByCard?.get(selectedCard.id) || [] : []}
+        onUploadAttachments={onUploadAttachments}
+        onDeleteAttachment={onDeleteAttachment}
+        availableTasks={availableTasksForDependencies}
       />
     </KanbanThemeProvider>
   )

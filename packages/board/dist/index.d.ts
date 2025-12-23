@@ -790,6 +790,12 @@ interface KanbanBoardProps {
     availableTags?: TaskTag[];
     /** Callback to create a new tag */
     onCreateTag?: (name: string, color: string) => Promise<TaskTag | null>;
+    /** v0.17.241: Attachments map by card ID (for modal display) */
+    attachmentsByCard?: Map<string, Attachment[]>;
+    /** v0.17.241: Callback when files are dropped/selected for upload */
+    onUploadAttachments?: (cardId: string, files: File[]) => Promise<void>;
+    /** v0.17.241: Callback to delete an attachment */
+    onDeleteAttachment?: (attachmentId: string) => Promise<void>;
 }
 /**
  * Drag event data
@@ -1160,7 +1166,7 @@ declare class KanbanViewAdapter extends BaseViewAdapter<ViewBoardData> {
  */
 declare function createKanbanView(config?: KanbanViewConfig): KanbanViewAdapter;
 
-declare function KanbanBoard({ board, callbacks, onCardClick, renderProps, config, availableUsers, className, style, isLoading, error, children, availableTags, onCreateTag, }: KanbanBoardProps & {
+declare function KanbanBoard({ board, callbacks, onCardClick, renderProps, config, availableUsers, className, style, isLoading, error, children, availableTags, onCreateTag, attachmentsByCard, onUploadAttachments, onDeleteAttachment, }: KanbanBoardProps & {
     children?: React.ReactNode;
 }): react_jsx_runtime.JSX.Element;
 
@@ -3225,7 +3231,7 @@ declare function mergeListViewTranslations(locale: ListViewSupportedLocale | str
 
 /**
  * CalendarBoard Component Types
- * @version 0.17.0
+ * @version 0.17.241
  */
 
 /**
@@ -3408,6 +3414,10 @@ interface CalendarCallbacks {
     onDateRangeChange?: (start: Date, end: Date) => void;
     /** v0.17.99: Quick create task handler */
     onTaskCreate?: (taskData: Partial<Task>) => void;
+    /** v0.17.241: Upload attachments handler */
+    onUploadAttachments?: (taskId: string, files: File[]) => Promise<void>;
+    /** v0.17.241: Delete attachment handler */
+    onDeleteAttachment?: (attachmentId: string) => Promise<void>;
 }
 /**
  * Main CalendarBoard props
@@ -3433,12 +3443,14 @@ interface CalendarBoardProps {
     availableTags?: TaskTag[];
     /** Callback to create a new tag */
     onCreateTag?: (name: string, color: string) => Promise<TaskTag | null>;
+    /** v0.17.241: Attachments map by task ID */
+    attachmentsByTask?: Map<string, Attachment[]>;
 }
 
 /**
  * Main CalendarBoard Component
  */
-declare function CalendarBoard({ tasks, config, callbacks, initialDate, isLoading, error, className, style, availableTags, onCreateTag, }: CalendarBoardProps): react_jsx_runtime.JSX.Element;
+declare function CalendarBoard({ tasks, config, callbacks, initialDate, isLoading, error, className, style, availableTags, onCreateTag, attachmentsByTask, }: CalendarBoardProps): react_jsx_runtime.JSX.Element;
 
 /**
  * CalendarBoard Themes

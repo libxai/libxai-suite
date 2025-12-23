@@ -2,7 +2,7 @@
  * CalendarBoard Component
  * Professional calendar view for task management
  * Based on SaaS ProjectCalendar component styles
- * @version 0.17.0
+ * @version 0.17.243
  */
 
 import { useState, useMemo, useCallback } from 'react';
@@ -31,8 +31,13 @@ import {
   ListChecks,
   Upload,
   Maximize2,
+  Trash2,
+  File,
+  Image,
+  FileText as FileTextIcon,
 } from 'lucide-react';
 import type { Task } from '../Gantt/types';
+import type { Attachment } from '../../types';
 import type { CalendarBoardProps, CalendarDay } from './types';
 import { mergeCalendarTranslations } from './i18n';
 import { cn } from '../../utils';
@@ -97,6 +102,7 @@ export function CalendarBoard({
   style,
   availableTags = [],
   onCreateTag,
+  attachmentsByTask,
 }: CalendarBoardProps) {
   const {
     theme: themeName = 'dark',
@@ -148,6 +154,14 @@ export function CalendarBoard({
   const [quickCreateDate, setQuickCreateDate] = useState<Date | null>(null);
   const [showQuickDatePicker, setShowQuickDatePicker] = useState(false);
   const [quickDatePickerMonth, setQuickDatePickerMonth] = useState(new Date());
+
+  // v0.17.241: Attachment states for modal
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
+  const [isUploadingFiles, setIsUploadingFiles] = useState(false);
+
+  // v0.17.243: Dependencies states for modal
+  const [showDependenciesDropdown, setShowDependenciesDropdown] = useState(false);
+  const [dependencySearch, setDependencySearch] = useState('');
 
   // Navigate months
   const goToPreviousMonth = useCallback(() => {
@@ -285,7 +299,77 @@ export function CalendarBoard({
     setShowPriorityDropdown(false);
     setShowAssigneesDropdown(false);
     setShowDatePicker(null);
+    setShowDependenciesDropdown(false);
+    setDependencySearch('');
   }, []);
+
+  // v0.17.241: Handle file drop for attachments
+  const handleFileDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingFile(false);
+
+    if (!selectedTask || !callbacks.onUploadAttachments) return;
+
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length === 0) return;
+
+    setIsUploadingFiles(true);
+    try {
+      await callbacks.onUploadAttachments(selectedTask.id, files);
+    } finally {
+      setIsUploadingFiles(false);
+    }
+  }, [selectedTask, callbacks]);
+
+  // v0.17.241: Handle file input change
+  const handleFileInputChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!selectedTask || !callbacks.onUploadAttachments || !e.target.files) return;
+
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+
+    setIsUploadingFiles(true);
+    try {
+      await callbacks.onUploadAttachments(selectedTask.id, files);
+    } finally {
+      setIsUploadingFiles(false);
+    }
+    e.target.value = '';
+  }, [selectedTask, callbacks]);
+
+  // v0.17.241: Handle drag events
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingFile(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingFile(false);
+  }, []);
+
+  // v0.17.241: Format file size
+  const formatFileSize = useCallback((bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }, []);
+
+  // v0.17.241: Get file icon based on type
+  const getFileIcon = useCallback((mimeType: string) => {
+    if (mimeType.startsWith('image/')) return Image;
+    if (mimeType.includes('pdf') || mimeType.includes('document')) return FileTextIcon;
+    return File;
+  }, []);
+
+  // v0.17.241: Get current task attachments
+  const currentTaskAttachments: Attachment[] = useMemo(() => {
+    if (!selectedTask || !attachmentsByTask) return [];
+    return attachmentsByTask.get(selectedTask.id) || [];
+  }, [selectedTask, attachmentsByTask]);
 
   // Loading state
   if (isLoading) {
@@ -1692,16 +1776,158 @@ export function CalendarBoard({
                     </div>
 
                     {/* Dependencies */}
-                    <div className="flex items-center gap-3">
-                      <Link2 className={cn("w-4 h-4", isDark ? "text-[#6B7280]" : "text-gray-400")} />
-                      <span className={cn("text-sm w-24", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
+                    <div className="flex items-start gap-3 relative">
+                      <Link2 className={cn("w-4 h-4 mt-1.5", isDark ? "text-[#6B7280]" : "text-gray-400")} />
+                      <span className={cn("text-sm w-24 mt-1", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
                         {locale === 'es' ? 'Relaciones' : 'Relations'}
                       </span>
-                      <span className={cn("text-sm", isDark ? "text-[#6B7280]" : "text-gray-400")}>
-                        {selectedTask.dependencies && selectedTask.dependencies.length > 0
-                          ? `${selectedTask.dependencies.length} ${locale === 'es' ? 'dependencias' : 'dependencies'}`
-                          : (locale === 'es' ? 'Vacío' : 'Empty')}
-                      </span>
+                      <div className="flex-1">
+                        {/* Selected dependencies as chips */}
+                        {selectedTask.dependencies && selectedTask.dependencies.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 mb-2">
+                            {selectedTask.dependencies.map((depId) => {
+                              const depTask = tasks.find(t => t.id === depId);
+                              return (
+                                <span
+                                  key={depId}
+                                  className={cn(
+                                    "inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium",
+                                    isDark ? "bg-blue-500/20 text-blue-400" : "bg-blue-100 text-blue-700"
+                                  )}
+                                >
+                                  {depTask?.name || depId.slice(0, 8)}
+                                  <button
+                                    onClick={() => {
+                                      const newDeps = (selectedTask.dependencies || []).filter(id => id !== depId);
+                                      updateTaskField('dependencies', newDeps);
+                                    }}
+                                    className={cn(
+                                      "ml-0.5 hover:bg-white/20 rounded-full p-0.5 transition-colors"
+                                    )}
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                </span>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {/* Add dependency button */}
+                        <button
+                          onClick={() => {
+                            closeAllDropdowns();
+                            setShowDependenciesDropdown(!showDependenciesDropdown);
+                          }}
+                          className={cn(
+                            "flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors",
+                            isDark ? "bg-white/5 hover:bg-white/10" : "bg-gray-100 hover:bg-gray-200"
+                          )}
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span className={cn("text-sm", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
+                            {locale === 'es' ? 'Agregar dependencia' : 'Add dependency'}
+                          </span>
+                        </button>
+
+                        {/* Dependencies Dropdown */}
+                        <AnimatePresence>
+                          {showDependenciesDropdown && (
+                            <>
+                              <div className="fixed inset-0 z-40" onClick={() => {
+                                setShowDependenciesDropdown(false);
+                                setDependencySearch('');
+                              }} />
+                              <motion.div
+                                initial={{ opacity: 0, y: -5 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -5 }}
+                                className={cn(
+                                  "absolute left-32 top-full mt-1 z-50 rounded-lg shadow-xl overflow-hidden min-w-[280px] max-h-[320px]",
+                                  isDark ? "bg-[#1A1D25] border border-white/10" : "bg-white border border-gray-200"
+                                )}
+                              >
+                                {/* Search input */}
+                                <div className={cn("p-2 border-b", isDark ? "border-white/10" : "border-gray-200")}>
+                                  <input
+                                    type="text"
+                                    value={dependencySearch}
+                                    onChange={(e) => setDependencySearch(e.target.value)}
+                                    placeholder={locale === 'es' ? 'Buscar tarea...' : 'Search task...'}
+                                    className={cn(
+                                      "w-full px-3 py-2 rounded-md text-sm outline-none",
+                                      isDark
+                                        ? "bg-white/5 text-white placeholder:text-[#6B7280] focus:bg-white/10"
+                                        : "bg-gray-100 text-gray-900 placeholder:text-gray-400"
+                                    )}
+                                    autoFocus
+                                  />
+                                </div>
+
+                                {/* Task list */}
+                                <div className="max-h-[240px] overflow-y-auto">
+                                  {tasks.length > 0 ? (
+                                    tasks
+                                      .filter(t => t.id !== selectedTask.id)
+                                      .filter(t =>
+                                        dependencySearch === '' ||
+                                        t.name.toLowerCase().includes(dependencySearch.toLowerCase())
+                                      )
+                                      .map((depTask) => {
+                                        const isSelected = selectedTask.dependencies?.includes(depTask.id);
+                                        return (
+                                          <button
+                                            key={depTask.id}
+                                            onClick={() => {
+                                              const currentDeps = selectedTask.dependencies || [];
+                                              let newDeps: string[];
+                                              if (isSelected) {
+                                                newDeps = currentDeps.filter(id => id !== depTask.id);
+                                              } else {
+                                                newDeps = [...currentDeps, depTask.id];
+                                              }
+                                              updateTaskField('dependencies', newDeps);
+                                            }}
+                                            className={cn(
+                                              "w-full flex items-center gap-3 px-3 py-2 text-sm transition-colors text-left",
+                                              isDark ? "hover:bg-white/5" : "hover:bg-gray-50",
+                                              isSelected && (isDark ? "bg-white/5" : "bg-gray-50")
+                                            )}
+                                          >
+                                            <div
+                                              className={cn(
+                                                "w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0",
+                                                isSelected
+                                                  ? "bg-blue-500 border-blue-500"
+                                                  : isDark ? "border-white/30" : "border-gray-300"
+                                              )}
+                                            >
+                                              {isSelected && (
+                                                <Check className="w-3 h-3 text-white" />
+                                              )}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                              <span className={cn("block truncate", isDark ? "text-white" : "text-gray-900")}>
+                                                {depTask.name}
+                                              </span>
+                                              <span className={cn("text-xs", isDark ? "text-[#6B7280]" : "text-gray-400")}>
+                                                {depTask.id.slice(0, 8)}
+                                              </span>
+                                            </div>
+                                          </button>
+                                        );
+                                      })
+                                  ) : (
+                                    <div className={cn("px-3 py-4 text-sm text-center", isDark ? "text-[#6B7280]" : "text-gray-500")}>
+                                      {locale === 'es' ? 'No hay tareas disponibles' : 'No tasks available'}
+                                    </div>
+                                  )}
+                                </div>
+                              </motion.div>
+                            </>
+                          )}
+                        </AnimatePresence>
+                      </div>
                     </div>
                   </div>
 
@@ -1809,22 +2035,134 @@ export function CalendarBoard({
                     </button>
                   </div>
 
-                  {/* v0.17.96: Attachments section - ClickUp style */}
+                  {/* v0.17.241: Attachments section - Functional */}
                   <div className={cn("mt-6 pt-4 border-t", isDark ? "border-white/10" : "border-gray-200")}>
                     <h3 className={cn("text-sm font-semibold mb-3", isDark ? "text-white" : "text-gray-900")}>
                       {locale === 'es' ? 'Adjuntos' : 'Attachments'}
-                    </h3>
-                    <div className={cn(
-                      "border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer",
-                      isDark ? "border-white/10 hover:border-white/20" : "border-gray-200 hover:border-gray-300"
-                    )}>
-                      <Upload className={cn("w-6 h-6 mx-auto mb-2", isDark ? "text-[#6B7280]" : "text-gray-400")} />
-                      <p className={cn("text-sm", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
-                        {locale === 'es' ? 'Suelta tus archivos aquí para ' : 'Drop your files here to '}
-                        <span className={cn("underline", isDark ? "text-white" : "text-gray-700")}>
-                          {locale === 'es' ? 'subir' : 'upload'}
+                      {currentTaskAttachments.length > 0 && (
+                        <span className={cn("ml-2 text-xs font-normal", isDark ? "text-[#6B7280]" : "text-gray-400")}>
+                          ({currentTaskAttachments.length})
                         </span>
-                      </p>
+                      )}
+                    </h3>
+
+                    {/* Existing attachments */}
+                    {currentTaskAttachments.length > 0 && (
+                      <div className="space-y-2 mb-4">
+                        {currentTaskAttachments.map((attachment) => {
+                          const FileIcon = getFileIcon(attachment.type);
+                          const isImage = attachment.type.startsWith('image/');
+
+                          return (
+                            <div
+                              key={attachment.id}
+                              className={cn(
+                                "flex items-center gap-3 p-2 rounded-lg group transition-colors",
+                                isDark ? "bg-white/5 hover:bg-white/10" : "bg-gray-50 hover:bg-gray-100"
+                              )}
+                            >
+                              {/* Thumbnail or icon */}
+                              {isImage && attachment.thumbnailUrl ? (
+                                <img
+                                  src={attachment.thumbnailUrl}
+                                  alt={attachment.name}
+                                  className="w-10 h-10 rounded object-cover"
+                                />
+                              ) : (
+                                <div className={cn(
+                                  "w-10 h-10 rounded flex items-center justify-center",
+                                  isDark ? "bg-white/10" : "bg-gray-200"
+                                )}>
+                                  <FileIcon className={cn("w-5 h-5", isDark ? "text-[#9CA3AF]" : "text-gray-500")} />
+                                </div>
+                              )}
+
+                              {/* File info */}
+                              <div className="flex-1 min-w-0">
+                                <a
+                                  href={attachment.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className={cn(
+                                    "text-sm font-medium truncate block hover:underline",
+                                    isDark ? "text-white" : "text-gray-900"
+                                  )}
+                                >
+                                  {attachment.name}
+                                </a>
+                                <p className={cn("text-xs", isDark ? "text-[#6B7280]" : "text-gray-400")}>
+                                  {formatFileSize(attachment.size)}
+                                </p>
+                              </div>
+
+                              {/* Delete button */}
+                              {callbacks.onDeleteAttachment && (
+                                <button
+                                  onClick={() => callbacks.onDeleteAttachment?.(attachment.id)}
+                                  className={cn(
+                                    "p-1.5 rounded opacity-0 group-hover:opacity-100 transition-all",
+                                    isDark ? "hover:bg-red-500/20 text-red-400" : "hover:bg-red-100 text-red-500"
+                                  )}
+                                  title={locale === 'es' ? 'Eliminar' : 'Delete'}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Drop zone */}
+                    <div
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleFileDrop}
+                      className={cn(
+                        "border-2 border-dashed rounded-lg p-6 text-center transition-all cursor-pointer relative",
+                        isDraggingFile
+                          ? (isDark ? "border-blue-500 bg-blue-500/10" : "border-blue-400 bg-blue-50")
+                          : (isDark ? "border-white/10 hover:border-white/20" : "border-gray-200 hover:border-gray-300"),
+                        isUploadingFiles && "pointer-events-none opacity-50"
+                      )}
+                    >
+                      <input
+                        type="file"
+                        multiple
+                        onChange={handleFileInputChange}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        disabled={!callbacks.onUploadAttachments || isUploadingFiles}
+                      />
+                      {isUploadingFiles ? (
+                        <>
+                          <div className="w-6 h-6 mx-auto mb-2 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                          <p className={cn("text-sm", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
+                            {locale === 'es' ? 'Subiendo...' : 'Uploading...'}
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className={cn(
+                            "w-6 h-6 mx-auto mb-2",
+                            isDraggingFile ? "text-blue-500" : (isDark ? "text-[#6B7280]" : "text-gray-400")
+                          )} />
+                          <p className={cn("text-sm", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
+                            {isDraggingFile
+                              ? (locale === 'es' ? 'Suelta los archivos aquí' : 'Drop files here')
+                              : (locale === 'es'
+                                  ? <>Suelta tus archivos aquí o <span className="underline">haz clic para subir</span></>
+                                  : <>Drop your files here or <span className="underline">click to upload</span></>
+                                )
+                            }
+                          </p>
+                          {!callbacks.onUploadAttachments && (
+                            <p className={cn("text-xs mt-1", isDark ? "text-[#6B7280]" : "text-gray-400")}>
+                              {locale === 'es' ? 'Upload no disponible' : 'Upload not available'}
+                            </p>
+                          )}
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>

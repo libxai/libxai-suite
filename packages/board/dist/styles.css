@@ -8678,6 +8678,11 @@ body {
 }
 
 
+.mt-1\.5 {
+  margin-top: 0.375rem;
+}
+
+
 .mt-2 {
   margin-top: 0.5rem;
 }
@@ -8863,6 +8868,11 @@ body {
 
 .max-h-\[200px\] {
   max-height: 200px;
+}
+
+
+.max-h-\[240px\] {
+  max-height: 240px;
 }
 
 
@@ -9709,6 +9719,11 @@ body {
 }
 
 
+.border-t-transparent {
+  border-top-color: transparent;
+}
+
+
 .border-t-white {
   --tw-border-opacity: 1;
   border-top-color: rgb(255 255 255 / var(--tw-border-opacity, 1));
@@ -9814,6 +9829,12 @@ body {
 .bg-blue-100 {
   --tw-bg-opacity: 1;
   background-color: rgb(219 234 254 / var(--tw-bg-opacity, 1));
+}
+
+
+.bg-blue-50 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(239 246 255 / var(--tw-bg-opacity, 1));
 }
 
 
@@ -10401,6 +10422,11 @@ body {
 }
 
 
+.font-normal {
+  font-weight: 400;
+}
+
+
 .font-semibold {
   font-weight: 600;
 }
@@ -10515,6 +10541,12 @@ body {
 .text-blue-500 {
   --tw-text-opacity: 1;
   color: rgb(59 130 246 / var(--tw-text-opacity, 1));
+}
+
+
+.text-blue-700 {
+  --tw-text-opacity: 1;
+  color: rgb(29 78 216 / var(--tw-text-opacity, 1));
 }
 
 
@@ -11649,8 +11681,19 @@ body {
 }
 
 
+.hover\:bg-red-100:hover {
+  --tw-bg-opacity: 1;
+  background-color: rgb(254 226 226 / var(--tw-bg-opacity, 1));
+}
+
+
 .hover\:bg-red-500\/10:hover {
   background-color: rgb(239 68 68 / 0.1);
+}
+
+
+.hover\:bg-red-500\/20:hover {
+  background-color: rgb(239 68 68 / 0.2);
 }
 
 
