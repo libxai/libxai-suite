@@ -9504,6 +9504,11 @@ body {
 }
 
 
+.break-words {
+  overflow-wrap: break-word;
+}
+
+
 .rounded {
   border-radius: 0.25rem;
 }
@@ -9626,6 +9631,11 @@ body {
 
 .border-blue-500\/30 {
   border-color: rgb(59 130 246 / 0.3);
+}
+
+
+.border-current {
+  border-color: currentColor;
 }
 
 
@@ -11676,6 +11686,12 @@ body {
 
 .hover\:bg-blue-500\/50:hover {
   background-color: rgb(59 130 246 / 0.5);
+}
+
+
+.hover\:bg-blue-600:hover {
+  --tw-bg-opacity: 1;
+  background-color: rgb(37 99 235 / var(--tw-bg-opacity, 1));
 }
 
 

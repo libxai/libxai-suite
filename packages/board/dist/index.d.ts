@@ -1900,6 +1900,22 @@ interface ThemeModalProps {
 declare function ThemeModal({ isOpen, onClose, className }: ThemeModalProps): react_jsx_runtime.JSX.Element | null;
 
 type TaskOrCard = Task | Card$1;
+/** Comment type for activity panel */
+interface TaskComment {
+    id: string;
+    taskId: string;
+    userId: string;
+    content: string;
+    createdAt: Date | string;
+    updatedAt?: Date | string;
+    user?: {
+        id: string;
+        name: string;
+        email?: string;
+        avatarUrl?: string;
+        color?: string;
+    };
+}
 interface TaskDetailModalProps {
     /** Task or Card to display */
     task: TaskOrCard | null;
@@ -1929,11 +1945,22 @@ interface TaskDetailModalProps {
     onDeleteAttachment?: (attachmentId: string) => Promise<void>;
     /** v0.17.243: Available tasks for dependencies selection */
     availableTasks?: Task[];
+    /** v0.17.252: Comments for activity panel */
+    comments?: TaskComment[];
+    /** v0.17.252: Callback to add a new comment */
+    onAddComment?: (taskId: string, content: string) => Promise<void>;
+    /** v0.17.252: Current user info for displaying comments */
+    currentUser?: {
+        id: string;
+        name: string;
+        avatarUrl?: string;
+        color?: string;
+    };
 }
 /**
  * TaskDetailModal - ClickUp style full-screen task detail
  */
-declare function TaskDetailModal({ task, isOpen, onClose, onTaskUpdate, onCardUpdate, theme, locale, availableUsers, availableTags, onCreateTag, attachments, onUploadAttachments, onDeleteAttachment, availableTasks, }: TaskDetailModalProps): react_jsx_runtime.JSX.Element | null;
+declare function TaskDetailModal({ task, isOpen, onClose, onTaskUpdate, onCardUpdate, theme, locale, availableUsers, availableTags, onCreateTag, attachments, onUploadAttachments, onDeleteAttachment, availableTasks, comments, onAddComment, currentUser, }: TaskDetailModalProps): react_jsx_runtime.JSX.Element | null;
 
 /**
  * GanttBoardRef - Imperative API for GanttBoard component

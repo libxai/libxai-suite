@@ -1,2 +1,2 @@
 export { TaskDetailModal } from './TaskDetailModal';
-export type { TaskDetailModalProps } from './TaskDetailModal';
+export type { TaskDetailModalProps, TaskComment } from './TaskDetailModal';

@@ -2,7 +2,7 @@
  * TaskDetailModal Component
  * Shared task detail modal for Calendar, Kanban, and Gantt views
  * ClickUp-style full-screen modal with all task fields
- * @version 0.17.251
+ * @version 0.17.252
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react';
@@ -107,6 +107,23 @@ function taskToCard(task: Task, originalCard: Card): Card {
   };
 }
 
+/** Comment type for activity panel */
+export interface TaskComment {
+  id: string;
+  taskId: string;
+  userId: string;
+  content: string;
+  createdAt: Date | string;
+  updatedAt?: Date | string;
+  user?: {
+    id: string;
+    name: string;
+    email?: string;
+    avatarUrl?: string;
+    color?: string;
+  };
+}
+
 export interface TaskDetailModalProps {
   /** Task or Card to display */
   task: TaskOrCard | null;
@@ -136,6 +153,17 @@ export interface TaskDetailModalProps {
   onDeleteAttachment?: (attachmentId: string) => Promise<void>;
   /** v0.17.243: Available tasks for dependencies selection */
   availableTasks?: Task[];
+  /** v0.17.252: Comments for activity panel */
+  comments?: TaskComment[];
+  /** v0.17.252: Callback to add a new comment */
+  onAddComment?: (taskId: string, content: string) => Promise<void>;
+  /** v0.17.252: Current user info for displaying comments */
+  currentUser?: {
+    id: string;
+    name: string;
+    avatarUrl?: string;
+    color?: string;
+  };
 }
 
 /**
@@ -156,6 +184,9 @@ export function TaskDetailModal({
   onUploadAttachments,
   onDeleteAttachment,
   availableTasks = [],
+  comments = [],
+  onAddComment,
+  currentUser,
 }: TaskDetailModalProps) {
   const isDark = theme === 'dark';
 
@@ -194,6 +225,10 @@ export function TaskDetailModal({
   // v0.17.251: Local description state with debounce for auto-save
   const [localDescription, setLocalDescription] = useState('');
   const descriptionDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // v0.17.252: Comment input state
+  const [commentText, setCommentText] = useState('');
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
 
   // Update local state when task prop changes
   useEffect(() => {
@@ -261,6 +296,39 @@ export function TaskDetailModal({
       }
     }, 800);
   }, [selectedTask, handleUpdate]);
+
+  // v0.17.252: Handle submit comment
+  const handleSubmitComment = useCallback(async () => {
+    if (!selectedTask || !commentText.trim() || !onAddComment) return;
+
+    setIsSubmittingComment(true);
+    try {
+      await onAddComment(selectedTask.id, commentText.trim());
+      setCommentText('');
+    } finally {
+      setIsSubmittingComment(false);
+    }
+  }, [selectedTask, commentText, onAddComment]);
+
+  // v0.17.252: Format comment date
+  const formatCommentDate = useCallback((date: Date | string) => {
+    const d = typeof date === 'string' ? new Date(date) : date;
+    const now = new Date();
+    const diffMs = now.getTime() - d.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return locale === 'es' ? 'Ahora' : 'Just now';
+    if (diffMins < 60) return locale === 'es' ? `Hace ${diffMins} min` : `${diffMins}m ago`;
+    if (diffHours < 24) return locale === 'es' ? `Hace ${diffHours}h` : `${diffHours}h ago`;
+    if (diffDays < 7) return locale === 'es' ? `Hace ${diffDays}d` : `${diffDays}d ago`;
+
+    return d.toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', {
+      month: 'short',
+      day: 'numeric'
+    });
+  }, [locale]);
 
   // Update task status
   const updateTaskStatus = useCallback((statusId: string) => {
@@ -1528,24 +1596,59 @@ export function TaskDetailModal({
                   isDark ? "text-white" : "text-gray-900"
                 )}>
                   {locale === 'es' ? 'Actividad' : 'Activity'}
+                  {comments.length > 0 && (
+                    <span className={cn("ml-2 text-xs font-normal", isDark ? "text-[#6B7280]" : "text-gray-400")}>
+                      ({comments.length})
+                    </span>
+                  )}
                 </h3>
               </div>
 
-              {/* Activity Content */}
+              {/* Activity Content - Comments List */}
               <div className="flex-1 overflow-y-auto p-4">
-                {/* Empty State */}
-                <div className="flex flex-col items-center justify-center h-full text-center">
-                  <MessageSquare className={cn(
-                    "w-10 h-10 mb-3",
-                    isDark ? "text-[#3B4252]" : "text-gray-300"
-                  )} />
-                  <p className={cn(
-                    "text-sm",
-                    isDark ? "text-[#6B7280]" : "text-gray-500"
-                  )}>
-                    {locale === 'es' ? 'Sin actividad reciente' : 'No recent activity'}
-                  </p>
-                </div>
+                {comments.length > 0 ? (
+                  <div className="space-y-4">
+                    {comments.map((comment) => (
+                      <div key={comment.id} className="flex gap-3">
+                        {/* Avatar */}
+                        <div
+                          className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-medium flex-shrink-0"
+                          style={{ backgroundColor: comment.user?.color || '#8B5CF6' }}
+                        >
+                          {comment.user?.name?.slice(0, 2).toUpperCase() || 'U'}
+                        </div>
+                        {/* Comment Content */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className={cn("text-sm font-medium", isDark ? "text-white" : "text-gray-900")}>
+                              {comment.user?.name || (locale === 'es' ? 'Usuario' : 'User')}
+                            </span>
+                            <span className={cn("text-xs", isDark ? "text-[#6B7280]" : "text-gray-400")}>
+                              {formatCommentDate(comment.createdAt)}
+                            </span>
+                          </div>
+                          <p className={cn("text-sm break-words", isDark ? "text-[#9CA3AF]" : "text-gray-600")}>
+                            {comment.content}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  /* Empty State */
+                  <div className="flex flex-col items-center justify-center h-full text-center">
+                    <MessageSquare className={cn(
+                      "w-10 h-10 mb-3",
+                      isDark ? "text-[#3B4252]" : "text-gray-300"
+                    )} />
+                    <p className={cn(
+                      "text-sm",
+                      isDark ? "text-[#6B7280]" : "text-gray-500"
+                    )}>
+                      {locale === 'es' ? 'Sin actividad reciente' : 'No recent activity'}
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Comment Input */}
@@ -1553,24 +1656,56 @@ export function TaskDetailModal({
                 "p-4 border-t",
                 isDark ? "border-white/10" : "border-gray-200"
               )}>
-                <div className={cn(
-                  "flex items-center gap-2 px-3 py-2 rounded-lg",
-                  isDark ? "bg-white/5" : "bg-white border border-gray-200"
-                )}>
-                  <input
-                    type="text"
-                    placeholder={locale === 'es' ? 'Escribe un comentario...' : 'Write a comment...'}
-                    className={cn(
-                      "flex-1 bg-transparent text-sm outline-none",
-                      isDark ? "text-white placeholder:text-[#6B7280]" : "text-gray-900 placeholder:text-gray-400"
-                    )}
-                  />
-                  <button className={cn(
-                    "p-1.5 rounded transition-colors",
-                    isDark ? "hover:bg-white/10 text-[#6B7280] hover:text-white" : "hover:bg-gray-100 text-gray-400 hover:text-gray-600"
+                <div className="flex items-start gap-2">
+                  {/* Current User Avatar */}
+                  {currentUser && (
+                    <div
+                      className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-medium flex-shrink-0"
+                      style={{ backgroundColor: currentUser.color || '#8B5CF6' }}
+                    >
+                      {currentUser.name?.slice(0, 2).toUpperCase() || 'U'}
+                    </div>
+                  )}
+                  <div className={cn(
+                    "flex-1 flex items-center gap-2 px-3 py-2 rounded-lg",
+                    isDark ? "bg-white/5" : "bg-white border border-gray-200"
                   )}>
-                    <Send className="w-4 h-4" />
-                  </button>
+                    <input
+                      type="text"
+                      value={commentText}
+                      onChange={(e) => setCommentText(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSubmitComment();
+                        }
+                      }}
+                      placeholder={locale === 'es' ? 'Escribe un comentario...' : 'Write a comment...'}
+                      disabled={isSubmittingComment || !onAddComment}
+                      className={cn(
+                        "flex-1 bg-transparent text-sm outline-none",
+                        isDark ? "text-white placeholder:text-[#6B7280]" : "text-gray-900 placeholder:text-gray-400",
+                        (isSubmittingComment || !onAddComment) && "opacity-50"
+                      )}
+                    />
+                    <button
+                      onClick={handleSubmitComment}
+                      disabled={isSubmittingComment || !commentText.trim() || !onAddComment}
+                      className={cn(
+                        "p-1.5 rounded transition-colors",
+                        commentText.trim() && onAddComment
+                          ? (isDark ? "bg-blue-500 text-white hover:bg-blue-600" : "bg-blue-500 text-white hover:bg-blue-600")
+                          : (isDark ? "text-[#6B7280]" : "text-gray-400"),
+                        isSubmittingComment && "opacity-50 cursor-not-allowed"
+                      )}
+                    >
+                      {isSubmittingComment ? (
+                        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Send className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
