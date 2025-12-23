@@ -22,6 +22,8 @@ import {
   Sparkles,
   Plus,
   Maximize2,
+  ListChecks,
+  Upload,
 } from 'lucide-react';
 import type { Task, Assignee, TaskTag } from '../Gantt/types';
 import type { Card } from '../../types';
@@ -825,6 +827,65 @@ export function TaskDetailModal({
                     <Plus className="w-4 h-4" />
                     {locale === 'es' ? 'Agregar subtarea' : 'Add subtask'}
                   </button>
+                </div>
+
+                {/* Checklists Section */}
+                <div className={cn(
+                  "mt-6 pt-4 border-t",
+                  isDark ? "border-white/10" : "border-gray-200"
+                )}>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className={cn(
+                      "text-sm font-semibold",
+                      isDark ? "text-white" : "text-gray-900"
+                    )}>
+                      {locale === 'es' ? 'Listas de control' : 'Checklists'}
+                    </h3>
+                    <button className={cn(
+                      "p-1 rounded transition-colors",
+                      isDark ? "hover:bg-white/10 text-[#9CA3AF]" : "hover:bg-gray-100 text-gray-500"
+                    )}>
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <button className={cn(
+                    "w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors",
+                    isDark ? "bg-white/5 hover:bg-white/10 text-[#9CA3AF]" : "bg-gray-100 hover:bg-gray-200 text-gray-600"
+                  )}>
+                    <ListChecks className="w-4 h-4" />
+                    {locale === 'es' ? 'Crear lista de control' : 'Create checklist'}
+                  </button>
+                </div>
+
+                {/* Attachments Section */}
+                <div className={cn(
+                  "mt-6 pt-4 border-t",
+                  isDark ? "border-white/10" : "border-gray-200"
+                )}>
+                  <h3 className={cn(
+                    "text-sm font-semibold mb-3",
+                    isDark ? "text-white" : "text-gray-900"
+                  )}>
+                    {locale === 'es' ? 'Adjuntos' : 'Attachments'}
+                  </h3>
+                  <div className={cn(
+                    "border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer",
+                    isDark ? "border-white/10 hover:border-white/20" : "border-gray-200 hover:border-gray-300"
+                  )}>
+                    <Upload className={cn(
+                      "w-6 h-6 mx-auto mb-2",
+                      isDark ? "text-[#6B7280]" : "text-gray-400"
+                    )} />
+                    <p className={cn(
+                      "text-sm",
+                      isDark ? "text-[#9CA3AF]" : "text-gray-500"
+                    )}>
+                      {locale === 'es'
+                        ? <>Suelta tus archivos aquí para <span className="underline">subir</span></>
+                        : <>Drop your files here to <span className="underline">upload</span></>
+                      }
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
