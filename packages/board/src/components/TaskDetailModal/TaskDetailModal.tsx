@@ -35,6 +35,14 @@ function normalizeToTask(item: TaskOrCard): Task {
   // Check if it's a Card (has 'title' instead of 'name')
   if ('title' in item && !('name' in item)) {
     const card = item as Card;
+    // Map card assignedUserIds to Task assignees format
+    // Note: We only have IDs, names will need to be resolved by consumer
+    const assignees: Assignee[] = (card.assignedUserIds || []).map(id => ({
+      name: id, // Placeholder - actual name resolved by consumer
+      initials: id.substring(0, 2).toUpperCase(),
+      color: '#6366F1',
+    }));
+
     return {
       id: card.id,
       name: card.title,
@@ -43,7 +51,7 @@ function normalizeToTask(item: TaskOrCard): Task {
       progress: card.progress || 0,
       status: card.columnId as any,
       priority: card.priority?.toLowerCase() as any,
-      assignees: [],
+      assignees,
       dependencies: Array.isArray(card.dependencies)
         ? card.dependencies.map(d => typeof d === 'string' ? d : d.taskId)
         : [],
@@ -56,7 +64,8 @@ function normalizeToTask(item: TaskOrCard): Task {
         endDate: new Date(),
       })),
       color: card.color,
-    };
+      description: card.description,
+    } as Task;
   }
   return item as Task;
 }
@@ -71,6 +80,12 @@ function taskToCard(task: Task, originalCard: Card): Card {
     progress: task.progress,
     priority: task.priority?.toUpperCase() as any,
     tags: task.tags,
+    description: (task as any).description,
+    color: task.color,
+    columnId: task.status as string,
+    // Keep original assignedUserIds - assignees in Task don't have IDs
+    // The original card's assignedUserIds remain unchanged unless consumer updates them
+    assignedUserIds: originalCard.assignedUserIds,
   };
 }
 
