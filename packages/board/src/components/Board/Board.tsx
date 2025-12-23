@@ -32,6 +32,8 @@ export function KanbanBoard({
   isLoading,
   error,
   children,
+  availableTags = [],
+  onCreateTag,
 }: KanbanBoardProps & { children?: React.ReactNode }) {
   const [dragState, setDragState] = useDragState()
 
@@ -301,6 +303,8 @@ export function KanbanBoard({
         onCardUpdate={handleModalCardUpdate}
         theme={isDark ? 'dark' : 'light'}
         locale={config?.locale === 'es' ? 'es' : 'en'}
+        availableTags={availableTags}
+        onCreateTag={onCreateTag}
       />
     </KanbanThemeProvider>
   )

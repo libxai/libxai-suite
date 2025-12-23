@@ -414,6 +414,12 @@ export interface KanbanBoardProps {
 
   /** Error state */
   error?: Error | string
+
+  /** Available tags in workspace for selection */
+  availableTags?: TaskTag[]
+
+  /** Callback to create a new tag */
+  onCreateTag?: (name: string, color: string) => Promise<TaskTag | null>
 }
 
 // ============================================================================

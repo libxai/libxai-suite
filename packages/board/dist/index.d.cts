@@ -786,6 +786,10 @@ interface KanbanBoardProps {
     isLoading?: boolean;
     /** Error state */
     error?: Error | string;
+    /** Available tags in workspace for selection */
+    availableTags?: TaskTag[];
+    /** Callback to create a new tag */
+    onCreateTag?: (name: string, color: string) => Promise<TaskTag | null>;
 }
 /**
  * Drag event data
@@ -1156,7 +1160,7 @@ declare class KanbanViewAdapter extends BaseViewAdapter<ViewBoardData> {
  */
 declare function createKanbanView(config?: KanbanViewConfig): KanbanViewAdapter;
 
-declare function KanbanBoard({ board, callbacks, onCardClick, renderProps, config, availableUsers, className, style, isLoading, error, children, }: KanbanBoardProps & {
+declare function KanbanBoard({ board, callbacks, onCardClick, renderProps, config, availableUsers, className, style, isLoading, error, children, availableTags, onCreateTag, }: KanbanBoardProps & {
     children?: React.ReactNode;
 }): react_jsx_runtime.JSX.Element;
 

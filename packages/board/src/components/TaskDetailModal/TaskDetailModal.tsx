@@ -23,9 +23,10 @@ import {
   Plus,
   Maximize2,
 } from 'lucide-react';
-import type { Task, Assignee } from '../Gantt/types';
+import type { Task, Assignee, TaskTag } from '../Gantt/types';
 import type { Card } from '../../types';
 import { cn } from '../../utils';
+import { TagPicker } from '../Gantt/TagPicker';
 
 // Type for item that can be either Task or Card
 export type TaskOrCard = Task | Card;
@@ -106,6 +107,10 @@ export interface TaskDetailModalProps {
   locale?: 'en' | 'es';
   /** Available users for assignment */
   availableUsers?: Assignee[];
+  /** Available tags in workspace for selection */
+  availableTags?: TaskTag[];
+  /** Callback to create a new tag */
+  onCreateTag?: (name: string, color: string) => Promise<TaskTag | null>;
 }
 
 /**
@@ -120,8 +125,22 @@ export function TaskDetailModal({
   theme = 'dark',
   locale = 'es',
   availableUsers: _availableUsers = [],
+  availableTags = [],
+  onCreateTag,
 }: TaskDetailModalProps) {
   const isDark = theme === 'dark';
+
+  // Theme object for TagPicker
+  const tagPickerTheme = {
+    textTertiary: isDark ? '#6B7280' : '#9CA3AF',
+    textSecondary: isDark ? '#9CA3AF' : '#6B7280',
+    textPrimary: isDark ? '#FFFFFF' : '#111827',
+    borderLight: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+    border: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+    bgPrimary: isDark ? '#1A1D25' : '#FFFFFF',
+    bgSecondary: isDark ? '#0F1117' : '#F9FAFB',
+    hoverBg: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
+  };
 
   // Check if original item is a Card
   const isCard = task && 'title' in task && !('name' in task);
@@ -711,23 +730,15 @@ export function TaskDetailModal({
                     <span className={cn("text-sm w-24", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
                       {locale === 'es' ? 'Etiquetas' : 'Tags'}
                     </span>
-                    {selectedTask.tags && selectedTask.tags.length > 0 ? (
-                      <div className="flex gap-1 flex-wrap">
-                        {selectedTask.tags.map((tag, i) => (
-                          <span
-                            key={i}
-                            className="text-xs px-2 py-0.5 rounded"
-                            style={{ backgroundColor: `${tag.color}20`, color: tag.color }}
-                          >
-                            {tag.name}
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className={cn("text-sm", isDark ? "text-[#6B7280]" : "text-gray-400")}>
-                        {locale === 'es' ? 'Vacío' : 'Empty'}
-                      </span>
-                    )}
+                    <TagPicker
+                      selectedTags={selectedTask.tags || []}
+                      availableTags={availableTags}
+                      onChange={(newTags) => {
+                        updateTaskField('tags', newTags);
+                      }}
+                      onCreateTag={onCreateTag}
+                      theme={tagPickerTheme}
+                    />
                   </div>
 
                   {/* Dependencies */}
