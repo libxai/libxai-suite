@@ -38,17 +38,21 @@ import { TagPicker } from '../Gantt/TagPicker';
 export type TaskOrCard = Task | Card;
 
 // Helper to convert Card to Task format for internal use
-function normalizeToTask(item: TaskOrCard): Task {
+function normalizeToTask(item: TaskOrCard, availableUsers: Assignee[] = []): Task {
   // Check if it's a Card (has 'title' instead of 'name')
   if ('title' in item && !('name' in item)) {
     const card = item as Card;
     // Map card assignedUserIds to Task assignees format
-    // Note: We only have IDs, names will need to be resolved by consumer
-    const assignees: Assignee[] = (card.assignedUserIds || []).map(id => ({
-      name: id, // Placeholder - actual name resolved by consumer
-      initials: id.substring(0, 2).toUpperCase(),
-      color: '#6366F1',
-    }));
+    // Resolve IDs to actual user info from availableUsers
+    const assignees: Assignee[] = (card.assignedUserIds || []).map(id => {
+      // Try to find user by ID in availableUsers
+      const user = availableUsers.find(u => (u as any).id === id);
+      if (user) {
+        return user;
+      }
+      // Fallback if user not found - but don't show as assignee
+      return null;
+    }).filter((a): a is Assignee => a !== null);
 
     return {
       id: card.id,
@@ -153,7 +157,7 @@ export function TaskDetailModal({
   const originalItem = task;
 
   // Local state for editing (always use Task format internally)
-  const [selectedTask, setSelectedTask] = useState<Task | null>(task ? normalizeToTask(task) : null);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(task ? normalizeToTask(task, availableUsers) : null);
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [showPriorityDropdown, setShowPriorityDropdown] = useState(false);
   const [showAssigneesDropdown, setShowAssigneesDropdown] = useState(false);
@@ -164,9 +168,9 @@ export function TaskDetailModal({
   // Update local state when task prop changes
   useEffect(() => {
     if (task) {
-      setSelectedTask(normalizeToTask(task));
+      setSelectedTask(normalizeToTask(task, availableUsers));
     }
-  }, [task?.id]);
+  }, [task?.id, availableUsers]);
 
   // Handle update - emit in correct format
   const handleUpdate = useCallback((updatedTask: Task) => {
