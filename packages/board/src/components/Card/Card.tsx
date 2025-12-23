@@ -153,15 +153,23 @@ export const Card = memo<CardProps>(
         )}
 
         {/* v0.17.182: Image Attachment Thumbnails */}
+        {/* v0.17.228: Fixed blurry thumbnails - use full URL and GPU acceleration */}
         {imageAttachments.length > 0 && !card.coverImage && (
           <div className="asakaa-card-attachments mb-3">
             {imageAttachments.length === 1 && imageAttachments[0] ? (
               // Single image: show as cover-like
               <img
-                src={imageAttachments[0].thumbnailUrl || imageAttachments[0].url}
+                src={imageAttachments[0].url}
                 alt={imageAttachments[0].name}
-                className="w-full h-28 object-cover rounded-md"
+                className="w-full h-32 object-cover rounded-md"
                 loading="lazy"
+                decoding="async"
+                style={{
+                  imageRendering: 'auto',
+                  WebkitBackfaceVisibility: 'hidden',
+                  backfaceVisibility: 'hidden',
+                  transform: 'translateZ(0)',
+                }}
                 onError={(e) => {
                   e.currentTarget.style.display = 'none'
                 }}
@@ -172,10 +180,17 @@ export const Card = memo<CardProps>(
                 {imageAttachments.slice(0, 4).map((att, index) => (
                   <div key={att.id} className="relative">
                     <img
-                      src={att.thumbnailUrl || att.url}
+                      src={att.url}
                       alt={att.name}
-                      className="w-full h-14 object-cover rounded"
+                      className="w-full h-16 object-cover rounded"
                       loading="lazy"
+                      decoding="async"
+                      style={{
+                        imageRendering: 'auto',
+                        WebkitBackfaceVisibility: 'hidden',
+                        backfaceVisibility: 'hidden',
+                        transform: 'translateZ(0)',
+                      }}
                       onError={(e) => {
                         e.currentTarget.style.display = 'none'
                       }}
