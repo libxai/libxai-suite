@@ -2,10 +2,10 @@
  * TaskDetailModal Component
  * Shared task detail modal for Calendar, Kanban, and Gantt views
  * ClickUp-style full-screen modal with all task fields
- * @version 0.17.243
+ * @version 0.17.251
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   CheckCircle2,
@@ -191,12 +191,27 @@ export function TaskDetailModal({
   const [isDraggingFile, setIsDraggingFile] = useState(false);
   const [isUploadingFiles, setIsUploadingFiles] = useState(false);
 
+  // v0.17.251: Local description state with debounce for auto-save
+  const [localDescription, setLocalDescription] = useState('');
+  const descriptionDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Update local state when task prop changes
   useEffect(() => {
     if (task) {
-      setSelectedTask(normalizeToTask(task, availableUsers));
+      const normalizedTask = normalizeToTask(task, availableUsers);
+      setSelectedTask(normalizedTask);
+      setLocalDescription((normalizedTask as any).description || '');
     }
   }, [task?.id, availableUsers]);
+
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (descriptionDebounceRef.current) {
+        clearTimeout(descriptionDebounceRef.current);
+      }
+    };
+  }, []);
 
   // Handle update - emit in correct format
   const handleUpdate = useCallback((updatedTask: Task) => {
@@ -226,6 +241,25 @@ export function TaskDetailModal({
     if (!selectedTask) return;
     const updatedTask = { ...selectedTask, [field]: value };
     handleUpdate(updatedTask);
+  }, [selectedTask, handleUpdate]);
+
+  // v0.17.251: Handle description change with debounce (auto-save after typing stops)
+  const handleDescriptionChange = useCallback((value: string) => {
+    // Update local state immediately for responsive UI
+    setLocalDescription(value);
+
+    // Clear any existing debounce timer
+    if (descriptionDebounceRef.current) {
+      clearTimeout(descriptionDebounceRef.current);
+    }
+
+    // Set new debounce timer (800ms delay before saving)
+    descriptionDebounceRef.current = setTimeout(() => {
+      if (selectedTask) {
+        const updatedTask = { ...selectedTask, description: value } as Task;
+        handleUpdate(updatedTask);
+      }
+    }, 800);
   }, [selectedTask, handleUpdate]);
 
   // Update task status
@@ -1239,8 +1273,8 @@ export function TaskDetailModal({
                     </h3>
                   </div>
                   <textarea
-                    value={(selectedTask as any).description || ''}
-                    onChange={(e) => updateTaskField('description' as any, e.target.value)}
+                    value={localDescription}
+                    onChange={(e) => handleDescriptionChange(e.target.value)}
                     placeholder={locale === 'es' ? 'Agregar descripción...' : 'Add description...'}
                     className={cn(
                       "w-full min-h-[100px] px-3 py-2 rounded-lg text-sm resize-none outline-none transition-colors",
