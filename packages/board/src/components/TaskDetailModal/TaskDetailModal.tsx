@@ -842,13 +842,23 @@ export function TaskDetailModal({
 
                 {/* Description section */}
                 <div className={cn("mt-6 pt-4 border-t", isDark ? "border-white/10" : "border-gray-200")}>
-                  <button className={cn(
-                    "flex items-center gap-2 text-sm transition-colors",
-                    isDark ? "text-[#9CA3AF] hover:text-white" : "text-gray-500 hover:text-gray-900"
-                  )}>
-                    <FileText className="w-4 h-4" />
-                    {locale === 'es' ? 'Agregar descripción' : 'Add description'}
-                  </button>
+                  <div className="flex items-center gap-2 mb-3">
+                    <FileText className={cn("w-4 h-4", isDark ? "text-[#6B7280]" : "text-gray-400")} />
+                    <h3 className={cn("text-sm font-semibold", isDark ? "text-white" : "text-gray-900")}>
+                      {locale === 'es' ? 'Descripción' : 'Description'}
+                    </h3>
+                  </div>
+                  <textarea
+                    value={(selectedTask as any).description || ''}
+                    onChange={(e) => updateTaskField('description' as any, e.target.value)}
+                    placeholder={locale === 'es' ? 'Agregar descripción...' : 'Add description...'}
+                    className={cn(
+                      "w-full min-h-[100px] px-3 py-2 rounded-lg text-sm resize-none outline-none transition-colors",
+                      isDark
+                        ? "bg-white/5 text-white placeholder:text-[#6B7280] focus:bg-white/10"
+                        : "bg-gray-100 text-gray-900 placeholder:text-gray-400 focus:bg-gray-200"
+                    )}
+                  />
                   <button className={cn(
                     "flex items-center gap-2 text-sm mt-2 transition-colors",
                     isDark ? "text-purple-400 hover:text-purple-300" : "text-purple-600 hover:text-purple-700"

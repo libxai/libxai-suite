@@ -8916,6 +8916,11 @@ body {
 }
 
 
+.min-h-\[100px\] {
+  min-height: 100px;
+}
+
+
 .min-h-\[120px\] {
   min-height: 120px;
 }
@@ -11748,12 +11753,6 @@ body {
 }
 
 
-.hover\:text-gray-900:hover {
-  --tw-text-opacity: 1;
-  color: rgb(17 24 39 / var(--tw-text-opacity, 1));
-}
-
-
 .hover\:text-purple-300:hover {
   --tw-text-opacity: 1;
   color: rgb(216 180 254 / var(--tw-text-opacity, 1));
@@ -11816,6 +11815,17 @@ body {
 
 .focus\:border-blue-500\/50:focus {
   border-color: rgb(59 130 246 / 0.5);
+}
+
+
+.focus\:bg-gray-200:focus {
+  --tw-bg-opacity: 1;
+  background-color: rgb(229 231 235 / var(--tw-bg-opacity, 1));
+}
+
+
+.focus\:bg-white\/10:focus {
+  background-color: rgb(255 255 255 / 0.1);
 }
 
 
