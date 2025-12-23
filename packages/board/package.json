@@ -1,6 +1,6 @@
 {
   "name": "@libxai/board",
-  "version": "0.17.226",
+  "version": "0.17.227",
   "type": "module",
   "description": "Professional Gantt Chart + Kanban Board + ListView + CalendarBoard for React - Part of LibXAI Suite - TypeScript - Production-Ready - Zero Config",
   "author": "LibXAI <hello@libxai.com>",

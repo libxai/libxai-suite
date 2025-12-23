@@ -904,70 +904,8 @@ export function TaskFormModal({
                     </div>
                   </div>
 
-                  {/* v0.17.165: Attachments Section */}
-                  {/* v0.17.166: Support pending files in create mode */}
-                  {(onUploadAttachments || attachments.length > 0 || mode === 'create') && (
-                    <div className="pt-2">
-                      <div className="flex items-center gap-2 mb-2">
-                        <svg
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          style={{ color: themeColors.textTertiary }}
-                        >
-                          <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
-                        </svg>
-                        <span className="text-xs" style={{ color: themeColors.textTertiary }}>
-                          Adjuntos {mode === 'create'
-                            ? (pendingFiles.length > 0 && `(${pendingFiles.length})`)
-                            : (attachments.length > 0 && `(${attachments.length})`)}
-                        </span>
-                      </div>
-                      {mode === 'create' ? (
-                        // Create mode: Use pending files (local state)
-                        <AttachmentUploader
-                          cardId="pending"
-                          attachments={pendingFiles.map((file, idx) => ({
-                            id: `pending-${idx}`,
-                            cardId: 'pending',
-                            name: file.name,
-                            size: file.size,
-                            type: file.type,
-                            url: URL.createObjectURL(file),
-                            uploadedAt: new Date().toISOString(),
-                            uploadedBy: 'current-user',
-                          }))}
-                          onUpload={(files) => setPendingFiles(prev => [...prev, ...files])}
-                          onDelete={(id) => {
-                            const idx = parseInt(id.replace('pending-', ''), 10)
-                            setPendingFiles(prev => prev.filter((_, i) => i !== idx))
-                          }}
-                          maxSizeMB={10}
-                          maxFiles={20}
-                        />
-                      ) : (
-                        // Edit mode: Use actual attachments with upload callback
-                        <AttachmentUploader
-                          cardId={task?.id || 'new'}
-                          attachments={attachments}
-                          onUpload={onUploadAttachments && task?.id ? (files) => onUploadAttachments(task.id, files) : undefined}
-                          onDelete={onDeleteAttachment}
-                          maxSizeMB={10}
-                          maxFiles={20}
-                        />
-                      )}
-                      {mode === 'create' && pendingFiles.length > 0 && (
-                        <p className="text-xs mt-1" style={{ color: themeColors.textTertiary }}>
-                          {pendingFiles.length} archivo(s) se subirán al crear la tarea
-                        </p>
-                      )}
-                    </div>
-                  )}
-
                   {/* Advanced Options - Collapsible */}
+                  {/* v0.17.227: Attachments moved inside advanced options for cleaner form */}
                   <div>
                     <button
                       type="button"
@@ -988,6 +926,67 @@ export function TaskFormModal({
                           className="overflow-hidden"
                         >
                           <div className="pt-3 space-y-3">
+                            {/* v0.17.227: Attachments Section - moved here for cleaner form */}
+                            {(onUploadAttachments || attachments.length > 0 || mode === 'create') && (
+                              <div>
+                                <div className="flex items-center gap-2 mb-2">
+                                  <svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    style={{ color: themeColors.textTertiary }}
+                                  >
+                                    <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
+                                  </svg>
+                                  <span className="text-xs" style={{ color: themeColors.textTertiary }}>
+                                    Adjuntos {mode === 'create'
+                                      ? (pendingFiles.length > 0 && `(${pendingFiles.length})`)
+                                      : (attachments.length > 0 && `(${attachments.length})`)}
+                                  </span>
+                                </div>
+                                {mode === 'create' ? (
+                                  <AttachmentUploader
+                                    cardId="pending"
+                                    attachments={pendingFiles.map((file, idx) => ({
+                                      id: `pending-${idx}`,
+                                      cardId: 'pending',
+                                      name: file.name,
+                                      size: file.size,
+                                      type: file.type,
+                                      url: URL.createObjectURL(file),
+                                      uploadedAt: new Date().toISOString(),
+                                      uploadedBy: 'current-user',
+                                    }))}
+                                    onUpload={(files) => setPendingFiles(prev => [...prev, ...files])}
+                                    onDelete={(id) => {
+                                      const idx = parseInt(id.replace('pending-', ''), 10)
+                                      setPendingFiles(prev => prev.filter((_, i) => i !== idx))
+                                    }}
+                                    maxSizeMB={10}
+                                    maxFiles={20}
+                                  />
+                                ) : (
+                                  <AttachmentUploader
+                                    cardId={task?.id || 'new'}
+                                    attachments={attachments}
+                                    onUpload={onUploadAttachments && task?.id ? (files) => onUploadAttachments(task.id, files) : undefined}
+                                    onDelete={onDeleteAttachment}
+                                    maxSizeMB={10}
+                                    maxFiles={20}
+                                  />
+                                )}
+                                {mode === 'create' && pendingFiles.length > 0 && (
+                                  <p className="text-xs mt-1" style={{ color: themeColors.textTertiary }}>
+                                    {pendingFiles.length} archivo(s) se subirán al crear la tarea
+                                  </p>
+                                )}
+                              </div>
+                            )}
+
+
                             {/* Milestone */}
                             <label className="flex items-center gap-3 cursor-pointer p-2 rounded-lg transition-colors hover:bg-white/5">
                               <input
