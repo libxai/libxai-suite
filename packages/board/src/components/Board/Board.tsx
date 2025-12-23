@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -12,9 +12,10 @@ import {
   DragOverEvent,
 } from '@dnd-kit/core'
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
-import type { KanbanBoardProps } from '../../types'
+import type { KanbanBoardProps, Card as CardType } from '../../types'
 import { Column } from '../Column'
 import { Card } from '../Card'
+import { TaskDetailModal } from '../TaskDetailModal'
 import { cn, calculateDropPosition } from '../../utils'
 import { useDragState } from '../../hooks/useDragState'
 import { KanbanThemeProvider } from './KanbanThemeContext'
@@ -34,9 +35,13 @@ export function KanbanBoard({
 }: KanbanBoardProps & { children?: React.ReactNode }) {
   const [dragState, setDragState] = useDragState()
 
+  // State for task detail modal
+  const [selectedCard, setSelectedCard] = useState<CardType | null>(null)
+
   // Determine theme class - default to 'dark'
   const themeName = config?.theme || 'dark'
-  const themeClass = themeName === 'dark' || themeName === 'neutral' ? 'dark' : ''
+  const isDark = themeName === 'dark' || themeName === 'neutral'
+  const themeClass = isDark ? 'dark' : ''
 
   const handleCardUpdate = useCallback(
     (cardId: string, updates: Partial<typeof board.cards[0]>) => {
@@ -189,12 +194,22 @@ export function KanbanBoard({
     [board.cards, board.columns, cardsByColumn, callbacks, setDragState]
   )
 
-  // Handle card click - pass to consumer's callback
+  // Handle card click - open modal and notify consumer
   const handleCardClick = useCallback(
     (card: typeof board.cards[0]) => {
+      setSelectedCard(card)
       onCardClick?.(card)
     },
     [onCardClick]
+  )
+
+  // Handle card update from modal
+  const handleModalCardUpdate = useCallback(
+    (updatedCard: CardType) => {
+      callbacks.onCardUpdate?.(updatedCard.id, updatedCard)
+      setSelectedCard(updatedCard)
+    },
+    [callbacks]
   )
 
   if (isLoading) {
@@ -277,6 +292,16 @@ export function KanbanBoard({
           ) : null}
         </DragOverlay>
       </DndContext>
+
+      {/* Task Detail Modal - same as Calendar */}
+      <TaskDetailModal
+        task={selectedCard}
+        isOpen={!!selectedCard}
+        onClose={() => setSelectedCard(null)}
+        onCardUpdate={handleModalCardUpdate}
+        theme={isDark ? 'dark' : 'light'}
+        locale={config?.locale === 'es' ? 'es' : 'en'}
+      />
     </KanbanThemeProvider>
   )
 }
