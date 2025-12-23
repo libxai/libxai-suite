@@ -5,7 +5,7 @@ import { GanttToolbar } from './GanttToolbar';
 import { TaskGrid } from './TaskGrid';
 import { Timeline } from './Timeline';
 import { ContextMenu, MenuIcons } from './ContextMenu'; // v0.8.0: Split task context menu
-import { TaskFormModal } from './TaskFormModal'; // v0.10.0: Task edit modal
+import { TaskDetailModal } from '../TaskDetailModal'; // v0.17.244: Unified task detail modal (replaces TaskFormModal)
 import { GanttAIAssistant } from './GanttAIAssistant'; // v0.14.0: AI Assistant
 import { motion, AnimatePresence } from 'framer-motion'; // v0.17.33: For delete confirmation modal
 import { AlertTriangle, Trash2 } from 'lucide-react'; // v0.17.33: Icons for delete confirmation
@@ -1711,20 +1711,22 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         />
       )}
 
-      {/* v0.10.0: Task Edit Modal */}
-      {editingTask && (
-        <TaskFormModal
-          isOpen={true}
-          onClose={() => setEditingTask(null)}
-          task={editingTask}
-          onSubmit={(updates) => {
-            handleTaskUpdate(editingTask.id, updates);
+      {/* v0.17.244: Unified Task Detail Modal (replaces TaskFormModal) */}
+      <TaskDetailModal
+        task={editingTask}
+        isOpen={!!editingTask}
+        onClose={() => setEditingTask(null)}
+        onTaskUpdate={(updatedTask) => {
+          if (editingTask) {
+            handleTaskUpdate(editingTask.id, updatedTask);
             setEditingTask(null);
-          }}
-          mode="edit"
-          theme={currentTheme}
-        />
-      )}
+          }
+        }}
+        theme={currentTheme === 'light' ? 'light' : 'dark'}
+        locale={locale === 'es' ? 'es' : 'en'}
+        availableUsers={availableUsers}
+        availableTasks={tasks}
+      />
 
       {/* v0.17.33: Delete Confirmation Modal */}
       <AnimatePresence>

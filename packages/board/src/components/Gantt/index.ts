@@ -12,7 +12,7 @@ export { DependencyLine } from './DependencyLine';
 export { Milestone } from './Milestone';
 export { ColumnManager } from './ColumnManager';
 export { ContextMenu, MenuIcons } from './ContextMenu';
-export { TaskFormModal } from './TaskFormModal'; // v0.9.0: Task CRUD modal
+export { TaskFormModal } from './TaskFormModal'; // v0.9.0: Task CRUD modal (still used for create mode)
 export { GanttAIAssistant } from './GanttAIAssistant'; // v0.14.0: AI Assistant
 export { TagPicker, TagBadge, TagList } from './TagPicker'; // v0.17.158: Tags support
 

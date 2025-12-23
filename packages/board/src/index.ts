@@ -40,6 +40,7 @@ export {
   FilterBar,
   ConfigMenu,
   ThemeModal,
+  TaskDetailModal, // v0.17.247: Unified task detail modal (replaces TaskFormModal)
   // LazyLoadWrapper,
   // withLazyLoad,
 } from './components'
@@ -67,7 +68,7 @@ export {
   ColumnManager,
   ContextMenu,
   MenuIcons,
-  TaskFormModal, // v0.9.0 - Task CRUD modal
+  TaskFormModal, // v0.9.0 - Task CRUD modal (still used for create mode)
   themes as ganttThemes,
   cardToGanttTask,
   ganttTaskToCardUpdate,
@@ -233,6 +234,7 @@ export type {
   AddColumnButtonProps, // v0.9.0
   AddCardButtonProps, // v0.17.49
   AddCardData, // v0.17.49
+  TaskDetailModalProps, // v0.17.247: Unified task detail modal props
   // LazyLoadWrapperProps,
 } from './components'
 

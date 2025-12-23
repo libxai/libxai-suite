@@ -35,6 +35,8 @@ import {
   File,
   Image,
   FileText as FileTextIcon,
+  Palette,
+  Diamond,
 } from 'lucide-react';
 import type { Task } from '../Gantt/types';
 import type { Attachment } from '../../types';
@@ -42,6 +44,7 @@ import type { CalendarBoardProps, CalendarDay } from './types';
 import { mergeCalendarTranslations } from './i18n';
 import { cn } from '../../utils';
 import { TagPicker } from '../Gantt/TagPicker';
+import { TASK_COLORS } from '../Gantt/ColorPicker';
 
 /**
  * Flatten hierarchical tasks to flat list
@@ -162,6 +165,9 @@ export function CalendarBoard({
   // v0.17.243: Dependencies states for modal
   const [showDependenciesDropdown, setShowDependenciesDropdown] = useState(false);
   const [dependencySearch, setDependencySearch] = useState('');
+
+  // v0.17.244: Color picker state for modal
+  const [showColorPicker, setShowColorPicker] = useState(false);
 
   // Navigate months
   const goToPreviousMonth = useCallback(() => {
@@ -301,6 +307,7 @@ export function CalendarBoard({
     setShowDatePicker(null);
     setShowDependenciesDropdown(false);
     setDependencySearch('');
+    setShowColorPicker(false);
   }, []);
 
   // v0.17.241: Handle file drop for attachments
@@ -1928,6 +1935,105 @@ export function CalendarBoard({
                           )}
                         </AnimatePresence>
                       </div>
+                    </div>
+
+                    {/* Color */}
+                    <div className="flex items-center gap-3 relative">
+                      <Palette className={cn("w-4 h-4", isDark ? "text-[#6B7280]" : "text-gray-400")} />
+                      <span className={cn("text-sm w-24", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
+                        {locale === 'es' ? 'Color' : 'Color'}
+                      </span>
+                      <button
+                        onClick={() => {
+                          closeAllDropdowns();
+                          setShowColorPicker(!showColorPicker);
+                        }}
+                        className={cn(
+                          "flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors",
+                          isDark ? "bg-white/5 hover:bg-white/10" : "bg-gray-100 hover:bg-gray-200"
+                        )}
+                      >
+                        <div
+                          className="w-4 h-4 rounded-full"
+                          style={{ backgroundColor: selectedTask.color || '#6366F1' }}
+                        />
+                        <span className={cn("text-sm", isDark ? "text-white" : "text-gray-900")}>
+                          {TASK_COLORS.find(c => c.value === selectedTask.color)?.name || (locale === 'es' ? 'Azul' : 'Blue')}
+                        </span>
+                        <ChevronDown className={cn("w-3 h-3", isDark ? "text-[#6B7280]" : "text-gray-400")} />
+                      </button>
+
+                      {/* Color Picker Dropdown */}
+                      <AnimatePresence>
+                        {showColorPicker && (
+                          <>
+                            <div className="fixed inset-0 z-40" onClick={() => setShowColorPicker(false)} />
+                            <motion.div
+                              initial={{ opacity: 0, y: -5 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -5 }}
+                              className={cn(
+                                "absolute left-32 top-full mt-1 z-50 rounded-lg shadow-xl overflow-hidden p-3",
+                                isDark ? "bg-[#1A1D25] border border-white/10" : "bg-white border border-gray-200"
+                              )}
+                            >
+                              <div className="grid grid-cols-6 gap-1.5">
+                                {TASK_COLORS.map((color) => {
+                                  const isSelected = selectedTask.color === color.value;
+                                  return (
+                                    <button
+                                      key={color.value}
+                                      onClick={() => {
+                                        updateTaskField('color', color.value);
+                                        setShowColorPicker(false);
+                                      }}
+                                      className={cn(
+                                        "w-7 h-7 rounded-full flex items-center justify-center transition-all",
+                                        isSelected && "ring-2 ring-offset-2",
+                                        isDark ? "ring-offset-[#1A1D25]" : "ring-offset-white"
+                                      )}
+                                      style={{
+                                        backgroundColor: color.value,
+                                        outlineColor: isSelected ? color.value : undefined,
+                                      }}
+                                      title={color.name}
+                                    >
+                                      {isSelected && (
+                                        <Check className="w-3.5 h-3.5 text-white" />
+                                      )}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </motion.div>
+                          </>
+                        )}
+                      </AnimatePresence>
+                    </div>
+
+                    {/* Milestone */}
+                    <div className="flex items-center gap-3">
+                      <Diamond className={cn("w-4 h-4", isDark ? "text-[#6B7280]" : "text-gray-400")} />
+                      <span className={cn("text-sm w-24", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
+                        {locale === 'es' ? 'Hito' : 'Milestone'}
+                      </span>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={selectedTask.isMilestone || false}
+                          onChange={(e) => updateTaskField('isMilestone' as any, e.target.checked)}
+                          className={cn(
+                            "w-4 h-4 rounded border-2 cursor-pointer appearance-none transition-colors",
+                            selectedTask.isMilestone
+                              ? "bg-purple-500 border-purple-500"
+                              : isDark ? "border-white/30 bg-transparent" : "border-gray-300 bg-transparent",
+                            "checked:bg-purple-500 checked:border-purple-500"
+                          )}
+                        />
+                        <span className={cn("text-sm", isDark ? "text-white" : "text-gray-900")}>
+                          {locale === 'es' ? 'Marcar como hito' : 'Mark as milestone'}
+                        </span>
+                      </label>
                     </div>
                   </div>
 
