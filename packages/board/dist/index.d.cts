@@ -796,6 +796,32 @@ interface KanbanBoardProps {
     onUploadAttachments?: (cardId: string, files: File[]) => Promise<void>;
     /** v0.17.241: Callback to delete an attachment */
     onDeleteAttachment?: (attachmentId: string) => Promise<void>;
+    /** v0.17.254: Comments for TaskDetailModal */
+    comments?: Array<{
+        id: string;
+        taskId: string;
+        userId: string;
+        content: string;
+        createdAt: Date;
+        updatedAt?: Date;
+        user?: {
+            id: string;
+            name: string;
+            email: string;
+            avatarUrl?: string;
+        };
+    }>;
+    /** v0.17.254: Callback to add a comment */
+    onAddComment?: (taskId: string, content: string) => Promise<void>;
+    /** v0.17.254: Current user info for comment input */
+    currentUser?: {
+        id: string;
+        name: string;
+        avatarUrl?: string;
+        color?: string;
+    };
+    /** v0.17.254: Callback when task is opened in modal (to load comments) */
+    onTaskOpen?: (taskId: string) => void;
 }
 /**
  * Drag event data
@@ -1166,7 +1192,7 @@ declare class KanbanViewAdapter extends BaseViewAdapter<ViewBoardData> {
  */
 declare function createKanbanView(config?: KanbanViewConfig): KanbanViewAdapter;
 
-declare function KanbanBoard({ board, callbacks, onCardClick, renderProps, config, availableUsers, className, style, isLoading, error, children, availableTags, onCreateTag, attachmentsByCard, onUploadAttachments, onDeleteAttachment, }: KanbanBoardProps & {
+declare function KanbanBoard({ board, callbacks, onCardClick, renderProps, config, availableUsers, className, style, isLoading, error, children, availableTags, onCreateTag, attachmentsByCard, onUploadAttachments, onDeleteAttachment, comments, onAddComment, currentUser, onTaskOpen, }: KanbanBoardProps & {
     children?: React.ReactNode;
 }): react_jsx_runtime.JSX.Element;
 
@@ -3508,6 +3534,32 @@ interface CalendarBoardProps {
     onCreateTag?: (name: string, color: string) => Promise<TaskTag | null>;
     /** v0.17.241: Attachments map by task ID */
     attachmentsByTask?: Map<string, Attachment[]>;
+    /** v0.17.254: Comments for TaskDetailModal */
+    comments?: Array<{
+        id: string;
+        taskId: string;
+        userId: string;
+        content: string;
+        createdAt: Date;
+        updatedAt?: Date;
+        user?: {
+            id: string;
+            name: string;
+            email: string;
+            avatarUrl?: string;
+        };
+    }>;
+    /** v0.17.254: Callback to add a comment */
+    onAddComment?: (taskId: string, content: string) => Promise<void>;
+    /** v0.17.254: Current user info for comment input */
+    currentUser?: {
+        id: string;
+        name: string;
+        avatarUrl?: string;
+        color?: string;
+    };
+    /** v0.17.254: Callback when task is opened in modal (to load comments) */
+    onTaskOpen?: (taskId: string) => void;
 }
 
 /**

@@ -38,6 +38,11 @@ export function KanbanBoard({
   attachmentsByCard,
   onUploadAttachments,
   onDeleteAttachment,
+  // v0.17.254: Comments support
+  comments,
+  onAddComment,
+  currentUser,
+  onTaskOpen,
 }: KanbanBoardProps & { children?: React.ReactNode }) {
   const [dragState, setDragState] = useDragState()
 
@@ -217,12 +222,14 @@ export function KanbanBoard({
   )
 
   // Handle card click - open modal and notify consumer
+  // v0.17.254: Also call onTaskOpen to load comments
   const handleCardClick = useCallback(
     (card: typeof board.cards[0]) => {
       setSelectedCard(card)
       onCardClick?.(card)
+      onTaskOpen?.(card.id)
     },
-    [onCardClick]
+    [onCardClick, onTaskOpen]
   )
 
   // Handle card update from modal
@@ -316,6 +323,7 @@ export function KanbanBoard({
       </DndContext>
 
       {/* Task Detail Modal - same as Calendar */}
+      {/* v0.17.254: Added comments support */}
       <TaskDetailModal
         task={selectedCard}
         isOpen={!!selectedCard}
@@ -330,6 +338,9 @@ export function KanbanBoard({
         onUploadAttachments={onUploadAttachments}
         onDeleteAttachment={onDeleteAttachment}
         availableTasks={availableTasksForDependencies}
+        comments={comments}
+        onAddComment={onAddComment}
+        currentUser={currentUser}
       />
     </KanbanThemeProvider>
   )

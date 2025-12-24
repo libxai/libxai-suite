@@ -2,7 +2,9 @@
  * TaskDetailModal Component
  * Shared task detail modal for Calendar, Kanban, and Gantt views
  * ClickUp-style full-screen modal with all task fields
- * @version 0.17.252
+ * @version 0.17.253
+ *
+ * v0.17.253: Editable task name with debounce auto-save
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react';
@@ -226,6 +228,10 @@ export function TaskDetailModal({
   const [localDescription, setLocalDescription] = useState('');
   const descriptionDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // v0.17.253: Local task name state with debounce for auto-save
+  const [localTaskName, setLocalTaskName] = useState('');
+  const taskNameDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // v0.17.252: Comment input state
   const [commentText, setCommentText] = useState('');
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
@@ -236,14 +242,18 @@ export function TaskDetailModal({
       const normalizedTask = normalizeToTask(task, availableUsers);
       setSelectedTask(normalizedTask);
       setLocalDescription((normalizedTask as any).description || '');
+      setLocalTaskName(normalizedTask.name || '');
     }
   }, [task?.id, availableUsers]);
 
-  // Cleanup debounce timer on unmount
+  // Cleanup debounce timers on unmount
   useEffect(() => {
     return () => {
       if (descriptionDebounceRef.current) {
         clearTimeout(descriptionDebounceRef.current);
+      }
+      if (taskNameDebounceRef.current) {
+        clearTimeout(taskNameDebounceRef.current);
       }
     };
   }, []);
@@ -292,6 +302,25 @@ export function TaskDetailModal({
     descriptionDebounceRef.current = setTimeout(() => {
       if (selectedTask) {
         const updatedTask = { ...selectedTask, description: value } as Task;
+        handleUpdate(updatedTask);
+      }
+    }, 800);
+  }, [selectedTask, handleUpdate]);
+
+  // v0.17.253: Handle task name change with debounce (auto-save after typing stops)
+  const handleTaskNameChange = useCallback((value: string) => {
+    // Update local state immediately for responsive UI
+    setLocalTaskName(value);
+
+    // Clear any existing debounce timer
+    if (taskNameDebounceRef.current) {
+      clearTimeout(taskNameDebounceRef.current);
+    }
+
+    // Set new debounce timer (800ms delay before saving)
+    taskNameDebounceRef.current = setTimeout(() => {
+      if (selectedTask && value.trim()) {
+        const updatedTask = { ...selectedTask, name: value.trim() };
         handleUpdate(updatedTask);
       }
     }, 800);
@@ -512,7 +541,7 @@ export function TaskDetailModal({
                 </button>
               </div>
 
-              {/* Task Title with checkbox */}
+              {/* Task Title with checkbox - v0.17.253: Editable name */}
               <div className="px-6 py-4">
                 <div className="flex items-start gap-3">
                   <button
@@ -523,7 +552,7 @@ export function TaskDetailModal({
                       handleUpdate(updatedTask);
                     }}
                     className={cn(
-                      "mt-1 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors",
+                      "mt-2 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors flex-shrink-0",
                       selectedTask.progress === 100
                         ? "bg-green-500 border-green-500"
                         : isDark ? "border-white/30 hover:border-white/50" : "border-gray-300 hover:border-gray-400"
@@ -533,12 +562,19 @@ export function TaskDetailModal({
                       <CheckCircle2 className="w-3 h-3 text-white" />
                     )}
                   </button>
-                  <h2 className={cn(
-                    "text-xl font-semibold flex-1",
-                    selectedTask.progress === 100 ? "line-through text-[#6B7280]" : (isDark ? "text-white" : "text-gray-900")
-                  )}>
-                    {selectedTask.name}
-                  </h2>
+                  <input
+                    type="text"
+                    value={localTaskName}
+                    onChange={(e) => handleTaskNameChange(e.target.value)}
+                    placeholder={locale === 'es' ? 'Nombre de la tarea...' : 'Task name...'}
+                    className={cn(
+                      "text-xl font-semibold flex-1 bg-transparent outline-none border-none px-0 py-0",
+                      "focus:ring-0 focus:outline-none",
+                      selectedTask.progress === 100
+                        ? "line-through text-[#6B7280]"
+                        : (isDark ? "text-white placeholder:text-[#6B7280]" : "text-gray-900 placeholder:text-gray-400")
+                    )}
+                  />
                 </div>
               </div>
 
