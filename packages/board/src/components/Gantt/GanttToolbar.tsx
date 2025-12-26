@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { ZoomIn, ZoomOut, Sun, Moon, Palette, Download, FileImage, FileSpreadsheet, FileText, FileJson, ChevronDown, FolderKanban, Plus, Rows3, Check } from 'lucide-react';
-import { TimeScale, Theme, RowDensity } from './types';
+import { ZoomIn, ZoomOut, Sun, Moon, Palette, Download, FileImage, FileSpreadsheet, FileText, FileJson, ChevronDown, FolderKanban, Plus, Rows3, Check, Filter } from 'lucide-react';
+import { TimeScale, Theme, RowDensity, TaskFilterType } from './types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGanttI18n } from './GanttI18nContext'; // v0.15.0: i18n
 
@@ -28,6 +28,9 @@ interface GanttToolbarProps {
   showCreateTaskButton?: boolean;
   createTaskLabel?: string;
   onCreateTask?: () => void;
+  // v0.17.300: Task filter
+  taskFilter?: TaskFilterType;
+  onTaskFilterChange?: (filter: TaskFilterType) => void;
   // Export handlers
   onExportPNG?: () => Promise<void>;
   onExportPDF?: () => Promise<void>;
@@ -463,6 +466,217 @@ function DensityDropdown({ theme, value, onChange }: DensityDropdownProps) {
   );
 }
 
+/**
+ * v0.17.320: Professional Filter Dropdown Component
+ * Linear/Notion-style filter button with checkbox options
+ * Shows active filter count as badge when filters are applied
+ */
+interface FilterDropdownProps {
+  theme: any;
+  value: TaskFilterType;
+  onChange: (filter: TaskFilterType) => void;
+}
+
+function FilterDropdown({ theme, value, onChange }: FilterDropdownProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const t = useGanttI18n();
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
+
+  const filterOptions = [
+    {
+      value: 'all' as TaskFilterType,
+      label: t.toolbar.filterAll || 'All tasks',
+      description: t.toolbar.filterAllDesc || 'Show all tasks'
+    },
+    {
+      value: 'incomplete' as TaskFilterType,
+      label: t.toolbar.filterIncomplete || 'Incomplete only',
+      description: t.toolbar.filterIncompleteDesc || 'Hide completed tasks'
+    },
+    {
+      value: 'in_progress' as TaskFilterType,
+      label: t.toolbar.filterInProgress || 'In progress',
+      description: t.toolbar.filterInProgressDesc || 'Tasks currently being worked on'
+    },
+    {
+      value: 'completed' as TaskFilterType,
+      label: t.toolbar.filterCompleted || 'Completed',
+      description: t.toolbar.filterCompletedDesc || 'Only show finished tasks'
+    },
+  ];
+
+  const hasActiveFilter = value !== 'all';
+
+  return (
+    <div ref={dropdownRef} className="relative">
+      <motion.button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-all"
+        style={{
+          backgroundColor: hasActiveFilter ? theme.accentLight : (isOpen ? theme.accentLight : theme.bgSecondary),
+          border: `1px solid ${hasActiveFilter || isOpen ? theme.accent : theme.borderLight}`,
+          color: hasActiveFilter || isOpen ? theme.accent : theme.textSecondary,
+          fontFamily: 'Inter, sans-serif',
+          fontWeight: 500,
+        }}
+        whileHover={{
+          backgroundColor: theme.accentLight,
+          borderColor: theme.accent,
+          color: theme.accent,
+          scale: 1.02,
+        }}
+        whileTap={{ scale: 0.98 }}
+      >
+        <Filter className="w-3.5 h-3.5" />
+        <span>{t.toolbar.filter || 'Filter'}</span>
+        {hasActiveFilter && (
+          <motion.span
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            className="flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-semibold"
+            style={{
+              backgroundColor: theme.accent,
+              color: '#FFFFFF',
+            }}
+          >
+            1
+          </motion.span>
+        )}
+        <ChevronDown
+          className="w-3 h-3 transition-transform"
+          style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
+        />
+      </motion.button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -8, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -8, scale: 0.95 }}
+            transition={{ duration: 0.15, ease: 'easeOut' }}
+            className="absolute left-0 mt-2 w-56 rounded-lg overflow-hidden z-50"
+            style={{
+              backgroundColor: theme.bgSecondary,
+              border: `1px solid ${theme.border}`,
+              boxShadow: '0 10px 40px rgba(0, 0, 0, 0.25)',
+            }}
+          >
+            {/* Header */}
+            <div
+              className="px-3 py-2 border-b"
+              style={{ borderColor: theme.borderLight }}
+            >
+              <span
+                className="text-xs font-medium"
+                style={{ color: theme.textTertiary }}
+              >
+                {t.toolbar.filterBy || 'Filter by status'}
+              </span>
+            </div>
+
+            {/* Options */}
+            <div className="py-1">
+              {filterOptions.map((option, index) => {
+                const isActive = value === option.value;
+                return (
+                  <motion.button
+                    key={option.value}
+                    onClick={() => {
+                      onChange(option.value);
+                      setIsOpen(false);
+                    }}
+                    className="w-full flex items-start gap-3 px-3 py-2.5 text-left transition-all"
+                    style={{
+                      backgroundColor: isActive ? theme.accentLight : 'transparent',
+                    }}
+                    whileHover={{
+                      backgroundColor: isActive ? theme.accentLight : theme.hoverBg,
+                    }}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.03 }}
+                  >
+                    {/* Checkbox-style indicator */}
+                    <div
+                      className="flex items-center justify-center w-4 h-4 rounded border mt-0.5 flex-shrink-0"
+                      style={{
+                        borderColor: isActive ? theme.accent : theme.border,
+                        backgroundColor: isActive ? theme.accent : 'transparent',
+                      }}
+                    >
+                      {isActive && (
+                        <Check className="w-3 h-3" style={{ color: '#FFFFFF' }} />
+                      )}
+                    </div>
+
+                    {/* Label and description */}
+                    <div className="flex-1 min-w-0">
+                      <div
+                        className="text-xs font-medium"
+                        style={{
+                          color: isActive ? theme.accent : theme.textPrimary,
+                        }}
+                      >
+                        {option.label}
+                      </div>
+                      <div
+                        className="text-[10px] mt-0.5"
+                        style={{ color: theme.textTertiary }}
+                      >
+                        {option.description}
+                      </div>
+                    </div>
+                  </motion.button>
+                );
+              })}
+            </div>
+
+            {/* Clear filter button (only when filter is active) */}
+            {hasActiveFilter && (
+              <div
+                className="px-3 py-2 border-t"
+                style={{ borderColor: theme.borderLight }}
+              >
+                <motion.button
+                  onClick={() => {
+                    onChange('all');
+                    setIsOpen(false);
+                  }}
+                  className="w-full text-xs py-1.5 rounded-md"
+                  style={{
+                    color: theme.textTertiary,
+                  }}
+                  whileHover={{
+                    backgroundColor: theme.hoverBg,
+                    color: theme.textSecondary,
+                  }}
+                >
+                  {t.toolbar.clearFilter || 'Clear filter'}
+                </motion.button>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 export function GanttToolbar({
   theme,
   timeScale,
@@ -477,6 +691,8 @@ export function GanttToolbar({
   showCreateTaskButton = false,
   createTaskLabel, // v0.15.0: Will use translations if not provided
   onCreateTask,
+  taskFilter = 'all', // v0.17.300: Task filter
+  onTaskFilterChange,
   onExportPNG,
   onExportPDF,
   onExportExcel,
@@ -493,6 +709,8 @@ export function GanttToolbar({
     { value: 'week', label: t.toolbar.week },
     { value: 'month', label: t.toolbar.month },
   ];
+
+  // v0.17.320: Task filter options moved to FilterDropdown component
 
   const themeOptions = [
     { value: 'dark', label: 'Dark', icon: <Moon className="w-3.5 h-3.5" /> },
@@ -582,6 +800,24 @@ export function GanttToolbar({
           value={rowDensity}
           onChange={onRowDensityChange}
         />
+
+        {/* v0.17.320: Professional Filter Dropdown */}
+        {onTaskFilterChange && (
+          <>
+            {/* Divider */}
+            <div
+              className="w-px h-5"
+              style={{ backgroundColor: theme.borderLight }}
+            />
+
+            {/* Filter Dropdown */}
+            <FilterDropdown
+              theme={theme}
+              value={taskFilter}
+              onChange={onTaskFilterChange}
+            />
+          </>
+        )}
       </div>
 
       {/* Right Section - Create Task + Export + Theme Selector */}

@@ -105,6 +105,7 @@ export type {
   TaskFormModalProps, // v0.9.0 - Task form props
   TaskFormData, // v0.9.0 - Task form data
   TaskPriority, // v0.17.28 - Task priority type
+  TaskFilterType, // v0.17.300 - Task filter type for toolbar
   GanttAIAssistantConfig, // v0.14.0 - AI Assistant config
   AICommandResult, // v0.14.0 - AI command result
   AIMessage, // v0.17.42 - AI chat message type

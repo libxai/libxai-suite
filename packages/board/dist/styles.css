@@ -9011,6 +9011,11 @@ body {
 }
 
 
+.w-56 {
+  width: 14rem;
+}
+
+
 .w-6 {
   width: 1.5rem;
 }
@@ -9033,11 +9038,6 @@ body {
 
 .w-96 {
   width: 24rem;
-}
-
-
-.w-\[280px\] {
-  width: 280px;
 }
 
 
@@ -9761,12 +9761,6 @@ body {
 .bg-\[\#13161B\] {
   --tw-bg-opacity: 1;
   background-color: rgb(19 22 27 / var(--tw-bg-opacity, 1));
-}
-
-
-.bg-\[\#141619\] {
-  --tw-bg-opacity: 1;
-  background-color: rgb(20 22 25 / var(--tw-bg-opacity, 1));
 }
 
 
@@ -10777,18 +10771,6 @@ body {
 
 .line-through {
   text-decoration-line: line-through;
-}
-
-
-.placeholder-\[\#6B7280\]::-moz-placeholder {
-  --tw-placeholder-opacity: 1;
-  color: rgb(107 114 128 / var(--tw-placeholder-opacity, 1));
-}
-
-
-.placeholder-\[\#6B7280\]::placeholder {
-  --tw-placeholder-opacity: 1;
-  color: rgb(107 114 128 / var(--tw-placeholder-opacity, 1));
 }
 
 

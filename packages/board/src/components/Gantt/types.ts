@@ -65,6 +65,10 @@ export interface Task {
 export type TimeScale = 'day' | 'week' | 'month';
 export type Theme = 'dark' | 'light' | 'neutral';
 export type RowDensity = 'compact' | 'comfortable' | 'spacious';
+export type DependencyLineStyle = 'curved' | 'squared'; // v0.17.310: Dependency line style
+
+// v0.17.300: Task filter types for toolbar
+export type TaskFilterType = 'all' | 'incomplete' | 'in_progress' | 'completed';
 
 // v0.17.29: Added 'priority' column type
 export type ColumnType = 'name' | 'startDate' | 'endDate' | 'duration' | 'assignees' | 'status' | 'progress' | 'priority';
@@ -395,6 +399,10 @@ export interface GanttConfig {
   createTaskLabel?: string;
   onCreateTask?: () => void;
 
+  // v0.17.300: Task filter in toolbar
+  taskFilter?: TaskFilterType;
+  onTaskFilterChange?: (filter: TaskFilterType) => void;
+
   // v0.8.0: Customizable templates (similar to DHTMLX gantt.templates.*)
   templates?: GanttTemplates;
 
@@ -428,6 +436,15 @@ export interface GanttConfig {
    * @default false
    */
   persistExpandedState?: boolean | string;
+
+  /**
+   * v0.17.310: Dependency line style
+   * Controls how dependency arrows are rendered between tasks
+   * - 'curved': Smooth bezier curves (default)
+   * - 'squared': Right-angle orthogonal lines
+   * @default 'curved'
+   */
+  dependencyLineStyle?: DependencyLineStyle;
 
   // ==================== UI Events ====================
   onThemeChange?: (theme: Theme) => void; // v0.9.0: Theme change event

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import type { DependencyLineStyle } from './types';
 
 // v0.17.79: Data for rendering FULL dependency line + delete button in top layer
 export interface DependencyHoverData {
@@ -8,6 +9,7 @@ export interface DependencyHoverData {
   x2: number;
   y2: number;
   onDelete: () => void;
+  lineStyle?: DependencyLineStyle; // v0.17.310
 }
 
 // Keep old interface name for backwards compatibility
@@ -22,9 +24,11 @@ interface DependencyLineProps {
   onDelete?: () => void;
   // v0.17.79: Callback to render full line + delete button in top layer (above tasks)
   onHoverChange?: (data: DependencyHoverData | null) => void;
+  // v0.17.310: Dependency line style (curved or squared)
+  lineStyle?: DependencyLineStyle;
 }
 
-export function DependencyLine({ x1, y1, x2, y2, theme, onDelete, onHoverChange }: DependencyLineProps) {
+export function DependencyLine({ x1, y1, x2, y2, theme, onDelete, onHoverChange, lineStyle = 'curved' }: DependencyLineProps) {
   const [isHovered, setIsHovered] = useState(false);
 
   // Calculate control points for smooth Bézier curve
@@ -32,8 +36,12 @@ export function DependencyLine({ x1, y1, x2, y2, theme, onDelete, onHoverChange 
   const dy = y2 - y1;
   const midX = x1 + dx / 2;
 
-  // Create elegant S-curve path
-  const path = `M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}`;
+  // v0.17.310: Support for curved or squared line styles
+  // Curved: Elegant S-curve Bézier path
+  // Squared: Right-angle orthogonal path
+  const path = lineStyle === 'squared'
+    ? `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}`
+    : `M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}`;
 
   // Arrow marker at the end
   const arrowSize = 6;
@@ -56,12 +64,13 @@ export function DependencyLine({ x1, y1, x2, y2, theme, onDelete, onHoverChange 
           x2,
           y2,
           onDelete,
+          lineStyle, // v0.17.310
         });
       } else {
         onHoverChange(null);
       }
     }
-  }, [isHovered, x1, y1, x2, y2, onDelete, onHoverChange]);
+  }, [isHovered, x1, y1, x2, y2, onDelete, onHoverChange, lineStyle]);
 
   // v0.17.140: If no onDelete/onHoverChange, this is a static line (hover handled by top layer)
   const isStaticLine = !onDelete && !onHoverChange;

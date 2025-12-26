@@ -36,6 +36,8 @@ export type {
   TaskTag, // v0.17.158: Tags/Labels
   TimeScale,
   Theme,
+  TaskFilterType, // v0.17.300: Task filter type for toolbar
+  DependencyLineStyle, // v0.17.310: Dependency line style
   GanttConfig,
   GanttPermissions, // v0.8.2: Permissions for authorization
   GanttColumn,

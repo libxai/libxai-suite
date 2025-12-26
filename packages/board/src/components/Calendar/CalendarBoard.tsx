@@ -37,6 +37,7 @@ import {
   FileText as FileTextIcon,
   Palette,
   Diamond,
+  Send,
 } from 'lucide-react';
 import type { Task } from '../Gantt/types';
 import type { Attachment } from '../../types';
@@ -106,6 +107,10 @@ export function CalendarBoard({
   availableTags = [],
   onCreateTag,
   attachmentsByTask,
+  comments,
+  onAddComment,
+  currentUser,
+  onTaskOpen,
 }: CalendarBoardProps) {
   const {
     theme: themeName = 'dark',
@@ -168,6 +173,10 @@ export function CalendarBoard({
 
   // v0.17.244: Color picker state for modal
   const [showColorPicker, setShowColorPicker] = useState(false);
+
+  // v0.17.255: Comment input state (to match TaskDetailModal UI)
+  const [commentText, setCommentText] = useState('');
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
 
   // Navigate months
   const goToPreviousMonth = useCallback(() => {
@@ -522,6 +531,7 @@ export function CalendarBoard({
                             onClick={() => {
                               setSelectedTask(event.task);
                               callbacks.onEventClick?.(event);
+                              onTaskOpen?.(event.task.id);
                             }}
                             whileHover={{ scale: 1.02 }}
                             className={cn(
@@ -1090,7 +1100,7 @@ export function CalendarBoard({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setSelectedTask(null)}
+              onClick={() => { setSelectedTask(null); setCommentText(''); }}
               className="fixed inset-0 bg-black/50 z-40"
             />
             {/* Modal - v0.17.86: Full screen modal like ClickUp (90% of viewport) */}
@@ -1135,7 +1145,7 @@ export function CalendarBoard({
                     <MoreHorizontal className="w-5 h-5" />
                   </button>
                   <button
-                    onClick={() => setSelectedTask(null)}
+                    onClick={() => { setSelectedTask(null); setCommentText(''); }}
                     className={cn("p-1.5 rounded transition-colors", isDark ? "hover:bg-white/10 text-[#9CA3AF]" : "hover:bg-gray-100 text-gray-500")}
                   >
                     <X className="w-5 h-5" />
@@ -2274,36 +2284,161 @@ export function CalendarBoard({
                 </div>
               </div>
 
-              {/* Activity Panel - Right Side */}
+              {/* Activity Panel - Right Sidebar - v0.17.256: Matching TaskDetailModal UI */}
               <div className={cn(
-                "w-[280px] border-l flex flex-col",
-                isDark ? "border-white/10 bg-[#141619]" : "border-gray-200 bg-gray-50"
+                "w-80 border-l flex flex-col",
+                isDark ? "border-white/10 bg-[#0F1117]" : "border-gray-200 bg-gray-50"
               )}>
-                <div className={cn("px-4 py-3 border-b flex items-center justify-between", isDark ? "border-white/10" : "border-gray-200")}>
-                  <span className={cn("font-medium", isDark ? "text-white" : "text-gray-900")}>
-                    {locale === 'es' ? 'Actividad' : 'Activity'}
-                  </span>
-                </div>
-                <div className="flex-1 p-4 overflow-y-auto">
-                  <div className={cn("text-sm text-center py-8", isDark ? "text-[#6B7280]" : "text-gray-400")}>
-                    <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                    {locale === 'es' ? 'Sin actividad reciente' : 'No recent activity'}
-                  </div>
-                </div>
-                {/* Comment input */}
-                <div className={cn("p-3 border-t", isDark ? "border-white/10" : "border-gray-200")}>
-                  <div className={cn(
-                    "flex items-center gap-2 px-3 py-2 rounded-lg",
-                    isDark ? "bg-white/5" : "bg-white border border-gray-200"
+                {/* Activity Header */}
+                <div className={cn(
+                  "px-4 py-3 border-b",
+                  isDark ? "border-white/10" : "border-gray-200"
+                )}>
+                  <h3 className={cn(
+                    "text-sm font-semibold",
+                    isDark ? "text-white" : "text-gray-900"
                   )}>
-                    <input
-                      type="text"
-                      placeholder={locale === 'es' ? 'Escribe un comentario...' : 'Write a comment...'}
-                      className={cn(
-                        "flex-1 bg-transparent text-sm outline-none",
-                        isDark ? "text-white placeholder-[#6B7280]" : "text-gray-900 placeholder-gray-400"
-                      )}
-                    />
+                    {locale === 'es' ? 'Actividad' : 'Activity'}
+                    {comments && comments.length > 0 && (
+                      <span className={cn("ml-2 text-xs font-normal", isDark ? "text-[#6B7280]" : "text-gray-400")}>
+                        ({comments.length})
+                      </span>
+                    )}
+                  </h3>
+                </div>
+
+                {/* Activity Content - Comments List */}
+                <div className="flex-1 overflow-y-auto p-4">
+                  {comments && comments.length > 0 ? (
+                    <div className="space-y-4">
+                      {comments.map((comment) => {
+                        const timeAgo = (() => {
+                          const now = new Date();
+                          const commentDate = new Date(comment.createdAt);
+                          const diffMs = now.getTime() - commentDate.getTime();
+                          const diffMins = Math.floor(diffMs / 60000);
+                          const diffHours = Math.floor(diffMins / 60);
+                          const diffDays = Math.floor(diffHours / 24);
+                          if (diffMins < 1) return locale === 'es' ? 'ahora' : 'now';
+                          if (diffMins < 60) return locale === 'es' ? `hace ${diffMins}m` : `${diffMins}m ago`;
+                          if (diffHours < 24) return locale === 'es' ? `hace ${diffHours}h` : `${diffHours}h ago`;
+                          return locale === 'es' ? `hace ${diffDays}d` : `${diffDays}d ago`;
+                        })();
+                        return (
+                          <div key={comment.id} className="flex gap-3">
+                            {/* Avatar */}
+                            <div
+                              className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-medium flex-shrink-0"
+                              style={{ backgroundColor: '#8B5CF6' }}
+                            >
+                              {comment.user?.name?.slice(0, 2).toUpperCase() || 'U'}
+                            </div>
+                            {/* Comment Content */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className={cn("text-sm font-medium", isDark ? "text-white" : "text-gray-900")}>
+                                  {comment.user?.name || (locale === 'es' ? 'Usuario' : 'User')}
+                                </span>
+                                <span className={cn("text-xs", isDark ? "text-[#6B7280]" : "text-gray-400")}>
+                                  {timeAgo}
+                                </span>
+                              </div>
+                              <p className={cn("text-sm break-words", isDark ? "text-[#9CA3AF]" : "text-gray-600")}>
+                                {comment.content}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    /* Empty State */
+                    <div className="flex flex-col items-center justify-center h-full text-center">
+                      <MessageSquare className={cn(
+                        "w-10 h-10 mb-3",
+                        isDark ? "text-[#3B4252]" : "text-gray-300"
+                      )} />
+                      <p className={cn(
+                        "text-sm",
+                        isDark ? "text-[#6B7280]" : "text-gray-500"
+                      )}>
+                        {locale === 'es' ? 'Sin actividad reciente' : 'No recent activity'}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Comment Input - v0.17.256: Matching TaskDetailModal exactly */}
+                <div className={cn(
+                  "p-4 border-t",
+                  isDark ? "border-white/10" : "border-gray-200"
+                )}>
+                  <div className="flex items-start gap-2">
+                    {/* Current User Avatar */}
+                    {currentUser && (
+                      <div
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-medium flex-shrink-0"
+                        style={{ backgroundColor: currentUser.color || '#8B5CF6' }}
+                      >
+                        {currentUser.name?.slice(0, 2).toUpperCase() || 'U'}
+                      </div>
+                    )}
+                    <div className={cn(
+                      "flex-1 flex items-center gap-2 px-3 py-2 rounded-lg",
+                      isDark ? "bg-white/5" : "bg-white border border-gray-200"
+                    )}>
+                      <input
+                        type="text"
+                        value={commentText}
+                        onChange={(e) => setCommentText(e.target.value)}
+                        onKeyDown={async (e) => {
+                          if (e.key === 'Enter' && !e.shiftKey && selectedTask && commentText.trim() && onAddComment) {
+                            e.preventDefault();
+                            setIsSubmittingComment(true);
+                            try {
+                              await onAddComment(selectedTask.id, commentText.trim());
+                              setCommentText('');
+                            } finally {
+                              setIsSubmittingComment(false);
+                            }
+                          }
+                        }}
+                        placeholder={locale === 'es' ? 'Escribe un comentario...' : 'Write a comment...'}
+                        disabled={isSubmittingComment || !onAddComment}
+                        className={cn(
+                          "flex-1 bg-transparent text-sm outline-none",
+                          isDark ? "text-white placeholder:text-[#6B7280]" : "text-gray-900 placeholder:text-gray-400",
+                          (isSubmittingComment || !onAddComment) && "opacity-50"
+                        )}
+                      />
+                      <button
+                        onClick={async () => {
+                          if (selectedTask && commentText.trim() && onAddComment) {
+                            setIsSubmittingComment(true);
+                            try {
+                              await onAddComment(selectedTask.id, commentText.trim());
+                              setCommentText('');
+                            } finally {
+                              setIsSubmittingComment(false);
+                            }
+                          }
+                        }}
+                        disabled={isSubmittingComment || !commentText.trim() || !onAddComment}
+                        className={cn(
+                          "p-1.5 rounded transition-colors",
+                          commentText.trim() && onAddComment
+                            ? "bg-blue-500 text-white hover:bg-blue-600"
+                            : (isDark ? "text-[#6B7280]" : "text-gray-400"),
+                          isSubmittingComment && "opacity-50 cursor-not-allowed"
+                        )}
+                      >
+                        {isSubmittingComment ? (
+                          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <Send className="w-4 h-4" />
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2356,6 +2491,7 @@ export function CalendarBoard({
                     onClick={() => {
                       setSelectedDay(null);
                       setSelectedTask(event.task);
+                      onTaskOpen?.(event.task.id);
                     }}
                     className={cn(
                       "w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-colors",

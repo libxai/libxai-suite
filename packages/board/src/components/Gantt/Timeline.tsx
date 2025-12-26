@@ -1,6 +1,6 @@
 import { useMemo, useCallback, useState } from 'react';
 import { motion } from 'framer-motion';
-import { TimeScale, Task, GanttTemplates, DependentTaskPreview } from './types';
+import { TimeScale, Task, GanttTemplates, DependentTaskPreview, DependencyLineStyle } from './types';
 import { TaskBar, TaskTooltipData } from './TaskBar';
 import { TaskTooltip } from './TaskTooltip';
 import { DependencyLine, DependencyHoverData } from './DependencyLine';
@@ -16,6 +16,7 @@ interface TimelineProps {
   endDate: Date;
   zoom: number;
   templates: Required<GanttTemplates>; // v0.8.0
+  dependencyLineStyle?: DependencyLineStyle; // v0.17.310: Dependency line style
   onTaskClick?: (task: Task) => void;
   onTaskDblClick?: (task: Task) => void; // v0.8.0
   onTaskContextMenu?: (task: Task, event: React.MouseEvent) => void; // v0.8.0
@@ -41,6 +42,7 @@ export function Timeline({
   endDate,
   zoom,
   templates,
+  dependencyLineStyle = 'curved', // v0.17.310
   onTaskClick,
   onTaskDblClick, // v0.8.0
   onTaskContextMenu, // v0.8.0
@@ -513,6 +515,7 @@ export function Timeline({
                 x2={toPos.x}
                 y2={toIndex * ROW_HEIGHT + ROW_HEIGHT / 2}
                 theme={theme}
+                lineStyle={dependencyLineStyle} // v0.17.310
                 // v0.17.140: Removed onDelete and onHoverChange - hover now handled by top layer
               />
             );
@@ -679,37 +682,53 @@ export function Timeline({
             const dx = x2 - x1;
             const midX = x1 + dx / 2;
 
-            // v0.17.154: Hover zone from t=0.10 to t=0.90 (80% of curve)
-            // Only 10% at each end is reserved for resize handles
-            // strokeWidth=12 → 6px from center each side
-            // FIX: Use correct cubic Bézier formula matching the actual line:
-            // Original: C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}
-            // Control points: P1=(midX, y1), P2=(midX, y2)
-            const cubicBezierPoint = (t: number) => {
-              // P0 = (x1, y1), P1 = (midX, y1), P2 = (midX, y2), P3 = (x2, y2)
-              const mt = 1 - t;
-              const mt2 = mt * mt;
-              const mt3 = mt2 * mt;
-              const t2 = t * t;
-              const t3 = t2 * t;
-              const px = mt3 * x1 + 3 * mt2 * t * midX + 3 * mt * t2 * midX + t3 * x2;
-              const py = mt3 * y1 + 3 * mt2 * t * y1 + 3 * mt * t2 * y2 + t3 * y2;
-              return { x: px, y: py };
-            };
+            // v0.17.322: Hover zone path now respects dependencyLineStyle
+            // For curved lines: use Bézier from t=0.10 to t=0.90 (80% of curve)
+            // For squared lines: use orthogonal path segments
+            let middlePath: string;
 
-            // Generate multiple points along the curve for accurate path
-            // More points = smoother curve that matches the original line exactly
-            const numPoints = 20;
-            const pathPoints: Array<{x: number, y: number}> = [];
-            for (let i = 0; i <= numPoints; i++) {
-              const t = 0.10 + (i / numPoints) * 0.80; // t from 0.10 to 0.90
-              pathPoints.push(cubicBezierPoint(t));
+            if (dependencyLineStyle === 'squared') {
+              // v0.17.322: Squared/orthogonal path - matches the actual rendered line
+              // Path: horizontal from x1 to midX, vertical from y1 to y2, horizontal from midX to x2
+              // Offset from endpoints by 10% to not block resize handles
+              const offsetX = Math.abs(dx) * 0.10;
+              const startX = x1 + offsetX;
+              const endX = x2 - offsetX;
+              middlePath = `M ${startX} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${endX} ${y2}`;
+            } else {
+              // Curved Bézier path (default)
+              // v0.17.154: Hover zone from t=0.10 to t=0.90 (80% of curve)
+              // Only 10% at each end is reserved for resize handles
+              // strokeWidth=12 → 6px from center each side
+              // FIX: Use correct cubic Bézier formula matching the actual line:
+              // Original: C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}
+              // Control points: P1=(midX, y1), P2=(midX, y2)
+              const cubicBezierPoint = (t: number) => {
+                // P0 = (x1, y1), P1 = (midX, y1), P2 = (midX, y2), P3 = (x2, y2)
+                const mt = 1 - t;
+                const mt2 = mt * mt;
+                const mt3 = mt2 * mt;
+                const t2 = t * t;
+                const t3 = t2 * t;
+                const px = mt3 * x1 + 3 * mt2 * t * midX + 3 * mt * t2 * midX + t3 * x2;
+                const py = mt3 * y1 + 3 * mt2 * t * y1 + 3 * mt * t2 * y2 + t3 * y2;
+                return { x: px, y: py };
+              };
+
+              // Generate multiple points along the curve for accurate path
+              // More points = smoother curve that matches the original line exactly
+              const numPoints = 20;
+              const pathPoints: Array<{x: number, y: number}> = [];
+              for (let i = 0; i <= numPoints; i++) {
+                const t = 0.10 + (i / numPoints) * 0.80; // t from 0.10 to 0.90
+                pathPoints.push(cubicBezierPoint(t));
+              }
+
+              // Create a polyline path through these points
+              const firstPoint = pathPoints[0]!;
+              middlePath = `M ${firstPoint.x} ${firstPoint.y} ` +
+                pathPoints.slice(1).map(p => `L ${p.x} ${p.y}`).join(' ');
             }
-
-            // Create a polyline path through these points
-            const firstPoint = pathPoints[0]!;
-            const middlePath = `M ${firstPoint.x} ${firstPoint.y} ` +
-              pathPoints.slice(1).map(p => `L ${p.x} ${p.y}`).join(' ');
 
             const isThisHovered = hoveredDependency &&
               hoveredDependency.x1 === x1 && hoveredDependency.y1 === y1 &&
@@ -731,6 +750,7 @@ export function Timeline({
                   setHoveredDependency({
                     x1, y1, x2, y2,
                     onDelete: () => onDependencyDelete?.(task.id, depId),
+                    lineStyle: dependencyLineStyle, // v0.17.322: Pass line style for hover layer rendering
                   });
                 }}
               />
@@ -781,12 +801,15 @@ export function Timeline({
         {/* v0.17.143: Premium hovered dependency layer - elegant glow + refined delete button */}
         {/* This renders AFTER tasks in the SVG, so it appears on top */}
         {hoveredDependency && (() => {
-          const { x1, y1, x2, y2, onDelete } = hoveredDependency;
+          const { x1, y1, x2, y2, onDelete, lineStyle: hoverLineStyle } = hoveredDependency;
           const dx = x2 - x1;
           const dy = y2 - y1;
           const midX = x1 + dx / 2;
           const midY = (y1 + y2) / 2;
-          const path = `M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}`;
+          // v0.17.321: Use lineStyle from hoveredDependency for consistent rendering
+          const path = hoverLineStyle === 'squared'
+            ? `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}`
+            : `M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}`;
           const arrowSize = 6;
           const angle = Math.atan2(dy, dx);
           const arrowX = x2 - arrowSize * Math.cos(angle - Math.PI / 6);

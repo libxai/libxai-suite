@@ -41,6 +41,19 @@ export interface GanttTranslations {
     compact: string;
     normal: string;
     spacious: string;
+    // v0.17.300: Task filter
+    filterAll: string;
+    filterIncomplete: string;
+    filterInProgress: string;
+    filterCompleted: string;
+    // v0.17.320: Filter dropdown enhancements
+    filter: string;
+    filterBy: string;
+    filterAllDesc: string;
+    filterIncompleteDesc: string;
+    filterInProgressDesc: string;
+    filterCompletedDesc: string;
+    clearFilter: string;
   };
 
   // v0.16.0: Context menu labels (right-click menu)
@@ -176,6 +189,19 @@ export const en: GanttTranslations = {
     compact: 'Compact',
     normal: 'Normal',
     spacious: 'Spacious',
+    // v0.17.300: Task filter
+    filterAll: 'All',
+    filterIncomplete: 'Incomplete',
+    filterInProgress: 'In Progress',
+    filterCompleted: 'Completed',
+    // v0.17.320: Filter dropdown enhancements
+    filter: 'Filter',
+    filterBy: 'Filter by status',
+    filterAllDesc: 'Show all tasks',
+    filterIncompleteDesc: 'Hide completed tasks',
+    filterInProgressDesc: 'Tasks currently being worked on',
+    filterCompletedDesc: 'Only show finished tasks',
+    clearFilter: 'Clear filter',
   },
 
   // v0.16.0: Context menu labels (right-click menu)
@@ -305,6 +331,19 @@ export const es: GanttTranslations = {
     compact: 'Compacto',
     normal: 'Normal',
     spacious: 'Espacioso',
+    // v0.17.300: Task filter
+    filterAll: 'Todas',
+    filterIncomplete: 'Sin completar',
+    filterInProgress: 'En progreso',
+    filterCompleted: 'Completadas',
+    // v0.17.320: Filter dropdown enhancements
+    filter: 'Filtrar',
+    filterBy: 'Filtrar por estado',
+    filterAllDesc: 'Mostrar todas las tareas',
+    filterIncompleteDesc: 'Ocultar tareas completadas',
+    filterInProgressDesc: 'Tareas en las que se está trabajando',
+    filterCompletedDesc: 'Solo mostrar tareas terminadas',
+    clearFilter: 'Limpiar filtro',
   },
 
   // v0.16.0: Context menu labels (right-click menu)

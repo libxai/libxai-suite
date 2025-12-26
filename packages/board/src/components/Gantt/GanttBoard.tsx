@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo, useContext, forwardRef, useImperativeHandle } from 'react';
-import { Task, TimeScale, Theme, GanttConfig, GanttColumn, ColumnType, RowDensity } from './types';
+import { Task, TimeScale, Theme, GanttConfig, GanttColumn, ColumnType, RowDensity, TaskFilterType } from './types';
 import { deriveThemeFromCSS } from './deriveThemeFromCSS';
 import { GanttToolbar } from './GanttToolbar';
 import { TaskGrid } from './TaskGrid';
@@ -75,6 +75,9 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     showCreateTaskButton = false,
     createTaskLabel,
     onCreateTask,
+    // v0.17.300: Task filter
+    taskFilter: externalTaskFilter,
+    onTaskFilterChange: externalOnTaskFilterChange,
     // UI events
     onThemeChange, // v0.9.0
     // Basic events
@@ -110,6 +113,11 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   const [timeScale, setTimeScale] = useState<TimeScale>(initialTimeScale);
   const [rowDensity, setRowDensity] = useState<RowDensity>(initialRowDensity);
   const [zoom, setZoom] = useState(1);
+
+  // v0.17.300: Task filter state (internal or controlled)
+  const [internalTaskFilter, setInternalTaskFilter] = useState<TaskFilterType>('all');
+  const taskFilter = externalTaskFilter ?? internalTaskFilter;
+  const setTaskFilter = externalOnTaskFilterChange ?? setInternalTaskFilter;
   const [scrollTop, setScrollTop] = useState(0);
   const [isResizing, setIsResizing] = useState(false);
   const [gridWidthOverride, setGridWidthOverride] = useState<number | null>(null);
@@ -397,6 +405,48 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
 
     return markCritical(localTasks);
   }, [localTasks, enableAutoCriticalPath]);
+
+  // v0.17.300: Filter tasks based on taskFilter state
+  const filteredTasks = useMemo((): Task[] => {
+    if (taskFilter === 'all') return tasksWithCriticalPath;
+
+    const filterTasksRecursively = (taskList: Task[]): Task[] => {
+      const result: Task[] = [];
+
+      for (const task of taskList) {
+        // Filter subtasks recursively
+        const filteredSubtasks = task.subtasks?.length
+          ? filterTasksRecursively(task.subtasks)
+          : undefined;
+
+        // Check if task matches filter
+        let matches = false;
+        switch (taskFilter) {
+          case 'incomplete':
+            matches = task.progress < 100;
+            break;
+          case 'in_progress':
+            matches = task.progress > 0 && task.progress < 100;
+            break;
+          case 'completed':
+            matches = task.progress === 100;
+            break;
+        }
+
+        // Include task if it matches OR has matching subtasks
+        if (matches || (filteredSubtasks && filteredSubtasks.length > 0)) {
+          result.push({
+            ...task,
+            subtasks: filteredSubtasks,
+          });
+        }
+      }
+
+      return result;
+    };
+
+    return filterTasksRecursively(tasksWithCriticalPath);
+  }, [tasksWithCriticalPath, taskFilter]);
 
   // Calculate row height based on density
   const rowHeight = getRowHeight(rowDensity);
@@ -1423,6 +1473,9 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         showCreateTaskButton={showCreateTaskButton}
         createTaskLabel={createTaskLabel}
         onCreateTask={onCreateTask}
+        // v0.17.300: Task filter
+        taskFilter={taskFilter}
+        onTaskFilterChange={setTaskFilter}
         // v0.12.0: Export handlers
         onExportPNG={showExportButton ? handleExportPNG : undefined}
         onExportPDF={showExportButton ? handleExportPDF : undefined}
@@ -1456,7 +1509,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
           }}
         >
           <TaskGrid
-            tasks={tasksWithCriticalPath}
+            tasks={filteredTasks}
             theme={theme}
             rowHeight={rowHeight}
             availableUsers={availableUsers}
@@ -1512,7 +1565,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
           }}
         >
           <Timeline
-            tasks={tasksWithCriticalPath}
+            tasks={filteredTasks}
             theme={theme}
             rowHeight={rowHeight}
             timeScale={timeScale}
@@ -1520,6 +1573,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
             endDate={endDate}
             zoom={zoom}
             templates={mergedTemplates}
+            dependencyLineStyle={config?.dependencyLineStyle} // v0.17.310
             onTaskClick={onTaskClick}
             onTaskDblClick={handleTaskDblClickInternal} // v0.10.0: Use internal handler that opens modal
             onTaskContextMenu={handleTaskContextMenu} // v0.8.0: Now uses our handler for Split feature
