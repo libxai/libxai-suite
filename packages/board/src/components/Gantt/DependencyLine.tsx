@@ -34,25 +34,62 @@ interface DependencyLineProps {
 export function DependencyLine({ x1, y1, x2, y2, theme, onDelete, onHoverChange, lineStyle = 'curved' }: DependencyLineProps) {
   const [isHovered, setIsHovered] = useState(false);
 
-  // Calculate control points for smooth Bézier curve
+  // v0.17.341: ClickUp-style dependency lines - pass BELOW task bars, not through them
+  // y1 and y2 now represent the CENTER of each task bar (passed from Timeline)
+  // The line goes: right from origin → down below bar → horizontal → up to destination → left into destination
+
   const dx = x2 - x1;
   const dy = y2 - y1;
   const midX = x1 + dx / 2;
 
-  // v0.17.310: Support for curved or squared line styles
-  // Curved: Elegant S-curve Bézier path
-  // Squared: Right-angle orthogonal path
-  const path = lineStyle === 'squared'
-    ? `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}`
-    : `M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}`;
+  // Calculate the vertical offset to pass below/above the bars
+  // Lines should pass in the space between rows, not through the bars
+  const verticalOffset = 24; // Distance below the bar center to route the line
+  const horizontalOffset = 8; // Small horizontal segment at start/end
 
-  // Arrow marker at the end
+  // Determine if destination is below or above origin
+  const goingDown = y2 > y1;
+  const sameLine = Math.abs(dy) < 10;
+
+  let path: string;
+
+  if (lineStyle === 'squared') {
+    // v0.17.341: Squared ClickUp-style path - clean right angles, passes below bars
+    if (sameLine) {
+      // Same row - simple horizontal line
+      path = `M ${x1} ${y1} L ${x2} ${y2}`;
+    } else {
+      // Different rows - route below/between the bars
+      const routeY = goingDown
+        ? Math.max(y1, y2) + verticalOffset  // Route below the lower bar
+        : Math.min(y1, y2) - verticalOffset; // Route above the higher bar (but still below for visual consistency)
+
+      // Path: right → down → horizontal → up → right into target
+      path = `M ${x1} ${y1} L ${x1 + horizontalOffset} ${y1} L ${x1 + horizontalOffset} ${routeY} L ${x2 - horizontalOffset} ${routeY} L ${x2 - horizontalOffset} ${y2} L ${x2} ${y2}`;
+    }
+  } else {
+    // v0.17.341: Curved ClickUp-style path - smooth curves that pass below bars
+    if (sameLine) {
+      // Same row - simple curved line
+      path = `M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}`;
+    } else {
+      // Different rows - smooth curve that dips below the bars
+      const routeY = goingDown
+        ? y2 + verticalOffset  // Curve passes below destination bar
+        : y1 + verticalOffset; // Curve passes below origin bar
+
+      // Smooth S-curve that goes around the bars
+      path = `M ${x1} ${y1} C ${x1 + horizontalOffset * 2} ${y1}, ${x1 + horizontalOffset * 2} ${routeY}, ${midX} ${routeY} S ${x2 - horizontalOffset * 2} ${y2}, ${x2} ${y2}`;
+    }
+  }
+
+  // Arrow marker at the end - pointing left (into the target bar)
   const arrowSize = 6;
-  const angle = Math.atan2(dy, dx);
-  const arrowX = x2 - arrowSize * Math.cos(angle - Math.PI / 6);
-  const arrowY = y2 - arrowSize * Math.sin(angle - Math.PI / 6);
-  const arrowX2 = x2 - arrowSize * Math.cos(angle + Math.PI / 6);
-  const arrowY2 = y2 - arrowSize * Math.sin(angle + Math.PI / 6);
+  // Arrow always points horizontally to the left (into the target)
+  const arrowX = x2 - arrowSize;
+  const arrowY = y2 - arrowSize * 0.5;
+  const arrowX2 = x2 - arrowSize;
+  const arrowY2 = y2 + arrowSize * 0.5;
 
   // Dependencies are always gray - critical path only affects TASK BARS, not dependency lines
   const lineColor = theme.dependency;

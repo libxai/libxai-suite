@@ -507,13 +507,18 @@ export function Timeline({
             const fromPos = getTaskPosition(depTask);
             const toPos = getTaskPosition(task);
 
+            // v0.17.341: ClickUp-style - y coordinates are center of task bars
+            // TaskBar y = index * ROW_HEIGHT + 12, height = 32, so center = index * ROW_HEIGHT + 28
+            const taskBarCenterY1 = fromIndex * ROW_HEIGHT + 28;
+            const taskBarCenterY2 = toIndex * ROW_HEIGHT + 28;
+
             return (
               <DependencyLine
                 key={`dep-${depId}-${task.id}`}
                 x1={fromPos.x + fromPos.width}
-                y1={fromIndex * ROW_HEIGHT + ROW_HEIGHT / 2}
+                y1={taskBarCenterY1}
                 x2={toPos.x}
-                y2={toIndex * ROW_HEIGHT + ROW_HEIGHT / 2}
+                y2={taskBarCenterY2}
                 theme={theme}
                 lineStyle={dependencyLineStyle} // v0.17.310
                 // v0.17.140: Removed onDelete and onHoverChange - hover now handled by top layer
@@ -675,61 +680,55 @@ export function Timeline({
             const fromPos = getTaskPosition(depTask);
             const toPos = getTaskPosition(task);
 
+            // v0.17.341: Use center of task bars for coordinates (same as DependencyLine)
             const x1 = fromPos.x + fromPos.width;
-            const y1 = fromIndex * ROW_HEIGHT + ROW_HEIGHT / 2;
+            const y1 = fromIndex * ROW_HEIGHT + 28; // Center of task bar
             const x2 = toPos.x;
-            const y2 = toIndex * ROW_HEIGHT + ROW_HEIGHT / 2;
+            const y2 = toIndex * ROW_HEIGHT + 28; // Center of task bar
             const dx = x2 - x1;
-            const midX = x1 + dx / 2;
+            const dy = y2 - y1;
 
-            // v0.17.322: Hover zone path now respects dependencyLineStyle
-            // For curved lines: use Bézier from t=0.10 to t=0.90 (80% of curve)
-            // For squared lines: use orthogonal path segments
+            // v0.17.341: ClickUp-style hover path - matches the actual rendered line path
+            const verticalOffset = 24;
+            const horizontalOffset = 8;
+            const goingDown = y2 > y1;
+            const sameLine = Math.abs(dy) < 10;
+
             let middlePath: string;
 
             if (dependencyLineStyle === 'squared') {
-              // v0.17.322: Squared/orthogonal path - matches the actual rendered line
-              // Path: horizontal from x1 to midX, vertical from y1 to y2, horizontal from midX to x2
-              // v0.17.340: Offset 35px to not block Link button hit area (14px radius at x+width+18)
-              const minOffset = 35;
-              const percentOffset = Math.abs(dx) * 0.20;
-              const offsetX = Math.max(minOffset, percentOffset);
-              const startX = x1 + offsetX;
-              const endX = x2 - Math.min(15, Math.abs(dx) * 0.10); // Small offset at destination for resize handle
-              middlePath = `M ${startX} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${endX} ${y2}`;
-            } else {
-              // Curved Bézier path (default)
-              // v0.17.340: Hover zone from t=0.25 to t=0.90 to not block Link button hit area
-              // strokeWidth=12 → 6px from center each side
-              // FIX: Use correct cubic Bézier formula matching the actual line:
-              // Original: C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}
-              // Control points: P1=(midX, y1), P2=(midX, y2)
-              const cubicBezierPoint = (t: number) => {
-                // P0 = (x1, y1), P1 = (midX, y1), P2 = (midX, y2), P3 = (x2, y2)
-                const mt = 1 - t;
-                const mt2 = mt * mt;
-                const mt3 = mt2 * mt;
-                const t2 = t * t;
-                const t3 = t2 * t;
-                const px = mt3 * x1 + 3 * mt2 * t * midX + 3 * mt * t2 * midX + t3 * x2;
-                const py = mt3 * y1 + 3 * mt2 * t * y1 + 3 * mt * t2 * y2 + t3 * y2;
-                return { x: px, y: py };
-              };
-
-              // Generate multiple points along the curve for accurate path
-              // More points = smoother curve that matches the original line exactly
-              const numPoints = 20;
-              const pathPoints: Array<{x: number, y: number}> = [];
-              for (let i = 0; i <= numPoints; i++) {
-                // v0.17.340: Start at t=0.25 to leave room for Link button hit area (was 0.20)
-                const t = 0.25 + (i / numPoints) * 0.65; // t from 0.25 to 0.90
-                pathPoints.push(cubicBezierPoint(t));
+              // v0.17.341: Squared ClickUp-style hover path
+              if (sameLine) {
+                // Same row - horizontal line with offset from endpoints
+                const startX = x1 + 35; // Offset to not block Link button
+                const endX = x2 - 15;
+                middlePath = `M ${startX} ${y1} L ${endX} ${y2}`;
+              } else {
+                const routeY = goingDown
+                  ? Math.max(y1, y2) + verticalOffset
+                  : Math.min(y1, y2) - verticalOffset;
+                // Hover on the horizontal segment in the middle
+                const startX = x1 + horizontalOffset + 30; // Offset to not block Link button
+                const endX = x2 - horizontalOffset - 10;
+                middlePath = `M ${startX} ${routeY} L ${endX} ${routeY}`;
               }
-
-              // Create a polyline path through these points
-              const firstPoint = pathPoints[0]!;
-              middlePath = `M ${firstPoint.x} ${firstPoint.y} ` +
-                pathPoints.slice(1).map(p => `L ${p.x} ${p.y}`).join(' ');
+            } else {
+              // v0.17.341: Curved ClickUp-style hover path
+              if (sameLine) {
+                const midX = x1 + dx / 2;
+                const startX = x1 + 35;
+                const endX = x2 - 15;
+                middlePath = `M ${startX} ${y1} Q ${midX} ${y1 + 10}, ${endX} ${y2}`;
+              } else {
+                const midX = x1 + dx / 2;
+                const routeY = goingDown
+                  ? y2 + verticalOffset
+                  : y1 + verticalOffset;
+                // Hover on the curved middle section
+                const startX = x1 + 35;
+                const endX = x2 - 15;
+                middlePath = `M ${startX} ${(y1 + routeY) / 2} Q ${midX} ${routeY}, ${endX} ${(y2 + routeY) / 2}`;
+              }
             }
 
             const isThisHovered = hoveredDependency &&
@@ -813,146 +812,86 @@ export function Timeline({
 
         {/* v0.17.143: Premium hovered dependency layer - elegant glow + refined delete button */}
         {/* v0.17.323: Delete button now follows cursor along the line (ClickUp style) */}
+        {/* v0.17.341: Updated to use ClickUp-style path that passes below task bars */}
         {/* This renders AFTER tasks in the SVG, so it appears on top */}
         {hoveredDependency && (() => {
           const { x1, y1, x2, y2, onDelete, lineStyle: hoverLineStyle, mouseX, mouseY } = hoveredDependency;
           const dx = x2 - x1;
           const dy = y2 - y1;
           const midX = x1 + dx / 2;
-          // v0.17.321: Use lineStyle from hoveredDependency for consistent rendering
-          const path = hoverLineStyle === 'squared'
-            ? `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}`
-            : `M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}`;
+
+          // v0.17.341: ClickUp-style path calculation - same as DependencyLine
+          const verticalOffset = 24;
+          const horizontalOffset = 8;
+          const goingDown = y2 > y1;
+          const sameLine = Math.abs(dy) < 10;
+
+          let path: string;
+          if (hoverLineStyle === 'squared') {
+            if (sameLine) {
+              path = `M ${x1} ${y1} L ${x2} ${y2}`;
+            } else {
+              const routeY = goingDown
+                ? Math.max(y1, y2) + verticalOffset
+                : Math.min(y1, y2) - verticalOffset;
+              path = `M ${x1} ${y1} L ${x1 + horizontalOffset} ${y1} L ${x1 + horizontalOffset} ${routeY} L ${x2 - horizontalOffset} ${routeY} L ${x2 - horizontalOffset} ${y2} L ${x2} ${y2}`;
+            }
+          } else {
+            if (sameLine) {
+              path = `M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}`;
+            } else {
+              const routeY = goingDown
+                ? y2 + verticalOffset
+                : y1 + verticalOffset;
+              path = `M ${x1} ${y1} C ${x1 + horizontalOffset * 2} ${y1}, ${x1 + horizontalOffset * 2} ${routeY}, ${midX} ${routeY} S ${x2 - horizontalOffset * 2} ${y2}, ${x2} ${y2}`;
+            }
+          }
+
+          // Arrow pointing horizontally into target
           const arrowSize = 6;
-          const angle = Math.atan2(dy, dx);
-          const arrowX = x2 - arrowSize * Math.cos(angle - Math.PI / 6);
-          const arrowY = y2 - arrowSize * Math.sin(angle - Math.PI / 6);
-          const arrowX2 = x2 - arrowSize * Math.cos(angle + Math.PI / 6);
-          const arrowY2 = y2 - arrowSize * Math.sin(angle + Math.PI / 6);
+          const arrowX = x2 - arrowSize;
+          const arrowY = y2 - arrowSize * 0.5;
+          const arrowX2 = x2 - arrowSize;
+          const arrowY2 = y2 + arrowSize * 0.5;
           const lineColor = theme.dependency;
           // Premium soft red - less aggressive, more SaaS-friendly
           const deleteColor = '#f87171';
           const deleteColorSoft = 'rgba(248, 113, 113, 0.15)';
 
-          // v0.17.323: Calculate delete button position - project mouse position onto line
+          // v0.17.341: Calculate delete button position - on the horizontal segment below bars
+          const routeY = goingDown
+            ? Math.max(y1, y2) + verticalOffset
+            : Math.min(y1, y2) - verticalOffset;
+
+          // Default position: center of the horizontal segment
           let deleteX = midX;
-          let deleteY = (y1 + y2) / 2;
-          let hideDeleteButton = false; // v0.17.324: Hide when over task bars
+          let deleteY = sameLine ? (y1 + y2) / 2 : routeY;
+          let hideDeleteButton = false;
 
-          if (mouseX !== undefined && mouseY !== undefined) {
-            if (hoverLineStyle === 'squared') {
-              // For squared lines: snap to the closest point on the orthogonal path
-              // The path is: horizontal (x1→midX at y1), vertical (y1→y2 at midX), horizontal (midX→x2 at y2)
-              const distToHorizontal1 = Math.abs(mouseY - y1);
-              const distToHorizontal2 = Math.abs(mouseY - y2);
+          // If mouse position available, follow it along the horizontal segment
+          if (mouseX !== undefined && mouseY !== undefined && !sameLine) {
+            // Clamp X to the horizontal segment
+            deleteX = Math.max(x1 + horizontalOffset + 20, Math.min(x2 - horizontalOffset - 20, mouseX));
+            deleteY = routeY;
+          } else if (mouseX !== undefined && sameLine) {
+            deleteX = Math.max(x1 + 20, Math.min(x2 - 20, mouseX));
+            deleteY = (y1 + y2) / 2;
+          }
 
-              // Determine which segment the mouse is closest to
-              if (mouseX < midX - 5 && distToHorizontal1 < 30) {
-                // On first horizontal segment
-                deleteX = Math.max(x1 + 10, Math.min(midX - 10, mouseX));
-                deleteY = y1;
-              } else if (mouseX > midX + 5 && distToHorizontal2 < 30) {
-                // On second horizontal segment
-                deleteX = Math.max(midX + 10, Math.min(x2 - 10, mouseX));
-                deleteY = y2;
-              } else {
-                // On vertical segment
-                deleteX = midX;
-                deleteY = Math.max(Math.min(y1, y2) + 10, Math.min(Math.max(y1, y2) - 10, mouseY));
-              }
-            } else {
-              // v0.17.325: For curved lines - SMOOTH fluid projection onto Bézier curve
-              // Uses high-resolution sampling + binary search refinement for fluid movement
-              const cubicBezierPoint = (t: number) => {
-                const mt = 1 - t;
-                const mt2 = mt * mt;
-                const mt3 = mt2 * mt;
-                const t2 = t * t;
-                const t3 = t2 * t;
-                const px = mt3 * x1 + 3 * mt2 * t * midX + 3 * mt * t2 * midX + t3 * x2;
-                const py = mt3 * y1 + 3 * mt2 * t * y1 + 3 * mt * t2 * y2 + t3 * y2;
-                return { x: px, y: py };
-              };
-
-              // Distance squared function (avoids sqrt for performance)
-              const distSq = (t: number) => {
-                const pt = cubicBezierPoint(t);
-                return (pt.x - mouseX) ** 2 + (pt.y - mouseY) ** 2;
-              };
-
-              // Step 1: Coarse sampling to find approximate region (100 samples for smooth initial)
-              let closestT = 0.5;
-              let closestDistSq = Infinity;
-              const numSamples = 100;
-              for (let i = 0; i <= numSamples; i++) {
-                const t = 0.05 + (i / numSamples) * 0.9; // t from 0.05 to 0.95
-                const d = distSq(t);
-                if (d < closestDistSq) {
-                  closestDistSq = d;
-                  closestT = t;
-                }
-              }
-
-              // Step 2: Binary search refinement for sub-pixel precision (8 iterations)
-              // This makes the movement fluid by finding the exact closest point
-              let searchRadius = 0.9 / numSamples; // Start with distance between samples
-              for (let iter = 0; iter < 8; iter++) {
-                const tLeft = Math.max(0.05, closestT - searchRadius);
-                const tRight = Math.min(0.95, closestT + searchRadius);
-                const dLeft = distSq(tLeft);
-                const dRight = distSq(tRight);
-                const dMid = distSq(closestT);
-
-                if (dLeft < dMid && dLeft < dRight) {
-                  closestT = tLeft;
-                  closestDistSq = dLeft;
-                } else if (dRight < dMid && dRight < dLeft) {
-                  closestT = tRight;
-                  closestDistSq = dRight;
-                }
-                searchRadius *= 0.5; // Halve search radius each iteration
-              }
-
-              // Step 3: Final golden section search for maximum precision
-              // This ensures perfectly smooth movement along the curve
-              let a = Math.max(0.05, closestT - searchRadius * 4);
-              let b = Math.min(0.95, closestT + searchRadius * 4);
-              const goldenRatio = 0.618033988749895;
-
-              for (let iter = 0; iter < 6; iter++) {
-                const c = b - goldenRatio * (b - a);
-                const d = a + goldenRatio * (b - a);
-                if (distSq(c) < distSq(d)) {
-                  b = d;
-                } else {
-                  a = c;
-                }
-              }
-              closestT = (a + b) / 2;
-
-              const closestPoint = cubicBezierPoint(closestT);
-              deleteX = closestPoint.x;
-              deleteY = closestPoint.y;
-            }
-
-            // v0.17.329: Check if delete button would overlap with task bar OR its controls
-            // Includes: resize handles (left -15px), task bar, Link button area (right +50px)
-            const rowIndex = Math.floor(deleteY / ROW_HEIGHT);
-            if (rowIndex >= 0 && rowIndex < flatTasks.length) {
-              const taskInRow = flatTasks[rowIndex];
-              if (taskInRow && taskInRow.startDate && taskInRow.endDate) {
-                const taskPos = getTaskPosition(taskInRow);
-                // Task bar Y position: rowIndex * ROW_HEIGHT + 12, height: 32
-                const taskBarTop = rowIndex * ROW_HEIGHT + 12;
-                const taskBarBottom = taskBarTop + 32;
-                // Extended X range: left resize handle (-15) to Link button area (+50)
-                const extendedLeft = taskPos.x - 15;
-                const extendedRight = taskPos.x + taskPos.width + 50;
-                // Check if deleteX is within extended range and deleteY is within task bar Y range
-                if (deleteX >= extendedLeft && deleteX <= extendedRight &&
-                    deleteY >= taskBarTop - 5 && deleteY <= taskBarBottom + 5) {
-                  hideDeleteButton = true;
-                }
+          // v0.17.341: Hide delete button only if it would overlap with task bars
+          // Since lines now pass BELOW bars, this should rarely happen
+          const rowIndex = Math.floor(deleteY / ROW_HEIGHT);
+          if (rowIndex >= 0 && rowIndex < flatTasks.length) {
+            const taskInRow = flatTasks[rowIndex];
+            if (taskInRow && taskInRow.startDate && taskInRow.endDate) {
+              const taskPos = getTaskPosition(taskInRow);
+              const taskBarTop = rowIndex * ROW_HEIGHT + 12;
+              const taskBarBottom = taskBarTop + 32;
+              const extendedLeft = taskPos.x - 15;
+              const extendedRight = taskPos.x + taskPos.width + 50;
+              if (deleteX >= extendedLeft && deleteX <= extendedRight &&
+                  deleteY >= taskBarTop - 5 && deleteY <= taskBarBottom + 5) {
+                hideDeleteButton = true;
               }
             }
           }
