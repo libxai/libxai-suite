@@ -468,9 +468,7 @@ export function TaskBar({
   // v0.17.30: Removed tooltipText - native SVG <title> replaced by custom tooltip
   const customClass = templates.taskClass(task);
 
-  // v0.17.332: Senior frontend approach - single unified hover container
-  // The key insight: we need ONE continuous hoverable area that includes the Link button zone
-  // All interactive elements are children, hover state is maintained by the container
+  // v0.17.333: Simple approach - invisible hover extension rect + group handlers
 
   return (
     <g
@@ -486,43 +484,24 @@ export function TaskBar({
         e.preventDefault();
         onContextMenu?.(task, e as any);
       }}
+      onMouseEnter={() => !isDragging && setIsHovered(true)}
+      onMouseLeave={() => {
+        if (!isDragging) {
+          setIsHovered(false);
+          setActiveZone(null);
+        }
+      }}
     >
-      {/* v0.17.332: MASTER HOVER ZONE - This is the ONLY element that controls hover state */}
-      {/* It covers: task bar + resize handles + gap + Link button + Link text */}
-      {/* All other elements are visual or action-only (no hover control) */}
+      {/* v0.17.333: Hover extension area - expands hoverable zone to include Link button */}
+      {/* This rect extends the group's hoverable area to the right */}
       {!task.segments && (
         <rect
-          x={x - 15}
-          y={y - 5}
-          width={width + 15 + 60}
-          height={height + 10}
-          fill="transparent"
-          style={{ pointerEvents: 'all' }}
-          onMouseEnter={() => !isDragging && setIsHovered(true)}
-          onMouseLeave={() => {
-            if (!isDragging) {
-              setIsHovered(false);
-              setActiveZone(null);
-            }
-          }}
-        />
-      )}
-      {/* Fallback for split tasks */}
-      {task.segments && (
-        <rect
-          x={x}
+          x={x + width}
           y={y}
-          width={width}
+          width={50}
           height={height}
           fill="transparent"
           style={{ pointerEvents: 'all' }}
-          onMouseEnter={() => !isDragging && setIsHovered(true)}
-          onMouseLeave={() => {
-            if (!isDragging) {
-              setIsHovered(false);
-              setActiveZone(null);
-            }
-          }}
         />
       )}
       {/* v0.17.30: Removed native SVG <title> tooltip - using custom tooltip instead (lines ~1025-1162) */}
@@ -1313,6 +1292,7 @@ export function TaskBar({
           );
         })()}
       </AnimatePresence>
+
     </g>
   );
 }
