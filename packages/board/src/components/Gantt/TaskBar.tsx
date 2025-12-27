@@ -468,7 +468,9 @@ export function TaskBar({
   // v0.17.30: Removed tooltipText - native SVG <title> replaced by custom tooltip
   const customClass = templates.taskClass(task);
 
-  // v0.17.333: Simple approach - invisible hover extension rect + group handlers
+  // v0.17.334: Definitive solution - proper hover zone with visible fill for bounding box
+  // Key insight: transparent fill doesn't contribute to SVG group bounding box
+  // Using near-invisible fill (opacity 0.001) ensures the rect is part of the hover area
 
   return (
     <g
@@ -492,15 +494,29 @@ export function TaskBar({
         }
       }}
     >
-      {/* v0.17.333: Hover extension area - expands hoverable zone to include Link button */}
-      {/* This rect extends the group's hoverable area to the right */}
+      {/* v0.17.334: Hover extension zone - MUST have near-invisible fill (not transparent) */}
+      {/* This extends the group bounding box to include the Link button area */}
+      {/* Using fill with tiny opacity so it counts as visual content for bounding box */}
       {!task.segments && (
         <rect
-          x={x + width}
+          x={x - 10}
+          y={y - 5}
+          width={width + 10 + 55}
+          height={height + 10}
+          fill="#000000"
+          fillOpacity={0.001}
+          style={{ pointerEvents: 'all' }}
+        />
+      )}
+      {/* Hover extension for split tasks */}
+      {task.segments && (
+        <rect
+          x={x}
           y={y}
-          width={50}
+          width={width}
           height={height}
-          fill="transparent"
+          fill="#000000"
+          fillOpacity={0.001}
           style={{ pointerEvents: 'all' }}
         />
       )}
