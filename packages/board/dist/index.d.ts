@@ -2324,23 +2324,22 @@ interface DependencyLineProps {
     isHoverLayer?: boolean;
 }
 /**
- * v0.17.363: TRUE ClickUp-style dependency line routing
+ * v0.17.364: TRUE ClickUp-style dependency line routing
  *
  * RULES:
  * 1. Lines ALWAYS exit from the RIGHT side of the source bar
  * 2. Lines ALWAYS enter from the LEFT side of the destination bar
- * 3. The vertical segment is placed BEFORE (to the left of) the destination bar
+ * 3. The vertical segment is ALWAYS placed to the LEFT of the destination bar
  *
  * Pattern: source(right) → horizontal → vertical → horizontal → destination(left)
  *
- * For FORWARD dependencies (destination is to the right of source):
- *   Exit right → go horizontal to turnX → turn down/up → go to destination Y → turn right → enter left
- *   turnX = x2 - OFFSET (just before destination)
+ * For FORWARD dependencies (x2 > x1, destination RIGHT of source):
+ *   The vertical segment is just before destination: turnX = x2 - OFFSET
+ *   Path: right → horizontal → down/up → right into destination
  *
- * For BACKWARD dependencies (destination is to the left of source):
- *   Exit right → short horizontal → turn down/up → go to destination Y → turn LEFT → enter left
- *   turnX = x2 - OFFSET (still before destination, which is now to the left)
- *   This means we go RIGHT first, then DOWN, then LEFT to reach destination
+ * For BACKWARD dependencies (x2 <= x1, destination LEFT of or at same X as source):
+ *   The vertical segment must still be LEFT of destination: turnX = x2 - OFFSET
+ *   Path: right → horizontal past source → down/up → LEFT back to destination
  */
 declare function DependencyLine({ x1, y1, x2, y2, theme, onDelete, lineStyle, isHoverLayer, }: DependencyLineProps): react_jsx_runtime.JSX.Element;
 

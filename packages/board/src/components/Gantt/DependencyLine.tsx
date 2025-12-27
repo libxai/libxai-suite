@@ -32,23 +32,22 @@ interface DependencyLineProps {
 }
 
 /**
- * v0.17.363: TRUE ClickUp-style dependency line routing
+ * v0.17.364: TRUE ClickUp-style dependency line routing
  *
  * RULES:
  * 1. Lines ALWAYS exit from the RIGHT side of the source bar
  * 2. Lines ALWAYS enter from the LEFT side of the destination bar
- * 3. The vertical segment is placed BEFORE (to the left of) the destination bar
+ * 3. The vertical segment is ALWAYS placed to the LEFT of the destination bar
  *
  * Pattern: source(right) → horizontal → vertical → horizontal → destination(left)
  *
- * For FORWARD dependencies (destination is to the right of source):
- *   Exit right → go horizontal to turnX → turn down/up → go to destination Y → turn right → enter left
- *   turnX = x2 - OFFSET (just before destination)
+ * For FORWARD dependencies (x2 > x1, destination RIGHT of source):
+ *   The vertical segment is just before destination: turnX = x2 - OFFSET
+ *   Path: right → horizontal → down/up → right into destination
  *
- * For BACKWARD dependencies (destination is to the left of source):
- *   Exit right → short horizontal → turn down/up → go to destination Y → turn LEFT → enter left
- *   turnX = x2 - OFFSET (still before destination, which is now to the left)
- *   This means we go RIGHT first, then DOWN, then LEFT to reach destination
+ * For BACKWARD dependencies (x2 <= x1, destination LEFT of or at same X as source):
+ *   The vertical segment must still be LEFT of destination: turnX = x2 - OFFSET
+ *   Path: right → horizontal past source → down/up → LEFT back to destination
  */
 export function DependencyLine({
   x1, y1, x2, y2,
@@ -85,46 +84,52 @@ export function DependencyLine({
     }
   } else {
     // Different rows - need routing
-    // CRITICAL: turnX is ALWAYS to the LEFT of the destination bar
-    // This ensures we ALWAYS enter from the left
+    // The vertical segment MUST be to the LEFT of the destination (x2)
+    // This is the KEY insight: turnX = x2 - OFFSET, ALWAYS
     turnX = x2 - OFFSET;
 
-    // But we need to ensure turnX is not behind the source exit
-    // If destination is way to the left, we need to go right first, then back left
-    const needsExtraSegment = turnX < x1 + OFFSET;
+    // Check if destination is to the LEFT of or very close to source
+    // In this case, we need to go RIGHT first (past source), then come back LEFT
+    const isBackward = x2 <= x1;
 
-    if (needsExtraSegment) {
-      // Backward dependency: destination is to the left
-      // We need: exit right → horizontal right → vertical → horizontal LEFT → enter left
-      const midX = x1 + OFFSET; // Go right first
+    if (isBackward) {
+      // BACKWARD dependency: destination is to the LEFT of source
+      // We exit right, go a bit further right, then go down/up, then go LEFT to destination
+      // The vertical segment should be at x2 - OFFSET (left of destination)
+      // But we need to go RIGHT first before we can go down and then left
+
+      // First horizontal: go right from source exit
+      const exitPadding = 15; // How far right to go before turning
+      const firstTurnX = x1 + exitPadding;
+
+      turnX = firstTurnX; // For delete button positioning
 
       if (lineStyle === 'squared') {
         path = `M ${x1} ${y1} ` +
-               `L ${midX} ${y1} ` +           // Horizontal right
-               `L ${midX} ${y2} ` +           // Vertical
-               `L ${x2} ${y2}`;               // Horizontal left to destination
+               `L ${firstTurnX} ${y1} ` +          // Go right a bit
+               `L ${firstTurnX} ${y2} ` +          // Go down/up to destination row
+               `L ${x2} ${y2}`;                    // Go LEFT to destination
       } else {
-        // Curved version
+        // Curved version with two turns
         if (goingDown) {
           path = `M ${x1} ${y1} ` +
-                 `L ${midX - r} ${y1} ` +
-                 `Q ${midX} ${y1} ${midX} ${y1 + r} ` +
-                 `L ${midX} ${y2 - r} ` +
-                 `Q ${midX} ${y2} ${midX - r} ${y2} ` +
+                 `L ${firstTurnX - r} ${y1} ` +
+                 `Q ${firstTurnX} ${y1} ${firstTurnX} ${y1 + r} ` +   // Turn down
+                 `L ${firstTurnX} ${y2 - r} ` +
+                 `Q ${firstTurnX} ${y2} ${firstTurnX - r} ${y2} ` +   // Turn left
                  `L ${x2} ${y2}`;
         } else {
           path = `M ${x1} ${y1} ` +
-                 `L ${midX - r} ${y1} ` +
-                 `Q ${midX} ${y1} ${midX} ${y1 - r} ` +
-                 `L ${midX} ${y2 + r} ` +
-                 `Q ${midX} ${y2} ${midX - r} ${y2} ` +
+                 `L ${firstTurnX - r} ${y1} ` +
+                 `Q ${firstTurnX} ${y1} ${firstTurnX} ${y1 - r} ` +   // Turn up
+                 `L ${firstTurnX} ${y2 + r} ` +
+                 `Q ${firstTurnX} ${y2} ${firstTurnX - r} ${y2} ` +   // Turn left
                  `L ${x2} ${y2}`;
         }
       }
-      turnX = midX; // For delete button positioning
     } else {
-      // Forward dependency: destination is to the right
-      // turnX is just before destination
+      // FORWARD dependency: destination is to the RIGHT of source
+      // turnX is just before destination (to the left of it)
       if (lineStyle === 'squared') {
         path = `M ${x1} ${y1} ` +
                `L ${turnX} ${y1} ` +
