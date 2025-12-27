@@ -922,6 +922,20 @@ export function TaskBar({
         </>
       )}
 
+      {/* v0.17.326: Invisible hover bridge - connects task bar to Link button for fluid hover */}
+      {/* This rect is always rendered to maintain hover state when moving mouse to Link button */}
+      {!isDragging && !task.segments && (
+        <rect
+          x={x + width}
+          y={y}
+          width={50}
+          height={height}
+          fill="transparent"
+          style={{ pointerEvents: 'all', cursor: 'default' }}
+          onMouseEnter={() => setIsHovered(true)}
+        />
+      )}
+
       {/* Connection Handle (right side, Shift+Click) - v0.8.1: Disabled for split tasks (segments are independent) */}
       <AnimatePresence>
         {isHovered && !isDragging && !task.segments && (
@@ -931,7 +945,20 @@ export function TaskBar({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
+            onMouseEnter={() => setIsHovered(true)}
           >
+            <motion.circle
+              cx={x + width + 18}
+              cy={y + height / 2}
+              r={10}
+              fill="transparent"
+              style={{ cursor: 'crosshair', pointerEvents: 'all' }}
+              onMouseEnter={() => setIsHovered(true)}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                handleMouseDown(e as any, 'connect');
+              }}
+            />
             <motion.circle
               cx={x + width + 18}
               cy={y + height / 2}
@@ -952,7 +979,7 @@ export function TaskBar({
                 e.stopPropagation();
                 handleMouseDown(e as any, 'connect');
               }}
-              style={{ cursor: 'crosshair' }}
+              style={{ cursor: 'crosshair', pointerEvents: 'none' }}
             />
             {/* Tooltip hint */}
             <text
