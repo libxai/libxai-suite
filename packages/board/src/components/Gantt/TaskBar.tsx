@@ -870,27 +870,19 @@ export function TaskBar({
               fill="#000000"
               fillOpacity={0.001}
             />
-            {/* Visual indicator - changes on hover */}
+            {/* Visual indicator - subtle line inside the bar like ClickUp */}
             <motion.rect
-              x={isSmallBar ? displayX - 8 : displayX - 3}
-              y={y + 6}
-              width={isSmallBar ? 8 : 6}
-              height={isSmallBar ? height - 12 : height - 16}
-              rx={3}
-              fill={activeZone === 'resize-start' || dragMode === 'resize-start' ? theme.accent : theme.taskBarHandle}
-              stroke={activeZone === 'resize-start' || dragMode === 'resize-start' ? theme.accent : theme.taskBarPrimary}
-              strokeWidth={1.5}
-              initial={{ opacity: 0, scale: 0 }}
+              x={displayX + 4}
+              y={y + 8}
+              width={3}
+              height={height - 16}
+              rx={1.5}
+              fill={activeZone === 'resize-start' || dragMode === 'resize-start' ? '#ffffff' : 'rgba(255,255,255,0.4)'}
+              initial={{ opacity: 0 }}
               animate={{
-                opacity: 1,
-                scale: activeZone === 'resize-start' || dragMode === 'resize-start' ? 1.3 : 1
+                opacity: activeZone === 'resize-start' || dragMode === 'resize-start' ? 1 : 0.7
               }}
-              transition={{
-                duration: 0.15,
-                type: 'spring',
-                stiffness: 500,
-                damping: 30,
-              }}
+              transition={{ duration: 0.15 }}
               style={{ pointerEvents: 'none' }}
             />
           </g>
@@ -917,27 +909,19 @@ export function TaskBar({
               fill="#000000"
               fillOpacity={0.001}
             />
-            {/* Visual indicator - changes on hover */}
+            {/* Visual indicator - subtle line inside the bar like ClickUp */}
             <motion.rect
-              x={isSmallBar ? displayX + displayWidth : displayX + displayWidth - 3}
-              y={y + 6}
-              width={isSmallBar ? 8 : 6}
-              height={isSmallBar ? height - 12 : height - 16}
-              rx={3}
-              fill={activeZone === 'resize-end' || dragMode === 'resize-end' ? theme.accent : theme.taskBarHandle}
-              stroke={activeZone === 'resize-end' || dragMode === 'resize-end' ? theme.accent : theme.taskBarPrimary}
-              strokeWidth={1.5}
-              initial={{ opacity: 0, scale: 0 }}
+              x={displayX + displayWidth - 7}
+              y={y + 8}
+              width={3}
+              height={height - 16}
+              rx={1.5}
+              fill={activeZone === 'resize-end' || dragMode === 'resize-end' ? '#ffffff' : 'rgba(255,255,255,0.4)'}
+              initial={{ opacity: 0 }}
               animate={{
-                opacity: 1,
-                scale: activeZone === 'resize-end' || dragMode === 'resize-end' ? 1.3 : 1
+                opacity: activeZone === 'resize-end' || dragMode === 'resize-end' ? 1 : 0.7
               }}
-              transition={{
-                duration: 0.15,
-                type: 'spring',
-                stiffness: 500,
-                damping: 30,
-              }}
+              transition={{ duration: 0.15 }}
               style={{ pointerEvents: 'none' }}
             />
           </g>
