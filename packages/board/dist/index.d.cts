@@ -2313,39 +2313,36 @@ onContextMenu, // v0.8.0
 onDateChange, onDependencyCreate, allTaskPositions, onDragMove, // v0.13.0
 onHoverChange, }: TaskBarProps): react_jsx_runtime.JSX.Element;
 
-interface DependencyHoverData {
-    x1: number;
-    y1: number;
-    x2: number;
-    y2: number;
-    verticalX?: number;
-    routeY?: number;
-    fromIndex?: number;
-    toIndex?: number;
-    onDelete: () => void;
-    lineStyle?: DependencyLineStyle;
-    mouseX?: number;
-    mouseY?: number;
-}
 interface DependencyLineProps {
     x1: number;
     y1: number;
     x2: number;
     y2: number;
-    verticalX?: number;
-    routeY?: number;
-    fromIndex?: number;
-    toIndex?: number;
-    rowHeight?: number;
     theme: any;
     onDelete?: () => void;
-    onHoverChange?: (data: DependencyHoverData | null) => void;
     lineStyle?: DependencyLineStyle;
+    isHoverLayer?: boolean;
 }
-declare function DependencyLine({ x1, y1, x2, y2, verticalX: _verticalX, // v0.17.362: No longer used, kept for API compatibility
-routeY: propRouteY, fromIndex, toIndex: _toIndex, // v0.17.351: Kept for API compatibility
-rowHeight: _rowHeight, // v0.17.342: Available for future use
-theme, onDelete, onHoverChange, lineStyle }: DependencyLineProps): react_jsx_runtime.JSX.Element;
+/**
+ * v0.17.363: TRUE ClickUp-style dependency line routing
+ *
+ * RULES:
+ * 1. Lines ALWAYS exit from the RIGHT side of the source bar
+ * 2. Lines ALWAYS enter from the LEFT side of the destination bar
+ * 3. The vertical segment is placed BEFORE (to the left of) the destination bar
+ *
+ * Pattern: source(right) → horizontal → vertical → horizontal → destination(left)
+ *
+ * For FORWARD dependencies (destination is to the right of source):
+ *   Exit right → go horizontal to turnX → turn down/up → go to destination Y → turn right → enter left
+ *   turnX = x2 - OFFSET (just before destination)
+ *
+ * For BACKWARD dependencies (destination is to the left of source):
+ *   Exit right → short horizontal → turn down/up → go to destination Y → turn LEFT → enter left
+ *   turnX = x2 - OFFSET (still before destination, which is now to the left)
+ *   This means we go RIGHT first, then DOWN, then LEFT to reach destination
+ */
+declare function DependencyLine({ x1, y1, x2, y2, theme, onDelete, lineStyle, isHoverLayer, }: DependencyLineProps): react_jsx_runtime.JSX.Element;
 
 interface MilestoneProps {
     task: Task;

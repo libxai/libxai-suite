@@ -1,9 +1,8 @@
 import { useMemo, useCallback, useState } from 'react';
-import { motion } from 'framer-motion';
 import { TimeScale, Task, GanttTemplates, DependentTaskPreview, DependencyLineStyle } from './types';
 import { TaskBar, TaskTooltipData } from './TaskBar';
 import { TaskTooltip } from './TaskTooltip';
-import { DependencyLine, DependencyHoverData } from './DependencyLine';
+import { DependencyLine } from './DependencyLine';
 import { Milestone } from './Milestone';
 import { ganttUtils } from './ganttUtils';
 
@@ -58,50 +57,14 @@ export function Timeline({
   // v0.17.76: State for active tooltip - rendered in top layer for proper z-order
   const [activeTooltip, setActiveTooltip] = useState<TaskTooltipData | null>(null);
 
-  // v0.17.79: State for hovered dependency - full line + delete button rendered in top layer
-  const [hoveredDependency, setHoveredDependency] = useState<DependencyHoverData | null>(null);
+  // v0.17.363: Simplified - removed hoveredDependency state (DependencyLine handles its own hover)
 
   // v0.17.76: Callback for TaskBar hover changes
   const handleTooltipChange = useCallback((tooltipData: TaskTooltipData | null) => {
     setActiveTooltip(tooltipData);
   }, []);
 
-  // v0.17.140: handleDependencyHoverChange removed - hover now handled directly in Timeline via top layer
-
-  // v0.17.360: UNIFIED function to calculate verticalX - used by ALL dependency rendering layers
-  // RULE: Lines ALWAYS exit from RIGHT and enter from LEFT
-  // So verticalX must ALWAYS be to the RIGHT of both source and destination bars
-  const calculateVerticalX = useCallback((
-    exitX: number,
-    enterX: number,
-    fromIdx: number,
-    toIdx: number,
-    taskList: Task[],
-    getPos: (task: Task) => { x: number; width: number }
-  ): number => {
-    const minRow = Math.min(fromIdx, toIdx);
-    const maxRow = Math.max(fromIdx, toIdx);
-
-    if (minRow === maxRow) {
-      // Same row - special case, use midpoint
-      return (exitX + enterX) / 2;
-    }
-
-    // For BOTH forward and backward dependencies:
-    // verticalX must be to the RIGHT of ALL bars between source and destination
-    // This ensures the line can always turn LEFT to enter the destination from the left side
-    let maxRightEdge = Math.max(exitX, enterX);
-    for (let row = minRow; row <= maxRow; row++) {
-      const taskInRow = taskList[row];
-      if (taskInRow?.startDate && taskInRow?.endDate) {
-        const pos = getPos(taskInRow);
-        const rightEdge = pos.x + pos.width;
-        if (rightEdge > maxRightEdge) maxRightEdge = rightEdge;
-      }
-    }
-    // Place verticalX 20px to the right of the rightmost bar
-    return maxRightEdge + 20;
-  }, []);
+  // v0.17.363: calculateVerticalX removed - DependencyLine now handles its own routing
 
   // Calculate dimensions
   const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -526,61 +489,7 @@ export function Timeline({
           );
         })}
 
-        {/* Dependencies - v0.17.362: TRUE ClickUp-style routing */}
-        {flatTasks.map((task, toIndex) => {
-          if (!task.dependencies || task.dependencies.length === 0) return null;
-          // Skip if task doesn't have dates
-          if (!task.startDate || !task.endDate) return null;
-
-          return task.dependencies.map((depId) => {
-            const depTask = flatTasks.find((t) => t.id === depId);
-            if (!depTask) return null;
-            // Skip if dependency task doesn't have dates
-            if (!depTask.startDate || !depTask.endDate) return null;
-
-            const fromIndex = flatTasks.findIndex((t) => t.id === depId);
-            const fromPos = getTaskPosition(depTask);
-            const toPos = getTaskPosition(task);
-
-            // v0.17.344: TRUE ClickUp-style dependency lines
-            // Line exits from RIGHT-CENTER of origin bar
-            const exitX = fromPos.x + fromPos.width;
-            const exitY = fromIndex * ROW_HEIGHT + 28;
-
-            // Line enters at LEFT-CENTER of destination bar
-            const enterX = toPos.x;
-            const enterY = toIndex * ROW_HEIGHT + 28;
-
-            // v0.17.345: routeY is ALWAYS below the SOURCE bar
-            const routeY = fromIndex * ROW_HEIGHT + 50;
-
-            // v0.17.362: verticalX no longer used - DependencyLine calculates its own turnX
-
-            // v0.17.348: Hide base line when this exact dependency is being hovered
-            // This prevents showing two overlapping lines with potentially different paths
-            const isThisLineHovered = hoveredDependency &&
-              hoveredDependency.x1 === exitX && hoveredDependency.y1 === exitY &&
-              hoveredDependency.x2 === enterX && hoveredDependency.y2 === enterY;
-
-            if (isThisLineHovered) return null;
-
-            return (
-              <DependencyLine
-                key={`dep-${depId}-${task.id}`}
-                x1={exitX}
-                y1={exitY}
-                x2={enterX}
-                y2={enterY}
-                routeY={routeY}
-                fromIndex={fromIndex}
-                toIndex={toIndex}
-                rowHeight={ROW_HEIGHT}
-                theme={theme}
-                lineStyle={dependencyLineStyle}
-              />
-            );
-          });
-        })}
+        {/* v0.17.363: Dependencies moved to AFTER tasks for proper layering */}
 
         {/* Tasks - v0.13.7: Adjusted Y positions */}
         {flatTasks.map((task, index) => {
@@ -719,9 +628,8 @@ export function Timeline({
           );
         })}
 
-        {/* v0.17.148: Dependency hover detection layer - rendered AFTER tasks so hover works above task bars */}
-        {/* Each dependency gets a hover zone that activates the highlighted state */}
-        {/* IMPORTANT: Hover zone is offset from endpoints to not block task resize handles */}
+        {/* v0.17.363: SINGLE dependency layer - rendered AFTER tasks for proper z-order */}
+        {/* DependencyLine component handles its own hover state and delete button */}
         {flatTasks.map((task, toIndex) => {
           if (!task.dependencies || task.dependencies.length === 0) return null;
           if (!task.startDate || !task.endDate) return null;
@@ -735,69 +643,25 @@ export function Timeline({
             const fromPos = getTaskPosition(depTask);
             const toPos = getTaskPosition(task);
 
-            // v0.17.345: Same coordinates as DependencyLine
-            const x1 = fromPos.x + fromPos.width;
-            const y1 = fromIndex * ROW_HEIGHT + 28;
-            const x2 = toPos.x;
-            const y2 = toIndex * ROW_HEIGHT + 28;
+            // v0.17.363: TRUE ClickUp-style dependency lines
+            // Line exits from RIGHT-CENTER of origin bar
+            const exitX = fromPos.x + fromPos.width;
+            const exitY = fromIndex * ROW_HEIGHT + 28;
 
-            // v0.17.345: Calculate routeY same as DependencyLine (below source bar)
-            const routeY = fromIndex * ROW_HEIGHT + 50;
-            const sameLine = fromIndex === toIndex;
-
-            // v0.17.359: Use UNIFIED function for verticalX - MUST match Capa 1 and Capa 3
-            const verticalX = calculateVerticalX(x1, x2, fromIndex, toIndex, flatTasks, getTaskPosition);
-
-            // v0.17.353: Hover zone follows the actual line path
-            let middlePath: string;
-            if (sameLine) {
-              // Same row - horizontal hover zone
-              const startX = x1 + 20;
-              const endX = x2 - 15;
-              middlePath = `M ${startX} ${y1} L ${endX} ${y2}`;
-            } else {
-              // Different rows - hover on the vertical segment
-              middlePath = `M ${verticalX} ${y1 + 10} L ${verticalX} ${y2 - 10}`;
-            }
-
-            const isThisHovered = hoveredDependency &&
-              hoveredDependency.x1 === x1 && hoveredDependency.y1 === y1 &&
-              hoveredDependency.x2 === x2 && hoveredDependency.y2 === y2;
-
-            // Only render hover zone if this dependency is NOT currently hovered
-            if (isThisHovered) return null;
-
-            // v0.17.323: Helper to get mouse position relative to SVG
-            const handleMouseEvent = (e: React.MouseEvent<SVGPathElement>) => {
-              const svg = e.currentTarget.ownerSVGElement;
-              if (!svg) return;
-              const rect = svg.getBoundingClientRect();
-              const mouseX = e.clientX - rect.left;
-              const mouseY = e.clientY - rect.top;
-              setHoveredDependency({
-                x1, y1, x2, y2,
-                verticalX, // v0.17.353: Pass calculated verticalX
-                routeY, // v0.17.342: Pass routeY for ClickUp-style path
-                fromIndex, // v0.17.347: Pass indices for smart routing
-                toIndex,
-                onDelete: () => onDependencyDelete?.(task.id, depId),
-                lineStyle: dependencyLineStyle,
-                mouseX,
-                mouseY,
-              });
-            };
+            // Line enters at LEFT-CENTER of destination bar
+            const enterX = toPos.x;
+            const enterY = toIndex * ROW_HEIGHT + 28;
 
             return (
-              <path
-                key={`dep-hover-${depId}-${task.id}`}
-                d={middlePath}
-                fill="none"
-                stroke="transparent"
-                strokeWidth={12}
-                strokeLinecap="round"
-                style={{ cursor: 'pointer' }}
-                onMouseEnter={handleMouseEvent}
-                onMouseMove={handleMouseEvent}
+              <DependencyLine
+                key={`dep-${depId}-${task.id}`}
+                x1={exitX}
+                y1={exitY}
+                x2={enterX}
+                y2={enterY}
+                theme={theme}
+                lineStyle={dependencyLineStyle}
+                onDelete={() => onDependencyDelete?.(task.id, depId)}
               />
             );
           });
@@ -843,218 +707,7 @@ export function Timeline({
           </g>
         ))}
 
-        {/* v0.17.143: Premium hovered dependency layer - elegant glow + refined delete button */}
-        {/* v0.17.323: Delete button now follows cursor along the line (ClickUp style) */}
-        {/* v0.17.362: TRUE ClickUp-style hover layer */}
-        {/* This renders AFTER tasks in the SVG, so it appears on top */}
-        {hoveredDependency && (() => {
-          const { x1, y1, x2, y2, onDelete, lineStyle: hoverLineStyle, mouseX, mouseY } = hoveredDependency;
-          const dx = x2 - x1;
-
-          // v0.17.362: TRUE ClickUp-style routing (same as DependencyLine)
-          const cornerRadius = 5;
-          const r = cornerRadius;
-          const dy = y2 - y1;
-          const goingDown = dy > 0;
-          const isSameRow = Math.abs(dy) < 5;
-          const OFFSET = 15;
-          const isForward = x2 >= x1;
-
-          let path: string;
-          let turnX: number;
-
-          if (hoverLineStyle === 'squared') {
-            if (isSameRow) {
-              path = `M ${x1} ${y1} L ${x2} ${y2}`;
-              turnX = (x1 + x2) / 2;
-            } else if (isForward) {
-              turnX = x2 - OFFSET;
-              path = `M ${x1} ${y1} L ${turnX} ${y1} L ${turnX} ${y2} L ${x2} ${y2}`;
-            } else {
-              turnX = x1 + OFFSET;
-              path = `M ${x1} ${y1} L ${turnX} ${y1} L ${turnX} ${y2} L ${x2} ${y2}`;
-            }
-          } else {
-            if (isSameRow) {
-              const ctrlOffset = Math.min(Math.abs(dx) / 3, 30);
-              path = `M ${x1} ${y1} C ${x1 + ctrlOffset} ${y1}, ${x2 - ctrlOffset} ${y2}, ${x2} ${y2}`;
-              turnX = (x1 + x2) / 2;
-            } else if (isForward) {
-              turnX = x2 - OFFSET;
-              if (goingDown) {
-                path = `M ${x1} ${y1} L ${turnX - r} ${y1} Q ${turnX} ${y1} ${turnX} ${y1 + r} L ${turnX} ${y2 - r} Q ${turnX} ${y2} ${turnX + r} ${y2} L ${x2} ${y2}`;
-              } else {
-                path = `M ${x1} ${y1} L ${turnX - r} ${y1} Q ${turnX} ${y1} ${turnX} ${y1 - r} L ${turnX} ${y2 + r} Q ${turnX} ${y2} ${turnX + r} ${y2} L ${x2} ${y2}`;
-              }
-            } else {
-              turnX = x1 + OFFSET;
-              if (goingDown) {
-                path = `M ${x1} ${y1} L ${turnX - r} ${y1} Q ${turnX} ${y1} ${turnX} ${y1 + r} L ${turnX} ${y2 - r} Q ${turnX} ${y2} ${turnX - r} ${y2} L ${x2} ${y2}`;
-              } else {
-                path = `M ${x1} ${y1} L ${turnX - r} ${y1} Q ${turnX} ${y1} ${turnX} ${y1 - r} L ${turnX} ${y2 + r} Q ${turnX} ${y2} ${turnX - r} ${y2} L ${x2} ${y2}`;
-              }
-            }
-          }
-
-          // Arrow pointing horizontally into target
-          const arrowSize = 5;
-          const arrowX = x2 - arrowSize;
-          const arrowY = y2 - arrowSize * 0.5;
-          const arrowX2 = x2 - arrowSize;
-          const arrowY2 = y2 + arrowSize * 0.5;
-          const lineColor = theme.dependency;
-          // Premium soft red - less aggressive, more SaaS-friendly
-          const deleteColor = '#f87171';
-          const deleteColorSoft = 'rgba(248, 113, 113, 0.15)';
-
-          // v0.17.362: Delete button position - on vertical segment
-          let deleteX = turnX;
-          let deleteY = isSameRow ? (y1 + y2) / 2 : (y1 + y2) / 2;
-          let hideDeleteButton = false;
-
-          // If mouse position available, follow cursor on vertical segment
-          if (mouseX !== undefined && mouseY !== undefined) {
-            deleteX = turnX;
-            deleteY = Math.max(Math.min(y1, y2) + 10, Math.min(Math.max(y1, y2) - 10, mouseY));
-          }
-
-          // v0.17.341: Hide delete button only if it would overlap with task bars
-          // Since lines now pass BELOW bars, this should rarely happen
-          const rowIndex = Math.floor(deleteY / ROW_HEIGHT);
-          if (rowIndex >= 0 && rowIndex < flatTasks.length) {
-            const taskInRow = flatTasks[rowIndex];
-            if (taskInRow && taskInRow.startDate && taskInRow.endDate) {
-              const taskPos = getTaskPosition(taskInRow);
-              const taskBarTop = rowIndex * ROW_HEIGHT + 12;
-              const taskBarBottom = taskBarTop + 32;
-              const extendedLeft = taskPos.x - 15;
-              const extendedRight = taskPos.x + taskPos.width + 50;
-              if (deleteX >= extendedLeft && deleteX <= extendedRight &&
-                  deleteY >= taskBarTop - 5 && deleteY <= taskBarBottom + 5) {
-                hideDeleteButton = true;
-              }
-            }
-          }
-
-          // v0.17.323: Handler to track mouse movement over the hover area
-          const handleHoverMouseMove = (e: React.MouseEvent<SVGElement>) => {
-            const svg = e.currentTarget.ownerSVGElement || (e.currentTarget as unknown as SVGSVGElement);
-            if (!svg) return;
-            const rect = svg.getBoundingClientRect();
-            const newMouseX = e.clientX - rect.left;
-            const newMouseY = e.clientY - rect.top;
-            setHoveredDependency(prev => prev ? {
-              ...prev,
-              mouseX: newMouseX,
-              mouseY: newMouseY,
-            } : null);
-          };
-
-          return (
-            <g
-              onMouseLeave={() => setHoveredDependency(null)}
-              onMouseMove={handleHoverMouseMove}
-            >
-              {/* v0.17.339: Smaller hover area to not block TaskBar Link button */}
-              <path
-                d={path}
-                fill="none"
-                stroke="transparent"
-                strokeWidth={20}
-                strokeLinecap="round"
-                style={{ cursor: 'pointer' }}
-              />
-
-              {/* Glow effect layer - subtle gradient glow */}
-              <path
-                d={path}
-                fill="none"
-                stroke={lineColor}
-                strokeWidth={8}
-                strokeLinecap="round"
-                opacity={0.15}
-                style={{ pointerEvents: 'none', filter: 'blur(4px)' }}
-              />
-
-              {/* Highlighted dependency line - solid, prominent */}
-              <path
-                d={path}
-                fill="none"
-                stroke={lineColor}
-                strokeWidth={2.5}
-                strokeLinecap="round"
-                opacity={0.9}
-                style={{ pointerEvents: 'none' }}
-              />
-
-              {/* Arrow head */}
-              <path
-                d={`M ${x2} ${y2} L ${arrowX} ${arrowY} M ${x2} ${y2} L ${arrowX2} ${arrowY2}`}
-                fill="none"
-                stroke={lineColor}
-                strokeWidth={2.5}
-                strokeLinecap="round"
-                opacity={0.9}
-                style={{ pointerEvents: 'none' }}
-              />
-
-              {/* Endpoint dot */}
-              <circle
-                cx={x2}
-                cy={y2}
-                r={4}
-                fill={lineColor}
-                opacity={0.9}
-                style={{ pointerEvents: 'none' }}
-              />
-
-              {/* v0.17.323: Premium delete button - follows cursor along the line (ClickUp style) */}
-              {/* v0.17.324: Hidden when overlapping with task bars */}
-              {!hideDeleteButton && (
-                <motion.g
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.15, ease: 'easeOut' }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setHoveredDependency(null); // Clear hover state immediately
-                    onDelete();
-                  }}
-                  style={{ cursor: 'pointer' }}
-                >
-                  {/* Button background - subtle, transparent with soft border */}
-                  <circle
-                    cx={deleteX}
-                    cy={deleteY}
-                    r={9}
-                    fill={deleteColorSoft}
-                    stroke={deleteColor}
-                    strokeWidth={1.5}
-                  />
-                  {/* X icon - refined, smaller strokes */}
-                  <line
-                    x1={deleteX - 3}
-                    y1={deleteY - 3}
-                    x2={deleteX + 3}
-                    y2={deleteY + 3}
-                    stroke={deleteColor}
-                    strokeWidth={1.5}
-                    strokeLinecap="round"
-                  />
-                  <line
-                    x1={deleteX + 3}
-                    y1={deleteY - 3}
-                    x2={deleteX - 3}
-                    y2={deleteY + 3}
-                    stroke={deleteColor}
-                    strokeWidth={1.5}
-                    strokeLinecap="round"
-                  />
-                </motion.g>
-              )}
-            </g>
-          );
-        })()}
+        {/* v0.17.363: Removed separate hover layer - DependencyLine handles its own hover */}
 
         {/* v0.17.179: Today Line - Thinner like ClickUp (1px) */}
         {todayX >= 0 && todayX <= timelineWidth && (
