@@ -933,8 +933,8 @@ export function Timeline({
               deleteY = closestPoint.y;
             }
 
-            // v0.17.324: Check if delete button would overlap with a task bar
-            // Find which row the delete button is in and check if it overlaps with that task's bar
+            // v0.17.329: Check if delete button would overlap with task bar OR its controls
+            // Includes: resize handles (left -15px), task bar, Link button area (right +50px)
             const rowIndex = Math.floor(deleteY / ROW_HEIGHT);
             if (rowIndex >= 0 && rowIndex < flatTasks.length) {
               const taskInRow = flatTasks[rowIndex];
@@ -943,8 +943,11 @@ export function Timeline({
                 // Task bar Y position: rowIndex * ROW_HEIGHT + 12, height: 32
                 const taskBarTop = rowIndex * ROW_HEIGHT + 12;
                 const taskBarBottom = taskBarTop + 32;
-                // Check if deleteX is within task bar X range and deleteY is within task bar Y range
-                if (deleteX >= taskPos.x && deleteX <= taskPos.x + taskPos.width &&
+                // Extended X range: left resize handle (-15) to Link button area (+50)
+                const extendedLeft = taskPos.x - 15;
+                const extendedRight = taskPos.x + taskPos.width + 50;
+                // Check if deleteX is within extended range and deleteY is within task bar Y range
+                if (deleteX >= extendedLeft && deleteX <= extendedRight &&
                     deleteY >= taskBarTop - 5 && deleteY <= taskBarBottom + 5) {
                   hideDeleteButton = true;
                 }
