@@ -690,17 +690,16 @@ export function Timeline({
             if (dependencyLineStyle === 'squared') {
               // v0.17.322: Squared/orthogonal path - matches the actual rendered line
               // Path: horizontal from x1 to midX, vertical from y1 to y2, horizontal from midX to x2
-              // v0.17.339: Increased offset to 40px minimum to not block Link button (at x+width+18)
-              const minOffset = 40;
-              const percentOffset = Math.abs(dx) * 0.15;
+              // v0.17.340: Offset 35px to not block Link button hit area (14px radius at x+width+18)
+              const minOffset = 35;
+              const percentOffset = Math.abs(dx) * 0.20;
               const offsetX = Math.max(minOffset, percentOffset);
               const startX = x1 + offsetX;
-              const endX = x2 - Math.min(offsetX, Math.abs(dx) * 0.10); // Less offset at destination
+              const endX = x2 - Math.min(15, Math.abs(dx) * 0.10); // Small offset at destination for resize handle
               middlePath = `M ${startX} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${endX} ${y2}`;
             } else {
               // Curved Bézier path (default)
-              // v0.17.339: Hover zone from t=0.20 to t=0.90 to not block Link button
-              // 20% at start reserved for Link button area
+              // v0.17.340: Hover zone from t=0.25 to t=0.90 to not block Link button hit area
               // strokeWidth=12 → 6px from center each side
               // FIX: Use correct cubic Bézier formula matching the actual line:
               // Original: C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}
@@ -722,8 +721,8 @@ export function Timeline({
               const numPoints = 20;
               const pathPoints: Array<{x: number, y: number}> = [];
               for (let i = 0; i <= numPoints; i++) {
-                // v0.17.339: Start at t=0.20 to leave room for Link button (was 0.10)
-                const t = 0.20 + (i / numPoints) * 0.70; // t from 0.20 to 0.90
+                // v0.17.340: Start at t=0.25 to leave room for Link button hit area (was 0.20)
+                const t = 0.25 + (i / numPoints) * 0.65; // t from 0.25 to 0.90
                 pathPoints.push(cubicBezierPoint(t));
               }
 

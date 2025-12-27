@@ -8378,6 +8378,11 @@ body {
 }
 
 
+.invisible {
+  visibility: hidden;
+}
+
+
 .collapse {
   visibility: collapse;
 }

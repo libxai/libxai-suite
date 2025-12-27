@@ -844,52 +844,76 @@ export function TaskBar({
         </g>
       )}
 
-      {/* v0.17.338: EXACT resize handles - only visible area is interactive */}
+      {/* v0.17.340: ClickUp-style resize handles - invisible hit area + visible indicator */}
       {(isHovered || isResizing) && !isConnecting && !task.segments && (
         <>
-          {/* LEFT RESIZE HANDLE - exact visible area only */}
-          <motion.rect
-            x={displayX + 4}
-            y={y + 8}
-            width={3}
-            height={height - 16}
-            rx={1.5}
-            fill={activeZone === 'resize-start' || dragMode === 'resize-start' ? '#ffffff' : 'rgba(255,255,255,0.5)'}
-            style={{ cursor: 'ew-resize' }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.15 }}
-            onMouseEnter={() => setActiveZone('resize-start')}
-            onMouseLeave={() => setActiveZone(null)}
-            onMouseDown={(e) => {
-              e.stopPropagation();
-              handleMouseDown(e as any, 'resize-start');
-            }}
-          />
+          {/* LEFT RESIZE HANDLE */}
+          <g>
+            {/* Hit area - invisible, large, easy to click (16px wide) */}
+            <rect
+              x={displayX - 2}
+              y={y}
+              width={16}
+              height={height}
+              fill="transparent"
+              style={{ cursor: 'ew-resize' }}
+              onMouseEnter={() => setActiveZone('resize-start')}
+              onMouseLeave={() => setActiveZone(null)}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                handleMouseDown(e as any, 'resize-start');
+              }}
+            />
+            {/* Visual indicator - small, subtle line (ClickUp style) */}
+            <motion.rect
+              x={displayX + 4}
+              y={y + 8}
+              width={3}
+              height={height - 16}
+              rx={1.5}
+              fill={activeZone === 'resize-start' || dragMode === 'resize-start' ? '#ffffff' : 'rgba(255,255,255,0.5)'}
+              style={{ pointerEvents: 'none' }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.15 }}
+            />
+          </g>
 
-          {/* RIGHT RESIZE HANDLE - exact visible area only */}
-          <motion.rect
-            x={displayX + displayWidth - 7}
-            y={y + 8}
-            width={3}
-            height={height - 16}
-            rx={1.5}
-            fill={activeZone === 'resize-end' || dragMode === 'resize-end' ? '#ffffff' : 'rgba(255,255,255,0.5)'}
-            style={{ cursor: 'ew-resize' }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.15 }}
-            onMouseEnter={() => setActiveZone('resize-end')}
-            onMouseLeave={() => setActiveZone(null)}
-            onMouseDown={(e) => {
-              e.stopPropagation();
-              handleMouseDown(e as any, 'resize-end');
-            }}
-          />
+          {/* RIGHT RESIZE HANDLE */}
+          <g>
+            {/* Hit area - invisible, large, easy to click (16px wide) */}
+            <rect
+              x={displayX + displayWidth - 14}
+              y={y}
+              width={16}
+              height={height}
+              fill="transparent"
+              style={{ cursor: 'ew-resize' }}
+              onMouseEnter={() => setActiveZone('resize-end')}
+              onMouseLeave={() => setActiveZone(null)}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                handleMouseDown(e as any, 'resize-end');
+              }}
+            />
+            {/* Visual indicator - small, subtle line (ClickUp style) */}
+            <motion.rect
+              x={displayX + displayWidth - 7}
+              y={y + 8}
+              width={3}
+              height={height - 16}
+              rx={1.5}
+              fill={activeZone === 'resize-end' || dragMode === 'resize-end' ? '#ffffff' : 'rgba(255,255,255,0.5)'}
+              style={{ pointerEvents: 'none' }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.15 }}
+            />
+          </g>
         </>
       )}
 
-      {/* v0.17.338: EXACT Link button - only visible circle is interactive */}
+      {/* v0.17.340: ClickUp-style Link button - invisible hit area + visible circle */}
       <AnimatePresence>
         {isHovered && !isDragging && !task.segments && (
           <motion.g
@@ -898,15 +922,29 @@ export function TaskBar({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
           >
-            {/* Visual circle - EXACT clickable area */}
+            {/* Hit area - invisible, large circle for easy clicking (14px radius) */}
+            <circle
+              cx={x + width + 18}
+              cy={y + height / 2}
+              r={14}
+              fill="transparent"
+              style={{ cursor: 'crosshair' }}
+              onMouseEnter={() => setActiveZone('connect')}
+              onMouseLeave={() => setActiveZone(null)}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                handleMouseDown(e as any, 'connect');
+              }}
+            />
+            {/* Visual circle - small, elegant (ClickUp style) */}
             <motion.circle
               cx={x + width + 18}
               cy={y + height / 2}
               r={7}
-              fill={activeZone === 'connect' ? theme.accent : theme.accent}
-              stroke={activeZone === 'connect' ? '#ffffff' : '#FFFFFF'}
+              fill={theme.accent}
+              stroke="#FFFFFF"
               strokeWidth={2}
-              style={{ cursor: 'crosshair' }}
+              style={{ pointerEvents: 'none' }}
               initial={{ scale: 0 }}
               animate={{
                 scale: activeZone === 'connect' ? 1.3 : 1,
@@ -917,12 +955,6 @@ export function TaskBar({
                 type: 'spring',
                 stiffness: 500,
                 damping: 30,
-              }}
-              onMouseEnter={() => setActiveZone('connect')}
-              onMouseLeave={() => setActiveZone(null)}
-              onMouseDown={(e) => {
-                e.stopPropagation();
-                handleMouseDown(e as any, 'connect');
               }}
             />
             {/* Tooltip hint */}
