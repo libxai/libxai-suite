@@ -527,9 +527,10 @@ export function Timeline({
             // routeY = just below that = fromIndex * 56 + 50 (6px below bottom)
             const routeY = fromIndex * ROW_HEIGHT + 50; // 6px below source bar's bottom
 
-            // v0.17.355: Calculate optimal verticalX to avoid task bars
-            // The line must: exit right -> go horizontal -> go vertical -> go horizontal -> enter left
-            // verticalX should be to the LEFT of all task bars the line could cross
+            // v0.17.356: Calculate optimal verticalX to avoid task bars
+            // Strategy: The vertical segment should be just after exitX (exit point)
+            // Then the line goes down/up, and finally horizontal to the destination
+            // This way we only need to ensure the FINAL horizontal segment doesn't cross bars
             let verticalX: number;
             const minRow = Math.min(fromIndex, toIndex);
             const maxRow = Math.max(fromIndex, toIndex);
@@ -538,27 +539,14 @@ export function Timeline({
               // Same row - no vertical segment needed
               verticalX = enterX;
             } else {
-              // Find the minimum left edge of all task bars from minRow+1 to maxRow (inclusive)
-              // This includes intermediate rows AND the destination row
-              // We need to avoid crossing ANY bar on the way down and on the final horizontal segment
-              let minLeftEdge = enterX; // Start with destination's left edge
+              // Simple approach: vertical segment is right after exit point
+              // This minimizes the horizontal travel at source height (avoids crossing bars)
+              verticalX = exitX + 8;
 
-              // Check all rows the vertical segment passes through (excluding source row)
-              for (let rowIdx = minRow + 1; rowIdx <= maxRow; rowIdx++) {
-                const taskInRow = flatTasks[rowIdx];
-                if (taskInRow && taskInRow.startDate && taskInRow.endDate) {
-                  const pos = getTaskPosition(taskInRow);
-                  minLeftEdge = Math.min(minLeftEdge, pos.x);
-                }
-              }
-
-              // Place vertical segment 12px to the left of the leftmost bar
-              // This ensures the line doesn't pass through any task bar
-              verticalX = minLeftEdge - 12;
-
-              // Ensure verticalX is at least 8px after exitX (so line goes right first)
-              if (verticalX < exitX + 8) {
-                verticalX = exitX + 8;
+              // But we also need to ensure we don't cross the destination bar
+              // If verticalX would be inside the destination bar area, move it left
+              if (verticalX > enterX - 12) {
+                verticalX = enterX - 12;
               }
             }
 
@@ -752,7 +740,7 @@ export function Timeline({
             const routeY = fromIndex * ROW_HEIGHT + 50;
             const sameLine = fromIndex === toIndex;
 
-            // v0.17.355: Calculate verticalX same as main dependency rendering
+            // v0.17.356: Calculate verticalX same as main dependency rendering
             let verticalX: number;
             const minRow = Math.min(fromIndex, toIndex);
             const maxRow = Math.max(fromIndex, toIndex);
@@ -760,18 +748,11 @@ export function Timeline({
             if (minRow === maxRow) {
               verticalX = x2;
             } else {
-              // Find the minimum left edge including destination row
-              let minLeftEdge = x2;
-              for (let rowIdx = minRow + 1; rowIdx <= maxRow; rowIdx++) {
-                const taskInRow = flatTasks[rowIdx];
-                if (taskInRow && taskInRow.startDate && taskInRow.endDate) {
-                  const pos = getTaskPosition(taskInRow);
-                  minLeftEdge = Math.min(minLeftEdge, pos.x);
-                }
-              }
-              verticalX = minLeftEdge - 12;
-              if (verticalX < x1 + 8) {
-                verticalX = x1 + 8;
+              // Vertical segment right after exit point
+              verticalX = x1 + 8;
+              // Ensure we don't cross destination bar
+              if (verticalX > x2 - 12) {
+                verticalX = x2 - 12;
               }
             }
 
@@ -877,11 +858,11 @@ export function Timeline({
         {hoveredDependency && (() => {
           const { x1, y1, x2, y2, verticalX: hoverVerticalX, onDelete, lineStyle: hoverLineStyle, mouseX, mouseY } = hoveredDependency;
           const dx = x2 - x1;
-          const midX = x1 + dx / 2;
 
           // v0.17.353: Use calculated verticalX from hover data (or fallback)
           const cornerRadius = 5;
-          const verticalX = hoverVerticalX ?? (x2 - 12);
+          // v0.17.356: ClickUp-style routing - vertical segment right after exit
+          const verticalX = hoverVerticalX ?? (x1 + 8);
           const r = cornerRadius;
           const dy = y2 - y1;
           const goingDown = dy > 0;
@@ -899,18 +880,20 @@ export function Timeline({
               const ctrlOffset = Math.min(Math.abs(dx) / 3, 30);
               path = `M ${x1} ${y1} C ${x1 + ctrlOffset} ${y1}, ${x2 - ctrlOffset} ${y2}, ${x2} ${y2}`;
             } else if (goingDown) {
+              // Going DOWN: exit → turn down → go down → turn LEFT → enter
               path = `M ${x1} ${y1} ` +
                      `L ${verticalX - r} ${y1} ` +
                      `Q ${verticalX} ${y1} ${verticalX} ${y1 + r} ` +
                      `L ${verticalX} ${y2 - r} ` +
-                     `Q ${verticalX} ${y2} ${verticalX + r} ${y2} ` +
+                     `Q ${verticalX} ${y2} ${verticalX - r} ${y2} ` +
                      `L ${x2} ${y2}`;
             } else {
+              // Going UP: exit → turn up → go up → turn LEFT → enter
               path = `M ${x1} ${y1} ` +
                      `L ${verticalX - r} ${y1} ` +
                      `Q ${verticalX} ${y1} ${verticalX} ${y1 - r} ` +
                      `L ${verticalX} ${y2 + r} ` +
-                     `Q ${verticalX} ${y2} ${verticalX + r} ${y2} ` +
+                     `Q ${verticalX} ${y2} ${verticalX - r} ${y2} ` +
                      `L ${x2} ${y2}`;
             }
           }
@@ -926,15 +909,15 @@ export function Timeline({
           const deleteColor = '#f87171';
           const deleteColorSoft = 'rgba(248, 113, 113, 0.15)';
 
-          // v0.17.352: Delete button position - on the horizontal segment
-          let deleteX = midX;
-          let deleteY = isSameRow ? (y1 + y2) / 2 : y1; // On source row horizontal segment
+          // v0.17.356: Delete button position - on the horizontal segment to destination
+          let deleteX = (verticalX + x2) / 2; // Middle of the bottom horizontal segment
+          let deleteY = isSameRow ? (y1 + y2) / 2 : y2; // At destination height
           let hideDeleteButton = false;
 
-          // If mouse position available, follow it along the line
+          // If mouse position available, follow it along the bottom horizontal segment
           if (mouseX !== undefined && mouseY !== undefined) {
-            deleteX = Math.max(x1 + 20, Math.min(verticalX - 10, mouseX));
-            deleteY = isSameRow ? (y1 + y2) / 2 : y1;
+            deleteX = Math.max(verticalX + 10, Math.min(x2 - 20, mouseX));
+            deleteY = isSameRow ? (y1 + y2) / 2 : y2;
           }
 
           // v0.17.341: Hide delete button only if it would overlap with task bars

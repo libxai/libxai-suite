@@ -79,15 +79,20 @@ export function DependencyLine({
 
   let path: string;
 
-  // v0.17.353: Use provided verticalX or fallback to x2 - 12
-  const verticalX = propVerticalX ?? (x2 - 12);
+  // v0.17.356: ClickUp-style routing pattern:
+  // 1. Exit right from source
+  // 2. Go down/up IMMEDIATELY (vertical segment right after exit)
+  // 3. Go horizontal LEFT to destination
+  // 4. Enter left into destination
+  // verticalX is where the vertical segment is - should be right after x1 (exit point)
+  const verticalX = propVerticalX ?? (x1 + 8); // Default: 8px after exit
   const r = cornerRadius;
 
   if (lineStyle === 'squared') {
     path = `M ${x1} ${y1} ` +
-           `L ${verticalX} ${y1} ` +     // Horizontal to left of dest bar
+           `L ${verticalX} ${y1} ` +     // Short horizontal exit (8px)
            `L ${verticalX} ${y2} ` +     // Vertical down/up
-           `L ${x2} ${y2}`;              // Short horizontal into destination
+           `L ${x2} ${y2}`;              // Horizontal LEFT to destination
   } else {
     // With rounded corners
     const goingDown = y2 > y1;
@@ -96,18 +101,20 @@ export function DependencyLine({
       const ctrlOffset = Math.min(Math.abs(dx) / 3, 30);
       path = `M ${x1} ${y1} C ${x1 + ctrlOffset} ${y1}, ${x2 - ctrlOffset} ${y2}, ${x2} ${y2}`;
     } else if (goingDown) {
+      // Going DOWN: exit → turn down → go down → turn left → enter
       path = `M ${x1} ${y1} ` +
              `L ${verticalX - r} ${y1} ` +
              `Q ${verticalX} ${y1} ${verticalX} ${y1 + r} ` +  // Corner: turn down
              `L ${verticalX} ${y2 - r} ` +
-             `Q ${verticalX} ${y2} ${verticalX + r} ${y2} ` +  // Corner: turn right
+             `Q ${verticalX} ${y2} ${verticalX - r} ${y2} ` +  // Corner: turn LEFT
              `L ${x2} ${y2}`;
     } else {
+      // Going UP: exit → turn up → go up → turn left → enter
       path = `M ${x1} ${y1} ` +
              `L ${verticalX - r} ${y1} ` +
              `Q ${verticalX} ${y1} ${verticalX} ${y1 - r} ` +  // Corner: turn up
              `L ${verticalX} ${y2 + r} ` +
-             `Q ${verticalX} ${y2} ${verticalX + r} ${y2} ` +  // Corner: turn right
+             `Q ${verticalX} ${y2} ${verticalX - r} ${y2} ` +  // Corner: turn LEFT
              `L ${x2} ${y2}`;
     }
   }
