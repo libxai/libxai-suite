@@ -717,11 +717,10 @@ export function Timeline({
             const sameLine = fromIndex === toIndex;
             const horizOffset = 8; // v0.17.345: Match DependencyLine offset
 
-            // v0.17.346: Hover path matches the actual line path (synced with DependencyLine.tsx)
-            // Three cases: same row, vertically aligned, different positions
+            // v0.17.350: Hover path matches the actual line path (synced with DependencyLine.tsx)
+            // ALWAYS use L-shape for different rows
             let middlePath: string;
-            const dx = x2 - x1;
-            const isVerticallyAligned = Math.abs(dx) < 80; // Same threshold as DependencyLine
+            const isVerticallyAligned = !sameLine; // Any different row uses L-shape
 
             if (sameLine) {
               // Case 1: Same row - horizontal hover zone
@@ -830,12 +829,10 @@ export function Timeline({
           const dx = x2 - x1;
           const midX = x1 + dx / 2;
 
-          // v0.17.349: ClickUp-style path with SMART routing (synced with DependencyLine.tsx)
-          // Use fromIndex/toIndex for accurate same-line detection
-          // Three cases: same row, vertically aligned, different positions
-          // Removed Math.abs(dy) < 5 fallback - only true same-line (fromIndex === toIndex)
+          // v0.17.350: ClickUp-style path with SMART routing (synced with DependencyLine.tsx)
+          // ALWAYS use L-shape for different rows (simpler and cleaner)
           const sameLine = hoverFromIndex !== undefined && hoverToIndex !== undefined && hoverFromIndex === hoverToIndex;
-          const isVerticallyAligned = Math.abs(dx) < 80; // Same threshold as DependencyLine
+          const isVerticallyAligned = !sameLine; // Any different row uses L-shape
           const calculatedRouteY = hoverRouteY ?? (y1 + 22);
           const horizOffset = 8;
           const cornerRadius = 5;

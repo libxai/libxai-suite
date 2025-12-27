@@ -76,10 +76,9 @@ export function DependencyLine({
   // Corner radius for smooth turns
   const cornerRadius = 5;
 
-  // v0.17.346: Check if tasks are "vertically aligned"
-  // This means the destination is roughly below/above the source with small horizontal offset
-  // In this case, use a simpler L-shaped path instead of the full routing
-  const isVerticallyAligned = Math.abs(dx) < 80; // Less than 80px horizontal distance
+  // v0.17.350: ALWAYS use L-shape for different rows (simpler and cleaner)
+  // Previously used complex routing that passed through task bars
+  const isVerticallyAligned = !sameLine; // Any different row uses L-shape
 
   // v0.17.346: Calculate routeY upfront (used in case 3 and for hover layer)
   const calculatedRouteY = fromIndex !== undefined
