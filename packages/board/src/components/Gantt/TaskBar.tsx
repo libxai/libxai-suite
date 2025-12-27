@@ -870,93 +870,101 @@ export function TaskBar({
         </g>
       )}
 
-      {/* v0.17.332: Resize handle hit areas - precise zones with proper event handling */}
-      {isHovered && !isDragging && !task.segments && (
+      {/* v0.17.335: PROFESSIONAL resize handles with individual hover states */}
+      {/* Each handle has its own hover detection for precise visual feedback */}
+      {(isHovered || isResizing) && !isConnecting && !task.segments && (
         <>
-          {/* Left resize hit area */}
-          <rect
-            x={displayX - 8}
-            y={y}
-            width={16}
-            height={height}
-            fill="transparent"
+          {/* LEFT RESIZE HANDLE - Complete with hit area and visual */}
+          <g
             style={{ cursor: 'ew-resize' }}
+            onMouseEnter={() => setActiveZone('resize-start')}
+            onMouseLeave={() => setActiveZone(null)}
             onMouseDown={(e) => {
               e.stopPropagation();
               handleMouseDown(e as any, 'resize-start');
             }}
-          />
-          {/* Right resize hit area */}
-          <rect
-            x={displayX + displayWidth - 8}
-            y={y}
-            width={16}
-            height={height}
-            fill="transparent"
+          >
+            {/* Hit area - invisible but captures events */}
+            <rect
+              x={displayX - 12}
+              y={y - 4}
+              width={20}
+              height={height + 8}
+              fill="#000000"
+              fillOpacity={0.001}
+            />
+            {/* Visual indicator - changes on hover */}
+            <motion.rect
+              x={isSmallBar ? displayX - 8 : displayX - 3}
+              y={y + 6}
+              width={isSmallBar ? 8 : 6}
+              height={isSmallBar ? height - 12 : height - 16}
+              rx={3}
+              fill={activeZone === 'resize-start' || dragMode === 'resize-start' ? theme.accent : theme.taskBarHandle}
+              stroke={activeZone === 'resize-start' || dragMode === 'resize-start' ? theme.accent : theme.taskBarPrimary}
+              strokeWidth={1.5}
+              initial={{ opacity: 0, scale: 0 }}
+              animate={{
+                opacity: 1,
+                scale: activeZone === 'resize-start' || dragMode === 'resize-start' ? 1.3 : 1
+              }}
+              transition={{
+                duration: 0.15,
+                type: 'spring',
+                stiffness: 500,
+                damping: 30,
+              }}
+              style={{ pointerEvents: 'none' }}
+            />
+          </g>
+
+          {/* RIGHT RESIZE HANDLE - Complete with hit area and visual */}
+          <g
             style={{ cursor: 'ew-resize' }}
+            onMouseEnter={() => setActiveZone('resize-end')}
+            onMouseLeave={() => setActiveZone(null)}
             onMouseDown={(e) => {
               e.stopPropagation();
               handleMouseDown(e as any, 'resize-end');
             }}
-          />
+          >
+            {/* Hit area - invisible but captures events */}
+            <rect
+              x={displayX + displayWidth - 8}
+              y={y - 4}
+              width={20}
+              height={height + 8}
+              fill="#000000"
+              fillOpacity={0.001}
+            />
+            {/* Visual indicator - changes on hover */}
+            <motion.rect
+              x={isSmallBar ? displayX + displayWidth : displayX + displayWidth - 3}
+              y={y + 6}
+              width={isSmallBar ? 8 : 6}
+              height={isSmallBar ? height - 12 : height - 16}
+              rx={3}
+              fill={activeZone === 'resize-end' || dragMode === 'resize-end' ? theme.accent : theme.taskBarHandle}
+              stroke={activeZone === 'resize-end' || dragMode === 'resize-end' ? theme.accent : theme.taskBarPrimary}
+              strokeWidth={1.5}
+              initial={{ opacity: 0, scale: 0 }}
+              animate={{
+                opacity: 1,
+                scale: activeZone === 'resize-end' || dragMode === 'resize-end' ? 1.3 : 1
+              }}
+              transition={{
+                duration: 0.15,
+                type: 'spring',
+                stiffness: 500,
+                damping: 30,
+              }}
+              style={{ pointerEvents: 'none' }}
+            />
+          </g>
         </>
       )}
 
-      {/* Enhanced Resize Handles (visual indicators) */}
-      {/* v0.8.1: Hide resize handles for split tasks */}
-      {(isHovered || isResizing) && !isConnecting && !task.segments && (
-        <>
-          {/* Start Handle - Visual indicator only */}
-          <motion.rect
-            x={isSmallBar ? displayX - 8 : displayX - 3}
-            y={y + 6}
-            width={isSmallBar ? 8 : 6}
-            height={isSmallBar ? height - 12 : height - 16}
-            rx={3}
-            fill={dragMode === 'resize-start' ? theme.accent : theme.taskBarHandle}
-            stroke={theme.taskBarPrimary}
-            strokeWidth={1.5}
-            initial={{ opacity: 0, scale: 0 }}
-            animate={{
-              opacity: 1,
-              scale: dragMode === 'resize-start' ? 1.2 : 1
-            }}
-            transition={{
-              duration: 0.2,
-              type: 'spring',
-              stiffness: 400,
-              damping: 25,
-            }}
-            style={{ pointerEvents: 'none' }}
-          />
-
-          {/* End Handle - Visual indicator only */}
-          <motion.rect
-            x={isSmallBar ? displayX + displayWidth : displayX + displayWidth - 3}
-            y={y + 6}
-            width={isSmallBar ? 8 : 6}
-            height={isSmallBar ? height - 12 : height - 16}
-            rx={3}
-            fill={dragMode === 'resize-end' ? theme.accent : theme.taskBarHandle}
-            stroke={theme.taskBarPrimary}
-            strokeWidth={1.5}
-            initial={{ opacity: 0, scale: 0 }}
-            animate={{
-              opacity: 1,
-              scale: dragMode === 'resize-end' ? 1.2 : 1
-            }}
-            transition={{
-              duration: 0.2,
-              type: 'spring',
-              stiffness: 400,
-              damping: 25,
-            }}
-            style={{ pointerEvents: 'none' }}
-          />
-        </>
-      )}
-
-      {/* v0.17.332: Connection Handle (Link button) */}
+      {/* v0.17.335: PROFESSIONAL Link button with individual hover state */}
       <AnimatePresence>
         {isHovered && !isDragging && !task.segments && (
           <motion.g
@@ -964,45 +972,51 @@ export function TaskBar({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
+            style={{ cursor: 'crosshair' }}
+            onMouseEnter={() => setActiveZone('connect')}
+            onMouseLeave={() => setActiveZone(null)}
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              handleMouseDown(e as any, 'connect');
+            }}
           >
-            {/* Hit area for clicking */}
+            {/* Hit area - invisible but captures events */}
             <circle
               cx={x + width + 18}
               cy={y + height / 2}
-              r={12}
-              fill="transparent"
-              style={{ cursor: 'crosshair' }}
-              onMouseDown={(e) => {
-                e.stopPropagation();
-                handleMouseDown(e as any, 'connect');
-              }}
+              r={14}
+              fill="#000000"
+              fillOpacity={0.001}
             />
-            {/* Visual circle */}
+            {/* Visual circle - changes on hover */}
             <motion.circle
               cx={x + width + 18}
               cy={y + height / 2}
               r={6}
-              fill={theme.accent}
-              stroke="#FFFFFF"
-              strokeWidth={2}
+              fill={activeZone === 'connect' ? theme.accent : theme.accent}
+              stroke={activeZone === 'connect' ? theme.accent : '#FFFFFF'}
+              strokeWidth={activeZone === 'connect' ? 3 : 2}
               initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
+              animate={{
+                scale: activeZone === 'connect' ? 1.4 : 1,
+              }}
               exit={{ scale: 0 }}
               transition={{
-                duration: 0.2,
+                duration: 0.15,
                 type: 'spring',
-                stiffness: 400,
-                damping: 25,
+                stiffness: 500,
+                damping: 30,
               }}
               style={{ pointerEvents: 'none' }}
             />
             {/* Tooltip hint */}
             <text
-              x={x + width + 30}
+              x={x + width + 32}
               y={y + height / 2}
               dominantBaseline="middle"
-              fill={theme.textTertiary}
-              fontSize="10"
+              fill={activeZone === 'connect' ? theme.accent : theme.textTertiary}
+              fontSize={activeZone === 'connect' ? '11' : '10'}
+              fontWeight={activeZone === 'connect' ? '600' : '400'}
               fontFamily="Inter, sans-serif"
               style={{ pointerEvents: 'none', userSelect: 'none' }}
             >

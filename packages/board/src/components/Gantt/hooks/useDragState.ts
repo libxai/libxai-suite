@@ -9,7 +9,7 @@
 import { useState } from 'react';
 
 export type DragMode = 'none' | 'move' | 'resize-start' | 'resize-end' | 'connect';
-export type ActiveZone = 'move' | 'resize-start' | 'resize-end' | null;
+export type ActiveZone = 'move' | 'resize-start' | 'resize-end' | 'connect' | null;
 
 export interface DragState {
   // Drag mode
