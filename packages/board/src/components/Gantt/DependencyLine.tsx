@@ -11,6 +11,7 @@ export interface DependencyHoverData {
   y1: number;
   x2: number;
   y2: number;
+  verticalX?: number; // v0.17.353: X position for vertical segment (calculated by Timeline)
   routeY?: number; // v0.17.342: Y coordinate for horizontal segment
   fromIndex?: number; // v0.17.347: Row index of origin task
   toIndex?: number; // v0.17.347: Row index of destination task
@@ -28,6 +29,8 @@ interface DependencyLineProps {
   y1: number;
   x2: number;
   y2: number;
+  // v0.17.353: Dynamic vertical segment position (calculated by Timeline to avoid task bars)
+  verticalX?: number; // X position for vertical segment
   // v0.17.342: New props for ClickUp-style routing
   routeY?: number; // The Y coordinate where the horizontal segment should be
   fromIndex?: number; // Row index of origin task
@@ -43,6 +46,7 @@ interface DependencyLineProps {
 
 export function DependencyLine({
   x1, y1, x2, y2,
+  verticalX: propVerticalX, // v0.17.353: Dynamically calculated by Timeline
   routeY: propRouteY,
   fromIndex,
   toIndex: _toIndex, // v0.17.351: Kept for API compatibility
@@ -54,9 +58,8 @@ export function DependencyLine({
 }: DependencyLineProps) {
   const [isHovered, setIsHovered] = useState(false);
 
-  // v0.17.351: Simplified ClickUp-style dependency lines
-  // ALWAYS use L-shape path for ALL dependency lines between different rows
-  // This ensures consistent, clean lines that never pass through task bars
+  // v0.17.353: Smart routing for dependency lines
+  // verticalX is calculated by Timeline to avoid task bars
 
   const dx = x2 - x1;
 
@@ -76,10 +79,8 @@ export function DependencyLine({
 
   let path: string;
 
-  // v0.17.352: ClickUp-style routing - vertical segment goes to LEFT of destination bar
-  // This ensures lines never pass through task bars
-  // x2 is the LEFT edge of destination bar, so we route the vertical segment there
-  const verticalX = x2 - 12; // 12px to the left of destination bar
+  // v0.17.353: Use provided verticalX or fallback to x2 - 12
+  const verticalX = propVerticalX ?? (x2 - 12);
   const r = cornerRadius;
 
   if (lineStyle === 'squared') {
@@ -130,6 +131,7 @@ export function DependencyLine({
           y1,
           x2,
           y2,
+          verticalX, // v0.17.353: Include calculated verticalX for hover layer
           routeY: calculatedRouteY, // v0.17.342: Include routing Y for hover layer
           onDelete,
           lineStyle, // v0.17.310
@@ -138,7 +140,7 @@ export function DependencyLine({
         onHoverChange(null);
       }
     }
-  }, [isHovered, x1, y1, x2, y2, calculatedRouteY, onDelete, onHoverChange, lineStyle]);
+  }, [isHovered, x1, y1, x2, y2, verticalX, calculatedRouteY, onDelete, onHoverChange, lineStyle]);
 
   // v0.17.140: If no onDelete/onHoverChange, this is a static line (hover handled by top layer)
   const isStaticLine = !onDelete && !onHoverChange;

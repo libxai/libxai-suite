@@ -527,6 +527,39 @@ export function Timeline({
             // routeY = just below that = fromIndex * 56 + 50 (6px below bottom)
             const routeY = fromIndex * ROW_HEIGHT + 50; // 6px below source bar's bottom
 
+            // v0.17.353: Calculate optimal verticalX to avoid task bars
+            // Find the leftmost position of all task bars in intermediate rows
+            let verticalX: number;
+            const minRow = Math.min(fromIndex, toIndex);
+            const maxRow = Math.max(fromIndex, toIndex);
+
+            if (minRow === maxRow) {
+              // Same row - no vertical segment needed
+              verticalX = enterX;
+            } else {
+              // Find the minimum left edge of all task bars between fromIndex and toIndex
+              let minLeftEdge = Infinity;
+              for (let rowIdx = minRow; rowIdx <= maxRow; rowIdx++) {
+                const taskInRow = flatTasks[rowIdx];
+                if (taskInRow && taskInRow.startDate && taskInRow.endDate) {
+                  const pos = getTaskPosition(taskInRow);
+                  minLeftEdge = Math.min(minLeftEdge, pos.x);
+                }
+              }
+
+              // Place vertical segment 12px to the left of the leftmost bar
+              // But also ensure it's at least at exitX (source bar right edge) + some offset
+              const leftRoute = minLeftEdge - 12;
+
+              // Choose the route: always go to the left of all bars
+              verticalX = Math.min(leftRoute, exitX + 8);
+
+              // Ensure minimum distance from source
+              if (verticalX < exitX + 8) {
+                verticalX = exitX + 8;
+              }
+            }
+
             // v0.17.348: Hide base line when this exact dependency is being hovered
             // This prevents showing two overlapping lines with potentially different paths
             const isThisLineHovered = hoveredDependency &&
@@ -542,6 +575,7 @@ export function Timeline({
                 y1={exitY}
                 x2={enterX}
                 y2={enterY}
+                verticalX={verticalX}
                 routeY={routeY}
                 fromIndex={fromIndex}
                 toIndex={toIndex}
@@ -715,27 +749,40 @@ export function Timeline({
             // v0.17.345: Calculate routeY same as DependencyLine (below source bar)
             const routeY = fromIndex * ROW_HEIGHT + 50;
             const sameLine = fromIndex === toIndex;
-            const horizOffset = 8; // v0.17.345: Match DependencyLine offset
 
-            // v0.17.350: Hover path matches the actual line path (synced with DependencyLine.tsx)
-            // ALWAYS use L-shape for different rows
+            // v0.17.353: Calculate verticalX same as main dependency rendering
+            let verticalX: number;
+            const minRow = Math.min(fromIndex, toIndex);
+            const maxRow = Math.max(fromIndex, toIndex);
+
+            if (minRow === maxRow) {
+              verticalX = x2;
+            } else {
+              let minLeftEdge = Infinity;
+              for (let rowIdx = minRow; rowIdx <= maxRow; rowIdx++) {
+                const taskInRow = flatTasks[rowIdx];
+                if (taskInRow && taskInRow.startDate && taskInRow.endDate) {
+                  const pos = getTaskPosition(taskInRow);
+                  minLeftEdge = Math.min(minLeftEdge, pos.x);
+                }
+              }
+              const leftRoute = minLeftEdge - 12;
+              verticalX = Math.min(leftRoute, x1 + 8);
+              if (verticalX < x1 + 8) {
+                verticalX = x1 + 8;
+              }
+            }
+
+            // v0.17.353: Hover zone follows the actual line path
             let middlePath: string;
-            const isVerticallyAligned = !sameLine; // Any different row uses L-shape
-
             if (sameLine) {
-              // Case 1: Same row - horizontal hover zone
+              // Same row - horizontal hover zone
               const startX = x1 + 20;
               const endX = x2 - 15;
               middlePath = `M ${startX} ${y1} L ${endX} ${y2}`;
-            } else if (isVerticallyAligned) {
-              // Case 2: Vertically aligned - hover on vertical segment at midpoint
-              const midPointX = (x1 + x2) / 2;
-              middlePath = `M ${midPointX} ${y1 + 10} L ${midPointX} ${y2 - 10}`;
             } else {
-              // Case 3: Different rows - hover on the horizontal segment at routeY
-              const startX = x1 + horizOffset + 10;
-              const endX = x2 - horizOffset - 10;
-              middlePath = `M ${startX} ${routeY} L ${endX} ${routeY}`;
+              // Different rows - hover on the vertical segment
+              middlePath = `M ${verticalX} ${y1 + 10} L ${verticalX} ${y2 - 10}`;
             }
 
             const isThisHovered = hoveredDependency &&
@@ -754,6 +801,7 @@ export function Timeline({
               const mouseY = e.clientY - rect.top;
               setHoveredDependency({
                 x1, y1, x2, y2,
+                verticalX, // v0.17.353: Pass calculated verticalX
                 routeY, // v0.17.342: Pass routeY for ClickUp-style path
                 fromIndex, // v0.17.347: Pass indices for smart routing
                 toIndex,
@@ -825,13 +873,13 @@ export function Timeline({
         {/* v0.17.343: Updated to use ClickUp-style path with 30px offset that passes below task bars */}
         {/* This renders AFTER tasks in the SVG, so it appears on top */}
         {hoveredDependency && (() => {
-          const { x1, y1, x2, y2, onDelete, lineStyle: hoverLineStyle, mouseX, mouseY } = hoveredDependency;
+          const { x1, y1, x2, y2, verticalX: hoverVerticalX, onDelete, lineStyle: hoverLineStyle, mouseX, mouseY } = hoveredDependency;
           const dx = x2 - x1;
           const midX = x1 + dx / 2;
 
-          // v0.17.352: ClickUp-style routing - vertical segment goes to LEFT of destination bar
+          // v0.17.353: Use calculated verticalX from hover data (or fallback)
           const cornerRadius = 5;
-          const verticalX = x2 - 12; // 12px to the left of destination bar
+          const verticalX = hoverVerticalX ?? (x2 - 12);
           const r = cornerRadius;
           const dy = y2 - y1;
           const goingDown = dy > 0;
