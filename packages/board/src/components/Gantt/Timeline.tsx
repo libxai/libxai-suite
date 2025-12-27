@@ -859,8 +859,8 @@ export function Timeline({
                 deleteY = Math.max(Math.min(y1, y2) + 10, Math.min(Math.max(y1, y2) - 10, mouseY));
               }
             } else {
-              // For curved lines: project mouse position onto the Bézier curve
-              // Find the closest point on the curve to the mouse position
+              // v0.17.325: For curved lines - SMOOTH fluid projection onto Bézier curve
+              // Uses high-resolution sampling + binary search refinement for fluid movement
               const cubicBezierPoint = (t: number) => {
                 const mt = 1 - t;
                 const mt2 = mt * mt;
@@ -872,18 +872,61 @@ export function Timeline({
                 return { x: px, y: py };
               };
 
-              // Search for closest point on curve (sample at intervals)
-              let closestT = 0.5;
-              let closestDist = Infinity;
-              for (let i = 0; i <= 20; i++) {
-                const t = 0.1 + (i / 20) * 0.8; // t from 0.1 to 0.9
+              // Distance squared function (avoids sqrt for performance)
+              const distSq = (t: number) => {
                 const pt = cubicBezierPoint(t);
-                const dist = Math.sqrt((pt.x - mouseX) ** 2 + (pt.y - mouseY) ** 2);
-                if (dist < closestDist) {
-                  closestDist = dist;
+                return (pt.x - mouseX) ** 2 + (pt.y - mouseY) ** 2;
+              };
+
+              // Step 1: Coarse sampling to find approximate region (100 samples for smooth initial)
+              let closestT = 0.5;
+              let closestDistSq = Infinity;
+              const numSamples = 100;
+              for (let i = 0; i <= numSamples; i++) {
+                const t = 0.05 + (i / numSamples) * 0.9; // t from 0.05 to 0.95
+                const d = distSq(t);
+                if (d < closestDistSq) {
+                  closestDistSq = d;
                   closestT = t;
                 }
               }
+
+              // Step 2: Binary search refinement for sub-pixel precision (8 iterations)
+              // This makes the movement fluid by finding the exact closest point
+              let searchRadius = 0.9 / numSamples; // Start with distance between samples
+              for (let iter = 0; iter < 8; iter++) {
+                const tLeft = Math.max(0.05, closestT - searchRadius);
+                const tRight = Math.min(0.95, closestT + searchRadius);
+                const dLeft = distSq(tLeft);
+                const dRight = distSq(tRight);
+                const dMid = distSq(closestT);
+
+                if (dLeft < dMid && dLeft < dRight) {
+                  closestT = tLeft;
+                  closestDistSq = dLeft;
+                } else if (dRight < dMid && dRight < dLeft) {
+                  closestT = tRight;
+                  closestDistSq = dRight;
+                }
+                searchRadius *= 0.5; // Halve search radius each iteration
+              }
+
+              // Step 3: Final golden section search for maximum precision
+              // This ensures perfectly smooth movement along the curve
+              let a = Math.max(0.05, closestT - searchRadius * 4);
+              let b = Math.min(0.95, closestT + searchRadius * 4);
+              const goldenRatio = 0.618033988749895;
+
+              for (let iter = 0; iter < 6; iter++) {
+                const c = b - goldenRatio * (b - a);
+                const d = a + goldenRatio * (b - a);
+                if (distSq(c) < distSq(d)) {
+                  b = d;
+                } else {
+                  a = c;
+                }
+              }
+              closestT = (a + b) / 2;
 
               const closestPoint = cubicBezierPoint(closestT);
               deleteX = closestPoint.x;
