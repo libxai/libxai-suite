@@ -2318,6 +2318,7 @@ interface DependencyHoverData {
     y1: number;
     x2: number;
     y2: number;
+    routeY?: number;
     onDelete: () => void;
     lineStyle?: DependencyLineStyle;
     mouseX?: number;
@@ -2328,12 +2329,17 @@ interface DependencyLineProps {
     y1: number;
     x2: number;
     y2: number;
+    routeY?: number;
+    fromIndex?: number;
+    toIndex?: number;
+    rowHeight?: number;
     theme: any;
     onDelete?: () => void;
     onHoverChange?: (data: DependencyHoverData | null) => void;
     lineStyle?: DependencyLineStyle;
 }
-declare function DependencyLine({ x1, y1, x2, y2, theme, onDelete, onHoverChange, lineStyle }: DependencyLineProps): react_jsx_runtime.JSX.Element;
+declare function DependencyLine({ x1, y1, x2, y2, routeY: propRouteY, fromIndex, toIndex, rowHeight: _rowHeight, // v0.17.342: Available for future use
+theme, onDelete, onHoverChange, lineStyle }: DependencyLineProps): react_jsx_runtime.JSX.Element;
 
 interface MilestoneProps {
     task: Task;

@@ -4,11 +4,13 @@ import type { DependencyLineStyle } from './types';
 
 // v0.17.79: Data for rendering FULL dependency line + delete button in top layer
 // v0.17.323: Added mouseX/mouseY for cursor-following delete button (ClickUp style)
+// v0.17.342: Added routeY for ClickUp-style routing
 export interface DependencyHoverData {
   x1: number;
   y1: number;
   x2: number;
   y2: number;
+  routeY?: number; // v0.17.342: Y coordinate for horizontal segment
   onDelete: () => void;
   lineStyle?: DependencyLineStyle; // v0.17.310
   mouseX?: number; // v0.17.323: Cursor X position for delete button
@@ -23,6 +25,11 @@ interface DependencyLineProps {
   y1: number;
   x2: number;
   y2: number;
+  // v0.17.342: New props for ClickUp-style routing
+  routeY?: number; // The Y coordinate where the horizontal segment should be
+  fromIndex?: number; // Row index of origin task
+  toIndex?: number; // Row index of destination task
+  rowHeight?: number; // Height of each row
   theme: any;
   onDelete?: () => void;
   // v0.17.79: Callback to render full line + delete button in top layer (above tasks)
@@ -31,61 +38,142 @@ interface DependencyLineProps {
   lineStyle?: DependencyLineStyle;
 }
 
-export function DependencyLine({ x1, y1, x2, y2, theme, onDelete, onHoverChange, lineStyle = 'curved' }: DependencyLineProps) {
+export function DependencyLine({
+  x1, y1, x2, y2,
+  routeY: propRouteY,
+  fromIndex,
+  toIndex,
+  rowHeight: _rowHeight, // v0.17.342: Available for future use
+  theme,
+  onDelete,
+  onHoverChange,
+  lineStyle = 'curved'
+}: DependencyLineProps) {
   const [isHovered, setIsHovered] = useState(false);
 
-  // v0.17.341: ClickUp-style dependency lines - pass BELOW task bars, not through them
-  // y1 and y2 now represent the CENTER of each task bar (passed from Timeline)
-  // The line goes: right from origin → down below bar → horizontal → up to destination → left into destination
+  // v0.17.346: ClickUp-style dependency lines with SMART routing
+  //
+  // Three cases:
+  // 1. Same row: simple horizontal line
+  // 2. Vertically aligned (small horizontal distance): simple L-shape (right then down/up)
+  // 3. Different positions: full routing (right, down to routeY, horizontal, up/down to dest)
 
   const dx = x2 - x1;
   const dy = y2 - y1;
+  const sameLine = fromIndex !== undefined && toIndex !== undefined && fromIndex === toIndex;
+
+  // For midpoint calculations (delete button position)
   const midX = x1 + dx / 2;
 
-  // Calculate the vertical offset to pass below/above the bars
-  // Lines should pass in the space between rows, not through the bars
-  const verticalOffset = 24; // Distance below the bar center to route the line
-  const horizontalOffset = 8; // Small horizontal segment at start/end
+  // ROW_HEIGHT = 56px, TaskBar: top = row*56+12, bottom = row*56+44
+  const ROW_HEIGHT = 56;
 
-  // Determine if destination is below or above origin
-  const goingDown = y2 > y1;
-  const sameLine = Math.abs(dy) < 10;
+  // Horizontal offset: distance from bar edge to vertical segment
+  const horizOffset = 8;
+
+  // Corner radius for smooth turns
+  const cornerRadius = 5;
+
+  // v0.17.346: Check if tasks are "vertically aligned"
+  // This means the destination is roughly below/above the source with small horizontal offset
+  // In this case, use a simpler L-shaped path instead of the full routing
+  const isVerticallyAligned = Math.abs(dx) < 80; // Less than 80px horizontal distance
+
+  // v0.17.346: Calculate routeY upfront (used in case 3 and for hover layer)
+  const calculatedRouteY = fromIndex !== undefined
+    ? fromIndex * ROW_HEIGHT + 44 + 6 // 6px below source bar bottom
+    : (propRouteY ?? (y1 + 22));
 
   let path: string;
 
-  if (lineStyle === 'squared') {
-    // v0.17.341: Squared ClickUp-style path - clean right angles, passes below bars
-    if (sameLine) {
-      // Same row - simple horizontal line
+  if (sameLine || Math.abs(dy) < 5) {
+    // Case 1: Same row - simple horizontal line
+    if (lineStyle === 'squared') {
       path = `M ${x1} ${y1} L ${x2} ${y2}`;
     } else {
-      // Different rows - route below/between the bars
-      const routeY = goingDown
-        ? Math.max(y1, y2) + verticalOffset  // Route below the lower bar
-        : Math.min(y1, y2) - verticalOffset; // Route above the higher bar (but still below for visual consistency)
+      const ctrlOffset = Math.min(Math.abs(dx) / 3, 30);
+      path = `M ${x1} ${y1} C ${x1 + ctrlOffset} ${y1}, ${x2 - ctrlOffset} ${y2}, ${x2} ${y2}`;
+    }
+  } else if (isVerticallyAligned) {
+    // Case 2: Vertically aligned - simple L-shape path
+    // Go horizontal to midpoint X, then vertical to destination
+    const midPointX = (x1 + x2) / 2;
+    const r = cornerRadius;
 
-      // Path: right → down → horizontal → up → right into target
-      path = `M ${x1} ${y1} L ${x1 + horizontalOffset} ${y1} L ${x1 + horizontalOffset} ${routeY} L ${x2 - horizontalOffset} ${routeY} L ${x2 - horizontalOffset} ${y2} L ${x2} ${y2}`;
+    if (lineStyle === 'squared') {
+      path = `M ${x1} ${y1} ` +
+             `L ${midPointX} ${y1} ` +     // Horizontal to midpoint
+             `L ${midPointX} ${y2} ` +     // Vertical to destination row
+             `L ${x2} ${y2}`;              // Horizontal to destination
+    } else {
+      // With rounded corners
+      const goingDown = y2 > y1;
+      if (goingDown) {
+        path = `M ${x1} ${y1} ` +
+               `L ${midPointX - r} ${y1} ` +
+               `Q ${midPointX} ${y1} ${midPointX} ${y1 + r} ` +  // Corner: turn down
+               `L ${midPointX} ${y2 - r} ` +
+               `Q ${midPointX} ${y2} ${midPointX + r} ${y2} ` +  // Corner: turn right
+               `L ${x2} ${y2}`;
+      } else {
+        path = `M ${x1} ${y1} ` +
+               `L ${midPointX - r} ${y1} ` +
+               `Q ${midPointX} ${y1} ${midPointX} ${y1 - r} ` +  // Corner: turn up
+               `L ${midPointX} ${y2 + r} ` +
+               `Q ${midPointX} ${y2} ${midPointX + r} ${y2} ` +  // Corner: turn right
+               `L ${x2} ${y2}`;
+      }
     }
   } else {
-    // v0.17.341: Curved ClickUp-style path - smooth curves that pass below bars
-    if (sameLine) {
-      // Same row - simple curved line
-      path = `M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}`;
-    } else {
-      // Different rows - smooth curve that dips below the bars
-      const routeY = goingDown
-        ? y2 + verticalOffset  // Curve passes below destination bar
-        : y1 + verticalOffset; // Curve passes below origin bar
+    // Case 3: Different positions - full ClickUp-style routing
+    // Route below the SOURCE bar, then horizontal, then to destination
+    // (calculatedRouteY is already computed above)
 
-      // Smooth S-curve that goes around the bars
-      path = `M ${x1} ${y1} C ${x1 + horizontalOffset * 2} ${y1}, ${x1 + horizontalOffset * 2} ${routeY}, ${midX} ${routeY} S ${x2 - horizontalOffset * 2} ${y2}, ${x2} ${y2}`;
+    // X positions for vertical segments
+    const x1v = x1 + horizOffset; // Near source bar right edge
+    const x2v = x2 - horizOffset; // Near destination bar left edge
+
+    // Determine if destination is above or below routeY
+    const destAboveRoute = y2 < calculatedRouteY;
+
+    if (lineStyle === 'squared') {
+      path = `M ${x1} ${y1} ` +
+             `L ${x1v} ${y1} ` +                // Horizontal exit
+             `L ${x1v} ${calculatedRouteY} ` +  // Vertical DOWN to route level
+             `L ${x2v} ${calculatedRouteY} ` +  // Horizontal across
+             `L ${x2v} ${y2} ` +                // Vertical to destination
+             `L ${x2} ${y2}`;                   // Horizontal entry
+    } else {
+      const r = cornerRadius;
+
+      // First part: source → down to routeY → horizontal
+      let pathStart = `M ${x1} ${y1} ` +
+                      `L ${x1v - r} ${y1} ` +
+                      `Q ${x1v} ${y1} ${x1v} ${y1 + r} ` +
+                      `L ${x1v} ${calculatedRouteY - r} ` +
+                      `Q ${x1v} ${calculatedRouteY} ${x1v + r} ${calculatedRouteY} ` +
+                      `L ${x2v - r} ${calculatedRouteY} `;
+
+      // Second part: to destination
+      let pathEnd: string;
+      if (destAboveRoute) {
+        pathEnd = `Q ${x2v} ${calculatedRouteY} ${x2v} ${calculatedRouteY - r} ` +
+                  `L ${x2v} ${y2 + r} ` +
+                  `Q ${x2v} ${y2} ${x2v + r} ${y2} ` +
+                  `L ${x2} ${y2}`;
+      } else {
+        pathEnd = `Q ${x2v} ${calculatedRouteY} ${x2v} ${calculatedRouteY + r} ` +
+                  `L ${x2v} ${y2 - r} ` +
+                  `Q ${x2v} ${y2} ${x2v + r} ${y2} ` +
+                  `L ${x2} ${y2}`;
+      }
+
+      path = pathStart + pathEnd;
     }
   }
 
-  // Arrow marker at the end - pointing left (into the target bar)
-  const arrowSize = 6;
-  // Arrow always points horizontally to the left (into the target)
+  // Arrow marker at the end - pointing horizontally into the target
+  const arrowSize = 5;
   const arrowX = x2 - arrowSize;
   const arrowY = y2 - arrowSize * 0.5;
   const arrowX2 = x2 - arrowSize;
@@ -103,6 +191,7 @@ export function DependencyLine({ x1, y1, x2, y2, theme, onDelete, onHoverChange,
           y1,
           x2,
           y2,
+          routeY: calculatedRouteY, // v0.17.342: Include routing Y for hover layer
           onDelete,
           lineStyle, // v0.17.310
         });
@@ -110,7 +199,7 @@ export function DependencyLine({ x1, y1, x2, y2, theme, onDelete, onHoverChange,
         onHoverChange(null);
       }
     }
-  }, [isHovered, x1, y1, x2, y2, onDelete, onHoverChange, lineStyle]);
+  }, [isHovered, x1, y1, x2, y2, calculatedRouteY, onDelete, onHoverChange, lineStyle]);
 
   // v0.17.140: If no onDelete/onHoverChange, this is a static line (hover handled by top layer)
   const isStaticLine = !onDelete && !onHoverChange;

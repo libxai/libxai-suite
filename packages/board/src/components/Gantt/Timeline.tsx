@@ -507,21 +507,39 @@ export function Timeline({
             const fromPos = getTaskPosition(depTask);
             const toPos = getTaskPosition(task);
 
-            // v0.17.341: ClickUp-style - y coordinates are center of task bars
-            // TaskBar y = index * ROW_HEIGHT + 12, height = 32, so center = index * ROW_HEIGHT + 28
-            const taskBarCenterY1 = fromIndex * ROW_HEIGHT + 28;
-            const taskBarCenterY2 = toIndex * ROW_HEIGHT + 28;
+            // v0.17.344: TRUE ClickUp-style dependency lines
+            // TaskBar: y = index * ROW_HEIGHT + 12, height = 32
+            // So: top = index * ROW_HEIGHT + 12, bottom = index * ROW_HEIGHT + 44
+            // Center = index * ROW_HEIGHT + 28
+            // Space between rows: from bottom (44) to next top (68) = 24px gap
+
+            // Line exits from RIGHT-CENTER of origin bar
+            const exitX = fromPos.x + fromPos.width;
+            const exitY = fromIndex * ROW_HEIGHT + 28; // center of bar
+
+            // Line enters at LEFT-CENTER of destination bar
+            const enterX = toPos.x;
+            const enterY = toIndex * ROW_HEIGHT + 28; // center of bar
+
+            // v0.17.345: routeY is ALWAYS below the SOURCE bar (fromIndex)
+            // This ensures consistent line patterns - always down first, then horizontal
+            // Bottom of source bar = fromIndex * 56 + 44
+            // routeY = just below that = fromIndex * 56 + 50 (6px below bottom)
+            const routeY = fromIndex * ROW_HEIGHT + 50; // 6px below source bar's bottom
 
             return (
               <DependencyLine
                 key={`dep-${depId}-${task.id}`}
-                x1={fromPos.x + fromPos.width}
-                y1={taskBarCenterY1}
-                x2={toPos.x}
-                y2={taskBarCenterY2}
+                x1={exitX}
+                y1={exitY}
+                x2={enterX}
+                y2={enterY}
+                routeY={routeY}
+                fromIndex={fromIndex}
+                toIndex={toIndex}
+                rowHeight={ROW_HEIGHT}
                 theme={theme}
-                lineStyle={dependencyLineStyle} // v0.17.310
-                // v0.17.140: Removed onDelete and onHoverChange - hover now handled by top layer
+                lineStyle={dependencyLineStyle}
               />
             );
           });
@@ -680,55 +698,37 @@ export function Timeline({
             const fromPos = getTaskPosition(depTask);
             const toPos = getTaskPosition(task);
 
-            // v0.17.341: Use center of task bars for coordinates (same as DependencyLine)
+            // v0.17.345: Same coordinates as DependencyLine
             const x1 = fromPos.x + fromPos.width;
-            const y1 = fromIndex * ROW_HEIGHT + 28; // Center of task bar
+            const y1 = fromIndex * ROW_HEIGHT + 28;
             const x2 = toPos.x;
-            const y2 = toIndex * ROW_HEIGHT + 28; // Center of task bar
-            const dx = x2 - x1;
-            const dy = y2 - y1;
+            const y2 = toIndex * ROW_HEIGHT + 28;
 
-            // v0.17.341: ClickUp-style hover path - matches the actual rendered line path
-            const verticalOffset = 24;
-            const horizontalOffset = 8;
-            const goingDown = y2 > y1;
-            const sameLine = Math.abs(dy) < 10;
+            // v0.17.345: Calculate routeY same as DependencyLine (below source bar)
+            const routeY = fromIndex * ROW_HEIGHT + 50;
+            const sameLine = fromIndex === toIndex;
+            const horizOffset = 8; // v0.17.345: Match DependencyLine offset
 
+            // v0.17.346: Hover path matches the actual line path (synced with DependencyLine.tsx)
+            // Three cases: same row, vertically aligned, different positions
             let middlePath: string;
+            const dx = x2 - x1;
+            const isVerticallyAligned = Math.abs(dx) < 80; // Same threshold as DependencyLine
 
-            if (dependencyLineStyle === 'squared') {
-              // v0.17.341: Squared ClickUp-style hover path
-              if (sameLine) {
-                // Same row - horizontal line with offset from endpoints
-                const startX = x1 + 35; // Offset to not block Link button
-                const endX = x2 - 15;
-                middlePath = `M ${startX} ${y1} L ${endX} ${y2}`;
-              } else {
-                const routeY = goingDown
-                  ? Math.max(y1, y2) + verticalOffset
-                  : Math.min(y1, y2) - verticalOffset;
-                // Hover on the horizontal segment in the middle
-                const startX = x1 + horizontalOffset + 30; // Offset to not block Link button
-                const endX = x2 - horizontalOffset - 10;
-                middlePath = `M ${startX} ${routeY} L ${endX} ${routeY}`;
-              }
+            if (sameLine) {
+              // Case 1: Same row - horizontal hover zone
+              const startX = x1 + 20;
+              const endX = x2 - 15;
+              middlePath = `M ${startX} ${y1} L ${endX} ${y2}`;
+            } else if (isVerticallyAligned) {
+              // Case 2: Vertically aligned - hover on vertical segment at midpoint
+              const midPointX = (x1 + x2) / 2;
+              middlePath = `M ${midPointX} ${y1 + 10} L ${midPointX} ${y2 - 10}`;
             } else {
-              // v0.17.341: Curved ClickUp-style hover path
-              if (sameLine) {
-                const midX = x1 + dx / 2;
-                const startX = x1 + 35;
-                const endX = x2 - 15;
-                middlePath = `M ${startX} ${y1} Q ${midX} ${y1 + 10}, ${endX} ${y2}`;
-              } else {
-                const midX = x1 + dx / 2;
-                const routeY = goingDown
-                  ? y2 + verticalOffset
-                  : y1 + verticalOffset;
-                // Hover on the curved middle section
-                const startX = x1 + 35;
-                const endX = x2 - 15;
-                middlePath = `M ${startX} ${(y1 + routeY) / 2} Q ${midX} ${routeY}, ${endX} ${(y2 + routeY) / 2}`;
-              }
+              // Case 3: Different rows - hover on the horizontal segment at routeY
+              const startX = x1 + horizOffset + 10;
+              const endX = x2 - horizOffset - 10;
+              middlePath = `M ${startX} ${routeY} L ${endX} ${routeY}`;
             }
 
             const isThisHovered = hoveredDependency &&
@@ -747,6 +747,7 @@ export function Timeline({
               const mouseY = e.clientY - rect.top;
               setHoveredDependency({
                 x1, y1, x2, y2,
+                routeY, // v0.17.342: Pass routeY for ClickUp-style path
                 onDelete: () => onDependencyDelete?.(task.id, depId),
                 lineStyle: dependencyLineStyle,
                 mouseX,
@@ -812,43 +813,97 @@ export function Timeline({
 
         {/* v0.17.143: Premium hovered dependency layer - elegant glow + refined delete button */}
         {/* v0.17.323: Delete button now follows cursor along the line (ClickUp style) */}
-        {/* v0.17.341: Updated to use ClickUp-style path that passes below task bars */}
+        {/* v0.17.343: Updated to use ClickUp-style path with 30px offset that passes below task bars */}
         {/* This renders AFTER tasks in the SVG, so it appears on top */}
         {hoveredDependency && (() => {
-          const { x1, y1, x2, y2, onDelete, lineStyle: hoverLineStyle, mouseX, mouseY } = hoveredDependency;
+          const { x1, y1, x2, y2, routeY: hoverRouteY, onDelete, lineStyle: hoverLineStyle, mouseX, mouseY } = hoveredDependency;
           const dx = x2 - x1;
           const dy = y2 - y1;
           const midX = x1 + dx / 2;
 
-          // v0.17.341: ClickUp-style path calculation - same as DependencyLine
-          const verticalOffset = 24;
-          const horizontalOffset = 8;
-          const goingDown = y2 > y1;
-          const sameLine = Math.abs(dy) < 10;
+          // v0.17.346: ClickUp-style path with SMART routing (synced with DependencyLine.tsx)
+          // Three cases: same row, vertically aligned, different positions
+          const sameLine = Math.abs(dy) < 5;
+          const isVerticallyAligned = Math.abs(dx) < 80; // Same threshold as DependencyLine
+          const calculatedRouteY = hoverRouteY ?? (y1 + 22);
+          const horizOffset = 8;
+          const cornerRadius = 5;
 
           let path: string;
-          if (hoverLineStyle === 'squared') {
-            if (sameLine) {
+          if (sameLine) {
+            // Case 1: Same row - simple horizontal line
+            if (hoverLineStyle === 'squared') {
               path = `M ${x1} ${y1} L ${x2} ${y2}`;
             } else {
-              const routeY = goingDown
-                ? Math.max(y1, y2) + verticalOffset
-                : Math.min(y1, y2) - verticalOffset;
-              path = `M ${x1} ${y1} L ${x1 + horizontalOffset} ${y1} L ${x1 + horizontalOffset} ${routeY} L ${x2 - horizontalOffset} ${routeY} L ${x2 - horizontalOffset} ${y2} L ${x2} ${y2}`;
+              const ctrlOffset = Math.min(Math.abs(dx) / 3, 30);
+              path = `M ${x1} ${y1} C ${x1 + ctrlOffset} ${y1}, ${x2 - ctrlOffset} ${y2}, ${x2} ${y2}`;
+            }
+          } else if (isVerticallyAligned) {
+            // Case 2: Vertically aligned - simple L-shape path
+            const midPointX = (x1 + x2) / 2;
+            const r = cornerRadius;
+            const goingDown = y2 > y1;
+
+            if (hoverLineStyle === 'squared') {
+              path = `M ${x1} ${y1} ` +
+                     `L ${midPointX} ${y1} ` +
+                     `L ${midPointX} ${y2} ` +
+                     `L ${x2} ${y2}`;
+            } else if (goingDown) {
+              path = `M ${x1} ${y1} ` +
+                     `L ${midPointX - r} ${y1} ` +
+                     `Q ${midPointX} ${y1} ${midPointX} ${y1 + r} ` +
+                     `L ${midPointX} ${y2 - r} ` +
+                     `Q ${midPointX} ${y2} ${midPointX + r} ${y2} ` +
+                     `L ${x2} ${y2}`;
+            } else {
+              path = `M ${x1} ${y1} ` +
+                     `L ${midPointX - r} ${y1} ` +
+                     `Q ${midPointX} ${y1} ${midPointX} ${y1 - r} ` +
+                     `L ${midPointX} ${y2 + r} ` +
+                     `Q ${midPointX} ${y2} ${midPointX + r} ${y2} ` +
+                     `L ${x2} ${y2}`;
             }
           } else {
-            if (sameLine) {
-              path = `M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}`;
+            // Case 3: Different positions - full routing
+            const x1v = x1 + horizOffset;
+            const x2v = x2 - horizOffset;
+            const r = cornerRadius;
+            const destAboveRoute = y2 < calculatedRouteY;
+
+            if (hoverLineStyle === 'squared') {
+              path = `M ${x1} ${y1} ` +
+                     `L ${x1v} ${y1} ` +
+                     `L ${x1v} ${calculatedRouteY} ` +
+                     `L ${x2v} ${calculatedRouteY} ` +
+                     `L ${x2v} ${y2} ` +
+                     `L ${x2} ${y2}`;
             } else {
-              const routeY = goingDown
-                ? y2 + verticalOffset
-                : y1 + verticalOffset;
-              path = `M ${x1} ${y1} C ${x1 + horizontalOffset * 2} ${y1}, ${x1 + horizontalOffset * 2} ${routeY}, ${midX} ${routeY} S ${x2 - horizontalOffset * 2} ${y2}, ${x2} ${y2}`;
+              let pathStart = `M ${x1} ${y1} ` +
+                              `L ${x1v - r} ${y1} ` +
+                              `Q ${x1v} ${y1} ${x1v} ${y1 + r} ` +
+                              `L ${x1v} ${calculatedRouteY - r} ` +
+                              `Q ${x1v} ${calculatedRouteY} ${x1v + r} ${calculatedRouteY} ` +
+                              `L ${x2v - r} ${calculatedRouteY} `;
+
+              let pathEnd: string;
+              if (destAboveRoute) {
+                pathEnd = `Q ${x2v} ${calculatedRouteY} ${x2v} ${calculatedRouteY - r} ` +
+                          `L ${x2v} ${y2 + r} ` +
+                          `Q ${x2v} ${y2} ${x2v + r} ${y2} ` +
+                          `L ${x2} ${y2}`;
+              } else {
+                pathEnd = `Q ${x2v} ${calculatedRouteY} ${x2v} ${calculatedRouteY + r} ` +
+                          `L ${x2v} ${y2 - r} ` +
+                          `Q ${x2v} ${y2} ${x2v + r} ${y2} ` +
+                          `L ${x2} ${y2}`;
+              }
+              path = pathStart + pathEnd;
             }
           }
 
           // Arrow pointing horizontally into target
-          const arrowSize = 6;
+          const arrowSize = 5;
           const arrowX = x2 - arrowSize;
           const arrowY = y2 - arrowSize * 0.5;
           const arrowX2 = x2 - arrowSize;
@@ -858,21 +913,15 @@ export function Timeline({
           const deleteColor = '#f87171';
           const deleteColorSoft = 'rgba(248, 113, 113, 0.15)';
 
-          // v0.17.341: Calculate delete button position - on the horizontal segment below bars
-          const routeY = goingDown
-            ? Math.max(y1, y2) + verticalOffset
-            : Math.min(y1, y2) - verticalOffset;
-
-          // Default position: center of the horizontal segment
+          // v0.17.344: Delete button position - on the horizontal segment
           let deleteX = midX;
-          let deleteY = sameLine ? (y1 + y2) / 2 : routeY;
+          let deleteY = sameLine ? (y1 + y2) / 2 : calculatedRouteY;
           let hideDeleteButton = false;
 
           // If mouse position available, follow it along the horizontal segment
           if (mouseX !== undefined && mouseY !== undefined && !sameLine) {
-            // Clamp X to the horizontal segment
-            deleteX = Math.max(x1 + horizontalOffset + 20, Math.min(x2 - horizontalOffset - 20, mouseX));
-            deleteY = routeY;
+            deleteX = Math.max(x1 + horizOffset + 20, Math.min(x2 - horizOffset - 20, mouseX));
+            deleteY = calculatedRouteY;
           } else if (mouseX !== undefined && sameLine) {
             deleteX = Math.max(x1 + 20, Math.min(x2 - 20, mouseX));
             deleteY = (y1 + y2) / 2;
