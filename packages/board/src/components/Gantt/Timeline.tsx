@@ -825,38 +825,29 @@ export function Timeline({
         {/* v0.17.343: Updated to use ClickUp-style path with 30px offset that passes below task bars */}
         {/* This renders AFTER tasks in the SVG, so it appears on top */}
         {hoveredDependency && (() => {
-          const { x1, y1, x2, y2, routeY: hoverRouteY, fromIndex: hoverFromIndex, toIndex: hoverToIndex, onDelete, lineStyle: hoverLineStyle, mouseX, mouseY } = hoveredDependency;
+          const { x1, y1, x2, y2, onDelete, lineStyle: hoverLineStyle, mouseX, mouseY } = hoveredDependency;
           const dx = x2 - x1;
           const midX = x1 + dx / 2;
 
-          // v0.17.350: ClickUp-style path with SMART routing (synced with DependencyLine.tsx)
-          // ALWAYS use L-shape for different rows (simpler and cleaner)
-          const sameLine = hoverFromIndex !== undefined && hoverToIndex !== undefined && hoverFromIndex === hoverToIndex;
-          const isVerticallyAligned = !sameLine; // Any different row uses L-shape
-          const calculatedRouteY = hoverRouteY ?? (y1 + 22);
-          const horizOffset = 8;
+          // v0.17.351: ALWAYS use L-shape path for ALL dependency lines (synced with DependencyLine.tsx)
           const cornerRadius = 5;
+          const midPointX = (x1 + x2) / 2;
+          const r = cornerRadius;
+          const dy = y2 - y1;
+          const goingDown = dy > 0;
+          const isSameRow = Math.abs(dy) < 5;
 
           let path: string;
-          if (sameLine) {
-            // Case 1: Same row - simple horizontal line
-            if (hoverLineStyle === 'squared') {
-              path = `M ${x1} ${y1} L ${x2} ${y2}`;
-            } else {
+          if (hoverLineStyle === 'squared') {
+            path = `M ${x1} ${y1} ` +
+                   `L ${midPointX} ${y1} ` +
+                   `L ${midPointX} ${y2} ` +
+                   `L ${x2} ${y2}`;
+          } else {
+            if (isSameRow) {
+              // Same row - simple horizontal curve
               const ctrlOffset = Math.min(Math.abs(dx) / 3, 30);
               path = `M ${x1} ${y1} C ${x1 + ctrlOffset} ${y1}, ${x2 - ctrlOffset} ${y2}, ${x2} ${y2}`;
-            }
-          } else if (isVerticallyAligned) {
-            // Case 2: Vertically aligned - simple L-shape path
-            const midPointX = (x1 + x2) / 2;
-            const r = cornerRadius;
-            const goingDown = y2 > y1;
-
-            if (hoverLineStyle === 'squared') {
-              path = `M ${x1} ${y1} ` +
-                     `L ${midPointX} ${y1} ` +
-                     `L ${midPointX} ${y2} ` +
-                     `L ${x2} ${y2}`;
             } else if (goingDown) {
               path = `M ${x1} ${y1} ` +
                      `L ${midPointX - r} ${y1} ` +
@@ -872,42 +863,6 @@ export function Timeline({
                      `Q ${midPointX} ${y2} ${midPointX + r} ${y2} ` +
                      `L ${x2} ${y2}`;
             }
-          } else {
-            // Case 3: Different positions - full routing
-            const x1v = x1 + horizOffset;
-            const x2v = x2 - horizOffset;
-            const r = cornerRadius;
-            const destAboveRoute = y2 < calculatedRouteY;
-
-            if (hoverLineStyle === 'squared') {
-              path = `M ${x1} ${y1} ` +
-                     `L ${x1v} ${y1} ` +
-                     `L ${x1v} ${calculatedRouteY} ` +
-                     `L ${x2v} ${calculatedRouteY} ` +
-                     `L ${x2v} ${y2} ` +
-                     `L ${x2} ${y2}`;
-            } else {
-              let pathStart = `M ${x1} ${y1} ` +
-                              `L ${x1v - r} ${y1} ` +
-                              `Q ${x1v} ${y1} ${x1v} ${y1 + r} ` +
-                              `L ${x1v} ${calculatedRouteY - r} ` +
-                              `Q ${x1v} ${calculatedRouteY} ${x1v + r} ${calculatedRouteY} ` +
-                              `L ${x2v - r} ${calculatedRouteY} `;
-
-              let pathEnd: string;
-              if (destAboveRoute) {
-                pathEnd = `Q ${x2v} ${calculatedRouteY} ${x2v} ${calculatedRouteY - r} ` +
-                          `L ${x2v} ${y2 + r} ` +
-                          `Q ${x2v} ${y2} ${x2v + r} ${y2} ` +
-                          `L ${x2} ${y2}`;
-              } else {
-                pathEnd = `Q ${x2v} ${calculatedRouteY} ${x2v} ${calculatedRouteY + r} ` +
-                          `L ${x2v} ${y2 - r} ` +
-                          `Q ${x2v} ${y2} ${x2v + r} ${y2} ` +
-                          `L ${x2} ${y2}`;
-              }
-              path = pathStart + pathEnd;
-            }
           }
 
           // Arrow pointing horizontally into target
@@ -921,18 +876,15 @@ export function Timeline({
           const deleteColor = '#f87171';
           const deleteColorSoft = 'rgba(248, 113, 113, 0.15)';
 
-          // v0.17.344: Delete button position - on the horizontal segment
+          // v0.17.351: Delete button position - simplified, always at center of horizontal segment
           let deleteX = midX;
-          let deleteY = sameLine ? (y1 + y2) / 2 : calculatedRouteY;
+          let deleteY = isSameRow ? (y1 + y2) / 2 : y1; // On source row horizontal segment
           let hideDeleteButton = false;
 
-          // If mouse position available, follow it along the horizontal segment
-          if (mouseX !== undefined && mouseY !== undefined && !sameLine) {
-            deleteX = Math.max(x1 + horizOffset + 20, Math.min(x2 - horizOffset - 20, mouseX));
-            deleteY = calculatedRouteY;
-          } else if (mouseX !== undefined && sameLine) {
+          // If mouse position available, follow it along the line
+          if (mouseX !== undefined && mouseY !== undefined) {
             deleteX = Math.max(x1 + 20, Math.min(x2 - 20, mouseX));
-            deleteY = (y1 + y2) / 2;
+            deleteY = isSameRow ? (y1 + y2) / 2 : y1;
           }
 
           // v0.17.341: Hide delete button only if it would overlap with task bars

@@ -45,7 +45,7 @@ export function DependencyLine({
   x1, y1, x2, y2,
   routeY: propRouteY,
   fromIndex,
-  toIndex,
+  toIndex: _toIndex, // v0.17.351: Kept for API compatibility
   rowHeight: _rowHeight, // v0.17.342: Available for future use
   theme,
   onDelete,
@@ -54,15 +54,11 @@ export function DependencyLine({
 }: DependencyLineProps) {
   const [isHovered, setIsHovered] = useState(false);
 
-  // v0.17.346: ClickUp-style dependency lines with SMART routing
-  //
-  // Three cases:
-  // 1. Same row: simple horizontal line
-  // 2. Vertically aligned (small horizontal distance): simple L-shape (right then down/up)
-  // 3. Different positions: full routing (right, down to routeY, horizontal, up/down to dest)
+  // v0.17.351: Simplified ClickUp-style dependency lines
+  // ALWAYS use L-shape path for ALL dependency lines between different rows
+  // This ensures consistent, clean lines that never pass through task bars
 
   const dx = x2 - x1;
-  const sameLine = fromIndex !== undefined && toIndex !== undefined && fromIndex === toIndex;
 
   // For midpoint calculations (delete button position)
   const midX = x1 + dx / 2;
@@ -70,108 +66,47 @@ export function DependencyLine({
   // ROW_HEIGHT = 56px, TaskBar: top = row*56+12, bottom = row*56+44
   const ROW_HEIGHT = 56;
 
-  // Horizontal offset: distance from bar edge to vertical segment
-  const horizOffset = 8;
-
   // Corner radius for smooth turns
   const cornerRadius = 5;
 
-  // v0.17.350: ALWAYS use L-shape for different rows (simpler and cleaner)
-  // Previously used complex routing that passed through task bars
-  const isVerticallyAligned = !sameLine; // Any different row uses L-shape
-
-  // v0.17.346: Calculate routeY upfront (used in case 3 and for hover layer)
+  // v0.17.346: Calculate routeY upfront (used for hover layer)
   const calculatedRouteY = fromIndex !== undefined
     ? fromIndex * ROW_HEIGHT + 44 + 6 // 6px below source bar bottom
     : (propRouteY ?? (y1 + 22));
 
   let path: string;
 
-  // v0.17.349: Stricter same-line detection - ONLY when fromIndex === toIndex
-  // Previously Math.abs(dy) < 5 could incorrectly trigger for different rows
-  if (sameLine) {
-    // Case 1: Same row - simple horizontal line (only when truly same row)
-    if (lineStyle === 'squared') {
-      path = `M ${x1} ${y1} L ${x2} ${y2}`;
-    } else {
+  // v0.17.351: ALWAYS use L-shape path for ALL dependency lines
+  // This ensures consistent, clean lines that never pass through task bars
+  const midPointX = (x1 + x2) / 2;
+  const r = cornerRadius;
+
+  if (lineStyle === 'squared') {
+    path = `M ${x1} ${y1} ` +
+           `L ${midPointX} ${y1} ` +     // Horizontal to midpoint
+           `L ${midPointX} ${y2} ` +     // Vertical to destination row
+           `L ${x2} ${y2}`;              // Horizontal to destination
+  } else {
+    // With rounded corners
+    const goingDown = y2 > y1;
+    if (Math.abs(y2 - y1) < 5) {
+      // Same row - simple horizontal curve
       const ctrlOffset = Math.min(Math.abs(dx) / 3, 30);
       path = `M ${x1} ${y1} C ${x1 + ctrlOffset} ${y1}, ${x2 - ctrlOffset} ${y2}, ${x2} ${y2}`;
-    }
-  } else if (isVerticallyAligned) {
-    // Case 2: Vertically aligned - simple L-shape path
-    // Go horizontal to midpoint X, then vertical to destination
-    const midPointX = (x1 + x2) / 2;
-    const r = cornerRadius;
-
-    if (lineStyle === 'squared') {
+    } else if (goingDown) {
       path = `M ${x1} ${y1} ` +
-             `L ${midPointX} ${y1} ` +     // Horizontal to midpoint
-             `L ${midPointX} ${y2} ` +     // Vertical to destination row
-             `L ${x2} ${y2}`;              // Horizontal to destination
+             `L ${midPointX - r} ${y1} ` +
+             `Q ${midPointX} ${y1} ${midPointX} ${y1 + r} ` +  // Corner: turn down
+             `L ${midPointX} ${y2 - r} ` +
+             `Q ${midPointX} ${y2} ${midPointX + r} ${y2} ` +  // Corner: turn right
+             `L ${x2} ${y2}`;
     } else {
-      // With rounded corners
-      const goingDown = y2 > y1;
-      if (goingDown) {
-        path = `M ${x1} ${y1} ` +
-               `L ${midPointX - r} ${y1} ` +
-               `Q ${midPointX} ${y1} ${midPointX} ${y1 + r} ` +  // Corner: turn down
-               `L ${midPointX} ${y2 - r} ` +
-               `Q ${midPointX} ${y2} ${midPointX + r} ${y2} ` +  // Corner: turn right
-               `L ${x2} ${y2}`;
-      } else {
-        path = `M ${x1} ${y1} ` +
-               `L ${midPointX - r} ${y1} ` +
-               `Q ${midPointX} ${y1} ${midPointX} ${y1 - r} ` +  // Corner: turn up
-               `L ${midPointX} ${y2 + r} ` +
-               `Q ${midPointX} ${y2} ${midPointX + r} ${y2} ` +  // Corner: turn right
-               `L ${x2} ${y2}`;
-      }
-    }
-  } else {
-    // Case 3: Different positions - full ClickUp-style routing
-    // Route below the SOURCE bar, then horizontal, then to destination
-    // (calculatedRouteY is already computed above)
-
-    // X positions for vertical segments
-    const x1v = x1 + horizOffset; // Near source bar right edge
-    const x2v = x2 - horizOffset; // Near destination bar left edge
-
-    // Determine if destination is above or below routeY
-    const destAboveRoute = y2 < calculatedRouteY;
-
-    if (lineStyle === 'squared') {
       path = `M ${x1} ${y1} ` +
-             `L ${x1v} ${y1} ` +                // Horizontal exit
-             `L ${x1v} ${calculatedRouteY} ` +  // Vertical DOWN to route level
-             `L ${x2v} ${calculatedRouteY} ` +  // Horizontal across
-             `L ${x2v} ${y2} ` +                // Vertical to destination
-             `L ${x2} ${y2}`;                   // Horizontal entry
-    } else {
-      const r = cornerRadius;
-
-      // First part: source → down to routeY → horizontal
-      let pathStart = `M ${x1} ${y1} ` +
-                      `L ${x1v - r} ${y1} ` +
-                      `Q ${x1v} ${y1} ${x1v} ${y1 + r} ` +
-                      `L ${x1v} ${calculatedRouteY - r} ` +
-                      `Q ${x1v} ${calculatedRouteY} ${x1v + r} ${calculatedRouteY} ` +
-                      `L ${x2v - r} ${calculatedRouteY} `;
-
-      // Second part: to destination
-      let pathEnd: string;
-      if (destAboveRoute) {
-        pathEnd = `Q ${x2v} ${calculatedRouteY} ${x2v} ${calculatedRouteY - r} ` +
-                  `L ${x2v} ${y2 + r} ` +
-                  `Q ${x2v} ${y2} ${x2v + r} ${y2} ` +
-                  `L ${x2} ${y2}`;
-      } else {
-        pathEnd = `Q ${x2v} ${calculatedRouteY} ${x2v} ${calculatedRouteY + r} ` +
-                  `L ${x2v} ${y2 - r} ` +
-                  `Q ${x2v} ${y2} ${x2v + r} ${y2} ` +
-                  `L ${x2} ${y2}`;
-      }
-
-      path = pathStart + pathEnd;
+             `L ${midPointX - r} ${y1} ` +
+             `Q ${midPointX} ${y1} ${midPointX} ${y1 - r} ` +  // Corner: turn up
+             `L ${midPointX} ${y2 + r} ` +
+             `Q ${midPointX} ${y2} ${midPointX + r} ${y2} ` +  // Corner: turn right
+             `L ${x2} ${y2}`;
     }
   }
 
