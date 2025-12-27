@@ -2319,6 +2319,8 @@ interface DependencyHoverData {
     x2: number;
     y2: number;
     routeY?: number;
+    fromIndex?: number;
+    toIndex?: number;
     onDelete: () => void;
     lineStyle?: DependencyLineStyle;
     mouseX?: number;

@@ -748,6 +748,8 @@ export function Timeline({
               setHoveredDependency({
                 x1, y1, x2, y2,
                 routeY, // v0.17.342: Pass routeY for ClickUp-style path
+                fromIndex, // v0.17.347: Pass indices for smart routing
+                toIndex,
                 onDelete: () => onDependencyDelete?.(task.id, depId),
                 lineStyle: dependencyLineStyle,
                 mouseX,
@@ -816,14 +818,17 @@ export function Timeline({
         {/* v0.17.343: Updated to use ClickUp-style path with 30px offset that passes below task bars */}
         {/* This renders AFTER tasks in the SVG, so it appears on top */}
         {hoveredDependency && (() => {
-          const { x1, y1, x2, y2, routeY: hoverRouteY, onDelete, lineStyle: hoverLineStyle, mouseX, mouseY } = hoveredDependency;
+          const { x1, y1, x2, y2, routeY: hoverRouteY, fromIndex: hoverFromIndex, toIndex: hoverToIndex, onDelete, lineStyle: hoverLineStyle, mouseX, mouseY } = hoveredDependency;
           const dx = x2 - x1;
           const dy = y2 - y1;
           const midX = x1 + dx / 2;
 
-          // v0.17.346: ClickUp-style path with SMART routing (synced with DependencyLine.tsx)
+          // v0.17.347: ClickUp-style path with SMART routing (synced with DependencyLine.tsx)
+          // Use fromIndex/toIndex for accurate same-line detection
           // Three cases: same row, vertically aligned, different positions
-          const sameLine = Math.abs(dy) < 5;
+          const sameLine = hoverFromIndex !== undefined && hoverToIndex !== undefined
+            ? hoverFromIndex === hoverToIndex
+            : Math.abs(dy) < 5;
           const isVerticallyAligned = Math.abs(dx) < 80; // Same threshold as DependencyLine
           const calculatedRouteY = hoverRouteY ?? (y1 + 22);
           const horizOffset = 8;

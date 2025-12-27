@@ -5,12 +5,15 @@ import type { DependencyLineStyle } from './types';
 // v0.17.79: Data for rendering FULL dependency line + delete button in top layer
 // v0.17.323: Added mouseX/mouseY for cursor-following delete button (ClickUp style)
 // v0.17.342: Added routeY for ClickUp-style routing
+// v0.17.347: Added fromIndex/toIndex for proper smart routing in hover layer
 export interface DependencyHoverData {
   x1: number;
   y1: number;
   x2: number;
   y2: number;
   routeY?: number; // v0.17.342: Y coordinate for horizontal segment
+  fromIndex?: number; // v0.17.347: Row index of origin task
+  toIndex?: number; // v0.17.347: Row index of destination task
   onDelete: () => void;
   lineStyle?: DependencyLineStyle; // v0.17.310
   mouseX?: number; // v0.17.323: Cursor X position for delete button
