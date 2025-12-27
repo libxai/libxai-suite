@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import type { DependencyLineStyle } from './types';
 
 // v0.17.79: Data for rendering FULL dependency line + delete button in top layer
+// v0.17.323: Added mouseX/mouseY for cursor-following delete button (ClickUp style)
 export interface DependencyHoverData {
   x1: number;
   y1: number;
@@ -10,6 +11,8 @@ export interface DependencyHoverData {
   y2: number;
   onDelete: () => void;
   lineStyle?: DependencyLineStyle; // v0.17.310
+  mouseX?: number; // v0.17.323: Cursor X position for delete button
+  mouseY?: number; // v0.17.323: Cursor Y position for delete button
 }
 
 // Keep old interface name for backwards compatibility

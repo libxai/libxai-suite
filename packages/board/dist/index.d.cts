@@ -2320,6 +2320,8 @@ interface DependencyHoverData {
     y2: number;
     onDelete: () => void;
     lineStyle?: DependencyLineStyle;
+    mouseX?: number;
+    mouseY?: number;
 }
 interface DependencyLineProps {
     x1: number;

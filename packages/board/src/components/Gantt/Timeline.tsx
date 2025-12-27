@@ -737,6 +737,22 @@ export function Timeline({
             // Only render hover zone if this dependency is NOT currently hovered
             if (isThisHovered) return null;
 
+            // v0.17.323: Helper to get mouse position relative to SVG
+            const handleMouseEvent = (e: React.MouseEvent<SVGPathElement>) => {
+              const svg = e.currentTarget.ownerSVGElement;
+              if (!svg) return;
+              const rect = svg.getBoundingClientRect();
+              const mouseX = e.clientX - rect.left;
+              const mouseY = e.clientY - rect.top;
+              setHoveredDependency({
+                x1, y1, x2, y2,
+                onDelete: () => onDependencyDelete?.(task.id, depId),
+                lineStyle: dependencyLineStyle,
+                mouseX,
+                mouseY,
+              });
+            };
+
             return (
               <path
                 key={`dep-hover-${depId}-${task.id}`}
@@ -746,13 +762,8 @@ export function Timeline({
                 strokeWidth={12}
                 strokeLinecap="round"
                 style={{ cursor: 'pointer' }}
-                onMouseEnter={() => {
-                  setHoveredDependency({
-                    x1, y1, x2, y2,
-                    onDelete: () => onDependencyDelete?.(task.id, depId),
-                    lineStyle: dependencyLineStyle, // v0.17.322: Pass line style for hover layer rendering
-                  });
-                }}
+                onMouseEnter={handleMouseEvent}
+                onMouseMove={handleMouseEvent}
               />
             );
           });
@@ -799,13 +810,13 @@ export function Timeline({
         ))}
 
         {/* v0.17.143: Premium hovered dependency layer - elegant glow + refined delete button */}
+        {/* v0.17.323: Delete button now follows cursor along the line (ClickUp style) */}
         {/* This renders AFTER tasks in the SVG, so it appears on top */}
         {hoveredDependency && (() => {
-          const { x1, y1, x2, y2, onDelete, lineStyle: hoverLineStyle } = hoveredDependency;
+          const { x1, y1, x2, y2, onDelete, lineStyle: hoverLineStyle, mouseX, mouseY } = hoveredDependency;
           const dx = x2 - x1;
           const dy = y2 - y1;
           const midX = x1 + dx / 2;
-          const midY = (y1 + y2) / 2;
           // v0.17.321: Use lineStyle from hoveredDependency for consistent rendering
           const path = hoverLineStyle === 'squared'
             ? `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}`
@@ -821,8 +832,83 @@ export function Timeline({
           const deleteColor = '#f87171';
           const deleteColorSoft = 'rgba(248, 113, 113, 0.15)';
 
+          // v0.17.323: Calculate delete button position - project mouse position onto line
+          let deleteX = midX;
+          let deleteY = (y1 + y2) / 2;
+
+          if (mouseX !== undefined && mouseY !== undefined) {
+            if (hoverLineStyle === 'squared') {
+              // For squared lines: snap to the closest point on the orthogonal path
+              // The path is: horizontal (x1→midX at y1), vertical (y1→y2 at midX), horizontal (midX→x2 at y2)
+              const distToHorizontal1 = Math.abs(mouseY - y1);
+              const distToHorizontal2 = Math.abs(mouseY - y2);
+
+              // Determine which segment the mouse is closest to
+              if (mouseX < midX - 5 && distToHorizontal1 < 30) {
+                // On first horizontal segment
+                deleteX = Math.max(x1 + 10, Math.min(midX - 10, mouseX));
+                deleteY = y1;
+              } else if (mouseX > midX + 5 && distToHorizontal2 < 30) {
+                // On second horizontal segment
+                deleteX = Math.max(midX + 10, Math.min(x2 - 10, mouseX));
+                deleteY = y2;
+              } else {
+                // On vertical segment
+                deleteX = midX;
+                deleteY = Math.max(Math.min(y1, y2) + 10, Math.min(Math.max(y1, y2) - 10, mouseY));
+              }
+            } else {
+              // For curved lines: project mouse position onto the Bézier curve
+              // Find the closest point on the curve to the mouse position
+              const cubicBezierPoint = (t: number) => {
+                const mt = 1 - t;
+                const mt2 = mt * mt;
+                const mt3 = mt2 * mt;
+                const t2 = t * t;
+                const t3 = t2 * t;
+                const px = mt3 * x1 + 3 * mt2 * t * midX + 3 * mt * t2 * midX + t3 * x2;
+                const py = mt3 * y1 + 3 * mt2 * t * y1 + 3 * mt * t2 * y2 + t3 * y2;
+                return { x: px, y: py };
+              };
+
+              // Search for closest point on curve (sample at intervals)
+              let closestT = 0.5;
+              let closestDist = Infinity;
+              for (let i = 0; i <= 20; i++) {
+                const t = 0.1 + (i / 20) * 0.8; // t from 0.1 to 0.9
+                const pt = cubicBezierPoint(t);
+                const dist = Math.sqrt((pt.x - mouseX) ** 2 + (pt.y - mouseY) ** 2);
+                if (dist < closestDist) {
+                  closestDist = dist;
+                  closestT = t;
+                }
+              }
+
+              const closestPoint = cubicBezierPoint(closestT);
+              deleteX = closestPoint.x;
+              deleteY = closestPoint.y;
+            }
+          }
+
+          // v0.17.323: Handler to track mouse movement over the hover area
+          const handleHoverMouseMove = (e: React.MouseEvent<SVGElement>) => {
+            const svg = e.currentTarget.ownerSVGElement || (e.currentTarget as unknown as SVGSVGElement);
+            if (!svg) return;
+            const rect = svg.getBoundingClientRect();
+            const newMouseX = e.clientX - rect.left;
+            const newMouseY = e.clientY - rect.top;
+            setHoveredDependency(prev => prev ? {
+              ...prev,
+              mouseX: newMouseX,
+              mouseY: newMouseY,
+            } : null);
+          };
+
           return (
-            <g onMouseLeave={() => setHoveredDependency(null)}>
+            <g
+              onMouseLeave={() => setHoveredDependency(null)}
+              onMouseMove={handleHoverMouseMove}
+            >
               {/* Large invisible hover area along the entire path */}
               <path
                 d={path}
@@ -830,15 +916,6 @@ export function Timeline({
                 stroke="transparent"
                 strokeWidth={50}
                 strokeLinecap="round"
-                style={{ cursor: 'pointer' }}
-              />
-
-              {/* Extra hover area around delete button */}
-              <circle
-                cx={midX}
-                cy={midY}
-                r={25}
-                fill="transparent"
                 style={{ cursor: 'pointer' }}
               />
 
@@ -885,7 +962,7 @@ export function Timeline({
                 style={{ pointerEvents: 'none' }}
               />
 
-              {/* v0.17.144: Premium delete button - instant clear on click */}
+              {/* v0.17.323: Premium delete button - follows cursor along the line (ClickUp style) */}
               <motion.g
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -899,29 +976,28 @@ export function Timeline({
               >
                 {/* Button background - subtle, transparent with soft border */}
                 <circle
-                  cx={midX}
-                  cy={midY}
+                  cx={deleteX}
+                  cy={deleteY}
                   r={9}
                   fill={deleteColorSoft}
                   stroke={deleteColor}
                   strokeWidth={1.5}
-                  style={{ transition: 'all 0.15s ease' }}
                 />
                 {/* X icon - refined, smaller strokes */}
                 <line
-                  x1={midX - 3}
-                  y1={midY - 3}
-                  x2={midX + 3}
-                  y2={midY + 3}
+                  x1={deleteX - 3}
+                  y1={deleteY - 3}
+                  x2={deleteX + 3}
+                  y2={deleteY + 3}
                   stroke={deleteColor}
                   strokeWidth={1.5}
                   strokeLinecap="round"
                 />
                 <line
-                  x1={midX + 3}
-                  y1={midY - 3}
-                  x2={midX - 3}
-                  y2={midY + 3}
+                  x1={deleteX + 3}
+                  y1={deleteY - 3}
+                  x2={deleteX - 3}
+                  y2={deleteY + 3}
                   stroke={deleteColor}
                   strokeWidth={1.5}
                   strokeLinecap="round"
