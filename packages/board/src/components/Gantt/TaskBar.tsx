@@ -494,32 +494,6 @@ export function TaskBar({
         }
       }}
     >
-      {/* v0.17.334: Hover extension zone - MUST have near-invisible fill (not transparent) */}
-      {/* This extends the group bounding box to include the Link button area */}
-      {/* Using fill with tiny opacity so it counts as visual content for bounding box */}
-      {!task.segments && (
-        <rect
-          x={x - 10}
-          y={y - 5}
-          width={width + 10 + 55}
-          height={height + 10}
-          fill="#000000"
-          fillOpacity={0.001}
-          style={{ pointerEvents: 'all' }}
-        />
-      )}
-      {/* Hover extension for split tasks */}
-      {task.segments && (
-        <rect
-          x={x}
-          y={y}
-          width={width}
-          height={height}
-          fill="#000000"
-          fillOpacity={0.001}
-          style={{ pointerEvents: 'all' }}
-        />
-      )}
       {/* v0.17.30: Removed native SVG <title> tooltip - using custom tooltip instead (lines ~1025-1162) */}
       {/* Zone Indicators with hover feedback - v0.8.1: Disabled for split tasks (segments are independent) */}
       {isHovered && !isDragging && !isSmallBar && !task.segments && (
@@ -870,14 +844,17 @@ export function TaskBar({
         </g>
       )}
 
-      {/* v0.17.335: PROFESSIONAL resize handles with individual hover states */}
+      {/* v0.17.336: PROFESSIONAL resize handles - maintains hover when mouse enters */}
       {/* Each handle has its own hover detection for precise visual feedback */}
       {(isHovered || isResizing) && !isConnecting && !task.segments && (
         <>
           {/* LEFT RESIZE HANDLE - Complete with hit area and visual */}
           <g
             style={{ cursor: 'ew-resize' }}
-            onMouseEnter={() => setActiveZone('resize-start')}
+            onMouseEnter={() => {
+              setIsHovered(true);  // CRITICAL: Maintain hover when entering resize area
+              setActiveZone('resize-start');
+            }}
             onMouseLeave={() => setActiveZone(null)}
             onMouseDown={(e) => {
               e.stopPropagation();
@@ -921,7 +898,10 @@ export function TaskBar({
           {/* RIGHT RESIZE HANDLE - Complete with hit area and visual */}
           <g
             style={{ cursor: 'ew-resize' }}
-            onMouseEnter={() => setActiveZone('resize-end')}
+            onMouseEnter={() => {
+              setIsHovered(true);  // CRITICAL: Maintain hover when entering resize area
+              setActiveZone('resize-end');
+            }}
             onMouseLeave={() => setActiveZone(null)}
             onMouseDown={(e) => {
               e.stopPropagation();
@@ -964,7 +944,7 @@ export function TaskBar({
         </>
       )}
 
-      {/* v0.17.335: PROFESSIONAL Link button with individual hover state */}
+      {/* v0.17.336: PROFESSIONAL Link button - maintains hover when mouse enters */}
       <AnimatePresence>
         {isHovered && !isDragging && !task.segments && (
           <motion.g
@@ -973,7 +953,10 @@ export function TaskBar({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
             style={{ cursor: 'crosshair' }}
-            onMouseEnter={() => setActiveZone('connect')}
+            onMouseEnter={() => {
+              setIsHovered(true);  // CRITICAL: Maintain hover when entering Link area
+              setActiveZone('connect');
+            }}
             onMouseLeave={() => setActiveZone(null)}
             onMouseDown={(e) => {
               e.stopPropagation();
@@ -1323,6 +1306,21 @@ export function TaskBar({
         })()}
       </AnimatePresence>
 
+      {/* v0.17.336: Hover extension zone - RENDERED LAST so it's on TOP of everything */}
+      {/* This rect extends the hoverable area to include Link button zone */}
+      {/* Positioned at the end of the SVG group for proper event capture */}
+      {!task.segments && (
+        <rect
+          x={x + width}
+          y={y - 5}
+          width={50}
+          height={height + 10}
+          fill="#000000"
+          fillOpacity={0.001}
+          style={{ pointerEvents: 'all' }}
+          onMouseEnter={() => setIsHovered(true)}
+        />
+      )}
     </g>
   );
 }
