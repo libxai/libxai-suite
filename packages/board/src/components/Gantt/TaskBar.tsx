@@ -844,91 +844,52 @@ export function TaskBar({
         </g>
       )}
 
-      {/* v0.17.336: PROFESSIONAL resize handles - maintains hover when mouse enters */}
-      {/* Each handle has its own hover detection for precise visual feedback */}
+      {/* v0.17.338: EXACT resize handles - only visible area is interactive */}
       {(isHovered || isResizing) && !isConnecting && !task.segments && (
         <>
-          {/* LEFT RESIZE HANDLE - Complete with hit area and visual */}
-          <g
+          {/* LEFT RESIZE HANDLE - exact visible area only */}
+          <motion.rect
+            x={displayX + 4}
+            y={y + 8}
+            width={3}
+            height={height - 16}
+            rx={1.5}
+            fill={activeZone === 'resize-start' || dragMode === 'resize-start' ? '#ffffff' : 'rgba(255,255,255,0.5)'}
             style={{ cursor: 'ew-resize' }}
-            onMouseEnter={() => {
-              setIsHovered(true);  // CRITICAL: Maintain hover when entering resize area
-              setActiveZone('resize-start');
-            }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.15 }}
+            onMouseEnter={() => setActiveZone('resize-start')}
             onMouseLeave={() => setActiveZone(null)}
             onMouseDown={(e) => {
               e.stopPropagation();
               handleMouseDown(e as any, 'resize-start');
             }}
-          >
-            {/* Hit area - invisible but captures events */}
-            <rect
-              x={displayX - 12}
-              y={y - 4}
-              width={20}
-              height={height + 8}
-              fill="#000000"
-              fillOpacity={0.001}
-            />
-            {/* Visual indicator - subtle line inside the bar like ClickUp */}
-            <motion.rect
-              x={displayX + 4}
-              y={y + 8}
-              width={3}
-              height={height - 16}
-              rx={1.5}
-              fill={activeZone === 'resize-start' || dragMode === 'resize-start' ? '#ffffff' : 'rgba(255,255,255,0.4)'}
-              initial={{ opacity: 0 }}
-              animate={{
-                opacity: activeZone === 'resize-start' || dragMode === 'resize-start' ? 1 : 0.7
-              }}
-              transition={{ duration: 0.15 }}
-              style={{ pointerEvents: 'none' }}
-            />
-          </g>
+          />
 
-          {/* RIGHT RESIZE HANDLE - Complete with hit area and visual */}
-          <g
+          {/* RIGHT RESIZE HANDLE - exact visible area only */}
+          <motion.rect
+            x={displayX + displayWidth - 7}
+            y={y + 8}
+            width={3}
+            height={height - 16}
+            rx={1.5}
+            fill={activeZone === 'resize-end' || dragMode === 'resize-end' ? '#ffffff' : 'rgba(255,255,255,0.5)'}
             style={{ cursor: 'ew-resize' }}
-            onMouseEnter={() => {
-              setIsHovered(true);  // CRITICAL: Maintain hover when entering resize area
-              setActiveZone('resize-end');
-            }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.15 }}
+            onMouseEnter={() => setActiveZone('resize-end')}
             onMouseLeave={() => setActiveZone(null)}
             onMouseDown={(e) => {
               e.stopPropagation();
               handleMouseDown(e as any, 'resize-end');
             }}
-          >
-            {/* Hit area - invisible but captures events */}
-            <rect
-              x={displayX + displayWidth - 8}
-              y={y - 4}
-              width={20}
-              height={height + 8}
-              fill="#000000"
-              fillOpacity={0.001}
-            />
-            {/* Visual indicator - subtle line inside the bar like ClickUp */}
-            <motion.rect
-              x={displayX + displayWidth - 7}
-              y={y + 8}
-              width={3}
-              height={height - 16}
-              rx={1.5}
-              fill={activeZone === 'resize-end' || dragMode === 'resize-end' ? '#ffffff' : 'rgba(255,255,255,0.4)'}
-              initial={{ opacity: 0 }}
-              animate={{
-                opacity: activeZone === 'resize-end' || dragMode === 'resize-end' ? 1 : 0.7
-              }}
-              transition={{ duration: 0.15 }}
-              style={{ pointerEvents: 'none' }}
-            />
-          </g>
+          />
         </>
       )}
 
-      {/* v0.17.336: PROFESSIONAL Link button - maintains hover when mouse enters */}
+      {/* v0.17.338: EXACT Link button - only visible circle is interactive */}
       <AnimatePresence>
         {isHovered && !isDragging && !task.segments && (
           <motion.g
@@ -936,36 +897,19 @@ export function TaskBar({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            style={{ cursor: 'crosshair' }}
-            onMouseEnter={() => {
-              setIsHovered(true);  // CRITICAL: Maintain hover when entering Link area
-              setActiveZone('connect');
-            }}
-            onMouseLeave={() => setActiveZone(null)}
-            onMouseDown={(e) => {
-              e.stopPropagation();
-              handleMouseDown(e as any, 'connect');
-            }}
           >
-            {/* Hit area - invisible but captures events */}
-            <circle
-              cx={x + width + 18}
-              cy={y + height / 2}
-              r={14}
-              fill="#000000"
-              fillOpacity={0.001}
-            />
-            {/* Visual circle - changes on hover */}
+            {/* Visual circle - EXACT clickable area */}
             <motion.circle
               cx={x + width + 18}
               cy={y + height / 2}
-              r={6}
+              r={7}
               fill={activeZone === 'connect' ? theme.accent : theme.accent}
-              stroke={activeZone === 'connect' ? theme.accent : '#FFFFFF'}
-              strokeWidth={activeZone === 'connect' ? 3 : 2}
+              stroke={activeZone === 'connect' ? '#ffffff' : '#FFFFFF'}
+              strokeWidth={2}
+              style={{ cursor: 'crosshair' }}
               initial={{ scale: 0 }}
               animate={{
-                scale: activeZone === 'connect' ? 1.4 : 1,
+                scale: activeZone === 'connect' ? 1.3 : 1,
               }}
               exit={{ scale: 0 }}
               transition={{
@@ -974,7 +918,12 @@ export function TaskBar({
                 stiffness: 500,
                 damping: 30,
               }}
-              style={{ pointerEvents: 'none' }}
+              onMouseEnter={() => setActiveZone('connect')}
+              onMouseLeave={() => setActiveZone(null)}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                handleMouseDown(e as any, 'connect');
+              }}
             />
             {/* Tooltip hint */}
             <text
@@ -1289,22 +1238,6 @@ export function TaskBar({
           );
         })()}
       </AnimatePresence>
-
-      {/* v0.17.336: Hover extension zone - RENDERED LAST so it's on TOP of everything */}
-      {/* This rect extends the hoverable area to include Link button zone */}
-      {/* Positioned at the end of the SVG group for proper event capture */}
-      {!task.segments && (
-        <rect
-          x={x + width}
-          y={y - 5}
-          width={50}
-          height={height + 10}
-          fill="#000000"
-          fillOpacity={0.001}
-          style={{ pointerEvents: 'all' }}
-          onMouseEnter={() => setIsHovered(true)}
-        />
-      )}
     </g>
   );
 }
