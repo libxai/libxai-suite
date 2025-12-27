@@ -835,6 +835,7 @@ export function Timeline({
           // v0.17.323: Calculate delete button position - project mouse position onto line
           let deleteX = midX;
           let deleteY = (y1 + y2) / 2;
+          let hideDeleteButton = false; // v0.17.324: Hide when over task bars
 
           if (mouseX !== undefined && mouseY !== undefined) {
             if (hoverLineStyle === 'squared') {
@@ -887,6 +888,24 @@ export function Timeline({
               const closestPoint = cubicBezierPoint(closestT);
               deleteX = closestPoint.x;
               deleteY = closestPoint.y;
+            }
+
+            // v0.17.324: Check if delete button would overlap with a task bar
+            // Find which row the delete button is in and check if it overlaps with that task's bar
+            const rowIndex = Math.floor(deleteY / ROW_HEIGHT);
+            if (rowIndex >= 0 && rowIndex < flatTasks.length) {
+              const taskInRow = flatTasks[rowIndex];
+              if (taskInRow && taskInRow.startDate && taskInRow.endDate) {
+                const taskPos = getTaskPosition(taskInRow);
+                // Task bar Y position: rowIndex * ROW_HEIGHT + 12, height: 32
+                const taskBarTop = rowIndex * ROW_HEIGHT + 12;
+                const taskBarBottom = taskBarTop + 32;
+                // Check if deleteX is within task bar X range and deleteY is within task bar Y range
+                if (deleteX >= taskPos.x && deleteX <= taskPos.x + taskPos.width &&
+                    deleteY >= taskBarTop - 5 && deleteY <= taskBarBottom + 5) {
+                  hideDeleteButton = true;
+                }
+              }
             }
           }
 
@@ -963,46 +982,49 @@ export function Timeline({
               />
 
               {/* v0.17.323: Premium delete button - follows cursor along the line (ClickUp style) */}
-              <motion.g
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.15, ease: 'easeOut' }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setHoveredDependency(null); // Clear hover state immediately
-                  onDelete();
-                }}
-                style={{ cursor: 'pointer' }}
-              >
-                {/* Button background - subtle, transparent with soft border */}
-                <circle
-                  cx={deleteX}
-                  cy={deleteY}
-                  r={9}
-                  fill={deleteColorSoft}
-                  stroke={deleteColor}
-                  strokeWidth={1.5}
-                />
-                {/* X icon - refined, smaller strokes */}
-                <line
-                  x1={deleteX - 3}
-                  y1={deleteY - 3}
-                  x2={deleteX + 3}
-                  y2={deleteY + 3}
-                  stroke={deleteColor}
-                  strokeWidth={1.5}
-                  strokeLinecap="round"
-                />
-                <line
-                  x1={deleteX + 3}
-                  y1={deleteY - 3}
-                  x2={deleteX - 3}
-                  y2={deleteY + 3}
-                  stroke={deleteColor}
-                  strokeWidth={1.5}
-                  strokeLinecap="round"
-                />
-              </motion.g>
+              {/* v0.17.324: Hidden when overlapping with task bars */}
+              {!hideDeleteButton && (
+                <motion.g
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.15, ease: 'easeOut' }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setHoveredDependency(null); // Clear hover state immediately
+                    onDelete();
+                  }}
+                  style={{ cursor: 'pointer' }}
+                >
+                  {/* Button background - subtle, transparent with soft border */}
+                  <circle
+                    cx={deleteX}
+                    cy={deleteY}
+                    r={9}
+                    fill={deleteColorSoft}
+                    stroke={deleteColor}
+                    strokeWidth={1.5}
+                  />
+                  {/* X icon - refined, smaller strokes */}
+                  <line
+                    x1={deleteX - 3}
+                    y1={deleteY - 3}
+                    x2={deleteX + 3}
+                    y2={deleteY + 3}
+                    stroke={deleteColor}
+                    strokeWidth={1.5}
+                    strokeLinecap="round"
+                  />
+                  <line
+                    x1={deleteX + 3}
+                    y1={deleteY - 3}
+                    x2={deleteX - 3}
+                    y2={deleteY + 3}
+                    stroke={deleteColor}
+                    strokeWidth={1.5}
+                    strokeLinecap="round"
+                  />
+                </motion.g>
+              )}
             </g>
           );
         })()}
