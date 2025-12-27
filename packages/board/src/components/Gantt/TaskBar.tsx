@@ -933,7 +933,7 @@ export function TaskBar({
             transition={{ duration: 0.15 }}
           >
             <motion.circle
-              cx={x + width + 8}
+              cx={x + width + 18}
               cy={y + height / 2}
               r={6}
               fill={theme.accent}
@@ -956,7 +956,7 @@ export function TaskBar({
             />
             {/* Tooltip hint */}
             <text
-              x={x + width + 20}
+              x={x + width + 30}
               y={y + height / 2}
               dominantBaseline="middle"
               fill={theme.textTertiary}
