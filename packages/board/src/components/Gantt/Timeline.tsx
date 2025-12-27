@@ -526,7 +526,7 @@ export function Timeline({
           );
         })}
 
-        {/* Dependencies - v0.13.7: Adjusted Y positions */}
+        {/* Dependencies - v0.17.362: TRUE ClickUp-style routing */}
         {flatTasks.map((task, toIndex) => {
           if (!task.dependencies || task.dependencies.length === 0) return null;
           // Skip if task doesn't have dates
@@ -554,8 +554,7 @@ export function Timeline({
             // v0.17.345: routeY is ALWAYS below the SOURCE bar
             const routeY = fromIndex * ROW_HEIGHT + 50;
 
-            // v0.17.359: Use unified function for verticalX calculation
-            const verticalX = calculateVerticalX(exitX, enterX, fromIndex, toIndex, flatTasks, getTaskPosition);
+            // v0.17.362: verticalX no longer used - DependencyLine calculates its own turnX
 
             // v0.17.348: Hide base line when this exact dependency is being hovered
             // This prevents showing two overlapping lines with potentially different paths
@@ -572,7 +571,6 @@ export function Timeline({
                 y1={exitY}
                 x2={enterX}
                 y2={enterY}
-                verticalX={verticalX}
                 routeY={routeY}
                 fromIndex={fromIndex}
                 toIndex={toIndex}
@@ -847,48 +845,54 @@ export function Timeline({
 
         {/* v0.17.143: Premium hovered dependency layer - elegant glow + refined delete button */}
         {/* v0.17.323: Delete button now follows cursor along the line (ClickUp style) */}
-        {/* v0.17.343: Updated to use ClickUp-style path with 30px offset that passes below task bars */}
+        {/* v0.17.362: TRUE ClickUp-style hover layer */}
         {/* This renders AFTER tasks in the SVG, so it appears on top */}
         {hoveredDependency && (() => {
-          const { x1, y1, x2, y2, verticalX: hoverVerticalX, onDelete, lineStyle: hoverLineStyle, mouseX, mouseY } = hoveredDependency;
+          const { x1, y1, x2, y2, onDelete, lineStyle: hoverLineStyle, mouseX, mouseY } = hoveredDependency;
           const dx = x2 - x1;
 
-          // v0.17.360: Use calculated verticalX from hover data (or fallback)
-          // RULE: verticalX is ALWAYS to the right, line ALWAYS turns LEFT to enter from left
+          // v0.17.362: TRUE ClickUp-style routing (same as DependencyLine)
           const cornerRadius = 5;
-          const verticalX = hoverVerticalX ?? Math.max(x1, x2) + 20;
           const r = cornerRadius;
           const dy = y2 - y1;
           const goingDown = dy > 0;
           const isSameRow = Math.abs(dy) < 5;
+          const OFFSET = 15;
+          const isForward = x2 >= x1;
 
           let path: string;
+          let turnX: number;
+
           if (hoverLineStyle === 'squared') {
-            path = `M ${x1} ${y1} ` +
-                   `L ${verticalX} ${y1} ` +
-                   `L ${verticalX} ${y2} ` +
-                   `L ${x2} ${y2}`;
+            if (isSameRow) {
+              path = `M ${x1} ${y1} L ${x2} ${y2}`;
+              turnX = (x1 + x2) / 2;
+            } else if (isForward) {
+              turnX = x2 - OFFSET;
+              path = `M ${x1} ${y1} L ${turnX} ${y1} L ${turnX} ${y2} L ${x2} ${y2}`;
+            } else {
+              turnX = x1 + OFFSET;
+              path = `M ${x1} ${y1} L ${turnX} ${y1} L ${turnX} ${y2} L ${x2} ${y2}`;
+            }
           } else {
             if (isSameRow) {
-              // Same row - simple horizontal curve
               const ctrlOffset = Math.min(Math.abs(dx) / 3, 30);
               path = `M ${x1} ${y1} C ${x1 + ctrlOffset} ${y1}, ${x2 - ctrlOffset} ${y2}, ${x2} ${y2}`;
-            } else if (goingDown) {
-              // Going DOWN: exit right → go right → turn down → go down → turn LEFT → enter left
-              path = `M ${x1} ${y1} ` +
-                     `L ${verticalX - r} ${y1} ` +
-                     `Q ${verticalX} ${y1} ${verticalX} ${y1 + r} ` +
-                     `L ${verticalX} ${y2 - r} ` +
-                     `Q ${verticalX} ${y2} ${verticalX - r} ${y2} ` +
-                     `L ${x2} ${y2}`;
+              turnX = (x1 + x2) / 2;
+            } else if (isForward) {
+              turnX = x2 - OFFSET;
+              if (goingDown) {
+                path = `M ${x1} ${y1} L ${turnX - r} ${y1} Q ${turnX} ${y1} ${turnX} ${y1 + r} L ${turnX} ${y2 - r} Q ${turnX} ${y2} ${turnX + r} ${y2} L ${x2} ${y2}`;
+              } else {
+                path = `M ${x1} ${y1} L ${turnX - r} ${y1} Q ${turnX} ${y1} ${turnX} ${y1 - r} L ${turnX} ${y2 + r} Q ${turnX} ${y2} ${turnX + r} ${y2} L ${x2} ${y2}`;
+              }
             } else {
-              // Going UP: exit right → go right → turn up → go up → turn LEFT → enter left
-              path = `M ${x1} ${y1} ` +
-                     `L ${verticalX - r} ${y1} ` +
-                     `Q ${verticalX} ${y1} ${verticalX} ${y1 - r} ` +
-                     `L ${verticalX} ${y2 + r} ` +
-                     `Q ${verticalX} ${y2} ${verticalX - r} ${y2} ` +
-                     `L ${x2} ${y2}`;
+              turnX = x1 + OFFSET;
+              if (goingDown) {
+                path = `M ${x1} ${y1} L ${turnX - r} ${y1} Q ${turnX} ${y1} ${turnX} ${y1 + r} L ${turnX} ${y2 - r} Q ${turnX} ${y2} ${turnX - r} ${y2} L ${x2} ${y2}`;
+              } else {
+                path = `M ${x1} ${y1} L ${turnX - r} ${y1} Q ${turnX} ${y1} ${turnX} ${y1 - r} L ${turnX} ${y2 + r} Q ${turnX} ${y2} ${turnX - r} ${y2} L ${x2} ${y2}`;
+              }
             }
           }
 
@@ -903,17 +907,15 @@ export function Timeline({
           const deleteColor = '#f87171';
           const deleteColorSoft = 'rgba(248, 113, 113, 0.15)';
 
-          // v0.17.360: Delete button position - on the horizontal segment to destination
-          // Since we ALWAYS go right then turn left, the horizontal segment goes from verticalX LEFT to x2
-          let deleteX = (verticalX + x2) / 2; // Middle of the bottom horizontal segment
-          let deleteY = isSameRow ? (y1 + y2) / 2 : y2; // At destination height
+          // v0.17.362: Delete button position - on vertical segment
+          let deleteX = turnX;
+          let deleteY = isSameRow ? (y1 + y2) / 2 : (y1 + y2) / 2;
           let hideDeleteButton = false;
 
-          // If mouse position available, follow it along the bottom horizontal segment
+          // If mouse position available, follow cursor on vertical segment
           if (mouseX !== undefined && mouseY !== undefined) {
-            // Horizontal segment goes from verticalX LEFT to x2
-            deleteX = Math.max(x2 + 20, Math.min(verticalX - 10, mouseX));
-            deleteY = isSameRow ? (y1 + y2) / 2 : y2;
+            deleteX = turnX;
+            deleteY = Math.max(Math.min(y1, y2) + 10, Math.min(Math.max(y1, y2) - 10, mouseY));
           }
 
           // v0.17.341: Hide delete button only if it would overlap with task bars

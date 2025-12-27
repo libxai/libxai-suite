@@ -2342,7 +2342,7 @@ interface DependencyLineProps {
     onHoverChange?: (data: DependencyHoverData | null) => void;
     lineStyle?: DependencyLineStyle;
 }
-declare function DependencyLine({ x1, y1, x2, y2, verticalX: propVerticalX, // v0.17.353: Dynamically calculated by Timeline
+declare function DependencyLine({ x1, y1, x2, y2, verticalX: _verticalX, // v0.17.362: No longer used, kept for API compatibility
 routeY: propRouteY, fromIndex, toIndex: _toIndex, // v0.17.351: Kept for API compatibility
 rowHeight: _rowHeight, // v0.17.342: Available for future use
 theme, onDelete, onHoverChange, lineStyle }: DependencyLineProps): react_jsx_runtime.JSX.Element;

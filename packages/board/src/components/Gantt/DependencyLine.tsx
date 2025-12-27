@@ -46,7 +46,7 @@ interface DependencyLineProps {
 
 export function DependencyLine({
   x1, y1, x2, y2,
-  verticalX: propVerticalX, // v0.17.353: Dynamically calculated by Timeline
+  verticalX: _verticalX, // v0.17.362: No longer used, kept for API compatibility
   routeY: propRouteY,
   fromIndex,
   toIndex: _toIndex, // v0.17.351: Kept for API compatibility
@@ -79,53 +79,102 @@ export function DependencyLine({
 
   let path: string;
 
-  // v0.17.360: Simplified ClickUp-style routing
-  // RULE: Lines ALWAYS exit from RIGHT (x1) and enter from LEFT (x2)
-  // verticalX is ALWAYS to the RIGHT of both source and destination
-  // Line ALWAYS turns LEFT at the bottom to enter the destination
+  // v0.17.362: TRUE ClickUp-style routing
+  // Pattern: Exit RIGHT → short horizontal → vertical → horizontal → Enter LEFT
+  // The vertical segment should be close to the bars, not far to the right
 
   const r = cornerRadius;
+  const goingDown = y2 > y1;
+  const OFFSET = 15; // Small offset from bar edges
 
-  // verticalX: ALWAYS to the right of both bars (fallback if not provided by Timeline)
-  const verticalX = propVerticalX ?? Math.max(x1, x2) + 20;
+  // Determine where to place the vertical segment
+  // If destination is to the RIGHT of source: vertical at x1 + OFFSET (just after source)
+  // If destination is to the LEFT of source: vertical at x2 - OFFSET (just before destination)
+  const isForward = x2 >= x1; // Destination bar starts at or after source bar ends
 
   if (lineStyle === 'squared') {
-    path = `M ${x1} ${y1} ` +
-           `L ${verticalX} ${y1} ` +     // Horizontal from exit (going right)
-           `L ${verticalX} ${y2} ` +     // Vertical down/up
-           `L ${x2} ${y2}`;              // Horizontal to destination (going left)
-  } else {
-    // With rounded corners
-    const goingDown = y2 > y1;
-
     if (Math.abs(y2 - y1) < 5) {
-      // Same row - simple horizontal curve
+      // Same row - direct horizontal line
+      path = `M ${x1} ${y1} L ${x2} ${y2}`;
+    } else if (isForward) {
+      // Forward: source is LEFT, destination is RIGHT
+      // Exit right → go to x2-OFFSET → vertical → enter left
+      const turnX = x2 - OFFSET;
+      path = `M ${x1} ${y1} ` +
+             `L ${turnX} ${y1} ` +       // Horizontal to turn point
+             `L ${turnX} ${y2} ` +       // Vertical
+             `L ${x2} ${y2}`;            // Short horizontal into destination
+    } else {
+      // Backward: source is RIGHT, destination is LEFT
+      // Exit right → short horizontal → vertical → horizontal to destination
+      const turnX = x1 + OFFSET;
+      path = `M ${x1} ${y1} ` +
+             `L ${turnX} ${y1} ` +       // Short horizontal right
+             `L ${turnX} ${y2} ` +       // Vertical
+             `L ${x2} ${y2}`;            // Horizontal left to destination
+    }
+  } else {
+    // Curved style with rounded corners
+    if (Math.abs(y2 - y1) < 5) {
+      // Same row - smooth curve
       const ctrlOffset = Math.min(Math.abs(dx) / 3, 30);
       path = `M ${x1} ${y1} C ${x1 + ctrlOffset} ${y1}, ${x2 - ctrlOffset} ${y2}, ${x2} ${y2}`;
-    } else if (goingDown) {
-      // Going DOWN: exit right → go right → turn down → go down → turn LEFT → enter left
-      path = `M ${x1} ${y1} ` +
-             `L ${verticalX - r} ${y1} ` +
-             `Q ${verticalX} ${y1} ${verticalX} ${y1 + r} ` +  // Corner: turn down
-             `L ${verticalX} ${y2 - r} ` +
-             `Q ${verticalX} ${y2} ${verticalX - r} ${y2} ` +  // Corner: turn LEFT
-             `L ${x2} ${y2}`;
+    } else if (isForward) {
+      // Forward dependency: vertical segment just before destination
+      const turnX = x2 - OFFSET;
+      if (goingDown) {
+        path = `M ${x1} ${y1} ` +
+               `L ${turnX - r} ${y1} ` +
+               `Q ${turnX} ${y1} ${turnX} ${y1 + r} ` +
+               `L ${turnX} ${y2 - r} ` +
+               `Q ${turnX} ${y2} ${turnX + r} ${y2} ` +
+               `L ${x2} ${y2}`;
+      } else {
+        path = `M ${x1} ${y1} ` +
+               `L ${turnX - r} ${y1} ` +
+               `Q ${turnX} ${y1} ${turnX} ${y1 - r} ` +
+               `L ${turnX} ${y2 + r} ` +
+               `Q ${turnX} ${y2} ${turnX + r} ${y2} ` +
+               `L ${x2} ${y2}`;
+      }
     } else {
-      // Going UP: exit right → go right → turn up → go up → turn LEFT → enter left
-      path = `M ${x1} ${y1} ` +
-             `L ${verticalX - r} ${y1} ` +
-             `Q ${verticalX} ${y1} ${verticalX} ${y1 - r} ` +  // Corner: turn up
-             `L ${verticalX} ${y2 + r} ` +
-             `Q ${verticalX} ${y2} ${verticalX - r} ${y2} ` +  // Corner: turn LEFT
-             `L ${x2} ${y2}`;
+      // Backward dependency: destination is to the LEFT of source
+      // We need to go: right from source → down/up → LEFT to destination
+      // turnX is just after source (to the right)
+      const turnX = x1 + OFFSET;
+      if (goingDown) {
+        // Going DOWN then LEFT
+        path = `M ${x1} ${y1} ` +                              // Start at source exit (right side)
+               `L ${turnX - r} ${y1} ` +                       // Go right a bit
+               `Q ${turnX} ${y1} ${turnX} ${y1 + r} ` +        // Curve: turn DOWN
+               `L ${turnX} ${y2 - r} ` +                       // Go down
+               `Q ${turnX} ${y2} ${turnX - r} ${y2} ` +        // Curve: turn LEFT
+               `L ${x2} ${y2}`;                                // Go left to destination
+      } else {
+        // Going UP then LEFT
+        path = `M ${x1} ${y1} ` +                              // Start at source exit (right side)
+               `L ${turnX - r} ${y1} ` +                       // Go right a bit
+               `Q ${turnX} ${y1} ${turnX} ${y1 - r} ` +        // Curve: turn UP
+               `L ${turnX} ${y2 + r} ` +                       // Go up
+               `Q ${turnX} ${y2} ${turnX - r} ${y2} ` +        // Curve: turn LEFT
+               `L ${x2} ${y2}`;                                // Go left to destination
+      }
     }
   }
 
-  // Arrow marker at the end - pointing horizontally into the target
+  // DEBUG: Log the path being generated
+  console.log('[DEP PATH]', { x1, y1, x2, y2, isForward, goingDown, path });
+
+  // Arrow marker at the end - pointing in the direction the line enters
   const arrowSize = 5;
-  const arrowX = x2 - arrowSize;
+  // v0.17.362: Arrow direction depends on whether we enter from left or right
+  // Forward (x2 >= x1): enters from left, arrow points RIGHT (into x2)
+  // Backward (x2 < x1): enters from right, arrow points LEFT (into x2)
+  const isForwardDep = x2 >= x1;
+  const arrowDir = isForwardDep ? -1 : 1; // -1 = arrow points right (entry from left), 1 = arrow points left (entry from right)
+  const arrowX = x2 + (arrowSize * arrowDir);
   const arrowY = y2 - arrowSize * 0.5;
-  const arrowX2 = x2 - arrowSize;
+  const arrowX2 = x2 + (arrowSize * arrowDir);
   const arrowY2 = y2 + arrowSize * 0.5;
 
   // Dependencies are always gray - critical path only affects TASK BARS, not dependency lines
@@ -140,16 +189,15 @@ export function DependencyLine({
           y1,
           x2,
           y2,
-          verticalX, // v0.17.353: Include calculated verticalX for hover layer
-          routeY: calculatedRouteY, // v0.17.342: Include routing Y for hover layer
+          routeY: calculatedRouteY,
           onDelete,
-          lineStyle, // v0.17.310
+          lineStyle,
         });
       } else {
         onHoverChange(null);
       }
     }
-  }, [isHovered, x1, y1, x2, y2, verticalX, calculatedRouteY, onDelete, onHoverChange, lineStyle]);
+  }, [isHovered, x1, y1, x2, y2, calculatedRouteY, onDelete, onHoverChange, lineStyle]);
 
   // v0.17.140: If no onDelete/onHoverChange, this is a static line (hover handled by top layer)
   const isStaticLine = !onDelete && !onHoverChange;
