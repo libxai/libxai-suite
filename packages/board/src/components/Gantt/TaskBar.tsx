@@ -468,16 +468,17 @@ export function TaskBar({
   // v0.17.30: Removed tooltipText - native SVG <title> replaced by custom tooltip
   const customClass = templates.taskClass(task);
 
+  // v0.17.330: Unified hover zone dimensions - covers entire interactive area
+  const hoverZoneLeft = x - 20; // Extra space for left resize handle
+  const hoverZoneRight = x + width + 60; // Extra space for Link button + text
+  const hoverZoneTop = y - 8;
+  const hoverZoneBottom = y + height + 8;
+  const hoverZoneWidth = hoverZoneRight - hoverZoneLeft;
+  const hoverZoneHeight = hoverZoneBottom - hoverZoneTop;
+
   return (
     <g
       ref={svgRef}
-      onMouseEnter={() => !isDragging && setIsHovered(true)}
-      onMouseLeave={() => {
-        if (!isDragging) {
-          setIsHovered(false);
-          setActiveZone(null);
-        }
-      }}
       onClick={() => !isDragging && onClick?.(task)}
       onDoubleClick={(e) => {
         // v0.8.0: Double-click event
@@ -492,6 +493,39 @@ export function TaskBar({
         onContextMenu?.(task, e as any);
       }}
     >
+      {/* v0.17.330: Unified invisible hover zone - covers task bar + all controls */}
+      {/* This is the ONLY element that controls hover state for consistent UX */}
+      {!isDragging && !task.segments && (
+        <rect
+          x={hoverZoneLeft}
+          y={hoverZoneTop}
+          width={hoverZoneWidth}
+          height={hoverZoneHeight}
+          fill="transparent"
+          style={{ pointerEvents: 'all' }}
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => {
+            setIsHovered(false);
+            setActiveZone(null);
+          }}
+        />
+      )}
+      {/* Fallback hover handlers for split tasks */}
+      {!isDragging && task.segments && (
+        <rect
+          x={x}
+          y={y}
+          width={width}
+          height={height}
+          fill="transparent"
+          style={{ pointerEvents: 'all' }}
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => {
+            setIsHovered(false);
+            setActiveZone(null);
+          }}
+        />
+      )}
       {/* v0.17.30: Removed native SVG <title> tooltip - using custom tooltip instead (lines ~1025-1162) */}
       {/* Zone Indicators with hover feedback - v0.8.1: Disabled for split tasks (segments are independent) */}
       {isHovered && !isDragging && !isSmallBar && !task.segments && (
@@ -842,10 +876,10 @@ export function TaskBar({
         </g>
       )}
 
-      {/* v0.17.328: Persistent invisible hit areas for resize handles - always active to prevent hover loss */}
+      {/* v0.17.330: Persistent invisible hit areas for resize handles */}
       {!isDragging && !task.segments && (
         <>
-          {/* Left resize hit area - always present */}
+          {/* Left resize hit area */}
           <rect
             x={isSmallBar ? displayX - 15 : displayX - 10}
             y={y - 5}
@@ -853,10 +887,9 @@ export function TaskBar({
             height={height + 10}
             fill="transparent"
             style={{ cursor: 'ew-resize', pointerEvents: 'all' }}
-            onMouseEnter={() => setIsHovered(true)}
             onMouseDown={(e) => handleMouseDown(e as any, 'resize-start')}
           />
-          {/* Right resize hit area - always present */}
+          {/* Right resize hit area */}
           <rect
             x={isSmallBar ? displayX + displayWidth - 10 : displayX + displayWidth - 10}
             y={y - 5}
@@ -864,7 +897,6 @@ export function TaskBar({
             height={height + 10}
             fill="transparent"
             style={{ cursor: 'ew-resize', pointerEvents: 'all' }}
-            onMouseEnter={() => setIsHovered(true)}
             onMouseDown={(e) => handleMouseDown(e as any, 'resize-end')}
           />
         </>
@@ -924,21 +956,7 @@ export function TaskBar({
         </>
       )}
 
-      {/* v0.17.326: Invisible hover bridge - connects task bar to Link button for fluid hover */}
-      {/* This rect is always rendered to maintain hover state when moving mouse to Link button */}
-      {!isDragging && !task.segments && (
-        <rect
-          x={x + width}
-          y={y}
-          width={50}
-          height={height}
-          fill="transparent"
-          style={{ pointerEvents: 'all', cursor: 'default' }}
-          onMouseEnter={() => setIsHovered(true)}
-        />
-      )}
-
-      {/* Connection Handle (right side, Shift+Click) - v0.8.1: Disabled for split tasks (segments are independent) */}
+      {/* v0.17.330: Connection Handle (Link button) - simplified, hover managed by unified zone */}
       <AnimatePresence>
         {isHovered && !isDragging && !task.segments && (
           <motion.g
@@ -947,20 +965,20 @@ export function TaskBar({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            onMouseEnter={() => setIsHovered(true)}
           >
-            <motion.circle
+            {/* Larger invisible hit area for easier clicking */}
+            <circle
               cx={x + width + 18}
               cy={y + height / 2}
-              r={10}
+              r={12}
               fill="transparent"
               style={{ cursor: 'crosshair', pointerEvents: 'all' }}
-              onMouseEnter={() => setIsHovered(true)}
               onMouseDown={(e) => {
                 e.stopPropagation();
                 handleMouseDown(e as any, 'connect');
               }}
             />
+            {/* Visual circle */}
             <motion.circle
               cx={x + width + 18}
               cy={y + height / 2}
@@ -977,11 +995,7 @@ export function TaskBar({
                 stiffness: 400,
                 damping: 25,
               }}
-              onMouseDown={(e) => {
-                e.stopPropagation();
-                handleMouseDown(e as any, 'connect');
-              }}
-              style={{ cursor: 'crosshair', pointerEvents: 'none' }}
+              style={{ pointerEvents: 'none' }}
             />
             {/* Tooltip hint */}
             <text
