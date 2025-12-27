@@ -68,6 +68,41 @@ export function Timeline({
 
   // v0.17.140: handleDependencyHoverChange removed - hover now handled directly in Timeline via top layer
 
+  // v0.17.360: UNIFIED function to calculate verticalX - used by ALL dependency rendering layers
+  // RULE: Lines ALWAYS exit from RIGHT and enter from LEFT
+  // So verticalX must ALWAYS be to the RIGHT of both source and destination bars
+  const calculateVerticalX = useCallback((
+    exitX: number,
+    enterX: number,
+    fromIdx: number,
+    toIdx: number,
+    taskList: Task[],
+    getPos: (task: Task) => { x: number; width: number }
+  ): number => {
+    const minRow = Math.min(fromIdx, toIdx);
+    const maxRow = Math.max(fromIdx, toIdx);
+
+    if (minRow === maxRow) {
+      // Same row - special case, use midpoint
+      return (exitX + enterX) / 2;
+    }
+
+    // For BOTH forward and backward dependencies:
+    // verticalX must be to the RIGHT of ALL bars between source and destination
+    // This ensures the line can always turn LEFT to enter the destination from the left side
+    let maxRightEdge = Math.max(exitX, enterX);
+    for (let row = minRow; row <= maxRow; row++) {
+      const taskInRow = taskList[row];
+      if (taskInRow?.startDate && taskInRow?.endDate) {
+        const pos = getPos(taskInRow);
+        const rightEdge = pos.x + pos.width;
+        if (rightEdge > maxRightEdge) maxRightEdge = rightEdge;
+      }
+    }
+    // Place verticalX 20px to the right of the rightmost bar
+    return maxRightEdge + 20;
+  }, []);
+
   // Calculate dimensions
   const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
   const dayWidth = timeScale === 'day' ? 60 : timeScale === 'week' ? 20 : 8;
@@ -508,47 +543,19 @@ export function Timeline({
             const toPos = getTaskPosition(task);
 
             // v0.17.344: TRUE ClickUp-style dependency lines
-            // TaskBar: y = index * ROW_HEIGHT + 12, height = 32
-            // So: top = index * ROW_HEIGHT + 12, bottom = index * ROW_HEIGHT + 44
-            // Center = index * ROW_HEIGHT + 28
-            // Space between rows: from bottom (44) to next top (68) = 24px gap
-
             // Line exits from RIGHT-CENTER of origin bar
             const exitX = fromPos.x + fromPos.width;
-            const exitY = fromIndex * ROW_HEIGHT + 28; // center of bar
+            const exitY = fromIndex * ROW_HEIGHT + 28;
 
             // Line enters at LEFT-CENTER of destination bar
             const enterX = toPos.x;
-            const enterY = toIndex * ROW_HEIGHT + 28; // center of bar
+            const enterY = toIndex * ROW_HEIGHT + 28;
 
-            // v0.17.345: routeY is ALWAYS below the SOURCE bar (fromIndex)
-            // This ensures consistent line patterns - always down first, then horizontal
-            // Bottom of source bar = fromIndex * 56 + 44
-            // routeY = just below that = fromIndex * 56 + 50 (6px below bottom)
-            const routeY = fromIndex * ROW_HEIGHT + 50; // 6px below source bar's bottom
+            // v0.17.345: routeY is ALWAYS below the SOURCE bar
+            const routeY = fromIndex * ROW_HEIGHT + 50;
 
-            // v0.17.356: Calculate optimal verticalX to avoid task bars
-            // Strategy: The vertical segment should be just after exitX (exit point)
-            // Then the line goes down/up, and finally horizontal to the destination
-            // This way we only need to ensure the FINAL horizontal segment doesn't cross bars
-            let verticalX: number;
-            const minRow = Math.min(fromIndex, toIndex);
-            const maxRow = Math.max(fromIndex, toIndex);
-
-            if (minRow === maxRow) {
-              // Same row - no vertical segment needed
-              verticalX = enterX;
-            } else {
-              // Simple approach: vertical segment is right after exit point
-              // This minimizes the horizontal travel at source height (avoids crossing bars)
-              verticalX = exitX + 8;
-
-              // But we also need to ensure we don't cross the destination bar
-              // If verticalX would be inside the destination bar area, move it left
-              if (verticalX > enterX - 12) {
-                verticalX = enterX - 12;
-              }
-            }
+            // v0.17.359: Use unified function for verticalX calculation
+            const verticalX = calculateVerticalX(exitX, enterX, fromIndex, toIndex, flatTasks, getTaskPosition);
 
             // v0.17.348: Hide base line when this exact dependency is being hovered
             // This prevents showing two overlapping lines with potentially different paths
@@ -740,21 +747,8 @@ export function Timeline({
             const routeY = fromIndex * ROW_HEIGHT + 50;
             const sameLine = fromIndex === toIndex;
 
-            // v0.17.356: Calculate verticalX same as main dependency rendering
-            let verticalX: number;
-            const minRow = Math.min(fromIndex, toIndex);
-            const maxRow = Math.max(fromIndex, toIndex);
-
-            if (minRow === maxRow) {
-              verticalX = x2;
-            } else {
-              // Vertical segment right after exit point
-              verticalX = x1 + 8;
-              // Ensure we don't cross destination bar
-              if (verticalX > x2 - 12) {
-                verticalX = x2 - 12;
-              }
-            }
+            // v0.17.359: Use UNIFIED function for verticalX - MUST match Capa 1 and Capa 3
+            const verticalX = calculateVerticalX(x1, x2, fromIndex, toIndex, flatTasks, getTaskPosition);
 
             // v0.17.353: Hover zone follows the actual line path
             let middlePath: string;
@@ -859,10 +853,10 @@ export function Timeline({
           const { x1, y1, x2, y2, verticalX: hoverVerticalX, onDelete, lineStyle: hoverLineStyle, mouseX, mouseY } = hoveredDependency;
           const dx = x2 - x1;
 
-          // v0.17.353: Use calculated verticalX from hover data (or fallback)
+          // v0.17.360: Use calculated verticalX from hover data (or fallback)
+          // RULE: verticalX is ALWAYS to the right, line ALWAYS turns LEFT to enter from left
           const cornerRadius = 5;
-          // v0.17.356: ClickUp-style routing - vertical segment right after exit
-          const verticalX = hoverVerticalX ?? (x1 + 8);
+          const verticalX = hoverVerticalX ?? Math.max(x1, x2) + 20;
           const r = cornerRadius;
           const dy = y2 - y1;
           const goingDown = dy > 0;
@@ -880,7 +874,7 @@ export function Timeline({
               const ctrlOffset = Math.min(Math.abs(dx) / 3, 30);
               path = `M ${x1} ${y1} C ${x1 + ctrlOffset} ${y1}, ${x2 - ctrlOffset} ${y2}, ${x2} ${y2}`;
             } else if (goingDown) {
-              // Going DOWN: exit → turn down → go down → turn LEFT → enter
+              // Going DOWN: exit right → go right → turn down → go down → turn LEFT → enter left
               path = `M ${x1} ${y1} ` +
                      `L ${verticalX - r} ${y1} ` +
                      `Q ${verticalX} ${y1} ${verticalX} ${y1 + r} ` +
@@ -888,7 +882,7 @@ export function Timeline({
                      `Q ${verticalX} ${y2} ${verticalX - r} ${y2} ` +
                      `L ${x2} ${y2}`;
             } else {
-              // Going UP: exit → turn up → go up → turn LEFT → enter
+              // Going UP: exit right → go right → turn up → go up → turn LEFT → enter left
               path = `M ${x1} ${y1} ` +
                      `L ${verticalX - r} ${y1} ` +
                      `Q ${verticalX} ${y1} ${verticalX} ${y1 - r} ` +
@@ -909,14 +903,16 @@ export function Timeline({
           const deleteColor = '#f87171';
           const deleteColorSoft = 'rgba(248, 113, 113, 0.15)';
 
-          // v0.17.356: Delete button position - on the horizontal segment to destination
+          // v0.17.360: Delete button position - on the horizontal segment to destination
+          // Since we ALWAYS go right then turn left, the horizontal segment goes from verticalX LEFT to x2
           let deleteX = (verticalX + x2) / 2; // Middle of the bottom horizontal segment
           let deleteY = isSameRow ? (y1 + y2) / 2 : y2; // At destination height
           let hideDeleteButton = false;
 
           // If mouse position available, follow it along the bottom horizontal segment
           if (mouseX !== undefined && mouseY !== undefined) {
-            deleteX = Math.max(verticalX + 10, Math.min(x2 - 20, mouseX));
+            // Horizontal segment goes from verticalX LEFT to x2
+            deleteX = Math.max(x2 + 20, Math.min(verticalX - 10, mouseX));
             deleteY = isSameRow ? (y1 + y2) / 2 : y2;
           }
 

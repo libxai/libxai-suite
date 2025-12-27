@@ -79,29 +79,31 @@ export function DependencyLine({
 
   let path: string;
 
-  // v0.17.356: ClickUp-style routing pattern:
-  // 1. Exit right from source
-  // 2. Go down/up IMMEDIATELY (vertical segment right after exit)
-  // 3. Go horizontal LEFT to destination
-  // 4. Enter left into destination
-  // verticalX is where the vertical segment is - should be right after x1 (exit point)
-  const verticalX = propVerticalX ?? (x1 + 8); // Default: 8px after exit
+  // v0.17.360: Simplified ClickUp-style routing
+  // RULE: Lines ALWAYS exit from RIGHT (x1) and enter from LEFT (x2)
+  // verticalX is ALWAYS to the RIGHT of both source and destination
+  // Line ALWAYS turns LEFT at the bottom to enter the destination
+
   const r = cornerRadius;
+
+  // verticalX: ALWAYS to the right of both bars (fallback if not provided by Timeline)
+  const verticalX = propVerticalX ?? Math.max(x1, x2) + 20;
 
   if (lineStyle === 'squared') {
     path = `M ${x1} ${y1} ` +
-           `L ${verticalX} ${y1} ` +     // Short horizontal exit (8px)
+           `L ${verticalX} ${y1} ` +     // Horizontal from exit (going right)
            `L ${verticalX} ${y2} ` +     // Vertical down/up
-           `L ${x2} ${y2}`;              // Horizontal LEFT to destination
+           `L ${x2} ${y2}`;              // Horizontal to destination (going left)
   } else {
     // With rounded corners
     const goingDown = y2 > y1;
+
     if (Math.abs(y2 - y1) < 5) {
       // Same row - simple horizontal curve
       const ctrlOffset = Math.min(Math.abs(dx) / 3, 30);
       path = `M ${x1} ${y1} C ${x1 + ctrlOffset} ${y1}, ${x2 - ctrlOffset} ${y2}, ${x2} ${y2}`;
     } else if (goingDown) {
-      // Going DOWN: exit → turn down → go down → turn left → enter
+      // Going DOWN: exit right → go right → turn down → go down → turn LEFT → enter left
       path = `M ${x1} ${y1} ` +
              `L ${verticalX - r} ${y1} ` +
              `Q ${verticalX} ${y1} ${verticalX} ${y1 + r} ` +  // Corner: turn down
@@ -109,7 +111,7 @@ export function DependencyLine({
              `Q ${verticalX} ${y2} ${verticalX - r} ${y2} ` +  // Corner: turn LEFT
              `L ${x2} ${y2}`;
     } else {
-      // Going UP: exit → turn up → go up → turn left → enter
+      // Going UP: exit right → go right → turn up → go up → turn LEFT → enter left
       path = `M ${x1} ${y1} ` +
              `L ${verticalX - r} ${y1} ` +
              `Q ${verticalX} ${y1} ${verticalX} ${y1 - r} ` +  // Corner: turn up
@@ -180,8 +182,8 @@ export function DependencyLine({
         initial={{ pathLength: 0, opacity: 0 }}
         animate={{
           pathLength: 1,
-          // Hide original line when hover renders in top layer
-          opacity: (isHovered && onHoverChange) ? 0 : (isHovered ? 1 : 0.8),
+          // v0.17.361: Full opacity for better visibility (hide when hover layer active)
+          opacity: (isHovered && onHoverChange) ? 0 : 1,
           strokeWidth: isHovered ? 2.5 : 2,
         }}
         transition={{
@@ -200,8 +202,8 @@ export function DependencyLine({
         strokeLinecap="round"
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{
-          // Hide original arrow when hover renders in top layer
-          opacity: (isHovered && onHoverChange) ? 0 : (isHovered ? 1 : 0.8),
+          // v0.17.361: Full opacity for better visibility (hide when hover layer active)
+          opacity: (isHovered && onHoverChange) ? 0 : 1,
           scale: isHovered ? 1.1 : 1,
           strokeWidth: isHovered ? 2.5 : 2,
         }}
@@ -216,9 +218,9 @@ export function DependencyLine({
         fill={lineColor}
         initial={{ scale: 0 }}
         animate={{
-          // Hide original dot when hover renders in top layer
+          // v0.17.361: Full opacity for better visibility (hide when hover layer active)
           scale: (isHovered && onHoverChange) ? 0 : (isHovered ? 1.3 : 1),
-          opacity: (isHovered && onHoverChange) ? 0 : (isHovered ? 1 : 0.8),
+          opacity: (isHovered && onHoverChange) ? 0 : 1,
         }}
         transition={{
           scale: { delay: 0.3, duration: 0.15 },

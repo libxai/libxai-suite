@@ -29,8 +29,9 @@ export const themes: Record<string, GanttTheme> = {
     taskBarHandle: '#FFFFFF',
 
     // Dependencies & Critical Path
-    dependency: 'rgba(180, 185, 197, 0.25)',
-    dependencyHover: 'rgba(180, 185, 197, 0.45)',
+    // v0.17.361: Solid colors for better visibility
+    dependency: '#9CA3AF',
+    dependencyHover: '#6B7280',
     criticalPath: '#EF4444',
     criticalPathLight: 'rgba(239, 68, 68, 0.12)',
 
@@ -78,8 +79,9 @@ export const themes: Record<string, GanttTheme> = {
     taskBarHandle: '#FFFFFF',
 
     // Dependencies & Critical Path
-    dependency: 'rgba(75, 85, 99, 0.25)',
-    dependencyHover: 'rgba(75, 85, 99, 0.45)',
+    // v0.17.361: Solid colors for better visibility
+    dependency: '#6B7280',
+    dependencyHover: '#4B5563',
     criticalPath: '#DC2626',
     criticalPathLight: 'rgba(220, 38, 38, 0.1)',
 
@@ -127,8 +129,9 @@ export const themes: Record<string, GanttTheme> = {
     taskBarHandle: '#FFFFFF',
 
     // Dependencies & Critical Path
-    dependency: 'rgba(87, 83, 78, 0.25)',
-    dependencyHover: 'rgba(87, 83, 78, 0.4)',
+    // v0.17.361: Solid colors for better visibility
+    dependency: '#78716C',
+    dependencyHover: '#57534E',
     criticalPath: '#44403C',  // Dark gray instead of red - monochromatic
     criticalPathLight: 'rgba(68, 64, 60, 0.08)',
 
