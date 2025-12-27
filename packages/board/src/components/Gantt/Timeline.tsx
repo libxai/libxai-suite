@@ -828,15 +828,13 @@ export function Timeline({
         {hoveredDependency && (() => {
           const { x1, y1, x2, y2, routeY: hoverRouteY, fromIndex: hoverFromIndex, toIndex: hoverToIndex, onDelete, lineStyle: hoverLineStyle, mouseX, mouseY } = hoveredDependency;
           const dx = x2 - x1;
-          const dy = y2 - y1;
           const midX = x1 + dx / 2;
 
-          // v0.17.347: ClickUp-style path with SMART routing (synced with DependencyLine.tsx)
+          // v0.17.349: ClickUp-style path with SMART routing (synced with DependencyLine.tsx)
           // Use fromIndex/toIndex for accurate same-line detection
           // Three cases: same row, vertically aligned, different positions
-          const sameLine = hoverFromIndex !== undefined && hoverToIndex !== undefined
-            ? hoverFromIndex === hoverToIndex
-            : Math.abs(dy) < 5;
+          // Removed Math.abs(dy) < 5 fallback - only true same-line (fromIndex === toIndex)
+          const sameLine = hoverFromIndex !== undefined && hoverToIndex !== undefined && hoverFromIndex === hoverToIndex;
           const isVerticallyAligned = Math.abs(dx) < 80; // Same threshold as DependencyLine
           const calculatedRouteY = hoverRouteY ?? (y1 + 22);
           const horizOffset = 8;

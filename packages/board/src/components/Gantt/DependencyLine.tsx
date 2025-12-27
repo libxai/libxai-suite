@@ -62,7 +62,6 @@ export function DependencyLine({
   // 3. Different positions: full routing (right, down to routeY, horizontal, up/down to dest)
 
   const dx = x2 - x1;
-  const dy = y2 - y1;
   const sameLine = fromIndex !== undefined && toIndex !== undefined && fromIndex === toIndex;
 
   // For midpoint calculations (delete button position)
@@ -89,8 +88,10 @@ export function DependencyLine({
 
   let path: string;
 
-  if (sameLine || Math.abs(dy) < 5) {
-    // Case 1: Same row - simple horizontal line
+  // v0.17.349: Stricter same-line detection - ONLY when fromIndex === toIndex
+  // Previously Math.abs(dy) < 5 could incorrectly trigger for different rows
+  if (sameLine) {
+    // Case 1: Same row - simple horizontal line (only when truly same row)
     if (lineStyle === 'squared') {
       path = `M ${x1} ${y1} L ${x2} ${y2}`;
     } else {
