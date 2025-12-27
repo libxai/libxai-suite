@@ -468,49 +468,61 @@ export function TaskBar({
   // v0.17.30: Removed tooltipText - native SVG <title> replaced by custom tooltip
   const customClass = templates.taskClass(task);
 
-  // v0.17.331: Precise hover and action zones - expert frontend approach
-  // Strategy: Main task bar handles hover, action zones handle specific interactions
+  // v0.17.332: Senior frontend approach - single unified hover container
+  // The key insight: we need ONE continuous hoverable area that includes the Link button zone
+  // All interactive elements are children, hover state is maintained by the container
 
   return (
     <g
       ref={svgRef}
       onClick={() => !isDragging && onClick?.(task)}
       onDoubleClick={(e) => {
-        // v0.8.0: Double-click event
         if (!isDragging) {
           e.stopPropagation();
           onDoubleClick?.(task);
         }
       }}
       onContextMenu={(e) => {
-        // v0.8.0: Context menu event
         e.preventDefault();
         onContextMenu?.(task, e as any);
       }}
-      // v0.17.331: Hover is managed by the main group - stable and consistent
-      onMouseEnter={() => !isDragging && setIsHovered(true)}
-      onMouseLeave={(e) => {
-        if (!isDragging) {
-          // Check if mouse is moving to a child element (prevents flicker)
-          const relatedTarget = e.relatedTarget as Element;
-          if (relatedTarget && svgRef.current?.contains(relatedTarget)) {
-            return; // Don't unhover if moving to child
-          }
-          setIsHovered(false);
-          setActiveZone(null);
-        }
-      }}
     >
-      {/* v0.17.331: Invisible hover extension for Link button area */}
-      {/* This extends the hoverable area to the right without affecting actions */}
+      {/* v0.17.332: MASTER HOVER ZONE - This is the ONLY element that controls hover state */}
+      {/* It covers: task bar + resize handles + gap + Link button + Link text */}
+      {/* All other elements are visual or action-only (no hover control) */}
       {!task.segments && (
         <rect
-          x={x + width}
+          x={x - 15}
           y={y - 5}
-          width={55}
+          width={width + 15 + 60}
           height={height + 10}
           fill="transparent"
-          style={{ pointerEvents: isHovered ? 'none' : 'all' }}
+          style={{ pointerEvents: 'all' }}
+          onMouseEnter={() => !isDragging && setIsHovered(true)}
+          onMouseLeave={() => {
+            if (!isDragging) {
+              setIsHovered(false);
+              setActiveZone(null);
+            }
+          }}
+        />
+      )}
+      {/* Fallback for split tasks */}
+      {task.segments && (
+        <rect
+          x={x}
+          y={y}
+          width={width}
+          height={height}
+          fill="transparent"
+          style={{ pointerEvents: 'all' }}
+          onMouseEnter={() => !isDragging && setIsHovered(true)}
+          onMouseLeave={() => {
+            if (!isDragging) {
+              setIsHovered(false);
+              setActiveZone(null);
+            }
+          }}
         />
       )}
       {/* v0.17.30: Removed native SVG <title> tooltip - using custom tooltip instead (lines ~1025-1162) */}
@@ -863,30 +875,30 @@ export function TaskBar({
         </g>
       )}
 
-      {/* v0.17.331: Resize handle hit areas - only when hovered for precise control */}
+      {/* v0.17.332: Resize handle hit areas - precise zones with proper event handling */}
       {isHovered && !isDragging && !task.segments && (
         <>
-          {/* Left resize hit area - precise zone */}
+          {/* Left resize hit area */}
           <rect
             x={displayX - 8}
             y={y}
             width={16}
             height={height}
             fill="transparent"
-            style={{ cursor: 'ew-resize', pointerEvents: 'all' }}
+            style={{ cursor: 'ew-resize' }}
             onMouseDown={(e) => {
               e.stopPropagation();
               handleMouseDown(e as any, 'resize-start');
             }}
           />
-          {/* Right resize hit area - precise zone */}
+          {/* Right resize hit area */}
           <rect
             x={displayX + displayWidth - 8}
             y={y}
             width={16}
             height={height}
             fill="transparent"
-            style={{ cursor: 'ew-resize', pointerEvents: 'all' }}
+            style={{ cursor: 'ew-resize' }}
             onMouseDown={(e) => {
               e.stopPropagation();
               handleMouseDown(e as any, 'resize-end');
@@ -949,7 +961,7 @@ export function TaskBar({
         </>
       )}
 
-      {/* v0.17.331: Connection Handle (Link button) - precise hit area */}
+      {/* v0.17.332: Connection Handle (Link button) */}
       <AnimatePresence>
         {isHovered && !isDragging && !task.segments && (
           <motion.g
@@ -958,13 +970,13 @@ export function TaskBar({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
           >
-            {/* Hit area - precise circle for clicking */}
+            {/* Hit area for clicking */}
             <circle
               cx={x + width + 18}
               cy={y + height / 2}
-              r={10}
+              r={12}
               fill="transparent"
-              style={{ cursor: 'crosshair', pointerEvents: 'all' }}
+              style={{ cursor: 'crosshair' }}
               onMouseDown={(e) => {
                 e.stopPropagation();
                 handleMouseDown(e as any, 'connect');
