@@ -527,8 +527,9 @@ export function Timeline({
             // routeY = just below that = fromIndex * 56 + 50 (6px below bottom)
             const routeY = fromIndex * ROW_HEIGHT + 50; // 6px below source bar's bottom
 
-            // v0.17.353: Calculate optimal verticalX to avoid task bars
-            // Find the leftmost position of all task bars in intermediate rows
+            // v0.17.354: Calculate optimal verticalX to avoid task bars
+            // The line must: exit right -> go horizontal -> go vertical -> go horizontal -> enter left
+            // verticalX should be to the LEFT of all intermediate task bars
             let verticalX: number;
             const minRow = Math.min(fromIndex, toIndex);
             const maxRow = Math.max(fromIndex, toIndex);
@@ -537,9 +538,10 @@ export function Timeline({
               // Same row - no vertical segment needed
               verticalX = enterX;
             } else {
-              // Find the minimum left edge of all task bars between fromIndex and toIndex
-              let minLeftEdge = Infinity;
-              for (let rowIdx = minRow; rowIdx <= maxRow; rowIdx++) {
+              // Find the minimum left edge of all task bars in INTERMEDIATE rows only
+              // (exclude source and destination rows from the scan)
+              let minLeftEdge = enterX; // Start with destination's left edge as default
+              for (let rowIdx = minRow + 1; rowIdx < maxRow; rowIdx++) {
                 const taskInRow = flatTasks[rowIdx];
                 if (taskInRow && taskInRow.startDate && taskInRow.endDate) {
                   const pos = getTaskPosition(taskInRow);
@@ -547,14 +549,11 @@ export function Timeline({
                 }
               }
 
-              // Place vertical segment 12px to the left of the leftmost bar
-              // But also ensure it's at least at exitX (source bar right edge) + some offset
-              const leftRoute = minLeftEdge - 12;
+              // Place vertical segment 12px to the left of the leftmost intermediate bar
+              // This ensures the line doesn't pass through any task bar
+              verticalX = minLeftEdge - 12;
 
-              // Choose the route: always go to the left of all bars
-              verticalX = Math.min(leftRoute, exitX + 8);
-
-              // Ensure minimum distance from source
+              // Ensure verticalX is at least 8px after exitX (so line goes right first)
               if (verticalX < exitX + 8) {
                 verticalX = exitX + 8;
               }
@@ -750,7 +749,7 @@ export function Timeline({
             const routeY = fromIndex * ROW_HEIGHT + 50;
             const sameLine = fromIndex === toIndex;
 
-            // v0.17.353: Calculate verticalX same as main dependency rendering
+            // v0.17.354: Calculate verticalX same as main dependency rendering
             let verticalX: number;
             const minRow = Math.min(fromIndex, toIndex);
             const maxRow = Math.max(fromIndex, toIndex);
@@ -758,16 +757,16 @@ export function Timeline({
             if (minRow === maxRow) {
               verticalX = x2;
             } else {
-              let minLeftEdge = Infinity;
-              for (let rowIdx = minRow; rowIdx <= maxRow; rowIdx++) {
+              // Find the minimum left edge of INTERMEDIATE task bars only
+              let minLeftEdge = x2; // Start with destination's left edge
+              for (let rowIdx = minRow + 1; rowIdx < maxRow; rowIdx++) {
                 const taskInRow = flatTasks[rowIdx];
                 if (taskInRow && taskInRow.startDate && taskInRow.endDate) {
                   const pos = getTaskPosition(taskInRow);
                   minLeftEdge = Math.min(minLeftEdge, pos.x);
                 }
               }
-              const leftRoute = minLeftEdge - 12;
-              verticalX = Math.min(leftRoute, x1 + 8);
+              verticalX = minLeftEdge - 12;
               if (verticalX < x1 + 8) {
                 verticalX = x1 + 8;
               }
