@@ -842,83 +842,85 @@ export function TaskBar({
         </g>
       )}
 
-      {/* Enhanced Resize Handles (larger, easier to grab) */}
+      {/* v0.17.328: Persistent invisible hit areas for resize handles - always active to prevent hover loss */}
+      {!isDragging && !task.segments && (
+        <>
+          {/* Left resize hit area - always present */}
+          <rect
+            x={isSmallBar ? displayX - 15 : displayX - 10}
+            y={y - 5}
+            width={isSmallBar ? 25 : 20}
+            height={height + 10}
+            fill="transparent"
+            style={{ cursor: 'ew-resize', pointerEvents: 'all' }}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseDown={(e) => handleMouseDown(e as any, 'resize-start')}
+          />
+          {/* Right resize hit area - always present */}
+          <rect
+            x={isSmallBar ? displayX + displayWidth - 10 : displayX + displayWidth - 10}
+            y={y - 5}
+            width={isSmallBar ? 25 : 20}
+            height={height + 10}
+            fill="transparent"
+            style={{ cursor: 'ew-resize', pointerEvents: 'all' }}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseDown={(e) => handleMouseDown(e as any, 'resize-end')}
+          />
+        </>
+      )}
+
+      {/* Enhanced Resize Handles (visual indicators) */}
       {/* v0.8.1: Hide resize handles for split tasks */}
       {(isHovered || isResizing) && !isConnecting && !task.segments && (
         <>
-          {/* Start Handle - Adaptive positioning for small bars */}
-          <g style={{ pointerEvents: 'all' }}>
-            {/* Invisible larger hit area */}
-            <rect
-              x={isSmallBar ? displayX - 15 : displayX - 10}
-              y={y - 5}
-              width={isSmallBar ? 25 : 20}
-              height={height + 10}
-              fill="transparent"
-              onMouseDown={(e) => handleMouseDown(e as any, 'resize-start')}
-              style={{ cursor: 'ew-resize' }}
-            />
-            {/* Visual indicator - positioned outside for small bars */}
-            <motion.rect
-              x={isSmallBar ? displayX - 8 : displayX - 3}
-              y={y + 6}
-              width={isSmallBar ? 8 : 6}
-              height={isSmallBar ? height - 12 : height - 16}
-              rx={3}
-              fill={dragMode === 'resize-start' ? theme.accent : theme.taskBarHandle}
-              stroke={theme.taskBarPrimary}
-              strokeWidth={1.5}
-              initial={{ opacity: 0, scale: 0 }}
-              animate={{
-                opacity: 1,
-                scale: dragMode === 'resize-start' ? 1.2 : 1
-              }}
-              transition={{
-                duration: 0.2,
-                type: 'spring',
-                stiffness: 400,
-                damping: 25,
-              }}
-              style={{ pointerEvents: 'none' }}
-            />
-          </g>
+          {/* Start Handle - Visual indicator only */}
+          <motion.rect
+            x={isSmallBar ? displayX - 8 : displayX - 3}
+            y={y + 6}
+            width={isSmallBar ? 8 : 6}
+            height={isSmallBar ? height - 12 : height - 16}
+            rx={3}
+            fill={dragMode === 'resize-start' ? theme.accent : theme.taskBarHandle}
+            stroke={theme.taskBarPrimary}
+            strokeWidth={1.5}
+            initial={{ opacity: 0, scale: 0 }}
+            animate={{
+              opacity: 1,
+              scale: dragMode === 'resize-start' ? 1.2 : 1
+            }}
+            transition={{
+              duration: 0.2,
+              type: 'spring',
+              stiffness: 400,
+              damping: 25,
+            }}
+            style={{ pointerEvents: 'none' }}
+          />
 
-          {/* End Handle - Adaptive positioning for small bars */}
-          <g style={{ pointerEvents: 'all' }}>
-            {/* Invisible larger hit area */}
-            <rect
-              x={isSmallBar ? displayX + displayWidth - 10 : displayX + displayWidth - 10}
-              y={y - 5}
-              width={isSmallBar ? 25 : 20}
-              height={height + 10}
-              fill="transparent"
-              onMouseDown={(e) => handleMouseDown(e as any, 'resize-end')}
-              style={{ cursor: 'ew-resize' }}
-            />
-            {/* Visual indicator - positioned outside for small bars */}
-            <motion.rect
-              x={isSmallBar ? displayX + displayWidth : displayX + displayWidth - 3}
-              y={y + 6}
-              width={isSmallBar ? 8 : 6}
-              height={isSmallBar ? height - 12 : height - 16}
-              rx={3}
-              fill={dragMode === 'resize-end' ? theme.accent : theme.taskBarHandle}
-              stroke={theme.taskBarPrimary}
-              strokeWidth={1.5}
-              initial={{ opacity: 0, scale: 0 }}
-              animate={{
-                opacity: 1,
-                scale: dragMode === 'resize-end' ? 1.2 : 1
-              }}
-              transition={{
-                duration: 0.2,
-                type: 'spring',
-                stiffness: 400,
-                damping: 25,
-              }}
-              style={{ pointerEvents: 'none' }}
-            />
-          </g>
+          {/* End Handle - Visual indicator only */}
+          <motion.rect
+            x={isSmallBar ? displayX + displayWidth : displayX + displayWidth - 3}
+            y={y + 6}
+            width={isSmallBar ? 8 : 6}
+            height={isSmallBar ? height - 12 : height - 16}
+            rx={3}
+            fill={dragMode === 'resize-end' ? theme.accent : theme.taskBarHandle}
+            stroke={theme.taskBarPrimary}
+            strokeWidth={1.5}
+            initial={{ opacity: 0, scale: 0 }}
+            animate={{
+              opacity: 1,
+              scale: dragMode === 'resize-end' ? 1.2 : 1
+            }}
+            transition={{
+              duration: 0.2,
+              type: 'spring',
+              stiffness: 400,
+              damping: 25,
+            }}
+            style={{ pointerEvents: 'none' }}
+          />
         </>
       )}
 
