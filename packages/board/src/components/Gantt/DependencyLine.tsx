@@ -94,36 +94,55 @@ export function DependencyLine({
 
     if (isBackward) {
       // BACKWARD dependency: destination is to the LEFT of source
-      // We exit right, go a bit further right, then go down/up, then go LEFT to destination
-      // The vertical segment should be at x2 - OFFSET (left of destination)
-      // But we need to go RIGHT first before we can go down and then left
+      // The MAIN vertical segment MUST be to the LEFT of the destination bar
+      //
+      // We need a 5-segment path:
+      // 1. Exit right from source (short horizontal)
+      // 2. Go down/up partway (short vertical)
+      // 3. Go LEFT past the destination (long horizontal)
+      // 4. Go down/up to destination row (MAIN vertical - LEFT of destination)
+      // 5. Go RIGHT into destination (short horizontal)
 
-      // First horizontal: go right from source exit
-      const exitPadding = 15; // How far right to go before turning
-      const firstTurnX = x1 + exitPadding;
+      const exitPadding = 15;
+      const firstTurnX = x1 + exitPadding;   // Just after source
+      const secondTurnX = x2 - OFFSET;        // Just LEFT of destination (this is the main vertical)
 
-      turnX = firstTurnX; // For delete button positioning
+      // Y position for the horizontal bridge between the two verticals
+      // Go halfway between source and destination rows
+      const bridgeY = goingDown ? y1 + 20 : y1 - 20;
+
+      turnX = secondTurnX; // For delete button positioning
 
       if (lineStyle === 'squared') {
         path = `M ${x1} ${y1} ` +
-               `L ${firstTurnX} ${y1} ` +          // Go right a bit
-               `L ${firstTurnX} ${y2} ` +          // Go down/up to destination row
-               `L ${x2} ${y2}`;                    // Go LEFT to destination
+               `L ${firstTurnX} ${y1} ` +          // 1. Exit right
+               `L ${firstTurnX} ${bridgeY} ` +     // 2. Short vertical
+               `L ${secondTurnX} ${bridgeY} ` +    // 3. Horizontal left (bridge)
+               `L ${secondTurnX} ${y2} ` +         // 4. Main vertical (LEFT of dest)
+               `L ${x2} ${y2}`;                    // 5. Enter destination from left
       } else {
-        // Curved version with two turns
+        // Curved version with 4 turns
         if (goingDown) {
           path = `M ${x1} ${y1} ` +
                  `L ${firstTurnX - r} ${y1} ` +
-                 `Q ${firstTurnX} ${y1} ${firstTurnX} ${y1 + r} ` +   // Turn down
-                 `L ${firstTurnX} ${y2 - r} ` +
-                 `Q ${firstTurnX} ${y2} ${firstTurnX - r} ${y2} ` +   // Turn left
+                 `Q ${firstTurnX} ${y1} ${firstTurnX} ${y1 + r} ` +         // Turn 1: down
+                 `L ${firstTurnX} ${bridgeY - r} ` +
+                 `Q ${firstTurnX} ${bridgeY} ${firstTurnX - r} ${bridgeY} ` + // Turn 2: left
+                 `L ${secondTurnX + r} ${bridgeY} ` +
+                 `Q ${secondTurnX} ${bridgeY} ${secondTurnX} ${bridgeY + r} ` + // Turn 3: down
+                 `L ${secondTurnX} ${y2 - r} ` +
+                 `Q ${secondTurnX} ${y2} ${secondTurnX + r} ${y2} ` +       // Turn 4: right
                  `L ${x2} ${y2}`;
         } else {
           path = `M ${x1} ${y1} ` +
                  `L ${firstTurnX - r} ${y1} ` +
-                 `Q ${firstTurnX} ${y1} ${firstTurnX} ${y1 - r} ` +   // Turn up
-                 `L ${firstTurnX} ${y2 + r} ` +
-                 `Q ${firstTurnX} ${y2} ${firstTurnX - r} ${y2} ` +   // Turn left
+                 `Q ${firstTurnX} ${y1} ${firstTurnX} ${y1 - r} ` +         // Turn 1: up
+                 `L ${firstTurnX} ${bridgeY + r} ` +
+                 `Q ${firstTurnX} ${bridgeY} ${firstTurnX - r} ${bridgeY} ` + // Turn 2: left
+                 `L ${secondTurnX + r} ${bridgeY} ` +
+                 `Q ${secondTurnX} ${bridgeY} ${secondTurnX} ${bridgeY - r} ` + // Turn 3: up
+                 `L ${secondTurnX} ${y2 + r} ` +
+                 `Q ${secondTurnX} ${y2} ${secondTurnX + r} ${y2} ` +       // Turn 4: right
                  `L ${x2} ${y2}`;
         }
       }
