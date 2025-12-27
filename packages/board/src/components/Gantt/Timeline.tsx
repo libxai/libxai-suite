@@ -527,6 +527,14 @@ export function Timeline({
             // routeY = just below that = fromIndex * 56 + 50 (6px below bottom)
             const routeY = fromIndex * ROW_HEIGHT + 50; // 6px below source bar's bottom
 
+            // v0.17.348: Hide base line when this exact dependency is being hovered
+            // This prevents showing two overlapping lines with potentially different paths
+            const isThisLineHovered = hoveredDependency &&
+              hoveredDependency.x1 === exitX && hoveredDependency.y1 === exitY &&
+              hoveredDependency.x2 === enterX && hoveredDependency.y2 === enterY;
+
+            if (isThisLineHovered) return null;
+
             return (
               <DependencyLine
                 key={`dep-${depId}-${task.id}`}
