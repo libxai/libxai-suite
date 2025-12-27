@@ -76,16 +76,17 @@ export function DependencyLine({
 
   let path: string;
 
-  // v0.17.351: ALWAYS use L-shape path for ALL dependency lines
-  // This ensures consistent, clean lines that never pass through task bars
-  const midPointX = (x1 + x2) / 2;
+  // v0.17.352: ClickUp-style routing - vertical segment goes to LEFT of destination bar
+  // This ensures lines never pass through task bars
+  // x2 is the LEFT edge of destination bar, so we route the vertical segment there
+  const verticalX = x2 - 12; // 12px to the left of destination bar
   const r = cornerRadius;
 
   if (lineStyle === 'squared') {
     path = `M ${x1} ${y1} ` +
-           `L ${midPointX} ${y1} ` +     // Horizontal to midpoint
-           `L ${midPointX} ${y2} ` +     // Vertical to destination row
-           `L ${x2} ${y2}`;              // Horizontal to destination
+           `L ${verticalX} ${y1} ` +     // Horizontal to left of dest bar
+           `L ${verticalX} ${y2} ` +     // Vertical down/up
+           `L ${x2} ${y2}`;              // Short horizontal into destination
   } else {
     // With rounded corners
     const goingDown = y2 > y1;
@@ -95,17 +96,17 @@ export function DependencyLine({
       path = `M ${x1} ${y1} C ${x1 + ctrlOffset} ${y1}, ${x2 - ctrlOffset} ${y2}, ${x2} ${y2}`;
     } else if (goingDown) {
       path = `M ${x1} ${y1} ` +
-             `L ${midPointX - r} ${y1} ` +
-             `Q ${midPointX} ${y1} ${midPointX} ${y1 + r} ` +  // Corner: turn down
-             `L ${midPointX} ${y2 - r} ` +
-             `Q ${midPointX} ${y2} ${midPointX + r} ${y2} ` +  // Corner: turn right
+             `L ${verticalX - r} ${y1} ` +
+             `Q ${verticalX} ${y1} ${verticalX} ${y1 + r} ` +  // Corner: turn down
+             `L ${verticalX} ${y2 - r} ` +
+             `Q ${verticalX} ${y2} ${verticalX + r} ${y2} ` +  // Corner: turn right
              `L ${x2} ${y2}`;
     } else {
       path = `M ${x1} ${y1} ` +
-             `L ${midPointX - r} ${y1} ` +
-             `Q ${midPointX} ${y1} ${midPointX} ${y1 - r} ` +  // Corner: turn up
-             `L ${midPointX} ${y2 + r} ` +
-             `Q ${midPointX} ${y2} ${midPointX + r} ${y2} ` +  // Corner: turn right
+             `L ${verticalX - r} ${y1} ` +
+             `Q ${verticalX} ${y1} ${verticalX} ${y1 - r} ` +  // Corner: turn up
+             `L ${verticalX} ${y2 + r} ` +
+             `Q ${verticalX} ${y2} ${verticalX + r} ${y2} ` +  // Corner: turn right
              `L ${x2} ${y2}`;
     }
   }

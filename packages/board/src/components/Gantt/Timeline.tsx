@@ -829,9 +829,9 @@ export function Timeline({
           const dx = x2 - x1;
           const midX = x1 + dx / 2;
 
-          // v0.17.351: ALWAYS use L-shape path for ALL dependency lines (synced with DependencyLine.tsx)
+          // v0.17.352: ClickUp-style routing - vertical segment goes to LEFT of destination bar
           const cornerRadius = 5;
-          const midPointX = (x1 + x2) / 2;
+          const verticalX = x2 - 12; // 12px to the left of destination bar
           const r = cornerRadius;
           const dy = y2 - y1;
           const goingDown = dy > 0;
@@ -840,8 +840,8 @@ export function Timeline({
           let path: string;
           if (hoverLineStyle === 'squared') {
             path = `M ${x1} ${y1} ` +
-                   `L ${midPointX} ${y1} ` +
-                   `L ${midPointX} ${y2} ` +
+                   `L ${verticalX} ${y1} ` +
+                   `L ${verticalX} ${y2} ` +
                    `L ${x2} ${y2}`;
           } else {
             if (isSameRow) {
@@ -850,17 +850,17 @@ export function Timeline({
               path = `M ${x1} ${y1} C ${x1 + ctrlOffset} ${y1}, ${x2 - ctrlOffset} ${y2}, ${x2} ${y2}`;
             } else if (goingDown) {
               path = `M ${x1} ${y1} ` +
-                     `L ${midPointX - r} ${y1} ` +
-                     `Q ${midPointX} ${y1} ${midPointX} ${y1 + r} ` +
-                     `L ${midPointX} ${y2 - r} ` +
-                     `Q ${midPointX} ${y2} ${midPointX + r} ${y2} ` +
+                     `L ${verticalX - r} ${y1} ` +
+                     `Q ${verticalX} ${y1} ${verticalX} ${y1 + r} ` +
+                     `L ${verticalX} ${y2 - r} ` +
+                     `Q ${verticalX} ${y2} ${verticalX + r} ${y2} ` +
                      `L ${x2} ${y2}`;
             } else {
               path = `M ${x1} ${y1} ` +
-                     `L ${midPointX - r} ${y1} ` +
-                     `Q ${midPointX} ${y1} ${midPointX} ${y1 - r} ` +
-                     `L ${midPointX} ${y2 + r} ` +
-                     `Q ${midPointX} ${y2} ${midPointX + r} ${y2} ` +
+                     `L ${verticalX - r} ${y1} ` +
+                     `Q ${verticalX} ${y1} ${verticalX} ${y1 - r} ` +
+                     `L ${verticalX} ${y2 + r} ` +
+                     `Q ${verticalX} ${y2} ${verticalX + r} ${y2} ` +
                      `L ${x2} ${y2}`;
             }
           }
@@ -876,14 +876,14 @@ export function Timeline({
           const deleteColor = '#f87171';
           const deleteColorSoft = 'rgba(248, 113, 113, 0.15)';
 
-          // v0.17.351: Delete button position - simplified, always at center of horizontal segment
+          // v0.17.352: Delete button position - on the horizontal segment
           let deleteX = midX;
           let deleteY = isSameRow ? (y1 + y2) / 2 : y1; // On source row horizontal segment
           let hideDeleteButton = false;
 
           // If mouse position available, follow it along the line
           if (mouseX !== undefined && mouseY !== undefined) {
-            deleteX = Math.max(x1 + 20, Math.min(x2 - 20, mouseX));
+            deleteX = Math.max(x1 + 20, Math.min(verticalX - 10, mouseX));
             deleteY = isSameRow ? (y1 + y2) / 2 : y1;
           }
 
