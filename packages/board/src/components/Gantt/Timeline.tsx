@@ -690,15 +690,17 @@ export function Timeline({
             if (dependencyLineStyle === 'squared') {
               // v0.17.322: Squared/orthogonal path - matches the actual rendered line
               // Path: horizontal from x1 to midX, vertical from y1 to y2, horizontal from midX to x2
-              // Offset from endpoints by 10% to not block resize handles
-              const offsetX = Math.abs(dx) * 0.10;
+              // v0.17.339: Increased offset to 40px minimum to not block Link button (at x+width+18)
+              const minOffset = 40;
+              const percentOffset = Math.abs(dx) * 0.15;
+              const offsetX = Math.max(minOffset, percentOffset);
               const startX = x1 + offsetX;
-              const endX = x2 - offsetX;
+              const endX = x2 - Math.min(offsetX, Math.abs(dx) * 0.10); // Less offset at destination
               middlePath = `M ${startX} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${endX} ${y2}`;
             } else {
               // Curved Bézier path (default)
-              // v0.17.154: Hover zone from t=0.10 to t=0.90 (80% of curve)
-              // Only 10% at each end is reserved for resize handles
+              // v0.17.339: Hover zone from t=0.20 to t=0.90 to not block Link button
+              // 20% at start reserved for Link button area
               // strokeWidth=12 → 6px from center each side
               // FIX: Use correct cubic Bézier formula matching the actual line:
               // Original: C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}
@@ -720,7 +722,8 @@ export function Timeline({
               const numPoints = 20;
               const pathPoints: Array<{x: number, y: number}> = [];
               for (let i = 0; i <= numPoints; i++) {
-                const t = 0.10 + (i / numPoints) * 0.80; // t from 0.10 to 0.90
+                // v0.17.339: Start at t=0.20 to leave room for Link button (was 0.10)
+                const t = 0.20 + (i / numPoints) * 0.70; // t from 0.20 to 0.90
                 pathPoints.push(cubicBezierPoint(t));
               }
 
@@ -974,12 +977,12 @@ export function Timeline({
               onMouseLeave={() => setHoveredDependency(null)}
               onMouseMove={handleHoverMouseMove}
             >
-              {/* Large invisible hover area along the entire path */}
+              {/* v0.17.339: Smaller hover area to not block TaskBar Link button */}
               <path
                 d={path}
                 fill="none"
                 stroke="transparent"
-                strokeWidth={50}
+                strokeWidth={20}
                 strokeLinecap="round"
                 style={{ cursor: 'pointer' }}
               />
