@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useMemo, useContext, forwardRef, useImperativeHandle } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo, useContext, forwardRef, useImperativeHandle } from 'react';
 import { Task, TimeScale, Theme, GanttConfig, GanttColumn, ColumnType, RowDensity, TaskFilterType } from './types';
 import { deriveThemeFromCSS } from './deriveThemeFromCSS';
 import { GanttToolbar } from './GanttToolbar';
@@ -1375,6 +1375,10 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   // This fixes the bug where TaskGrid content was cut off when using translateY
   const isSyncingScroll = useRef(false);
 
+  // v0.17.378: Pan/drag state for grabbing and dragging the timeline (ClickUp style)
+  const [isPanning, setIsPanning] = useState(false);
+  const panStartRef = useRef({ x: 0, y: 0, scrollLeft: 0, scrollTop: 0 });
+
   useEffect(() => {
     const timelineScroll = timelineScrollRef.current;
     const gridScroll = gridScrollRef.current?.querySelector('.gantt-grid-scroll') as HTMLElement;
@@ -1405,6 +1409,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     };
 
     const handleMouseMove = (e: MouseEvent) => {
+      // Handle column resize
       if (isResizing && gridScroll) {
         // Calculate width relative to the container's left edge for accuracy
         const containerRect = gridScroll.parentElement?.getBoundingClientRect();
@@ -1421,24 +1426,96 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
           setGridWidthOverride(newWidth);
         }
       }
+
+      // v0.17.378: Handle pan/drag
+      if (isPanning && timelineScroll) {
+        const deltaX = e.clientX - panStartRef.current.x;
+        const deltaY = e.clientY - panStartRef.current.y;
+
+        timelineScroll.scrollLeft = panStartRef.current.scrollLeft - deltaX;
+        timelineScroll.scrollTop = panStartRef.current.scrollTop - deltaY;
+      }
     };
 
     const handleMouseUp = () => {
       setIsResizing(false);
+      setIsPanning(false);
+    };
+
+    // v0.17.378: Pan/drag - mousedown on timeline background starts panning
+    const handleTimelineMouseDown = (e: MouseEvent) => {
+      // Only pan with left mouse button and when clicking on background (not on task bars)
+      if (e.button !== 0) return;
+
+      // Don't start panning if clicking on interactive elements
+      const target = e.target as HTMLElement;
+      const isInteractive = target.closest('[data-task-bar]') ||
+                           target.closest('[data-dependency-line]') ||
+                           target.closest('button') ||
+                           target.closest('[role="button"]') ||
+                           target.tagName === 'rect' && target.getAttribute('data-clickable') === 'true';
+
+      if (isInteractive) return;
+
+      // Start panning
+      setIsPanning(true);
+      panStartRef.current = {
+        x: e.clientX,
+        y: e.clientY,
+        scrollLeft: timelineScroll.scrollLeft,
+        scrollTop: timelineScroll.scrollTop,
+      };
+
+      // Prevent text selection while dragging
+      e.preventDefault();
     };
 
     timelineScroll.addEventListener('scroll', handleTimelineScroll);
     gridScroll.addEventListener('scroll', handleGridScroll);
+    timelineScroll.addEventListener('mousedown', handleTimelineMouseDown);
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
 
     return () => {
       timelineScroll.removeEventListener('scroll', handleTimelineScroll);
       gridScroll.removeEventListener('scroll', handleGridScroll);
+      timelineScroll.removeEventListener('mousedown', handleTimelineMouseDown);
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isResizing, calculatedGridWidth]);
+  }, [isResizing, isPanning, calculatedGridWidth]);
+
+  // v0.17.377: Scroll to today on initial mount (like ClickUp)
+  // Uses useLayoutEffect to scroll BEFORE the browser paints, avoiding visible jump
+  const hasScrolledToToday = useRef(false);
+  const initialStartDateRef = useRef<Date | null>(null);
+
+  // Capture the first valid startDate (when tasks are loaded)
+  useLayoutEffect(() => {
+    // Only scroll once, when we have tasks and a valid startDate
+    if (hasScrolledToToday.current) return;
+    if (localTasks.length === 0) return;
+    if (!timelineScrollRef.current) return;
+
+    // Mark as scrolled immediately to prevent re-runs
+    hasScrolledToToday.current = true;
+    initialStartDateRef.current = startDate;
+
+    const timelineScroll = timelineScrollRef.current;
+    const today = new Date();
+    const dayWidth = timeScale === 'day' ? 60 : timeScale === 'week' ? 20 : 8;
+    const daysFromStart = (today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
+
+    // Calculate scroll position to center today in the viewport
+    const viewportWidth = timelineScroll.clientWidth;
+    const todayPosition = daysFromStart * dayWidth * zoom;
+    const scrollX = todayPosition - (viewportWidth / 2);
+
+    // Only scroll if today is within the timeline range
+    if (daysFromStart >= 0 && viewportWidth > 0) {
+      timelineScroll.scrollLeft = Math.max(0, scrollX);
+    }
+  }, [localTasks.length, startDate, timeScale, zoom]); // Re-run when tasks load
 
   return (
     <GanttI18nContext.Provider value={translations}>
@@ -1550,6 +1627,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
 
         {/* Timeline - v0.13.9: Has both scrolls, TaskGrid syncs to this scroll */}
         {/* v0.17.31: Added overflow-y:clip to allow tooltips to render above while maintaining scroll */}
+        {/* v0.17.378: Added grab cursor for pan/drag functionality (ClickUp style) */}
         <div
           ref={timelineScrollRef}
           className="gantt-timeline-scroll flex-1"
@@ -1557,6 +1635,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
             minHeight: 0,
             overflowX: 'auto',
             overflowY: 'auto',
+            cursor: isPanning ? 'grabbing' : 'grab',
             // v0.9.1: Prevent browser auto-scroll when disableScrollSync is enabled
             ...(config.disableScrollSync && {
               scrollBehavior: 'auto',
@@ -1572,6 +1651,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
             startDate={startDate}
             endDate={endDate}
             zoom={zoom}
+            locale={locale} // v0.17.400: Pass locale for date formatting
             templates={mergedTemplates}
             dependencyLineStyle={config?.dependencyLineStyle} // v0.17.310
             onTaskClick={onTaskClick}

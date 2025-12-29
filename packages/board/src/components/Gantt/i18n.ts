@@ -106,6 +106,8 @@ export interface GanttTranslations {
     loading: string;
     error: string;
     today: string;
+    week: string; // v0.17.400: "Week" prefix for timeline headers
+    clickToSetDates: string; // v0.17.400: Placeholder for tasks without dates
   };
 
   // AI Assistant
@@ -251,6 +253,8 @@ export const en: GanttTranslations = {
     loading: 'Loading...',
     error: 'Error',
     today: 'Today',
+    week: 'Week', // v0.17.400
+    clickToSetDates: 'Click to set dates...', // v0.17.400
   },
 
   ai: {
@@ -393,6 +397,8 @@ export const es: GanttTranslations = {
     loading: 'Cargando...',
     error: 'Error',
     today: 'Hoy',
+    week: 'Semana', // v0.17.400
+    clickToSetDates: 'Clic para establecer fechas...', // v0.17.400
   },
 
   ai: {

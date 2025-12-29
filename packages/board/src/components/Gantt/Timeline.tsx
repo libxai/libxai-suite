@@ -5,6 +5,7 @@ import { TaskTooltip } from './TaskTooltip';
 import { DependencyLine } from './DependencyLine';
 import { Milestone } from './Milestone';
 import { ganttUtils } from './ganttUtils';
+import { useGanttI18n } from './GanttI18nContext';
 
 interface TimelineProps {
   tasks: Task[];
@@ -14,6 +15,7 @@ interface TimelineProps {
   startDate: Date;
   endDate: Date;
   zoom: number;
+  locale?: string; // v0.17.400: Locale for date formatting (e.g., 'en', 'es')
   templates: Required<GanttTemplates>; // v0.8.0
   dependencyLineStyle?: DependencyLineStyle; // v0.17.310: Dependency line style
   onTaskClick?: (task: Task) => void;
@@ -40,6 +42,7 @@ export function Timeline({
   startDate,
   endDate,
   zoom,
+  locale = 'en', // v0.17.400: Default to English
   templates,
   dependencyLineStyle = 'curved', // v0.17.310
   onTaskClick,
@@ -50,6 +53,9 @@ export function Timeline({
   onDependencyDelete,
 }: TimelineProps) {
   const HEADER_HEIGHT = 48; // Must match TaskGrid's HEADER_HEIGHT for alignment
+
+  // v0.17.400: Get i18n translations
+  const t = useGanttI18n();
 
   // v0.13.0: State for dependency cascade preview
   const [cascadePreviews, setCascadePreviews] = useState<DependentTaskPreview[]>([]);
@@ -243,6 +249,7 @@ export function Timeline({
   }, [tasks, flatTasks, startDate, dayWidth, zoom, ROW_HEIGHT, HEADER_HEIGHT]);
 
   // Generate timeline headers
+  // v0.17.400: Use locale for date formatting (e.g., 'es' -> 'Dic 22', 'en' -> 'Dec 22')
   const headers = useMemo(() => {
     const result: Array<{ date: Date; label: string; x: number }> = [];
     const current = new Date(startDate);
@@ -256,7 +263,7 @@ export function Timeline({
       if (timeScale === 'day') {
         result.push({
           date: new Date(current),
-          label: current.toLocaleDateString('en-US', { day: 'numeric', month: 'short' }),
+          label: current.toLocaleDateString(locale, { day: 'numeric', month: 'short' }),
           x,
         });
         current.setDate(current.getDate() + 1);
@@ -264,14 +271,14 @@ export function Timeline({
         const weekNum = getWeekNumber(current);
         result.push({
           date: new Date(current),
-          label: `Week ${weekNum}`,
+          label: `${t.labels.week} ${weekNum}`,
           x,
         });
         current.setDate(current.getDate() + 7);
       } else {
         result.push({
           date: new Date(current),
-          label: current.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+          label: current.toLocaleDateString(locale, { month: 'short', year: 'numeric' }),
           x,
         });
         current.setMonth(current.getMonth() + 1);
@@ -280,7 +287,7 @@ export function Timeline({
     }
 
     return result;
-  }, [startDate, endDate, timeScale, dayWidth, zoom]);
+  }, [startDate, endDate, timeScale, dayWidth, zoom, locale, t.labels.week]);
 
   // Today position
   const todayX = useMemo(() => {
@@ -294,9 +301,9 @@ export function Timeline({
 
   return (
     <div
-      className="w-full h-full flex flex-col"
+      className="w-full flex flex-col"
       data-gantt-chart
-      style={{ backgroundColor: theme.bgPrimary, overflow: 'visible' }}
+      style={{ backgroundColor: theme.bgPrimary }}
     >
       {/* v0.13.7: Sticky Header - stays visible during vertical scroll */}
       <div
@@ -481,7 +488,7 @@ export function Timeline({
                     opacity={0.4}
                     style={{ pointerEvents: 'none', userSelect: 'none' }}
                   >
-                    Click to set dates...
+                    {t.labels.clickToSetDates}
                   </text>
                 </>
               )}

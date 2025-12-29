@@ -2261,6 +2261,7 @@ interface TimelineProps {
     startDate: Date;
     endDate: Date;
     zoom: number;
+    locale?: string;
     templates: Required<GanttTemplates>;
     dependencyLineStyle?: DependencyLineStyle;
     onTaskClick?: (task: Task) => void;
@@ -2277,7 +2278,8 @@ interface TaskPosition {
     width: number;
     height: number;
 }
-declare function Timeline({ tasks, theme, rowHeight: ROW_HEIGHT, timeScale, startDate, endDate, zoom, templates, dependencyLineStyle, // v0.17.310
+declare function Timeline({ tasks, theme, rowHeight: ROW_HEIGHT, timeScale, startDate, endDate, zoom, locale, // v0.17.400: Default to English
+templates, dependencyLineStyle, // v0.17.310
 onTaskClick, onTaskDblClick, // v0.8.0
 onTaskContextMenu, // v0.8.0
 onTaskDateChange, onDependencyCreate, onDependencyDelete, }: TimelineProps): react_jsx_runtime.JSX.Element;
@@ -2979,6 +2981,8 @@ interface GanttTranslations {
         loading: string;
         error: string;
         today: string;
+        week: string;
+        clickToSetDates: string;
     };
     ai: {
         placeholder: string;
