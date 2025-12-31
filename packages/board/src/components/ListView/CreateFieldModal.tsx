@@ -103,8 +103,8 @@ export function CreateFieldModal({
       {/* Modal */}
       <div
         className={cn(
-          'relative w-full max-w-md rounded-xl shadow-2xl',
-          isDark ? 'bg-[#1F2937]' : 'bg-white'
+          'relative w-full max-w-md rounded-xl shadow-2xl border',
+          isDark ? 'bg-[#0F1117] border-white/10' : 'bg-white border-gray-200'
         )}
       >
         {/* Header */}

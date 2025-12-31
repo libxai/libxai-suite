@@ -346,7 +346,7 @@ export function TableContextMenu({
       style={menuStyle}
       className={cn(
         'py-1 rounded-lg shadow-xl border min-w-[180px]',
-        isDark ? 'bg-[#1F2937] border-white/10' : 'bg-white border-gray-200'
+        isDark ? 'bg-[#0F1117] border-white/10' : 'bg-white border-gray-200'
       )}
     >
       {menuItems.map((item) => {
@@ -429,7 +429,7 @@ function SubmenuItem({ item, isDark }: { item: MenuItem; isDark: boolean }) {
         <div
           className={cn(
             'absolute left-full top-0 ml-1 py-1 rounded-lg shadow-xl border min-w-[160px]',
-            isDark ? 'bg-[#1F2937] border-white/10' : 'bg-white border-gray-200'
+            isDark ? 'bg-[#0F1117] border-white/10' : 'bg-white border-gray-200'
           )}
         >
           {item.submenu.map((subItem) => (

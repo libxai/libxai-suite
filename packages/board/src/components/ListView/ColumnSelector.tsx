@@ -163,7 +163,7 @@ export function ColumnSelector({
       ref={panelRef}
       className={cn(
         'absolute right-0 top-full mt-1 w-72 rounded-lg shadow-xl border z-50',
-        isDark ? 'bg-[#1F2937] border-white/10' : 'bg-white border-gray-200'
+        isDark ? 'bg-[#0F1117] border-white/10' : 'bg-white border-gray-200'
       )}
     >
       {/* Header */}
