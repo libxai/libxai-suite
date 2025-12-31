@@ -2,8 +2,9 @@
  * TaskDetailModal Component
  * Shared task detail modal for Calendar, Kanban, and Gantt views
  * ClickUp-style full-screen modal with all task fields
- * @version 0.17.253
+ * @version 0.17.401
  *
+ * v0.17.401: Added @mentions support in comments
  * v0.17.253: Editable task name with debounce auto-save
  */
 
@@ -27,7 +28,6 @@ import {
   ListChecks,
   Upload,
   MessageSquare,
-  Send,
   Check,
   ChevronDown,
   Trash2,
@@ -37,6 +37,8 @@ import {
   Palette,
   Diamond,
 } from 'lucide-react';
+import { MentionInput, CommentContent, extractMentionedUserIds } from './MentionInput';
+import type { MentionUser } from './MentionInput';
 import type { Task, Assignee, TaskTag } from '../Gantt/types';
 import type { Card, Attachment } from '../../types';
 import { cn } from '../../utils';
@@ -157,8 +159,8 @@ export interface TaskDetailModalProps {
   availableTasks?: Task[];
   /** v0.17.252: Comments for activity panel */
   comments?: TaskComment[];
-  /** v0.17.252: Callback to add a new comment */
-  onAddComment?: (taskId: string, content: string) => Promise<void>;
+  /** v0.17.401: Callback to add a new comment (with optional mentionedUserIds) */
+  onAddComment?: (taskId: string, content: string, mentionedUserIds?: string[]) => Promise<void>;
   /** v0.17.252: Current user info for displaying comments */
   currentUser?: {
     id: string;
@@ -166,6 +168,8 @@ export interface TaskDetailModalProps {
     avatarUrl?: string;
     color?: string;
   };
+  /** v0.17.401: Users available for @mentions in comments */
+  mentionableUsers?: MentionUser[];
 }
 
 /**
@@ -189,6 +193,7 @@ export function TaskDetailModal({
   comments = [],
   onAddComment,
   currentUser,
+  mentionableUsers = [],
 }: TaskDetailModalProps) {
   const isDark = theme === 'dark';
 
@@ -326,18 +331,20 @@ export function TaskDetailModal({
     }, 800);
   }, [selectedTask, handleUpdate]);
 
-  // v0.17.252: Handle submit comment
+  // v0.17.401: Handle submit comment with mentions support
   const handleSubmitComment = useCallback(async () => {
     if (!selectedTask || !commentText.trim() || !onAddComment) return;
 
     setIsSubmittingComment(true);
     try {
-      await onAddComment(selectedTask.id, commentText.trim());
+      // Extract mentioned user IDs from the comment text
+      const mentionedUserIds = extractMentionedUserIds(commentText, mentionableUsers);
+      await onAddComment(selectedTask.id, commentText.trim(), mentionedUserIds.length > 0 ? mentionedUserIds : undefined);
       setCommentText('');
     } finally {
       setIsSubmittingComment(false);
     }
-  }, [selectedTask, commentText, onAddComment]);
+  }, [selectedTask, commentText, onAddComment, mentionableUsers]);
 
   // v0.17.252: Format comment date
   const formatCommentDate = useCallback((date: Date | string) => {
@@ -1663,9 +1670,9 @@ export function TaskDetailModal({
                               {formatCommentDate(comment.createdAt)}
                             </span>
                           </div>
-                          <p className={cn("text-sm break-words", isDark ? "text-[#9CA3AF]" : "text-gray-600")}>
-                            {comment.content}
-                          </p>
+                          <div className={cn("text-sm", isDark ? "text-[#9CA3AF]" : "text-gray-600")}>
+                            <CommentContent content={comment.content} theme={theme} />
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -1687,62 +1694,23 @@ export function TaskDetailModal({
                 )}
               </div>
 
-              {/* Comment Input */}
+              {/* Comment Input - v0.17.401: Now with @mentions support */}
               <div className={cn(
                 "p-4 border-t",
                 isDark ? "border-white/10" : "border-gray-200"
               )}>
-                <div className="flex items-start gap-2">
-                  {/* Current User Avatar */}
-                  {currentUser && (
-                    <div
-                      className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-medium flex-shrink-0"
-                      style={{ backgroundColor: currentUser.color || '#8B5CF6' }}
-                    >
-                      {currentUser.name?.slice(0, 2).toUpperCase() || 'U'}
-                    </div>
-                  )}
-                  <div className={cn(
-                    "flex-1 flex items-center gap-2 px-3 py-2 rounded-lg",
-                    isDark ? "bg-white/5" : "bg-white border border-gray-200"
-                  )}>
-                    <input
-                      type="text"
-                      value={commentText}
-                      onChange={(e) => setCommentText(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
-                          handleSubmitComment();
-                        }
-                      }}
-                      placeholder={locale === 'es' ? 'Escribe un comentario...' : 'Write a comment...'}
-                      disabled={isSubmittingComment || !onAddComment}
-                      className={cn(
-                        "flex-1 bg-transparent text-sm outline-none",
-                        isDark ? "text-white placeholder:text-[#6B7280]" : "text-gray-900 placeholder:text-gray-400",
-                        (isSubmittingComment || !onAddComment) && "opacity-50"
-                      )}
-                    />
-                    <button
-                      onClick={handleSubmitComment}
-                      disabled={isSubmittingComment || !commentText.trim() || !onAddComment}
-                      className={cn(
-                        "p-1.5 rounded transition-colors",
-                        commentText.trim() && onAddComment
-                          ? (isDark ? "bg-blue-500 text-white hover:bg-blue-600" : "bg-blue-500 text-white hover:bg-blue-600")
-                          : (isDark ? "text-[#6B7280]" : "text-gray-400"),
-                        isSubmittingComment && "opacity-50 cursor-not-allowed"
-                      )}
-                    >
-                      {isSubmittingComment ? (
-                        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <Send className="w-4 h-4" />
-                      )}
-                    </button>
-                  </div>
-                </div>
+                <MentionInput
+                  value={commentText}
+                  onChange={setCommentText}
+                  onSubmit={handleSubmitComment}
+                  users={mentionableUsers}
+                  placeholder={locale === 'es' ? 'Escribe un comentario... (usa @ para mencionar)' : 'Write a comment... (use @ to mention)'}
+                  disabled={!onAddComment}
+                  isSubmitting={isSubmittingComment}
+                  theme={theme}
+                  locale={locale}
+                  currentUser={currentUser}
+                />
               </div>
             </div>
           </motion.div>

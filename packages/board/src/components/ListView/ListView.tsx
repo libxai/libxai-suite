@@ -1,31 +1,63 @@
 /**
  * ListView Component
- * Professional list view for task management
- * Based on SaaS ProjectList component styles
- * @version 0.17.0
+ * Professional list view for task management with dynamic columns
+ * ClickUp-style features: column customization, context menu, custom fields
+ * @version 0.18.0
  */
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   List,
   ChevronDown,
   ChevronRight,
-  Calendar,
-  Clock,
   CheckCircle2,
   Circle,
   PlayCircle,
   ArrowUpDown,
   Search,
+  Plus,
 } from 'lucide-react';
 import type { Task } from '../Gantt/types';
-import type { ListViewProps, FlattenedTask } from './types';
+import type {
+  ListViewProps,
+  FlattenedTask,
+  TableColumn,
+  ContextMenuState,
+  CustomFieldDefinition,
+  CustomFieldValue,
+} from './types';
 import { mergeListViewTranslations } from './i18n';
 import { cn } from '../../utils';
 
-type SortField = 'name' | 'startDate' | 'endDate' | 'progress' | 'status';
+// Cell renderers
+import { StatusCell } from './cells/StatusCell';
+import { PriorityCell } from './cells/PriorityCell';
+import { AssigneesCell } from './cells/AssigneesCell';
+import { DateCell } from './cells/DateCell';
+import { ProgressCell } from './cells/ProgressCell';
+import { TextCell } from './cells/TextCell';
+import { NumberCell } from './cells/NumberCell';
+import { DropdownCell } from './cells/DropdownCell';
+import { CheckboxCell } from './cells/CheckboxCell';
+import { TagsCell } from './cells/TagsCell';
+
+// Components
+import { TableContextMenu } from './TableContextMenu';
+import { ColumnSelector } from './ColumnSelector';
+import { CreateFieldModal } from './CreateFieldModal';
+
+type SortField = 'name' | 'startDate' | 'endDate' | 'progress' | 'status' | 'priority' | string;
 type SortOrder = 'asc' | 'desc';
+
+// Default columns when none provided
+const DEFAULT_COLUMNS: TableColumn[] = [
+  { id: 'name', type: 'name', label: 'Name', width: 300, visible: true, sortable: true, resizable: true },
+  { id: 'status', type: 'status', label: 'Status', width: 120, visible: true, sortable: true, resizable: true },
+  { id: 'startDate', type: 'startDate', label: 'Start Date', width: 120, visible: true, sortable: true, resizable: true },
+  { id: 'endDate', type: 'endDate', label: 'End Date', width: 120, visible: true, sortable: true, resizable: true },
+  { id: 'progress', type: 'progress', label: 'Progress', width: 100, visible: true, sortable: true, resizable: true },
+];
 
 /**
  * Flatten hierarchical tasks to flat list with level info
@@ -72,6 +104,8 @@ export function ListView({
   error,
   className,
   style,
+  availableUsers = [],
+  customFields = [],
 }: ListViewProps) {
   const {
     theme: themeName = 'dark',
@@ -79,43 +113,64 @@ export function ListView({
     customTranslations,
     showSearch = true,
     showHierarchy = true,
+    tableColumns,
+    allowColumnCustomization = true,
+    allowColumnResize = true,
+    enableContextMenu = true,
   } = config;
 
   const t = mergeListViewTranslations(locale, customTranslations);
   const isDark = themeName === 'dark';
 
   // State
-  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
   const [sortField, setSortField] = useState<SortField>('startDate');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [searchQuery, setSearchQuery] = useState('');
+  const [columns, setColumns] = useState<TableColumn[]>(tableColumns || DEFAULT_COLUMNS);
+  const [showColumnSelector, setShowColumnSelector] = useState(false);
+  const [showCreateFieldModal, setShowCreateFieldModal] = useState(false);
+  const [contextMenu, setContextMenu] = useState<ContextMenuState>({
+    isOpen: false,
+    x: 0,
+    y: 0,
+    type: 'task',
+  });
 
-  // Initialize expanded tasks
-  useMemo(() => {
-    const parentIds = new Set<string>();
-    function findParents(taskList: Task[]) {
+  // Column resize state
+  const [resizingColumn, setResizingColumn] = useState<string | null>(null);
+  const [resizeStartX, setResizeStartX] = useState(0);
+  const [resizeStartWidth, setResizeStartWidth] = useState(0);
+  const tableRef = useRef<HTMLDivElement>(null);
+
+  // Sync columns with prop changes
+  useEffect(() => {
+    if (tableColumns) {
+      setColumns(tableColumns);
+    }
+  }, [tableColumns]);
+
+  // Build expanded tasks set from task.isExpanded props
+  const expandedTasks = useMemo(() => {
+    const expanded = new Set<string>();
+    function collectExpanded(taskList: Task[]) {
       for (const task of taskList) {
         if (task.subtasks?.length) {
-          parentIds.add(task.id);
-          findParents(task.subtasks);
+          if (task.isExpanded !== false) {
+            expanded.add(task.id);
+          }
+          collectExpanded(task.subtasks);
         }
       }
     }
-    findParents(tasks);
-    setExpandedTasks(parentIds);
+    collectExpanded(tasks);
+    return expanded;
   }, [tasks]);
 
-  // Toggle task expansion
+  // Get visible columns
+  const visibleColumns = useMemo(() => columns.filter(col => col.visible), [columns]);
+
+  // Toggle task expansion - delegates to parent via callback
   const toggleExpand = useCallback((taskId: string) => {
-    setExpandedTasks(prev => {
-      const next = new Set(prev);
-      if (next.has(taskId)) {
-        next.delete(taskId);
-      } else {
-        next.add(taskId);
-      }
-      return next;
-    });
     callbacks.onTaskToggleExpand?.(taskId);
   }, [callbacks]);
 
@@ -127,8 +182,98 @@ export function ListView({
       setSortField(field);
       setSortOrder('asc');
     }
-    callbacks.onSortChange?.({ column: field, direction: sortOrder === 'asc' ? 'desc' : 'asc' });
+    callbacks.onSortChange?.({ column: field as any, direction: sortOrder === 'asc' ? 'desc' : 'asc' });
   }, [sortField, sortOrder, callbacks]);
+
+  // Column management
+  const handleColumnsChange = useCallback((newColumns: TableColumn[]) => {
+    setColumns(newColumns);
+    callbacks.onColumnsChange?.(newColumns);
+  }, [callbacks]);
+
+  const handleColumnHide = useCallback((columnId: string) => {
+    const newColumns = columns.map(col =>
+      col.id === columnId ? { ...col, visible: false } : col
+    );
+    handleColumnsChange(newColumns);
+  }, [columns, handleColumnsChange]);
+
+  const handleColumnSort = useCallback((columnId: string, direction: SortOrder) => {
+    setSortField(columnId);
+    setSortOrder(direction);
+  }, []);
+
+  // Context menu handlers
+  const handleContextMenu = useCallback((e: React.MouseEvent, task?: Task, columnId?: string) => {
+    if (!enableContextMenu) return;
+    e.preventDefault();
+    setContextMenu({
+      isOpen: true,
+      x: e.clientX,
+      y: e.clientY,
+      type: task ? 'task' : 'header',
+      task,
+      columnId,
+    });
+  }, [enableContextMenu]);
+
+  const closeContextMenu = useCallback(() => {
+    setContextMenu(prev => ({ ...prev, isOpen: false }));
+  }, []);
+
+  // Column resize handlers
+  const handleResizeStart = useCallback((e: React.MouseEvent, columnId: string) => {
+    if (!allowColumnResize) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const column = columns.find(c => c.id === columnId);
+    if (column) {
+      setResizingColumn(columnId);
+      setResizeStartX(e.clientX);
+      setResizeStartWidth(column.width);
+    }
+  }, [columns, allowColumnResize]);
+
+  useEffect(() => {
+    if (!resizingColumn) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const delta = e.clientX - resizeStartX;
+      const newWidth = Math.max(50, resizeStartWidth + delta);
+      const newColumns = columns.map(col =>
+        col.id === resizingColumn ? { ...col, width: newWidth } : col
+      );
+      setColumns(newColumns);
+    };
+
+    const handleMouseUp = () => {
+      if (resizingColumn) {
+        callbacks.onColumnsChange?.(columns);
+      }
+      setResizingColumn(null);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [resizingColumn, resizeStartX, resizeStartWidth, columns, callbacks]);
+
+  // Custom field creation
+  const handleCreateCustomField = useCallback(async (field: Omit<CustomFieldDefinition, 'id' | 'projectId'>) => {
+    if (callbacks.onCreateCustomField) {
+      const fullField: CustomFieldDefinition = {
+        ...field,
+        id: `cf_${Date.now()}`,
+        projectId: '',
+      };
+      await callbacks.onCreateCustomField(fullField);
+    }
+    setShowCreateFieldModal(false);
+  }, [callbacks]);
 
   // Filter and sort tasks
   const displayTasks = useMemo(() => {
@@ -142,66 +287,225 @@ export function ListView({
       );
     }
 
-    // Filter by expanded state
-    const visibleTasks: FlattenedTask[] = [];
-    for (const task of flatTasks) {
-      let isVisible = task.level === 0;
-      if (task.level > 0) {
-        isVisible = true;
-      }
-      if (isVisible || searchQuery.trim()) {
-        visibleTasks.push(task);
-      }
-    }
-
     // Sort
-    if (searchQuery.trim()) {
-      visibleTasks.sort((a, b) => {
-        let aVal: string | number, bVal: string | number;
+    flatTasks.sort((a, b) => {
+      let aVal: string | number, bVal: string | number;
 
-        switch (sortField) {
-          case 'name':
-            aVal = a.name.toLowerCase();
-            bVal = b.name.toLowerCase();
-            break;
-          case 'startDate':
-            aVal = a.startDate?.getTime() || 0;
-            bVal = b.startDate?.getTime() || 0;
-            break;
-          case 'endDate':
-            aVal = a.endDate?.getTime() || 0;
-            bVal = b.endDate?.getTime() || 0;
-            break;
-          case 'progress':
-            aVal = a.progress || 0;
-            bVal = b.progress || 0;
-            break;
-          case 'status':
-            aVal = a.status || 'todo';
-            bVal = b.status || 'todo';
-            break;
-          default:
-            return 0;
-        }
+      switch (sortField) {
+        case 'name':
+          aVal = a.name.toLowerCase();
+          bVal = b.name.toLowerCase();
+          break;
+        case 'startDate':
+          aVal = a.startDate?.getTime() || 0;
+          bVal = b.startDate?.getTime() || 0;
+          break;
+        case 'endDate':
+          aVal = a.endDate?.getTime() || 0;
+          bVal = b.endDate?.getTime() || 0;
+          break;
+        case 'progress':
+          aVal = a.progress || 0;
+          bVal = b.progress || 0;
+          break;
+        case 'status':
+          aVal = a.status || 'todo';
+          bVal = b.status || 'todo';
+          break;
+        case 'priority':
+          const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3, none: 4 };
+          aVal = priorityOrder[a.priority as keyof typeof priorityOrder] ?? 4;
+          bVal = priorityOrder[b.priority as keyof typeof priorityOrder] ?? 4;
+          break;
+        default:
+          return 0;
+      }
 
-        if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1;
-        if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1;
-        return 0;
-      });
-    }
+      if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
 
-    return visibleTasks;
+    return flatTasks;
   }, [tasks, searchQuery, sortField, sortOrder]);
 
-  // Format date
-  const formatDate = (date?: Date) => {
-    if (!date) return '-';
-    const d = date instanceof Date ? date : new Date(date);
-    return d.toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', {
-      day: 'numeric',
-      month: 'short',
-    });
-  };
+  // Render cell based on column type
+  const renderCell = useCallback((task: Task, column: TableColumn) => {
+    const handleUpdate = (updates: Partial<Task>) => {
+      callbacks.onTaskUpdate?.({ ...task, ...updates });
+    };
+
+    // Helper to get custom field value
+    const getCustomFieldValue = <T,>(fieldId: string | undefined): T | undefined => {
+      if (!fieldId) return undefined;
+      const taskWithFields = task as Task & { customFields?: CustomFieldValue[] };
+      return taskWithFields.customFields?.find((cf: CustomFieldValue) => cf.fieldId === fieldId)?.value as T | undefined;
+    };
+
+    // Helper to update custom field value
+    const updateCustomField = (fieldId: string | undefined, value: any) => {
+      if (!fieldId) return;
+      const taskWithFields = task as Task & { customFields?: CustomFieldValue[] };
+      const customFields: CustomFieldValue[] = [...(taskWithFields.customFields || [])];
+      const idx = customFields.findIndex((cf: CustomFieldValue) => cf.fieldId === fieldId);
+      if (idx >= 0) {
+        customFields[idx] = { fieldId, value };
+      } else {
+        customFields.push({ fieldId, value });
+      }
+      handleUpdate({ customFields } as any);
+    };
+
+    switch (column.type) {
+      case 'name':
+        return null; // Handled separately with expand/collapse logic
+
+      case 'status':
+        return (
+          <StatusCell
+            value={task.status || (task.progress === 100 ? 'completed' : task.progress && task.progress > 0 ? 'in-progress' : 'todo')}
+            onChange={(status) => {
+              const progress = status === 'completed' ? 100 : status === 'in-progress' ? 50 : 0;
+              handleUpdate({ status, progress });
+            }}
+            isDark={isDark}
+            locale={locale}
+            translations={t.status}
+          />
+        );
+
+      case 'priority':
+        return (
+          <PriorityCell
+            value={task.priority}
+            onChange={(priority) => handleUpdate({ priority: priority as any })}
+            isDark={isDark}
+            locale={locale}
+          />
+        );
+
+      case 'assignees':
+        return (
+          <AssigneesCell
+            value={task.assignees || []}
+            availableUsers={availableUsers}
+            onChange={(assignees) => handleUpdate({ assignees })}
+            isDark={isDark}
+            locale={locale}
+          />
+        );
+
+      case 'startDate':
+        return (
+          <DateCell
+            value={task.startDate}
+            onChange={(startDate) => handleUpdate({ startDate })}
+            isDark={isDark}
+            locale={locale}
+          />
+        );
+
+      case 'endDate':
+        return (
+          <DateCell
+            value={task.endDate}
+            onChange={(endDate) => handleUpdate({ endDate })}
+            isDark={isDark}
+            locale={locale}
+          />
+        );
+
+      case 'progress':
+        return (
+          <ProgressCell
+            value={task.progress || 0}
+            onChange={(progress) => {
+              const status = progress === 100 ? 'completed' : progress > 0 ? 'in-progress' : 'todo';
+              handleUpdate({ progress, status });
+            }}
+            isDark={isDark}
+          />
+        );
+
+      case 'tags':
+        return (
+          <TagsCell
+            value={task.tags || []}
+            isDark={isDark}
+          />
+        );
+
+      case 'text':
+        return (
+          <TextCell
+            value={getCustomFieldValue<string>(column.customFieldId) || ''}
+            onChange={(value) => updateCustomField(column.customFieldId, value)}
+            isDark={isDark}
+          />
+        );
+
+      case 'number':
+        return (
+          <NumberCell
+            value={getCustomFieldValue<number>(column.customFieldId) || 0}
+            onChange={(value) => updateCustomField(column.customFieldId, value)}
+            isDark={isDark}
+          />
+        );
+
+      case 'date':
+        const dateVal = getCustomFieldValue<Date | string>(column.customFieldId);
+        return (
+          <DateCell
+            value={dateVal ? new Date(dateVal) : undefined}
+            onChange={(date) => updateCustomField(column.customFieldId, date)}
+            isDark={isDark}
+            locale={locale}
+          />
+        );
+
+      case 'dropdown':
+        return (
+          <DropdownCell
+            value={getCustomFieldValue<string>(column.customFieldId) || ''}
+            options={column.options || []}
+            onChange={(value) => updateCustomField(column.customFieldId, value)}
+            isDark={isDark}
+          />
+        );
+
+      case 'checkbox':
+        return (
+          <CheckboxCell
+            value={getCustomFieldValue<boolean>(column.customFieldId) || false}
+            onChange={(checked) => updateCustomField(column.customFieldId, checked)}
+            isDark={isDark}
+          />
+        );
+
+      default:
+        return <span className={cn("text-sm", isDark ? "text-[#94A3B8]" : "text-gray-500")}>-</span>;
+    }
+  }, [callbacks, isDark, locale, availableUsers, t]);
+
+  // Get column label with translations
+  const getColumnLabel = useCallback((column: TableColumn) => {
+    const labelMap: Record<string, string> = {
+      name: t.columns.name,
+      status: t.columns.status,
+      priority: t.columns.priority,
+      assignees: t.columns.assignees,
+      startDate: t.columns.startDate,
+      endDate: t.columns.endDate,
+      progress: t.columns.progress,
+    };
+    return labelMap[column.type] || column.label;
+  }, [t]);
+
+  // Calculate total width for grid
+  const totalWidth = useMemo(() => {
+    return visibleColumns.reduce((sum, col) => sum + col.width, 0) + (allowColumnCustomization ? 48 : 0);
+  }, [visibleColumns, allowColumnCustomization]);
 
   // Loading state
   if (isLoading) {
@@ -258,7 +562,16 @@ export function ListView({
   }
 
   return (
-    <div className={cn("flex-1 flex flex-col w-full h-full overflow-hidden", isDark ? "bg-[#0F1117]" : "bg-white", className)} style={style}>
+    <div
+      ref={tableRef}
+      className={cn(
+        "flex-1 flex flex-col w-full h-full overflow-hidden",
+        isDark ? "bg-[#0F1117]" : "bg-white",
+        resizingColumn && "select-none",
+        className
+      )}
+      style={style}
+    >
       {/* Toolbar */}
       <div className={cn("flex-shrink-0 px-6 py-4 border-b", isDark ? "border-white/10" : "border-gray-200")}>
         <div className="flex items-center gap-4">
@@ -288,174 +601,215 @@ export function ListView({
         </div>
       </div>
 
-      {/* List Header */}
-      <div className={cn(
-        "flex-shrink-0 grid grid-cols-12 gap-4 px-6 py-3 border-b text-xs font-medium uppercase tracking-wider",
-        isDark ? "border-white/10 bg-white/5 text-[#9CA3AF]" : "border-gray-200 bg-gray-50 text-gray-500"
-      )}>
-        <div className="col-span-5 flex items-center gap-2">
-          <button onClick={() => handleSort('name')} className="flex items-center gap-1 hover:text-[#3B82F6]">
-            {t.columns.name}
-            <ArrowUpDown className="w-3 h-3" />
-          </button>
-        </div>
-        <div className="col-span-2 flex items-center gap-1">
-          <button onClick={() => handleSort('status')} className="flex items-center gap-1 hover:text-[#3B82F6]">
-            {t.columns.status}
-            <ArrowUpDown className="w-3 h-3" />
-          </button>
-        </div>
-        <div className="col-span-2 flex items-center gap-1">
-          <button onClick={() => handleSort('startDate')} className="flex items-center gap-1 hover:text-[#3B82F6]">
-            {t.columns.startDate}
-            <ArrowUpDown className="w-3 h-3" />
-          </button>
-        </div>
-        <div className="col-span-2 flex items-center gap-1">
-          <button onClick={() => handleSort('endDate')} className="flex items-center gap-1 hover:text-[#3B82F6]">
-            {t.columns.endDate}
-            <ArrowUpDown className="w-3 h-3" />
-          </button>
-        </div>
-        <div className="col-span-1 flex items-center gap-1">
-          <button onClick={() => handleSort('progress')} className="flex items-center gap-1 hover:text-[#3B82F6]">
-            %
-            <ArrowUpDown className="w-3 h-3" />
-          </button>
-        </div>
-      </div>
-
-      {/* Task List */}
+      {/* Table Container */}
       <div className="flex-1 overflow-auto">
-        <AnimatePresence>
-          {displayTasks.map((task, index) => {
-            const isExpanded = expandedTasks.has(task.id);
-
-            return (
-              <motion.div
-                key={task.id}
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ delay: index * 0.02 }}
+        <div style={{ minWidth: totalWidth }}>
+          {/* List Header */}
+          <div
+            className={cn(
+              "flex-shrink-0 flex items-center border-b text-xs font-medium uppercase tracking-wider sticky top-0 z-10",
+              isDark ? "border-white/10 bg-[#0F1117]" : "border-gray-200 bg-gray-50"
+            )}
+          >
+            {visibleColumns.map((column) => (
+              <div
+                key={column.id}
                 className={cn(
-                  "grid grid-cols-12 gap-4 px-6 py-3 border-b transition-colors cursor-pointer",
-                  isDark
-                    ? "border-white/5 hover:bg-white/5"
-                    : "border-gray-100 hover:bg-gray-50"
+                  "relative flex items-center gap-2 px-4 py-3",
+                  isDark ? "text-[#9CA3AF]" : "text-gray-500"
                 )}
-                style={{ paddingLeft: showHierarchy ? `${24 + task.level * 24}px` : undefined }}
-                onClick={() => callbacks.onTaskClick?.(task)}
-                onDoubleClick={() => callbacks.onTaskDoubleClick?.(task)}
+                style={{ width: column.width, minWidth: column.minWidth }}
+                onContextMenu={(e) => handleContextMenu(e, undefined, column.id)}
               >
-                {/* Task Name */}
-                <div className="col-span-5 flex items-center gap-2 min-w-0">
-                  {showHierarchy && task.hasChildren && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleExpand(task.id);
-                      }}
-                      className={cn("p-0.5 rounded", isDark ? "hover:bg-white/10" : "hover:bg-gray-200")}
-                    >
-                      {isExpanded ? (
-                        <ChevronDown className={cn("w-4 h-4", isDark ? "text-[#9CA3AF]" : "text-gray-400")} />
-                      ) : (
-                        <ChevronRight className={cn("w-4 h-4", isDark ? "text-[#9CA3AF]" : "text-gray-400")} />
-                      )}
-                    </button>
-                  )}
-                  {showHierarchy && !task.hasChildren && <div className="w-5" />}
-
+                {column.sortable ? (
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      callbacks.onTaskUpdate?.({
-                        ...task,
-                        progress: task.progress === 100 ? 0 : 100,
-                        status: task.progress === 100 ? 'todo' : 'completed'
-                      });
-                    }}
-                    className="flex-shrink-0"
+                    onClick={() => handleSort(column.id)}
+                    className="flex items-center gap-1 hover:text-[#3B82F6]"
                   >
-                    <StatusIcon status={task.status} progress={task.progress} />
+                    {getColumnLabel(column)}
+                    <ArrowUpDown className={cn(
+                      "w-3 h-3",
+                      sortField === column.id && "text-[#3B82F6]"
+                    )} />
                   </button>
+                ) : (
+                  <span>{getColumnLabel(column)}</span>
+                )}
 
-                  <span className={cn(
-                    "truncate",
-                    isDark ? "text-white" : "text-gray-900",
-                    task.progress === 100 && (isDark ? "line-through text-[#6B7280]" : "line-through text-gray-400")
-                  )}>
-                    {task.name}
-                  </span>
-                </div>
+                {/* Resize handle */}
+                {allowColumnResize && column.resizable && (
+                  <div
+                    className={cn(
+                      "absolute right-0 top-0 bottom-0 w-1 cursor-col-resize group",
+                      "hover:bg-[#3B82F6]",
+                      resizingColumn === column.id && "bg-[#3B82F6]"
+                    )}
+                    onMouseDown={(e) => handleResizeStart(e, column.id)}
+                  />
+                )}
+              </div>
+            ))}
 
-                {/* Status */}
-                <div className="col-span-2 flex items-center">
-                  <span className={cn(
-                    "px-2 py-1 rounded-full text-xs font-medium",
-                    task.progress === 100 || task.status === 'completed'
-                      ? "bg-green-500/10 text-green-500"
-                      : (task.progress && task.progress > 0) || task.status === 'in-progress'
-                        ? "bg-blue-500/10 text-blue-500"
-                        : isDark
-                          ? "bg-white/10 text-[#9CA3AF]"
-                          : "bg-gray-100 text-gray-600"
-                  )}>
-                    {task.progress === 100 || task.status === 'completed'
-                      ? t.status.completed
-                      : (task.progress && task.progress > 0) || task.status === 'in-progress'
-                        ? t.status.inProgress
-                        : t.status.todo}
-                  </span>
-                </div>
-
-                {/* Start Date */}
-                <div className={cn("col-span-2 flex items-center gap-1 text-sm", isDark ? "text-[#9CA3AF]" : "text-gray-600")}>
-                  <Calendar className="w-4 h-4" />
-                  {formatDate(task.startDate)}
-                </div>
-
-                {/* End Date */}
-                <div className={cn("col-span-2 flex items-center gap-1 text-sm", isDark ? "text-[#9CA3AF]" : "text-gray-600")}>
-                  <Clock className="w-4 h-4" />
-                  {formatDate(task.endDate)}
-                </div>
-
-                {/* Progress */}
-                <div className="col-span-1 flex items-center">
-                  <div className="flex items-center gap-2 w-full">
-                    <div className={cn("flex-1 h-1.5 rounded-full overflow-hidden", isDark ? "bg-white/10" : "bg-gray-200")}>
-                      <div
-                        className={cn(
-                          "h-full rounded-full transition-all",
-                          task.progress === 100 ? "bg-green-500" : "bg-[#3B82F6]"
-                        )}
-                        style={{ width: `${task.progress || 0}%` }}
-                      />
-                    </div>
-                    <span className={cn("text-xs w-8", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
-                      {task.progress || 0}%
-                    </span>
-                  </div>
-                </div>
-              </motion.div>
-            );
-          })}
-        </AnimatePresence>
-
-        {/* Empty search state */}
-        {displayTasks.length === 0 && searchQuery && (
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <List className={cn("w-12 h-12 mx-auto mb-4", isDark ? "text-[#6B7280]" : "text-gray-400")} />
-              <p className={cn(isDark ? "text-[#9CA3AF]" : "text-gray-600")}>
-                {t.empty.noResults}
-              </p>
-            </div>
+            {/* Add column button */}
+            {allowColumnCustomization && (
+              <div className="flex items-center justify-center px-3 py-3">
+                <button
+                  onClick={() => setShowColumnSelector(true)}
+                  className={cn(
+                    "p-1.5 rounded-lg transition-colors",
+                    isDark
+                      ? "hover:bg-white/10 text-[#9CA3AF] hover:text-white"
+                      : "hover:bg-gray-200 text-gray-400 hover:text-gray-600"
+                  )}
+                  title={locale === 'es' ? 'Agregar columna' : 'Add column'}
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
+            )}
           </div>
-        )}
+
+          {/* Task List */}
+          <AnimatePresence>
+            {displayTasks.map((task, index) => {
+              const isExpanded = expandedTasks.has(task.id);
+
+              return (
+                <motion.div
+                  key={task.id}
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ delay: index * 0.02 }}
+                  className={cn(
+                    "flex items-center border-b transition-colors",
+                    isDark
+                      ? "border-white/5 hover:bg-white/5"
+                      : "border-gray-100 hover:bg-gray-50"
+                  )}
+                  onClick={() => callbacks.onTaskClick?.(task)}
+                  onDoubleClick={() => callbacks.onTaskDoubleClick?.(task)}
+                  onContextMenu={(e) => handleContextMenu(e, task)}
+                >
+                  {visibleColumns.map((column) => (
+                    <div
+                      key={column.id}
+                      className="flex items-center px-4 py-3 min-h-[52px]"
+                      style={{ width: column.width, minWidth: column.minWidth }}
+                    >
+                      {column.type === 'name' ? (
+                        // Name column with hierarchy
+                        <div className="flex items-center gap-2 min-w-0 w-full">
+                          {/* Indentation spacer for hierarchy levels */}
+                          {showHierarchy && task.level > 0 && (
+                            <div style={{ width: `${task.level * 24}px` }} className="flex-shrink-0" />
+                          )}
+                          {showHierarchy && task.hasChildren && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleExpand(task.id);
+                              }}
+                              className={cn("p-0.5 rounded flex-shrink-0", isDark ? "hover:bg-white/10" : "hover:bg-gray-200")}
+                            >
+                              {isExpanded ? (
+                                <ChevronDown className={cn("w-4 h-4", isDark ? "text-[#9CA3AF]" : "text-gray-400")} />
+                              ) : (
+                                <ChevronRight className={cn("w-4 h-4", isDark ? "text-[#9CA3AF]" : "text-gray-400")} />
+                              )}
+                            </button>
+                          )}
+                          {showHierarchy && !task.hasChildren && <div className="w-5 flex-shrink-0" />}
+
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              callbacks.onTaskUpdate?.({
+                                ...task,
+                                progress: task.progress === 100 ? 0 : 100,
+                                status: task.progress === 100 ? 'todo' : 'completed'
+                              });
+                            }}
+                            className="flex-shrink-0"
+                          >
+                            <StatusIcon status={task.status} progress={task.progress} />
+                          </button>
+
+                          <span className={cn(
+                            "truncate font-medium",
+                            isDark ? "text-white" : "text-gray-900",
+                            task.progress === 100 && (isDark ? "line-through text-[#6B7280]" : "line-through text-gray-400")
+                          )}>
+                            {task.name}
+                          </span>
+                        </div>
+                      ) : (
+                        renderCell(task, column)
+                      )}
+                    </div>
+                  ))}
+
+                  {/* Empty cell for add column button alignment */}
+                  {allowColumnCustomization && (
+                    <div className="w-12 flex-shrink-0" />
+                  )}
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
+
+          {/* Empty search state */}
+          {displayTasks.length === 0 && searchQuery && (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <List className={cn("w-12 h-12 mx-auto mb-4", isDark ? "text-[#6B7280]" : "text-gray-400")} />
+                <p className={cn(isDark ? "text-[#9CA3AF]" : "text-gray-600")}>
+                  {t.empty.noResults}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Context Menu */}
+      <TableContextMenu
+        state={contextMenu}
+        onClose={closeContextMenu}
+        isDark={isDark}
+        locale={locale}
+        onTaskEdit={callbacks.onTaskEdit}
+        onTaskDuplicate={callbacks.onTaskDuplicate}
+        onTaskDelete={callbacks.onTaskDelete}
+        onTaskUpdate={callbacks.onTaskUpdate}
+        onColumnHide={handleColumnHide}
+        onColumnSort={handleColumnSort}
+        availableUsers={availableUsers}
+      />
+
+      {/* Column Selector */}
+      <ColumnSelector
+        isOpen={showColumnSelector}
+        onClose={() => setShowColumnSelector(false)}
+        columns={columns}
+        customFields={customFields}
+        onColumnsChange={handleColumnsChange}
+        onCreateCustomField={() => {
+          setShowColumnSelector(false);
+          setShowCreateFieldModal(true);
+        }}
+        isDark={isDark}
+        locale={locale}
+      />
+
+      {/* Create Field Modal */}
+      <CreateFieldModal
+        isOpen={showCreateFieldModal}
+        onClose={() => setShowCreateFieldModal(false)}
+        onSave={handleCreateCustomField}
+        isDark={isDark}
+        locale={locale}
+      />
     </div>
   );
 }

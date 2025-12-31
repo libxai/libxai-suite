@@ -42,6 +42,7 @@ export function KanbanBoard({
   comments,
   onAddComment,
   currentUser,
+  mentionableUsers,
   onTaskOpen,
 }: KanbanBoardProps & { children?: React.ReactNode }) {
   const [dragState, setDragState] = useDragState()
@@ -341,6 +342,7 @@ export function KanbanBoard({
         comments={comments}
         onAddComment={onAddComment}
         currentUser={currentUser}
+        mentionableUsers={mentionableUsers}
       />
     </KanbanThemeProvider>
   )

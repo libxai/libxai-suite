@@ -138,6 +138,20 @@ export type {
   ListFilter,
   ListColumn,
   FlattenedTask,
+  // v0.18.0: New types for dynamic columns
+  TableColumn,
+  ColumnType as ListColumnType,
+  CustomFieldDefinition,
+  CustomFieldValue,
+  ContextMenuAction,
+  ContextMenuState,
+  AvailableUser,
+} from './components/ListView'
+// v0.18.0: Export constants
+export {
+  DEFAULT_TABLE_COLUMNS,
+  STANDARD_FIELDS,
+  CUSTOM_FIELD_TYPES,
 } from './components/ListView'
 export {
   listViewThemes,

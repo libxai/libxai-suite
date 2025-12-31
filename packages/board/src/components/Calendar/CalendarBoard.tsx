@@ -110,6 +110,8 @@ export function CalendarBoard({
   comments,
   onAddComment,
   currentUser,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  mentionableUsers: _mentionableUsers, // TODO: Implement MentionInput in CalendarBoard
   onTaskOpen,
 }: CalendarBoardProps) {
   const {

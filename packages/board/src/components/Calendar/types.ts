@@ -268,7 +268,7 @@ export interface CalendarBoardProps {
   }>;
 
   /** v0.17.254: Callback to add a comment */
-  onAddComment?: (taskId: string, content: string) => Promise<void>;
+  onAddComment?: (taskId: string, content: string, mentionedUserIds?: string[]) => Promise<void>;
 
   /** v0.17.254: Current user info for comment input */
   currentUser?: {
@@ -279,5 +279,14 @@ export interface CalendarBoardProps {
   };
 
   /** v0.17.254: Callback when task is opened in modal (to load comments) */
+  /** v0.17.401: Users available for @mentions in comments */
+  mentionableUsers?: Array<{
+    id: string;
+    name: string;
+    email?: string;
+    avatar?: string;
+    color?: string;
+  }>;
+
   onTaskOpen?: (taskId: string) => void;
 }

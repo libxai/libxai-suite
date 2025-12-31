@@ -70,6 +70,9 @@ export function DependencyLine({
   // OFFSET from bars for the vertical segment
   const OFFSET = 20;
 
+  // v0.17.366: isBackward needs to be defined outside the else block for delete button positioning
+  const isBackward = !isSameRow && x2 <= x1;
+
   let path: string;
   let turnX: number;
 
@@ -87,10 +90,6 @@ export function DependencyLine({
     // The vertical segment MUST be to the LEFT of the destination (x2)
     // This is the KEY insight: turnX = x2 - OFFSET, ALWAYS
     turnX = x2 - OFFSET;
-
-    // Check if destination is to the LEFT of or very close to source
-    // In this case, we need to go RIGHT first (past source), then come back LEFT
-    const isBackward = x2 <= x1;
 
     if (isBackward) {
       // BACKWARD dependency: destination is to the LEFT of source
@@ -187,14 +186,86 @@ export function DependencyLine({
   const deleteColor = '#f87171';
   const deleteColorSoft = 'rgba(248, 113, 113, 0.15)';
 
-  // Calculate delete button position (on vertical segment or midpoint for same-row)
+  // v0.17.366: Calculate delete button position - follows cursor along the ENTIRE line path
+  // Project mouse position onto the closest point on the line segments
   let deleteX = turnX;
   let deleteY = (y1 + y2) / 2;
 
-  // If mouse position available, follow cursor along vertical segment
-  if (mousePos && !isSameRow) {
-    deleteX = turnX;
-    deleteY = Math.max(Math.min(y1, y2) + 15, Math.min(Math.max(y1, y2) - 15, mousePos.y));
+  if (mousePos) {
+    // For same row - simple horizontal line
+    if (isSameRow) {
+      deleteX = Math.max(x1 + 10, Math.min(x2 - 10, mousePos.x));
+      deleteY = y1;
+    } else if (isBackward) {
+      // Backward dependency has 5 segments, find closest point
+      const firstTurnX = x1 + 15;
+      const secondTurnX = x2 - OFFSET;
+      const bridgeY = goingDown ? y1 + 20 : y1 - 20;
+
+      // Define segments: [startX, startY, endX, endY]
+      const segments: [number, number, number, number][] = [
+        [x1, y1, firstTurnX, y1],           // 1. Horizontal right
+        [firstTurnX, y1, firstTurnX, bridgeY], // 2. Short vertical
+        [firstTurnX, bridgeY, secondTurnX, bridgeY], // 3. Horizontal left (bridge)
+        [secondTurnX, bridgeY, secondTurnX, y2], // 4. Main vertical
+        [secondTurnX, y2, x2, y2],           // 5. Enter destination
+      ];
+
+      let minDist = Infinity;
+      let closestPoint = { x: deleteX, y: deleteY };
+
+      for (const seg of segments) {
+        const point = projectPointOnSegment(mousePos.x, mousePos.y, seg[0], seg[1], seg[2], seg[3]);
+        const dist = Math.hypot(mousePos.x - point.x, mousePos.y - point.y);
+        if (dist < minDist) {
+          minDist = dist;
+          closestPoint = point;
+        }
+      }
+
+      deleteX = closestPoint.x;
+      deleteY = closestPoint.y;
+    } else {
+      // Forward dependency has 3 segments
+      const segments: [number, number, number, number][] = [
+        [x1, y1, turnX, y1],     // Horizontal from source
+        [turnX, y1, turnX, y2],  // Vertical
+        [turnX, y2, x2, y2],     // Horizontal to destination
+      ];
+
+      let minDist = Infinity;
+      let closestPoint = { x: deleteX, y: deleteY };
+
+      for (const seg of segments) {
+        const point = projectPointOnSegment(mousePos.x, mousePos.y, seg[0], seg[1], seg[2], seg[3]);
+        const dist = Math.hypot(mousePos.x - point.x, mousePos.y - point.y);
+        if (dist < minDist) {
+          minDist = dist;
+          closestPoint = point;
+        }
+      }
+
+      deleteX = closestPoint.x;
+      deleteY = closestPoint.y;
+    }
+  }
+
+  // Helper function to project a point onto a line segment
+  function projectPointOnSegment(px: number, py: number, x1: number, y1: number, x2: number, y2: number) {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const lenSq = dx * dx + dy * dy;
+
+    if (lenSq === 0) return { x: x1, y: y1 }; // Segment is a point
+
+    // Project point onto line, clamped to segment
+    let t = ((px - x1) * dx + (py - y1) * dy) / lenSq;
+    t = Math.max(0, Math.min(1, t));
+
+    return {
+      x: x1 + t * dx,
+      y: y1 + t * dy,
+    };
   }
 
   // Mouse event handler
@@ -217,6 +288,7 @@ export function DependencyLine({
   if (isHoverLayer) {
     return (
       <g
+        data-dependency-line="true"
         onMouseLeave={handleMouseLeave}
         onMouseMove={handleMouseMove}
       >
@@ -273,7 +345,7 @@ export function DependencyLine({
           style={{ pointerEvents: 'none' }}
         />
 
-        {/* Delete button */}
+        {/* Delete button - v0.17.366: Follows cursor along entire line */}
         {onDelete && (
           <motion.g
             initial={{ opacity: 0, scale: 0.8 }}
@@ -320,6 +392,7 @@ export function DependencyLine({
   // Base layer rendering (non-hover)
   return (
     <g
+      data-dependency-line="true"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={handleMouseLeave}
       onMouseMove={handleMouseMove}
@@ -373,7 +446,7 @@ export function DependencyLine({
         transition={{ delay: 0.3, duration: 0.15 }}
       />
 
-      {/* Delete button (appears on hover) */}
+      {/* Delete button (appears on hover) - v0.17.366: Follows cursor along entire line */}
       {isHovered && onDelete && (
         <motion.g
           initial={{ opacity: 0, scale: 0 }}

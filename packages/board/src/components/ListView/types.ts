@@ -1,6 +1,8 @@
 /**
  * ListView Component Types
- * @version 0.17.0
+ * @version 0.18.0
+ *
+ * v0.18.0: Added dynamic columns, custom fields, context menu support
  */
 
 import type { Task } from '../Gantt/types';
@@ -12,7 +14,113 @@ import type { User } from '../../types';
 export type SortDirection = 'asc' | 'desc';
 
 /**
+ * Column types supported in ListView
+ * - Standard: name, status, priority, assignees, startDate, endDate, progress, tags
+ * - Custom: text, number, date, dropdown, checkbox
+ */
+export type ColumnType =
+  | 'name'        // Task name (always visible, first column)
+  | 'status'      // Todo/In Progress/Completed
+  | 'priority'    // Urgent/High/Medium/Low
+  | 'assignees'   // Assigned users
+  | 'startDate'   // Start date
+  | 'endDate'     // End date / Due date
+  | 'progress'    // Progress percentage
+  | 'tags'        // Task tags/labels
+  // Custom field types
+  | 'text'        // Custom text field
+  | 'number'      // Custom number field
+  | 'date'        // Custom date field
+  | 'dropdown'    // Custom dropdown/select
+  | 'checkbox';   // Custom checkbox/boolean
+
+/**
+ * Table column configuration for dynamic columns
+ */
+export interface TableColumn {
+  /** Unique column identifier */
+  id: string;
+  /** Column type */
+  type: ColumnType;
+  /** Display label */
+  label: string;
+  /** Column width in pixels */
+  width: number;
+  /** Minimum width */
+  minWidth?: number;
+  /** Maximum width */
+  maxWidth?: number;
+  /** Is column visible */
+  visible: boolean;
+  /** Can be sorted */
+  sortable?: boolean;
+  /** Can be resized */
+  resizable?: boolean;
+  /** For custom fields - reference to field definition */
+  customFieldId?: string;
+  /** For dropdown type - available options */
+  options?: string[];
+}
+
+/**
+ * Custom field definition for user-created fields
+ */
+export interface CustomFieldDefinition {
+  /** Unique field ID */
+  id: string;
+  /** Field display name */
+  name: string;
+  /** Field type */
+  type: 'text' | 'number' | 'date' | 'dropdown' | 'checkbox';
+  /** Options for dropdown type */
+  options?: string[];
+  /** Default value */
+  defaultValue?: string | number | boolean | Date;
+  /** Is field required */
+  required?: boolean;
+  /** Project this field belongs to */
+  projectId?: string;
+}
+
+/**
+ * Custom field value stored on task
+ */
+export interface CustomFieldValue {
+  fieldId: string;
+  value: string | number | boolean | Date | null;
+}
+
+/**
+ * Context menu action types
+ */
+export type ContextMenuAction =
+  | 'edit'
+  | 'changeStatus'
+  | 'changePriority'
+  | 'assignUser'
+  | 'duplicate'
+  | 'delete'
+  | 'sortAsc'
+  | 'sortDesc'
+  | 'hideColumn'
+  | 'moveLeft'
+  | 'moveRight';
+
+/**
+ * Context menu state
+ */
+export interface ContextMenuState {
+  isOpen: boolean;
+  x: number;
+  y: number;
+  type: 'task' | 'header';
+  task?: Task;
+  columnId?: string;
+}
+
+/**
  * Sortable columns in the list view
+ * @deprecated Use ColumnType instead
  */
 export type ListSortColumn =
   | 'name'
@@ -129,7 +237,7 @@ export interface ListViewConfig {
   showFilters?: boolean;
   /** Show hierarchy indentation */
   showHierarchy?: boolean;
-  /** Columns to display */
+  /** Columns to display (legacy) */
   columns?: ListColumn[];
   /** Row height in pixels */
   rowHeight?: number;
@@ -141,6 +249,16 @@ export interface ListViewConfig {
   enableVirtualization?: boolean;
   /** Items per page (0 = no pagination) */
   pageSize?: number;
+
+  // v0.18.0: New column customization options
+  /** Dynamic table columns configuration */
+  tableColumns?: TableColumn[];
+  /** Allow user to add/remove/reorder columns via "+" button */
+  allowColumnCustomization?: boolean;
+  /** Allow user to resize columns by dragging */
+  allowColumnResize?: boolean;
+  /** Enable context menu on right-click */
+  enableContextMenu?: boolean;
 }
 
 /**
@@ -246,6 +364,27 @@ export interface ListViewCallbacks {
   onTaskToggleExpand?: (taskId: string) => void;
   /** Export handler */
   onExport?: (format: 'csv' | 'json' | 'excel') => void;
+
+  // v0.18.0: New callbacks for column customization and context menu
+  /** Columns configuration changed (visibility, order, width) */
+  onColumnsChange?: (columns: TableColumn[]) => void;
+  /** Task edit requested (from context menu) */
+  onTaskEdit?: (task: Task) => void;
+  /** Task duplicate requested (from context menu) */
+  onTaskDuplicate?: (task: Task) => void;
+  /** Create custom field */
+  onCreateCustomField?: (field: CustomFieldDefinition) => Promise<void>;
+}
+
+/**
+ * Available user for assignment
+ */
+export interface AvailableUser {
+  id: string;
+  name: string;
+  email?: string;
+  avatarUrl?: string;
+  color?: string;
 }
 
 /**
@@ -266,6 +405,12 @@ export interface ListViewProps {
   className?: string;
   /** Inline styles */
   style?: React.CSSProperties;
+
+  // v0.18.0: New props for column customization
+  /** Available users for assignment in context menu */
+  availableUsers?: AvailableUser[];
+  /** Custom fields defined for this project */
+  customFields?: CustomFieldDefinition[];
 }
 
 /**
@@ -276,3 +421,45 @@ export interface FlattenedTask extends Task {
   hasChildren: boolean;
   parentPath: string[];
 }
+
+/**
+ * Default columns configuration
+ * Used when no tableColumns are provided
+ */
+export const DEFAULT_TABLE_COLUMNS: TableColumn[] = [
+  { id: 'name', type: 'name', label: 'Name', width: 300, visible: true, sortable: true, resizable: true },
+  { id: 'status', type: 'status', label: 'Status', width: 120, visible: true, sortable: true, resizable: true },
+  { id: 'priority', type: 'priority', label: 'Priority', width: 100, visible: false, sortable: true, resizable: true },
+  { id: 'assignees', type: 'assignees', label: 'Assignees', width: 150, visible: false, sortable: false, resizable: true },
+  { id: 'startDate', type: 'startDate', label: 'Start Date', width: 120, visible: true, sortable: true, resizable: true },
+  { id: 'endDate', type: 'endDate', label: 'End Date', width: 120, visible: true, sortable: true, resizable: true },
+  { id: 'progress', type: 'progress', label: 'Progress', width: 100, visible: true, sortable: true, resizable: true },
+  { id: 'tags', type: 'tags', label: 'Tags', width: 150, visible: false, sortable: false, resizable: true },
+];
+
+/**
+ * Standard field definitions (non-custom)
+ * Used in column selector to show available fields
+ */
+export const STANDARD_FIELDS: Array<{ type: ColumnType; labelKey: string; icon: string }> = [
+  { type: 'name', labelKey: 'columns.name', icon: 'Type' },
+  { type: 'status', labelKey: 'columns.status', icon: 'CircleDot' },
+  { type: 'priority', labelKey: 'columns.priority', icon: 'Flag' },
+  { type: 'assignees', labelKey: 'columns.assignees', icon: 'Users' },
+  { type: 'startDate', labelKey: 'columns.startDate', icon: 'Calendar' },
+  { type: 'endDate', labelKey: 'columns.endDate', icon: 'CalendarCheck' },
+  { type: 'progress', labelKey: 'columns.progress', icon: 'BarChart' },
+  { type: 'tags', labelKey: 'columns.tags', icon: 'Tag' },
+];
+
+/**
+ * Custom field type definitions
+ * Used in "Create Field" modal
+ */
+export const CUSTOM_FIELD_TYPES: Array<{ type: CustomFieldDefinition['type']; labelKey: string; icon: string }> = [
+  { type: 'text', labelKey: 'customFields.text', icon: 'Type' },
+  { type: 'number', labelKey: 'customFields.number', icon: 'Hash' },
+  { type: 'date', labelKey: 'customFields.date', icon: 'Calendar' },
+  { type: 'dropdown', labelKey: 'customFields.dropdown', icon: 'ChevronDown' },
+  { type: 'checkbox', labelKey: 'customFields.checkbox', icon: 'CheckSquare' },
+];

@@ -1007,9 +1007,10 @@ export function TaskGrid({
   const totalColumnsWidth = visibleColumns.reduce((sum, col) => sum + col.width, 0);
 
   // v0.13.10: TaskGrid no longer has its own scroll - it syncs with Timeline scroll
+  // v0.17.372: Removed h-full to allow sticky header to work correctly during scroll
   return (
     <div
-      className="h-full"
+      className="gantt-taskgrid-content"
       style={{
         backgroundColor: theme.bgPrimary,
         minWidth: totalColumnsWidth, // v0.17.194: Enable horizontal scroll when needed

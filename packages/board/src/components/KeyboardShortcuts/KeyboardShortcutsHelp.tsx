@@ -135,26 +135,26 @@ export function KeyboardShortcutsHelp({
     <div className={cn('fixed inset-0 z-[9999] flex items-center justify-center', className)}>
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        className="absolute inset-0 backdrop-blur-sm bg-black/40 dark:bg-black/60"
         onClick={onClose}
       />
 
       {/* Modal */}
-      <div className="relative bg-gradient-to-br from-gray-900/95 to-gray-800/95 backdrop-blur-xl rounded-2xl border border-white/20 shadow-2xl max-w-3xl w-full mx-4 max-h-[80vh] overflow-hidden">
+      <div className="relative backdrop-blur-xl rounded-2xl border shadow-2xl max-w-3xl w-full mx-4 max-h-[80vh] overflow-hidden bg-white dark:bg-gradient-to-br dark:from-gray-900/95 dark:to-gray-800/95 border-gray-200 dark:border-white/20">
         {/* Header */}
-        <div className="px-6 py-5 border-b border-white/10 flex items-center justify-between">
+        <div className="px-6 py-5 border-b flex items-center justify-between border-gray-200 dark:border-white/10">
           <div>
-            <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+            <h2 className="text-2xl font-bold flex items-center gap-3 text-gray-900 dark:text-white">
               <span className="text-3xl">⌨️</span>
               Keyboard Shortcuts
             </h2>
-            <p className="text-sm text-white/60 mt-1">
+            <p className="text-sm mt-1 text-gray-500 dark:text-white/60">
               Speed up your workflow with these shortcuts
             </p>
           </div>
           <button
             onClick={onClose}
-            className="text-white/50 hover:text-white transition-colors text-2xl leading-none p-2 hover:bg-white/10 rounded-lg"
+            className="transition-colors text-2xl leading-none p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:text-white/50 dark:hover:text-white dark:hover:bg-white/10"
             aria-label="Close"
           >
             ×
@@ -169,7 +169,7 @@ export function KeyboardShortcutsHelp({
 
               return (
                 <div key={category}>
-                  <h3 className="text-lg font-semibold text-white/90 mb-4 flex items-center gap-2">
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-800 dark:text-white/90">
                     <span className="w-1 h-5 bg-blue-500 rounded-full" />
                     {category}
                   </h3>
@@ -177,12 +177,12 @@ export function KeyboardShortcutsHelp({
                     {categoryShortcuts.map((shortcut) => (
                       <div
                         key={shortcut.action}
-                        className="flex items-center justify-between gap-4 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+                        className="flex items-center justify-between gap-4 p-3 rounded-lg transition-colors bg-gray-50 hover:bg-gray-100 dark:bg-white/5 dark:hover:bg-white/10"
                       >
-                        <span className="text-sm text-white/80">
+                        <span className="text-sm text-gray-700 dark:text-white/80">
                           {shortcut.description}
                         </span>
-                        <kbd className="px-3 py-1.5 bg-gradient-to-br from-gray-700 to-gray-800 border border-white/20 rounded-md text-xs font-mono text-white/90 shadow-lg whitespace-nowrap">
+                        <kbd className="px-3 py-1.5 border rounded-md text-xs font-mono shadow-sm whitespace-nowrap bg-white border-gray-300 text-gray-800 dark:bg-gradient-to-br dark:from-gray-700 dark:to-gray-800 dark:border-white/20 dark:text-white/90">
                           {getShortcutDisplay(shortcut)}
                         </kbd>
                       </div>
@@ -195,9 +195,9 @@ export function KeyboardShortcutsHelp({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-white/10 bg-white/5">
-          <p className="text-xs text-white/50 text-center">
-            Press <kbd className="px-2 py-0.5 bg-white/10 rounded text-white/70">?</kbd> to toggle this help panel
+        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 dark:border-white/10 dark:bg-white/5">
+          <p className="text-xs text-center text-gray-500 dark:text-white/50">
+            Press <kbd className="px-2 py-0.5 rounded bg-gray-200 text-gray-600 dark:bg-white/10 dark:text-white/70">?</kbd> to toggle this help panel
           </p>
         </div>
       </div>

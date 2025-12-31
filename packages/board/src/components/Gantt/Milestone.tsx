@@ -25,6 +25,7 @@ export function Milestone({ task, x, y, theme, onClick }: MilestoneProps) {
 
   return (
     <g
+      data-task-bar="true"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={() => onClick?.(task)}

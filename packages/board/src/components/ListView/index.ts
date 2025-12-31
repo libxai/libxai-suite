@@ -1,6 +1,6 @@
 /**
  * ListView Component Exports
- * @version 0.17.0
+ * @version 0.18.0
  */
 
 // Main component
@@ -21,6 +21,21 @@ export type {
   ListFilter,
   ListColumn,
   FlattenedTask,
+  // v0.18.0: New types for dynamic columns
+  TableColumn,
+  ColumnType,
+  CustomFieldDefinition,
+  CustomFieldValue,
+  ContextMenuAction,
+  ContextMenuState,
+  AvailableUser,
+} from './types';
+
+// v0.18.0: Export constants
+export {
+  DEFAULT_TABLE_COLUMNS,
+  STANDARD_FIELDS,
+  CUSTOM_FIELD_TYPES,
 } from './types';
 
 // Themes
@@ -42,3 +57,20 @@ export {
   mergeListViewTranslations,
 } from './i18n';
 export type { ListViewSupportedLocale } from './i18n';
+
+// v0.18.0: Sub-components (for advanced customization)
+export { TableContextMenu } from './TableContextMenu';
+export { ColumnSelector } from './ColumnSelector';
+export { CreateFieldModal } from './CreateFieldModal';
+
+// v0.18.0: Cell components
+export { StatusCell } from './cells/StatusCell';
+export { PriorityCell } from './cells/PriorityCell';
+export { AssigneesCell } from './cells/AssigneesCell';
+export { DateCell } from './cells/DateCell';
+export { ProgressCell } from './cells/ProgressCell';
+export { TextCell } from './cells/TextCell';
+export { NumberCell } from './cells/NumberCell';
+export { DropdownCell } from './cells/DropdownCell';
+export { CheckboxCell } from './cells/CheckboxCell';
+export { TagsCell } from './cells/TagsCell';

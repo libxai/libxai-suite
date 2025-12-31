@@ -59,6 +59,10 @@ export function TaskBar({
   const dragState = useDragState(x, width);
   const svgRef = useRef<SVGGElement>(null);
 
+  // v0.17.379: Auto-scroll when dragging near edges
+  const autoScrollIntervalRef = useRef<number | null>(null);
+  const lastMouseEventRef = useRef<MouseEvent | null>(null);
+
   // Destructure for easier access (keeps existing code readable)
   const {
     dragMode, setDragMode,
@@ -287,12 +291,68 @@ export function TaskBar({
     setGhostWidth(width);
   }, [x, width, y, height]);
 
+  // v0.17.379: Auto-scroll function when dragging near edges
+  const performAutoScroll = useCallback((e: MouseEvent) => {
+    const svgElement = svgRef.current?.ownerSVGElement;
+    if (!svgElement) return;
+
+    // Find the timeline scroll container
+    const timelineScroll = svgElement.closest('.gantt-timeline-scroll') as HTMLElement;
+    if (!timelineScroll) return;
+
+    const rect = timelineScroll.getBoundingClientRect();
+    const edgeThreshold = 60; // Distance from edge to start scrolling
+    const scrollSpeed = 15; // Pixels per frame
+
+    let scrollDelta = 0;
+
+    // Check if near left edge
+    if (e.clientX < rect.left + edgeThreshold) {
+      const distance = rect.left + edgeThreshold - e.clientX;
+      scrollDelta = -Math.min(scrollSpeed, distance / 2);
+    }
+    // Check if near right edge
+    else if (e.clientX > rect.right - edgeThreshold) {
+      const distance = e.clientX - (rect.right - edgeThreshold);
+      scrollDelta = Math.min(scrollSpeed, distance / 2);
+    }
+
+    if (scrollDelta !== 0) {
+      timelineScroll.scrollLeft += scrollDelta;
+    }
+
+    return scrollDelta !== 0;
+  }, []);
+
   // Handle mouse move for dragging
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (dragMode === 'none') return;
 
+    // v0.17.379: Store last mouse event for auto-scroll interval
+    lastMouseEventRef.current = e;
+
     const svgElement = svgRef.current?.ownerSVGElement;
     if (!svgElement) return;
+
+    // v0.17.379: Perform auto-scroll when near edges
+    if (dragMode === 'move' || dragMode === 'resize-start' || dragMode === 'resize-end') {
+      const needsScroll = performAutoScroll(e);
+
+      // Start auto-scroll interval if near edge and not already scrolling
+      if (needsScroll && !autoScrollIntervalRef.current) {
+        autoScrollIntervalRef.current = window.setInterval(() => {
+          if (lastMouseEventRef.current) {
+            performAutoScroll(lastMouseEventRef.current);
+            // Re-trigger mouse move to update ghost position after scroll
+            handleMouseMove(lastMouseEventRef.current);
+          }
+        }, 16); // ~60fps
+      } else if (!needsScroll && autoScrollIntervalRef.current) {
+        // Stop auto-scroll when not near edge
+        window.clearInterval(autoScrollIntervalRef.current);
+        autoScrollIntervalRef.current = null;
+      }
+    }
 
     const point = svgElement.createSVGPoint();
     point.x = e.clientX;
@@ -344,10 +404,17 @@ export function TaskBar({
         setGhostWidth(newWidth);
       }
     }
-  }, [dragMode, x, width, dayWidth, dragOffset, task, snapToDay, draggedSegmentIndex, draggedSegmentStartX, findTaskAtPoint, setHoveredTaskId, setConnectionLine, setGhostX, setGhostWidth, setSegmentDragOffsetX, onDragMove]);
+  }, [dragMode, x, width, dayWidth, dragOffset, task, snapToDay, draggedSegmentIndex, draggedSegmentStartX, findTaskAtPoint, setHoveredTaskId, setConnectionLine, setGhostX, setGhostWidth, setSegmentDragOffsetX, onDragMove, performAutoScroll]);
 
   // Handle mouse up to finish dragging
   const handleMouseUp = useCallback(() => {
+    // v0.17.379: Clear auto-scroll interval
+    if (autoScrollIntervalRef.current) {
+      window.clearInterval(autoScrollIntervalRef.current);
+      autoScrollIntervalRef.current = null;
+    }
+    lastMouseEventRef.current = null;
+
     if (dragMode === 'none') return;
 
     if (dragMode === 'connect') {
@@ -457,6 +524,11 @@ export function TaskBar({
     return () => {
       window.removeEventListener('mousemove', handleGlobalMouseMove);
       window.removeEventListener('mouseup', handleGlobalMouseUp);
+      // v0.17.379: Clean up auto-scroll interval on unmount
+      if (autoScrollIntervalRef.current) {
+        window.clearInterval(autoScrollIntervalRef.current);
+        autoScrollIntervalRef.current = null;
+      }
     };
   }, [dragMode, handleMouseMove, handleMouseUp]);
 
@@ -472,9 +544,14 @@ export function TaskBar({
   // Key insight: transparent fill doesn't contribute to SVG group bounding box
   // Using near-invisible fill (opacity 0.001) ensures the rect is part of the hover area
 
+  // v0.17.371: Extended hover area to include Link button position
+  // Link button is at x + width + 10 with radius 10, so we need to extend hover area
+  const linkButtonExtension = 24; // Extra width to include Link button area
+
   return (
     <g
       ref={svgRef}
+      data-task-bar="true"
       onClick={() => !isDragging && onClick?.(task)}
       onDoubleClick={(e) => {
         if (!isDragging) {
@@ -494,6 +571,16 @@ export function TaskBar({
         }
       }}
     >
+      {/* v0.17.367: Extended hover detection area - includes Link button position */}
+      {/* This invisible rect ensures hover state is maintained while cursor moves to Link button */}
+      <rect
+        x={x}
+        y={y}
+        width={width + linkButtonExtension}
+        height={height}
+        fill="transparent"
+        style={{ pointerEvents: 'all' }}
+      />
       {/* v0.17.30: Removed native SVG <title> tooltip - using custom tooltip instead (lines ~1025-1162) */}
       {/* Zone Indicators with hover feedback - v0.8.1: Disabled for split tasks (segments are independent) */}
       {isHovered && !isDragging && !isSmallBar && !task.segments && (
@@ -913,7 +1000,7 @@ export function TaskBar({
         </>
       )}
 
-      {/* v0.17.340: ClickUp-style Link button - invisible hit area + visible circle */}
+      {/* v0.17.371: ClickUp-style Link button - smaller, more subtle like ClickUp */}
       <AnimatePresence>
         {isHovered && !isDragging && !task.segments && (
           <motion.g
@@ -922,11 +1009,11 @@ export function TaskBar({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
           >
-            {/* Hit area - invisible, large circle for easy clicking (14px radius) */}
+            {/* Hit area - invisible circle for easy clicking */}
             <circle
-              cx={x + width + 18}
+              cx={x + width + 10}
               cy={y + height / 2}
-              r={14}
+              r={10}
               fill="transparent"
               style={{ cursor: 'crosshair' }}
               onMouseEnter={() => setActiveZone('connect')}
@@ -936,18 +1023,18 @@ export function TaskBar({
                 handleMouseDown(e as any, 'connect');
               }}
             />
-            {/* Visual circle - small, elegant (ClickUp style) */}
+            {/* Visual circle - small dot like ClickUp */}
             <motion.circle
-              cx={x + width + 18}
+              cx={x + width + 10}
               cy={y + height / 2}
-              r={7}
+              r={4}
               fill={theme.accent}
               stroke="#FFFFFF"
-              strokeWidth={2}
+              strokeWidth={1.5}
               style={{ pointerEvents: 'none' }}
               initial={{ scale: 0 }}
               animate={{
-                scale: activeZone === 'connect' ? 1.3 : 1,
+                scale: activeZone === 'connect' ? 1.4 : 1,
               }}
               exit={{ scale: 0 }}
               transition={{
@@ -957,19 +1044,6 @@ export function TaskBar({
                 damping: 30,
               }}
             />
-            {/* Tooltip hint */}
-            <text
-              x={x + width + 32}
-              y={y + height / 2}
-              dominantBaseline="middle"
-              fill={activeZone === 'connect' ? theme.accent : theme.textTertiary}
-              fontSize={activeZone === 'connect' ? '11' : '10'}
-              fontWeight={activeZone === 'connect' ? '600' : '400'}
-              fontFamily="Inter, sans-serif"
-              style={{ pointerEvents: 'none', userSelect: 'none' }}
-            >
-              Link
-            </text>
           </motion.g>
         )}
       </AnimatePresence>
