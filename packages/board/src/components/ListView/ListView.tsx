@@ -652,19 +652,38 @@ export function ListView({
 
             {/* Add column button */}
             {allowColumnCustomization && (
-              <div className="flex items-center justify-center px-3 py-3">
+              <div className="relative flex items-center justify-center px-3 py-3">
                 <button
-                  onClick={() => setShowColumnSelector(true)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowColumnSelector(prev => !prev);
+                  }}
                   className={cn(
                     "p-1.5 rounded-lg transition-colors",
                     isDark
                       ? "hover:bg-white/10 text-[#9CA3AF] hover:text-white"
-                      : "hover:bg-gray-200 text-gray-400 hover:text-gray-600"
+                      : "hover:bg-gray-200 text-gray-400 hover:text-gray-600",
+                    showColumnSelector && (isDark ? "bg-white/10" : "bg-gray-200")
                   )}
                   title={locale === 'es' ? 'Agregar columna' : 'Add column'}
                 >
                   <Plus className="w-4 h-4" />
                 </button>
+
+                {/* Column Selector - positioned relative to button */}
+                <ColumnSelector
+                  isOpen={showColumnSelector}
+                  onClose={() => setShowColumnSelector(false)}
+                  columns={columns}
+                  customFields={customFields}
+                  onColumnsChange={handleColumnsChange}
+                  onCreateCustomField={() => {
+                    setShowColumnSelector(false);
+                    setShowCreateFieldModal(true);
+                  }}
+                  isDark={isDark}
+                  locale={locale}
+                />
               </div>
             )}
           </div>
@@ -785,21 +804,6 @@ export function ListView({
         onColumnHide={handleColumnHide}
         onColumnSort={handleColumnSort}
         availableUsers={availableUsers}
-      />
-
-      {/* Column Selector */}
-      <ColumnSelector
-        isOpen={showColumnSelector}
-        onClose={() => setShowColumnSelector(false)}
-        columns={columns}
-        customFields={customFields}
-        onColumnsChange={handleColumnsChange}
-        onCreateCustomField={() => {
-          setShowColumnSelector(false);
-          setShowCreateFieldModal(true);
-        }}
-        isDark={isDark}
-        locale={locale}
       />
 
       {/* Create Field Modal */}

@@ -70,25 +70,37 @@ export function ColumnSelector({
   const panelRef = useRef<HTMLDivElement>(null);
   const t = locale === 'es' ? translations.es : translations.en;
 
-  // Close on click outside
+  // Close on click outside (with delay to prevent immediate close)
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
-        onClose();
-      }
-    };
+    if (!isOpen) return;
 
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
+    // Small delay to prevent immediate close from the same click that opened it
+    const timeoutId = setTimeout(() => {
+      const handleClickOutside = (e: MouseEvent) => {
+        if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
+          onClose();
+        }
+      };
 
-    if (isOpen) {
+      const handleEscape = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') onClose();
+      };
+
       document.addEventListener('mousedown', handleClickOutside);
       document.addEventListener('keydown', handleEscape);
-    }
+
+      // Store cleanup in ref for effect cleanup
+      (panelRef as any)._cleanup = () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+        document.removeEventListener('keydown', handleEscape);
+      };
+    }, 100);
+
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleEscape);
+      clearTimeout(timeoutId);
+      if ((panelRef as any)._cleanup) {
+        (panelRef as any)._cleanup();
+      }
     };
   }, [isOpen, onClose]);
 
