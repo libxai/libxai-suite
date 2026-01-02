@@ -620,6 +620,17 @@ function FilterDropdown({ theme, value, onChange, hideCompleted = false, onHideC
               {filterOptions.map((option) => {
                 // Don't show checkmark on status options when hideCompleted is active
                 const isSelected = value === option.value && !hideCompleted;
+
+                // Dynamic icon for "all" option - solid when selected, outline when not
+                const getIcon = () => {
+                  if (option.value === 'all') {
+                    return isSelected
+                      ? <div className="w-4 h-4 rounded-full border-2 border-[#3B82F6] bg-[#3B82F6]" />
+                      : <div className="w-4 h-4 rounded-full border-2 border-gray-400" />;
+                  }
+                  return option.icon;
+                };
+
                 return (
                   <motion.button
                     key={option.value}
@@ -640,8 +651,8 @@ function FilterDropdown({ theme, value, onChange, hideCompleted = false, onHideC
                       backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgb(243 244 246)',
                     }}
                   >
-                    <span className={`${option.color} flex-shrink-0`}>
-                      {option.icon}
+                    <span className={`${isSelected ? option.color : 'text-gray-400'} flex-shrink-0`}>
+                      {getIcon()}
                     </span>
                     <span
                       className="flex-1 text-left whitespace-nowrap"
