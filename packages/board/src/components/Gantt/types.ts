@@ -438,6 +438,15 @@ export interface GanttConfig {
   persistExpandedState?: boolean | string;
 
   /**
+   * v0.18.0: Persist filter state to localStorage
+   * When true, uses default key 'gantt-filter-state'
+   * When string, uses the provided string as the localStorage key
+   * When false/undefined, filter state only persists during the current session
+   * @default false
+   */
+  persistFilter?: boolean | string;
+
+  /**
    * v0.17.310: Dependency line style
    * Controls how dependency arrows are rendered between tasks
    * - 'curved': Smooth bezier curves (default)
@@ -445,6 +454,22 @@ export interface GanttConfig {
    * @default 'curved'
    */
   dependencyLineStyle?: DependencyLineStyle;
+
+  /**
+   * v0.18.0: Show weekends in timeline
+   * When true, Saturday and Sunday are displayed in the timeline
+   * When false, weekends are hidden from the timeline view
+   * @default true
+   */
+  showWeekends?: boolean;
+
+  /**
+   * v0.18.0: Auto-expand subtasks on load
+   * When true, all tasks with subtasks are expanded by default
+   * When false, tasks start collapsed (default behavior)
+   * @default false
+   */
+  autoExpandSubtasks?: boolean;
 
   // ==================== UI Events ====================
   onThemeChange?: (theme: Theme) => void; // v0.9.0: Theme change event

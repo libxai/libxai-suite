@@ -118,6 +118,9 @@ export function ListView({
     allowColumnCustomization = true,
     allowColumnResize = true,
     enableContextMenu = true,
+    // v0.18.0: Create task button
+    showCreateTaskButton = false,
+    onCreateTask,
   } = config;
 
   const t = mergeListViewTranslations(locale, customTranslations);
@@ -624,10 +627,36 @@ export function ListView({
             </div>
           )}
 
+          {/* Spacer to push right items */}
+          <div className="flex-1" />
+
           {/* Task count */}
           <div className={cn("text-sm", isDark ? "text-[#9CA3AF]" : "text-gray-600")}>
             {displayTasks.length} {t.pagination.tasks}
           </div>
+
+          {/* Create Task Button - v0.18.0: Same style as GanttToolbar */}
+          {showCreateTaskButton && onCreateTask && (
+            <motion.button
+              onClick={onCreateTask}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-all"
+              style={{
+                background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)',
+                color: '#FFFFFF',
+                fontFamily: 'Inter, sans-serif',
+                fontWeight: 500,
+                boxShadow: '0 2px 8px rgba(59, 130, 246, 0.3)',
+              }}
+              whileHover={{
+                scale: 1.02,
+                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.4)',
+              }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <Plus className="w-4 h-4" />
+              <span>{t.toolbar.newTask}</span>
+            </motion.button>
+          )}
         </div>
       </div>
 

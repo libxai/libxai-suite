@@ -259,6 +259,12 @@ export interface ListViewConfig {
   allowColumnResize?: boolean;
   /** Enable context menu on right-click */
   enableContextMenu?: boolean;
+
+  // v0.18.0: Create task button (same as Gantt and Calendar)
+  /** Show create task button in toolbar */
+  showCreateTaskButton?: boolean;
+  /** Callback when create task button is clicked */
+  onCreateTask?: () => void;
 }
 
 /**

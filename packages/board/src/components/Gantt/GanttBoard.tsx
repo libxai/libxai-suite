@@ -67,6 +67,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     templates,
     enableAutoCriticalPath = true, // v0.11.1: Allow disabling automatic CPM calculation
     persistExpandedState, // v0.17.181: Persist expanded state in localStorage
+    persistFilter, // v0.18.0: Persist filter state in localStorage
     aiAssistant, // v0.14.0: AI Assistant configuration
     // v0.15.0: Internationalization
     locale = 'en',
@@ -114,12 +115,59 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   const [rowDensity, setRowDensity] = useState<RowDensity>(initialRowDensity);
   const [zoom, setZoom] = useState(1);
 
+  // v0.18.0: Filter persistence helpers
+  const getFilterStorageKey = useCallback(() => {
+    if (!persistFilter) return null;
+    return typeof persistFilter === 'string' ? persistFilter : 'gantt-filter-state';
+  }, [persistFilter]);
+
   // v0.17.300: Task filter state (internal or controlled)
-  const [internalTaskFilter, setInternalTaskFilter] = useState<TaskFilterType>('all');
+  const [internalTaskFilter, setInternalTaskFilter] = useState<TaskFilterType>(() => {
+    if (!persistFilter) return 'all';
+    try {
+      const key = typeof persistFilter === 'string' ? persistFilter : 'gantt-filter-state';
+      const stored = localStorage.getItem(key);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.taskFilter) return parsed.taskFilter as TaskFilterType;
+      }
+    } catch (e) {
+      console.warn('[GanttBoard] Error loading filter state from localStorage:', e);
+    }
+    return 'all';
+  });
   const taskFilter = externalTaskFilter ?? internalTaskFilter;
   const setTaskFilter = externalOnTaskFilterChange ?? setInternalTaskFilter;
-  // v0.18.0: Hide completed toggle
-  const [hideCompleted, setHideCompleted] = useState(false);
+
+  // v0.18.0: Hide completed toggle (also persisted)
+  const [hideCompleted, setHideCompleted] = useState(() => {
+    if (!persistFilter) return false;
+    try {
+      const key = typeof persistFilter === 'string' ? persistFilter : 'gantt-filter-state';
+      const stored = localStorage.getItem(key);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (typeof parsed.hideCompleted === 'boolean') return parsed.hideCompleted;
+      }
+    } catch (e) {
+      console.warn('[GanttBoard] Error loading hideCompleted state from localStorage:', e);
+    }
+    return false;
+  });
+
+  // v0.18.0: Save filter state to localStorage when it changes
+  // Use taskFilter (effective value) instead of internalTaskFilter to support controlled mode
+  useEffect(() => {
+    const key = getFilterStorageKey();
+    if (!key) return;
+
+    try {
+      const state = { taskFilter, hideCompleted };
+      localStorage.setItem(key, JSON.stringify(state));
+    } catch (e) {
+      console.warn('[GanttBoard] Error saving filter state to localStorage:', e);
+    }
+  }, [taskFilter, hideCompleted, getFilterStorageKey]);
   const [scrollTop, setScrollTop] = useState(0);
   const [isResizing, setIsResizing] = useState(false);
   const [gridWidthOverride, setGridWidthOverride] = useState<number | null>(null);

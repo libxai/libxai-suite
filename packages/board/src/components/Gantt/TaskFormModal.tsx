@@ -24,6 +24,7 @@ import {
   ChevronRight,
   Check,
   CircleDot,
+  Plus,
 } from 'lucide-react'
 import { Task, Theme, TaskTag } from './types'
 import { themes } from './themes'
@@ -130,6 +131,9 @@ export function TaskFormModal({
   const [showAdvanced, setShowAdvanced] = useState(false)
   // v0.17.166: Pending files for create mode (files selected before task is created)
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
+  // v0.18.0: Dependencies dropdown state (same UI as TaskDetailModal)
+  const [showDependenciesDropdown, setShowDependenciesDropdown] = useState(false)
+  const [dependencySearch, setDependencySearch] = useState('')
 
   // Refs for click outside
   const statusRef = useRef<HTMLDivElement>(null)
@@ -1001,39 +1005,175 @@ export function TaskFormModal({
                               <span className="text-sm" style={{ color: themeColors.textPrimary }}>Marcar como hito</span>
                             </label>
 
-                            {/* Dependencies */}
+                            {/* Dependencies - v0.18.0: Same UI as TaskDetailModal */}
                             {availableTasks.length > 0 && (
-                              <div>
+                              <div className="relative">
                                 <label className="flex items-center gap-2 text-xs mb-2" style={{ color: themeColors.textTertiary }}>
                                   <Link2 className="w-3.5 h-3.5" />
                                   Dependencias
                                 </label>
-                                <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto p-2 rounded-lg" style={{ backgroundColor: themeColors.bgSecondary }}>
-                                  {availableTasks.filter(t => t.id !== task?.id).map((t) => {
-                                    const isSelected = formData.dependencies?.includes(t.id)
-                                    return (
-                                      <button
-                                        key={t.id}
-                                        type="button"
+
+                                {/* Selected dependencies as chips */}
+                                {formData.dependencies && formData.dependencies.length > 0 && (
+                                  <div className="flex flex-wrap gap-1.5 mb-2">
+                                    {formData.dependencies.map((depId) => {
+                                      const depTask = availableTasks.find(t => t.id === depId)
+                                      return (
+                                        <span
+                                          key={depId}
+                                          className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium"
+                                          style={{
+                                            backgroundColor: `${themeColors.accent}20`,
+                                            color: themeColors.accent,
+                                          }}
+                                        >
+                                          {depTask?.name || depId.slice(0, 8)}
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              const newDeps = (formData.dependencies || []).filter(id => id !== depId)
+                                              handleChange('dependencies', newDeps)
+                                            }}
+                                            className="ml-0.5 rounded-full p-0.5 transition-colors hover:bg-white/20"
+                                            disabled={isLoading}
+                                          >
+                                            <X className="w-3 h-3" />
+                                          </button>
+                                        </span>
+                                      )
+                                    })}
+                                  </div>
+                                )}
+
+                                {/* Add dependency button */}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setShowDependenciesDropdown(!showDependenciesDropdown)
+                                    setDependencySearch('')
+                                  }}
+                                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-colors"
+                                  style={{
+                                    backgroundColor: themeColors.bgSecondary,
+                                    color: themeColors.textSecondary,
+                                  }}
+                                  disabled={isLoading}
+                                >
+                                  <Plus className="w-3.5 h-3.5" />
+                                  <span>Agregar dependencia</span>
+                                </button>
+
+                                {/* Dependencies Dropdown */}
+                                <AnimatePresence>
+                                  {showDependenciesDropdown && (
+                                    <>
+                                      <div
+                                        className="fixed inset-0 z-40"
                                         onClick={() => {
-                                          const newDeps = isSelected
-                                            ? (formData.dependencies || []).filter(id => id !== t.id)
-                                            : [...(formData.dependencies || []), t.id]
-                                          handleChange('dependencies', newDeps)
+                                          setShowDependenciesDropdown(false)
+                                          setDependencySearch('')
                                         }}
-                                        className="px-2 py-1 rounded-full text-xs transition-colors"
+                                      />
+                                      <motion.div
+                                        initial={{ opacity: 0, y: -5 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -5 }}
+                                        className="absolute left-0 top-full mt-1 z-50 rounded-lg shadow-xl overflow-hidden min-w-[280px] max-h-[280px]"
                                         style={{
-                                          backgroundColor: isSelected ? `${themeColors.accent}30` : themeColors.bgPrimary,
-                                          color: isSelected ? themeColors.accent : themeColors.textSecondary,
-                                          border: `1px solid ${isSelected ? themeColors.accent : themeColors.borderLight}`,
+                                          backgroundColor: themeColors.bgPrimary,
+                                          border: `1px solid ${themeColors.border}`,
                                         }}
-                                        disabled={isLoading}
                                       >
-                                        {t.name}
-                                      </button>
-                                    )
-                                  })}
-                                </div>
+                                        {/* Search input */}
+                                        <div className="p-2" style={{ borderBottom: `1px solid ${themeColors.border}` }}>
+                                          <input
+                                            type="text"
+                                            value={dependencySearch}
+                                            onChange={(e) => setDependencySearch(e.target.value)}
+                                            placeholder="Buscar tarea..."
+                                            className="w-full px-3 py-2 rounded-md text-xs outline-none"
+                                            style={{
+                                              backgroundColor: themeColors.bgSecondary,
+                                              color: themeColors.textPrimary,
+                                            }}
+                                            autoFocus
+                                          />
+                                        </div>
+
+                                        {/* Task list */}
+                                        <div className="max-h-[200px] overflow-y-auto">
+                                          {availableTasks
+                                            .filter(t => t.id !== task?.id)
+                                            .filter(t =>
+                                              dependencySearch === '' ||
+                                              t.name.toLowerCase().includes(dependencySearch.toLowerCase())
+                                            )
+                                            .map((depTask) => {
+                                              const isSelected = formData.dependencies?.includes(depTask.id)
+                                              return (
+                                                <button
+                                                  key={depTask.id}
+                                                  type="button"
+                                                  onClick={() => {
+                                                    const currentDeps = formData.dependencies || []
+                                                    let newDeps: string[]
+                                                    if (isSelected) {
+                                                      newDeps = currentDeps.filter(id => id !== depTask.id)
+                                                    } else {
+                                                      newDeps = [...currentDeps, depTask.id]
+                                                    }
+                                                    handleChange('dependencies', newDeps)
+                                                  }}
+                                                  className="w-full flex items-center gap-3 px-3 py-2 text-xs transition-colors text-left"
+                                                  style={{
+                                                    backgroundColor: isSelected ? `${themeColors.accent}10` : 'transparent',
+                                                  }}
+                                                  onMouseEnter={(e) => {
+                                                    if (!isSelected) e.currentTarget.style.backgroundColor = themeColors.hoverBg
+                                                  }}
+                                                  onMouseLeave={(e) => {
+                                                    e.currentTarget.style.backgroundColor = isSelected ? `${themeColors.accent}10` : 'transparent'
+                                                  }}
+                                                >
+                                                  <div
+                                                    className="w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0"
+                                                    style={{
+                                                      backgroundColor: isSelected ? themeColors.accent : 'transparent',
+                                                      borderColor: isSelected ? themeColors.accent : themeColors.borderLight,
+                                                    }}
+                                                  >
+                                                    {isSelected && <Check className="w-3 h-3 text-white" />}
+                                                  </div>
+                                                  <div className="flex-1 min-w-0">
+                                                    <span
+                                                      className="block truncate"
+                                                      style={{ color: themeColors.textPrimary }}
+                                                    >
+                                                      {depTask.name}
+                                                    </span>
+                                                    <span
+                                                      className="text-[10px]"
+                                                      style={{ color: themeColors.textTertiary }}
+                                                    >
+                                                      {depTask.id.slice(0, 8)}
+                                                    </span>
+                                                  </div>
+                                                </button>
+                                              )
+                                            })}
+                                          {availableTasks.filter(t => t.id !== task?.id).length === 0 && (
+                                            <div
+                                              className="px-3 py-4 text-xs text-center"
+                                              style={{ color: themeColors.textTertiary }}
+                                            >
+                                              No hay tareas disponibles
+                                            </div>
+                                          )}
+                                        </div>
+                                      </motion.div>
+                                    </>
+                                  )}
+                                </AnimatePresence>
                               </div>
                             )}
                           </div>
