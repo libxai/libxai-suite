@@ -8498,6 +8498,11 @@ body {
 }
 
 
+.top-0\.5 {
+  top: 0.125rem;
+}
+
+
 .top-1\/2 {
   top: 50%;
 }
@@ -9223,6 +9228,18 @@ body {
 }
 
 
+.translate-x-0\.5 {
+  --tw-translate-x: 0.125rem;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+}
+
+
+.translate-x-5 {
+  --tw-translate-x: 1.25rem;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+}
+
+
 .rotate-180 {
   --tw-rotate: 180deg;
   transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
@@ -9640,6 +9657,11 @@ body {
 }
 
 
+.border-\[\#3B82F6\]\/50 {
+  border-color: rgb(59 130 246 / 0.5);
+}
+
+
 .border-\[\#3a3a4e\] {
   --tw-border-opacity: 1;
   border-color: rgb(58 58 78 / var(--tw-border-opacity, 1));
@@ -9655,6 +9677,12 @@ body {
 .border-\[\#6B7280\] {
   --tw-border-opacity: 1;
   border-color: rgb(107 114 128 / var(--tw-border-opacity, 1));
+}
+
+
+.border-blue-200 {
+  --tw-border-opacity: 1;
+  border-color: rgb(191 219 254 / var(--tw-border-opacity, 1));
 }
 
 

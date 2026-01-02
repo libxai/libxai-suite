@@ -62,6 +62,8 @@ export type { ListViewSupportedLocale } from './i18n';
 export { TableContextMenu } from './TableContextMenu';
 export { ColumnSelector } from './ColumnSelector';
 export { CreateFieldModal } from './CreateFieldModal';
+export { StatusFilter } from './StatusFilter';
+export type { StatusFilterValue } from './StatusFilter';
 
 // v0.18.0: Cell components
 export { StatusCell } from './cells/StatusCell';

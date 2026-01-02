@@ -46,6 +46,7 @@ import { TagsCell } from './cells/TagsCell';
 import { TableContextMenu } from './TableContextMenu';
 import { ColumnSelector } from './ColumnSelector';
 import { CreateFieldModal } from './CreateFieldModal';
+import { StatusFilter, type StatusFilterValue } from './StatusFilter';
 
 type SortField = 'name' | 'startDate' | 'endDate' | 'progress' | 'status' | 'priority' | string;
 type SortOrder = 'asc' | 'desc';
@@ -126,6 +127,8 @@ export function ListView({
   const [sortField, setSortField] = useState<SortField>('startDate');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<StatusFilterValue>('all');
+  const [hideCompleted, setHideCompleted] = useState(false);
   const [columns, setColumns] = useState<TableColumn[]>(tableColumns || DEFAULT_COLUMNS);
   const [showColumnSelector, setShowColumnSelector] = useState(false);
   const [showCreateFieldModal, setShowCreateFieldModal] = useState(false);
@@ -275,6 +278,13 @@ export function ListView({
     setShowCreateFieldModal(false);
   }, [callbacks]);
 
+  // Helper to get task status
+  const getTaskStatus = useCallback((task: Task): 'completed' | 'in-progress' | 'todo' => {
+    if (task.progress === 100 || task.status === 'completed') return 'completed';
+    if ((task.progress && task.progress > 0) || task.status === 'in-progress') return 'in-progress';
+    return 'todo';
+  }, []);
+
   // Filter and sort tasks
   const displayTasks = useMemo(() => {
     let flatTasks = flattenTasksWithLevel(tasks);
@@ -285,6 +295,16 @@ export function ListView({
       flatTasks = flatTasks.filter(task =>
         task.name.toLowerCase().includes(query)
       );
+    }
+
+    // Filter by status
+    if (statusFilter !== 'all') {
+      flatTasks = flatTasks.filter(task => getTaskStatus(task) === statusFilter);
+    }
+
+    // Hide completed tasks
+    if (hideCompleted) {
+      flatTasks = flatTasks.filter(task => getTaskStatus(task) !== 'completed');
     }
 
     // Sort
@@ -327,7 +347,7 @@ export function ListView({
     });
 
     return flatTasks;
-  }, [tasks, searchQuery, sortField, sortOrder]);
+  }, [tasks, searchQuery, statusFilter, hideCompleted, sortField, sortOrder, getTaskStatus]);
 
   // Render cell based on column type
   const renderCell = useCallback((task: Task, column: TableColumn) => {
@@ -575,6 +595,16 @@ export function ListView({
       {/* Toolbar */}
       <div className={cn("flex-shrink-0 px-6 py-4 border-b", isDark ? "border-white/10" : "border-gray-200")}>
         <div className="flex items-center gap-4">
+          {/* Status Filter */}
+          <StatusFilter
+            value={statusFilter}
+            hideCompleted={hideCompleted}
+            onChange={setStatusFilter}
+            onHideCompletedChange={setHideCompleted}
+            isDark={isDark}
+            locale={locale}
+          />
+
           {/* Search */}
           {showSearch && (
             <div className="relative flex-1 max-w-md">
