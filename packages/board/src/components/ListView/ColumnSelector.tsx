@@ -218,7 +218,15 @@ export function ColumnSelector({
             return (
               <button
                 key={type}
-                onClick={() => !isName && toggleColumnVisibility(column?.id || type)}
+                onClick={() => {
+                  if (isName) return;
+                  // If column exists, toggle visibility. If not, add it.
+                  if (column) {
+                    toggleColumnVisibility(column.id);
+                  } else {
+                    addColumn(type);
+                  }
+                }}
                 disabled={isName}
                 className={cn(
                   'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
