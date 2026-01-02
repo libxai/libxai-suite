@@ -608,6 +608,11 @@ export function ListView({
             locale={locale}
           />
 
+          {/* Task count - next to filters */}
+          <div className={cn("text-sm", isDark ? "text-[#9CA3AF]" : "text-gray-600")}>
+            {displayTasks.length} {t.pagination.tasks}
+          </div>
+
           {/* Search */}
           {showSearch && (
             <div className="relative flex-1 max-w-md">
@@ -629,11 +634,6 @@ export function ListView({
 
           {/* Spacer to push right items */}
           <div className="flex-1" />
-
-          {/* Task count */}
-          <div className={cn("text-sm", isDark ? "text-[#9CA3AF]" : "text-gray-600")}>
-            {displayTasks.length} {t.pagination.tasks}
-          </div>
 
           {/* Create Task Button - v0.18.0: Same style as GanttToolbar */}
           {showCreateTaskButton && onCreateTask && (
