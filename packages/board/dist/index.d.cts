@@ -2227,6 +2227,8 @@ interface GanttToolbarProps {
     onCreateTask?: () => void;
     taskFilter?: TaskFilterType;
     onTaskFilterChange?: (filter: TaskFilterType) => void;
+    hideCompleted?: boolean;
+    onHideCompletedChange?: (hide: boolean) => void;
     onExportPNG?: () => Promise<void>;
     onExportPDF?: () => Promise<void>;
     onExportExcel?: () => Promise<void>;
@@ -2237,7 +2239,8 @@ interface GanttToolbarProps {
 declare function GanttToolbar({ theme, timeScale, onTimeScaleChange, zoom, onZoomChange, currentTheme, onThemeChange, rowDensity, onRowDensityChange, showThemeSelector, // v0.17.29: Default to false - themes should be in app settings
 showCreateTaskButton, createTaskLabel, // v0.15.0: Will use translations if not provided
 onCreateTask, taskFilter, // v0.17.300: Task filter
-onTaskFilterChange, onExportPNG, onExportPDF, onExportExcel, onExportCSV, onExportJSON, onExportMSProject, }: GanttToolbarProps): react_jsx_runtime.JSX.Element;
+onTaskFilterChange, hideCompleted, // v0.18.0: Hide completed toggle
+onHideCompletedChange, onExportPNG, onExportPDF, onExportExcel, onExportCSV, onExportJSON, onExportMSProject, }: GanttToolbarProps): react_jsx_runtime.JSX.Element;
 
 interface TaskGridProps {
     tasks: Task[];
@@ -2961,6 +2964,8 @@ interface GanttTranslations {
         filterInProgressDesc: string;
         filterCompletedDesc: string;
         clearFilter: string;
+        hideCompleted: string;
+        toDo: string;
     };
     contextMenu: {
         editTask: string;

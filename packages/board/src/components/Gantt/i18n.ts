@@ -54,6 +54,9 @@ export interface GanttTranslations {
     filterInProgressDesc: string;
     filterCompletedDesc: string;
     clearFilter: string;
+    // v0.18.0: Hide completed toggle
+    hideCompleted: string;
+    toDo: string;
   };
 
   // v0.16.0: Context menu labels (right-click menu)
@@ -197,13 +200,16 @@ export const en: GanttTranslations = {
     filterInProgress: 'In Progress',
     filterCompleted: 'Completed',
     // v0.17.320: Filter dropdown enhancements
-    filter: 'Filter',
-    filterBy: 'Filter by status',
+    filter: 'Filters',
+    filterBy: 'FILTER BY STATUS',
     filterAllDesc: 'Show all tasks',
     filterIncompleteDesc: 'Hide completed tasks',
     filterInProgressDesc: 'Tasks currently being worked on',
     filterCompletedDesc: 'Only show finished tasks',
     clearFilter: 'Clear filter',
+    // v0.18.0: Hide completed toggle
+    hideCompleted: 'Hide Completed Tasks',
+    toDo: 'To Do / Pending',
   },
 
   // v0.16.0: Context menu labels (right-click menu)
@@ -341,13 +347,16 @@ export const es: GanttTranslations = {
     filterInProgress: 'En progreso',
     filterCompleted: 'Completadas',
     // v0.17.320: Filter dropdown enhancements
-    filter: 'Filtrar',
-    filterBy: 'Filtrar por estado',
+    filter: 'Filtros',
+    filterBy: 'FILTRAR POR ESTADO',
     filterAllDesc: 'Mostrar todas las tareas',
     filterIncompleteDesc: 'Ocultar tareas completadas',
     filterInProgressDesc: 'Tareas en las que se está trabajando',
     filterCompletedDesc: 'Solo mostrar tareas terminadas',
     clearFilter: 'Limpiar filtro',
+    // v0.18.0: Hide completed toggle
+    hideCompleted: 'Ocultar Tareas Completadas',
+    toDo: 'Por Hacer / Pendiente',
   },
 
   // v0.16.0: Context menu labels (right-click menu)

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { ZoomIn, ZoomOut, Sun, Moon, Palette, Download, FileImage, FileSpreadsheet, FileText, FileJson, ChevronDown, FolderKanban, Plus, Rows3, Check, Filter } from 'lucide-react';
+import { ZoomIn, ZoomOut, Sun, Moon, Palette, Download, FileImage, FileSpreadsheet, FileText, FileJson, ChevronDown, FolderKanban, Plus, Rows3, Check, Filter, CheckCircle2, PlayCircle, Circle, EyeOff } from 'lucide-react';
 import { TimeScale, Theme, RowDensity, TaskFilterType } from './types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGanttI18n } from './GanttI18nContext'; // v0.15.0: i18n
@@ -31,6 +31,9 @@ interface GanttToolbarProps {
   // v0.17.300: Task filter
   taskFilter?: TaskFilterType;
   onTaskFilterChange?: (filter: TaskFilterType) => void;
+  // v0.18.0: Hide completed toggle
+  hideCompleted?: boolean;
+  onHideCompletedChange?: (hide: boolean) => void;
   // Export handlers
   onExportPNG?: () => Promise<void>;
   onExportPDF?: () => Promise<void>;
@@ -467,101 +470,124 @@ function DensityDropdown({ theme, value, onChange }: DensityDropdownProps) {
 }
 
 /**
- * v0.17.320: Professional Filter Dropdown Component
- * Linear/Notion-style filter button with checkbox options
- * Shows active filter count as badge when filters are applied
+ * v0.18.0: ClickUp-style Filter Dropdown Component
+ * Shows status filter options with icons and "Hide Completed" toggle
  */
 interface FilterDropdownProps {
   theme: any;
   value: TaskFilterType;
   onChange: (filter: TaskFilterType) => void;
+  hideCompleted?: boolean;
+  onHideCompletedChange?: (hide: boolean) => void;
 }
 
-function FilterDropdown({ theme, value, onChange }: FilterDropdownProps) {
+function FilterDropdown({ theme, value, onChange, hideCompleted = false, onHideCompletedChange }: FilterDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const t = useGanttI18n();
 
-  // Close dropdown when clicking outside
+  // Close dropdown when clicking outside (with delay to prevent immediate close)
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
+    if (!isOpen) return;
+
+    const timeoutId = setTimeout(() => {
+      const handleClickOutside = (e: MouseEvent) => {
+        if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+          setIsOpen(false);
+        }
+      };
+
+      const handleEscape = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') setIsOpen(false);
+      };
+
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleEscape);
+
+      (dropdownRef as any)._cleanup = () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+        document.removeEventListener('keydown', handleEscape);
+      };
+    }, 100);
+
+    return () => {
+      clearTimeout(timeoutId);
+      if ((dropdownRef as any)._cleanup) {
+        (dropdownRef as any)._cleanup();
       }
     };
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
 
-  const filterOptions = [
+  // Status filter options with icons (ClickUp-style)
+  const filterOptions: Array<{ value: TaskFilterType; label: string; icon: React.ReactNode; color: string }> = [
     {
-      value: 'all' as TaskFilterType,
-      label: t.toolbar.filterAll || 'All tasks',
-      description: t.toolbar.filterAllDesc || 'Show all tasks'
+      value: 'all',
+      label: t.toolbar.filterAll || 'Show All',
+      icon: <div className="w-4 h-4 rounded-full border-2 border-[#3B82F6] bg-[#3B82F6]" />,
+      color: 'text-[#3B82F6]'
     },
     {
-      value: 'incomplete' as TaskFilterType,
-      label: t.toolbar.filterIncomplete || 'Incomplete only',
-      description: t.toolbar.filterIncompleteDesc || 'Hide completed tasks'
-    },
-    {
-      value: 'in_progress' as TaskFilterType,
-      label: t.toolbar.filterInProgress || 'In progress',
-      description: t.toolbar.filterInProgressDesc || 'Tasks currently being worked on'
-    },
-    {
-      value: 'completed' as TaskFilterType,
+      value: 'completed',
       label: t.toolbar.filterCompleted || 'Completed',
-      description: t.toolbar.filterCompletedDesc || 'Only show finished tasks'
+      icon: <CheckCircle2 className="w-4 h-4" />,
+      color: 'text-green-500'
+    },
+    {
+      value: 'in_progress',
+      label: t.toolbar.filterInProgress || 'In Progress',
+      icon: <PlayCircle className="w-4 h-4" />,
+      color: 'text-blue-500'
+    },
+    {
+      value: 'incomplete',
+      label: t.toolbar.toDo || 'To Do / Pending',
+      icon: <Circle className="w-4 h-4" />,
+      color: 'text-gray-400'
     },
   ];
 
-  const hasActiveFilter = value !== 'all';
+  const hasActiveFilter = value !== 'all' || hideCompleted;
+  const isDark = theme.bgPrimary === '#0F1117' || theme.bgPrimary === '#0a0a0a' || theme.textPrimary === '#FFFFFF';
 
   return (
     <div ref={dropdownRef} className="relative">
+      {/* Filter Button */}
       <motion.button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsOpen(prev => !prev);
+        }}
         className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-all"
         style={{
-          backgroundColor: hasActiveFilter ? theme.accentLight : (isOpen ? theme.accentLight : theme.bgSecondary),
-          border: `1px solid ${hasActiveFilter || isOpen ? theme.accent : theme.borderLight}`,
-          color: hasActiveFilter || isOpen ? theme.accent : theme.textSecondary,
+          backgroundColor: hasActiveFilter
+            ? (isDark ? 'rgba(59, 130, 246, 0.2)' : 'rgb(239 246 255)')
+            : (isOpen ? theme.hoverBg : theme.bgSecondary),
+          border: `1px solid ${hasActiveFilter
+            ? (isDark ? 'rgba(59, 130, 246, 0.5)' : 'rgb(191 219 254)')
+            : theme.borderLight}`,
+          color: hasActiveFilter
+            ? '#3B82F6'
+            : theme.textSecondary,
           fontFamily: 'Inter, sans-serif',
           fontWeight: 500,
         }}
         whileHover={{
-          backgroundColor: theme.accentLight,
-          borderColor: theme.accent,
-          color: theme.accent,
+          backgroundColor: theme.hoverBg,
           scale: 1.02,
         }}
         whileTap={{ scale: 0.98 }}
       >
-        <Filter className="w-3.5 h-3.5" />
-        <span>{t.toolbar.filter || 'Filter'}</span>
+        <Filter className="w-4 h-4" />
+        <span>{t.toolbar.filter || 'Filters'}</span>
         {hasActiveFilter && (
-          <motion.span
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            className="flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-semibold"
-            style={{
-              backgroundColor: theme.accent,
-              color: '#FFFFFF',
-            }}
-          >
-            1
-          </motion.span>
+          <span
+            className="w-2 h-2 rounded-full"
+            style={{ backgroundColor: '#3B82F6' }}
+          />
         )}
-        <ChevronDown
-          className="w-3 h-3 transition-transform"
-          style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
-        />
       </motion.button>
 
+      {/* Dropdown */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -569,104 +595,114 @@ function FilterDropdown({ theme, value, onChange }: FilterDropdownProps) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.95 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="absolute left-0 mt-2 w-56 rounded-lg overflow-hidden z-50"
+            className="absolute left-0 mt-2 w-64 rounded-lg overflow-hidden z-50"
             style={{
-              backgroundColor: theme.bgSecondary,
-              border: `1px solid ${theme.border}`,
+              backgroundColor: isDark ? '#0F1117' : '#FFFFFF',
+              border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgb(229 231 235)'}`,
               boxShadow: '0 10px 40px rgba(0, 0, 0, 0.25)',
             }}
           >
             {/* Header */}
             <div
-              className="px-3 py-2 border-b"
-              style={{ borderColor: theme.borderLight }}
+              className="px-4 py-3 border-b"
+              style={{ borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgb(229 231 235)' }}
             >
               <span
-                className="text-xs font-medium"
-                style={{ color: theme.textTertiary }}
+                className="text-xs font-medium uppercase tracking-wider"
+                style={{ color: isDark ? '#6B7280' : '#9CA3AF' }}
               >
-                {t.toolbar.filterBy || 'Filter by status'}
+                {t.toolbar.filterBy || 'FILTER BY STATUS'}
               </span>
             </div>
 
-            {/* Options */}
-            <div className="py-1">
-              {filterOptions.map((option, index) => {
-                const isActive = value === option.value;
-                return (
-                  <motion.button
-                    key={option.value}
-                    onClick={() => {
-                      onChange(option.value);
-                      setIsOpen(false);
-                    }}
-                    className="w-full flex items-start gap-3 px-3 py-2.5 text-left transition-all"
-                    style={{
-                      backgroundColor: isActive ? theme.accentLight : 'transparent',
-                    }}
-                    whileHover={{
-                      backgroundColor: isActive ? theme.accentLight : theme.hoverBg,
-                    }}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.03 }}
-                  >
-                    {/* Checkbox-style indicator */}
-                    <div
-                      className="flex items-center justify-center w-4 h-4 rounded border mt-0.5 flex-shrink-0"
-                      style={{
-                        borderColor: isActive ? theme.accent : theme.border,
-                        backgroundColor: isActive ? theme.accent : 'transparent',
-                      }}
-                    >
-                      {isActive && (
-                        <Check className="w-3 h-3" style={{ color: '#FFFFFF' }} />
-                      )}
-                    </div>
-
-                    {/* Label and description */}
-                    <div className="flex-1 min-w-0">
-                      <div
-                        className="text-xs font-medium"
-                        style={{
-                          color: isActive ? theme.accent : theme.textPrimary,
-                        }}
-                      >
-                        {option.label}
-                      </div>
-                      <div
-                        className="text-[10px] mt-0.5"
-                        style={{ color: theme.textTertiary }}
-                      >
-                        {option.description}
-                      </div>
-                    </div>
-                  </motion.button>
-                );
-              })}
-            </div>
-
-            {/* Clear filter button (only when filter is active) */}
-            {hasActiveFilter && (
-              <div
-                className="px-3 py-2 border-t"
-                style={{ borderColor: theme.borderLight }}
-              >
+            {/* Status Options */}
+            <div className="py-2">
+              {filterOptions.map((option) => (
                 <motion.button
+                  key={option.value}
                   onClick={() => {
-                    onChange('all');
-                    setIsOpen(false);
+                    onChange(option.value);
+                    // If selecting a specific status, disable hide completed
+                    if (option.value !== 'all' && onHideCompletedChange) {
+                      onHideCompletedChange(false);
+                    }
                   }}
-                  className="w-full text-xs py-1.5 rounded-md"
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors"
                   style={{
-                    color: theme.textTertiary,
+                    backgroundColor: value === option.value
+                      ? (isDark ? 'rgba(255,255,255,0.05)' : 'rgb(249 250 251)')
+                      : 'transparent',
                   }}
                   whileHover={{
-                    backgroundColor: theme.hoverBg,
-                    color: theme.textSecondary,
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgb(243 244 246)',
                   }}
                 >
-                  {t.toolbar.clearFilter || 'Clear filter'}
+                  <span className={option.color}>
+                    {option.icon}
+                  </span>
+                  <span
+                    className="flex-1 text-left"
+                    style={{ color: isDark ? '#FFFFFF' : '#111827' }}
+                  >
+                    {option.label}
+                  </span>
+                  {value === option.value && (
+                    <Check
+                      className="w-4 h-4"
+                      style={{ color: isDark ? '#3B82F6' : '#2563EB' }}
+                    />
+                  )}
+                </motion.button>
+              ))}
+            </div>
+
+            {/* Separator */}
+            <div
+              className="my-2 mx-4 h-px"
+              style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgb(229 231 235)' }}
+            />
+
+            {/* Hide Completed Toggle */}
+            {onHideCompletedChange && (
+              <div className="py-1">
+                <motion.button
+                  onClick={() => {
+                    onHideCompletedChange(!hideCompleted);
+                    // If enabling hide completed, reset to show all
+                    if (!hideCompleted) {
+                      onChange('all');
+                    }
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors"
+                  style={{
+                    backgroundColor: hideCompleted
+                      ? (isDark ? 'rgba(255,255,255,0.05)' : 'rgb(249 250 251)')
+                      : 'transparent',
+                  }}
+                  whileHover={{
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgb(243 244 246)',
+                  }}
+                >
+                  <EyeOff
+                    className="w-4 h-4"
+                    style={{
+                      color: hideCompleted
+                        ? (isDark ? '#3B82F6' : '#2563EB')
+                        : (isDark ? '#6B7280' : '#9CA3AF')
+                    }}
+                  />
+                  <span
+                    className="flex-1 text-left"
+                    style={{ color: isDark ? '#FFFFFF' : '#111827' }}
+                  >
+                    {t.toolbar.hideCompleted || 'Hide Completed Tasks'}
+                  </span>
+                  {hideCompleted && (
+                    <Check
+                      className="w-4 h-4"
+                      style={{ color: isDark ? '#3B82F6' : '#2563EB' }}
+                    />
+                  )}
                 </motion.button>
               </div>
             )}
@@ -693,6 +729,8 @@ export function GanttToolbar({
   onCreateTask,
   taskFilter = 'all', // v0.17.300: Task filter
   onTaskFilterChange,
+  hideCompleted = false, // v0.18.0: Hide completed toggle
+  onHideCompletedChange,
   onExportPNG,
   onExportPDF,
   onExportExcel,
@@ -815,6 +853,8 @@ export function GanttToolbar({
               theme={theme}
               value={taskFilter}
               onChange={onTaskFilterChange}
+              hideCompleted={hideCompleted}
+              onHideCompletedChange={onHideCompletedChange}
             />
           </>
         )}

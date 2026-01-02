@@ -118,6 +118,8 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   const [internalTaskFilter, setInternalTaskFilter] = useState<TaskFilterType>('all');
   const taskFilter = externalTaskFilter ?? internalTaskFilter;
   const setTaskFilter = externalOnTaskFilterChange ?? setInternalTaskFilter;
+  // v0.18.0: Hide completed toggle
+  const [hideCompleted, setHideCompleted] = useState(false);
   const [scrollTop, setScrollTop] = useState(0);
   const [isResizing, setIsResizing] = useState(false);
   const [gridWidthOverride, setGridWidthOverride] = useState<number | null>(null);
@@ -407,8 +409,10 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   }, [localTasks, enableAutoCriticalPath]);
 
   // v0.17.300: Filter tasks based on taskFilter state
+  // v0.18.0: Added hideCompleted filter
   const filteredTasks = useMemo((): Task[] => {
-    if (taskFilter === 'all') return tasksWithCriticalPath;
+    // If no filters active, return all tasks
+    if (taskFilter === 'all' && !hideCompleted) return tasksWithCriticalPath;
 
     const filterTasksRecursively = (taskList: Task[]): Task[] => {
       const result: Task[] = [];
@@ -421,16 +425,25 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
 
         // Check if task matches filter
         let matches = false;
-        switch (taskFilter) {
-          case 'incomplete':
-            matches = task.progress < 100;
-            break;
-          case 'in_progress':
-            matches = task.progress > 0 && task.progress < 100;
-            break;
-          case 'completed':
-            matches = task.progress === 100;
-            break;
+
+        // v0.18.0: Handle hideCompleted filter
+        if (hideCompleted) {
+          matches = task.progress < 100; // Only show non-completed tasks
+        } else {
+          switch (taskFilter) {
+            case 'all':
+              matches = true;
+              break;
+            case 'incomplete':
+              matches = task.progress < 100;
+              break;
+            case 'in_progress':
+              matches = task.progress > 0 && task.progress < 100;
+              break;
+            case 'completed':
+              matches = task.progress === 100;
+              break;
+          }
         }
 
         // Include task if it matches OR has matching subtasks
@@ -446,7 +459,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     };
 
     return filterTasksRecursively(tasksWithCriticalPath);
-  }, [tasksWithCriticalPath, taskFilter]);
+  }, [tasksWithCriticalPath, taskFilter, hideCompleted]);
 
   // Calculate row height based on density
   const rowHeight = getRowHeight(rowDensity);
@@ -1553,6 +1566,9 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         // v0.17.300: Task filter
         taskFilter={taskFilter}
         onTaskFilterChange={setTaskFilter}
+        // v0.18.0: Hide completed toggle
+        hideCompleted={hideCompleted}
+        onHideCompletedChange={setHideCompleted}
         // v0.12.0: Export handlers
         onExportPNG={showExportButton ? handleExportPNG : undefined}
         onExportPDF={showExportButton ? handleExportPDF : undefined}
