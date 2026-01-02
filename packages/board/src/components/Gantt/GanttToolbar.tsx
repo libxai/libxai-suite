@@ -595,7 +595,7 @@ function FilterDropdown({ theme, value, onChange, hideCompleted = false, onHideC
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.95 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="absolute left-0 mt-2 w-64 rounded-lg overflow-hidden z-50"
+            className="absolute left-0 mt-2 w-72 rounded-lg overflow-hidden z-50"
             style={{
               backgroundColor: isDark ? '#0F1117' : '#FFFFFF',
               border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgb(229 231 235)'}`,

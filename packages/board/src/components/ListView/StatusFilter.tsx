@@ -125,7 +125,7 @@ export function StatusFilter({
       {isOpen && (
         <div
           className={cn(
-            'absolute left-0 top-full mt-2 w-64 rounded-lg shadow-xl border z-50',
+            'absolute left-0 top-full mt-2 w-72 rounded-lg shadow-xl border z-50',
             isDark ? 'bg-[#0F1117] border-white/10' : 'bg-white border-gray-200'
           )}
         >
