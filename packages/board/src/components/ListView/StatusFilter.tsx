@@ -144,36 +144,38 @@ export function StatusFilter({
 
           {/* Options */}
           <div className="py-2">
-            {options.map((option) => (
-              <button
-                key={option.value}
-                onClick={() => {
-                  onChange(option.value);
-                  // If selecting a specific status, disable hide completed
-                  if (option.value !== 'all') {
+            {options.map((option) => {
+              // Don't show checkmark on status options when hideCompleted is active
+              const isSelected = value === option.value && !hideCompleted;
+              return (
+                <button
+                  key={option.value}
+                  onClick={() => {
+                    onChange(option.value);
+                    // Selecting any status option disables hide completed
                     onHideCompletedChange(false);
-                  }
-                }}
-                className={cn(
-                  'w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors',
-                  isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100',
-                  value === option.value && (isDark ? 'bg-white/5' : 'bg-gray-50')
-                )}
-              >
-                <span className={option.color}>
-                  {option.icon}
-                </span>
-                <span className={cn(
-                  'flex-1 text-left',
-                  isDark ? 'text-white' : 'text-gray-900'
-                )}>
-                  {option.label}
-                </span>
-                {value === option.value && (
-                  <Check className={cn('w-4 h-4', isDark ? 'text-[#3B82F6]' : 'text-blue-500')} />
-                )}
-              </button>
-            ))}
+                  }}
+                  className={cn(
+                    'w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors',
+                    isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100',
+                    isSelected && (isDark ? 'bg-white/5' : 'bg-gray-50')
+                  )}
+                >
+                  <span className={option.color}>
+                    {option.icon}
+                  </span>
+                  <span className={cn(
+                    'flex-1 text-left',
+                    isDark ? 'text-white' : 'text-gray-900'
+                  )}>
+                    {option.label}
+                  </span>
+                  {isSelected && (
+                    <Check className={cn('w-4 h-4', isDark ? 'text-[#3B82F6]' : 'text-blue-500')} />
+                  )}
+                </button>
+              );
+            })}
           </div>
 
           {/* Separator */}

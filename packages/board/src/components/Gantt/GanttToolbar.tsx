@@ -617,43 +617,47 @@ function FilterDropdown({ theme, value, onChange, hideCompleted = false, onHideC
 
             {/* Status Options */}
             <div className="py-2">
-              {filterOptions.map((option) => (
-                <motion.button
-                  key={option.value}
-                  onClick={() => {
-                    onChange(option.value);
-                    // If selecting a specific status, disable hide completed
-                    if (option.value !== 'all' && onHideCompletedChange) {
-                      onHideCompletedChange(false);
-                    }
-                  }}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors"
-                  style={{
-                    backgroundColor: value === option.value
-                      ? (isDark ? 'rgba(255,255,255,0.05)' : 'rgb(249 250 251)')
-                      : 'transparent',
-                  }}
-                  whileHover={{
-                    backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgb(243 244 246)',
-                  }}
-                >
-                  <span className={option.color}>
-                    {option.icon}
-                  </span>
-                  <span
-                    className="flex-1 text-left"
-                    style={{ color: isDark ? '#FFFFFF' : '#111827' }}
+              {filterOptions.map((option) => {
+                // Don't show checkmark on status options when hideCompleted is active
+                const isSelected = value === option.value && !hideCompleted;
+                return (
+                  <motion.button
+                    key={option.value}
+                    onClick={() => {
+                      onChange(option.value);
+                      // If selecting a specific status, disable hide completed
+                      if (onHideCompletedChange) {
+                        onHideCompletedChange(false);
+                      }
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors"
+                    style={{
+                      backgroundColor: isSelected
+                        ? (isDark ? 'rgba(255,255,255,0.05)' : 'rgb(249 250 251)')
+                        : 'transparent',
+                    }}
+                    whileHover={{
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgb(243 244 246)',
+                    }}
                   >
-                    {option.label}
-                  </span>
-                  {value === option.value && (
-                    <Check
-                      className="w-4 h-4"
-                      style={{ color: isDark ? '#3B82F6' : '#2563EB' }}
-                    />
-                  )}
-                </motion.button>
-              ))}
+                    <span className={option.color}>
+                      {option.icon}
+                    </span>
+                    <span
+                      className="flex-1 text-left"
+                      style={{ color: isDark ? '#FFFFFF' : '#111827' }}
+                    >
+                      {option.label}
+                    </span>
+                    {isSelected && (
+                      <Check
+                        className="w-4 h-4"
+                        style={{ color: isDark ? '#3B82F6' : '#2563EB' }}
+                      />
+                    )}
+                  </motion.button>
+                );
+              })}
             </div>
 
             {/* Separator */}
