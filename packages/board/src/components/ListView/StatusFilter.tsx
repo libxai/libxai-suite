@@ -176,11 +176,14 @@ export function StatusFilter({
             ))}
           </div>
 
-          {/* Hide Completed Toggle */}
+          {/* Separator */}
           <div className={cn(
-            'px-4 py-3 border-t',
-            isDark ? 'border-white/10' : 'border-gray-200'
-          )}>
+            'my-2 mx-4 h-px',
+            isDark ? 'bg-white/10' : 'bg-gray-200'
+          )} />
+
+          {/* Hide Completed Toggle */}
+          <div className="py-1">
             <button
               onClick={() => {
                 onHideCompletedChange(!hideCompleted);
@@ -190,8 +193,9 @@ export function StatusFilter({
                 }
               }}
               className={cn(
-                'w-full flex items-center gap-3 py-2 text-sm transition-colors rounded-lg px-2',
-                isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100'
+                'w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors',
+                isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100',
+                hideCompleted && (isDark ? 'bg-white/5' : 'bg-gray-50')
               )}
             >
               <EyeOff className={cn(
@@ -206,18 +210,9 @@ export function StatusFilter({
               )}>
                 {t.hideCompleted}
               </span>
-              {/* Toggle Switch */}
-              <div className={cn(
-                'w-10 h-5 rounded-full transition-colors relative',
-                hideCompleted
-                  ? (isDark ? 'bg-[#3B82F6]' : 'bg-blue-500')
-                  : (isDark ? 'bg-[#374151]' : 'bg-gray-300')
-              )}>
-                <div className={cn(
-                  'absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform shadow',
-                  hideCompleted ? 'translate-x-5' : 'translate-x-0.5'
-                )} />
-              </div>
+              {hideCompleted && (
+                <Check className={cn('w-4 h-4', isDark ? 'text-[#3B82F6]' : 'text-blue-500')} />
+              )}
             </button>
           </div>
         </div>
