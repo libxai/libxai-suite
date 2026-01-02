@@ -640,18 +640,18 @@ function FilterDropdown({ theme, value, onChange, hideCompleted = false, onHideC
                       backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgb(243 244 246)',
                     }}
                   >
-                    <span className={option.color}>
+                    <span className={`${option.color} flex-shrink-0`}>
                       {option.icon}
                     </span>
                     <span
-                      className="flex-1 text-left"
+                      className="flex-1 text-left whitespace-nowrap"
                       style={{ color: isDark ? '#FFFFFF' : '#111827' }}
                     >
                       {option.label}
                     </span>
                     {isSelected && (
                       <Check
-                        className="w-4 h-4"
+                        className="w-4 h-4 flex-shrink-0"
                         style={{ color: isDark ? '#3B82F6' : '#2563EB' }}
                       />
                     )}
@@ -688,7 +688,7 @@ function FilterDropdown({ theme, value, onChange, hideCompleted = false, onHideC
                   }}
                 >
                   <EyeOff
-                    className="w-4 h-4"
+                    className="w-4 h-4 flex-shrink-0"
                     style={{
                       color: hideCompleted
                         ? (isDark ? '#3B82F6' : '#2563EB')
@@ -696,14 +696,14 @@ function FilterDropdown({ theme, value, onChange, hideCompleted = false, onHideC
                     }}
                   />
                   <span
-                    className="flex-1 text-left"
+                    className="flex-1 text-left whitespace-nowrap"
                     style={{ color: isDark ? '#FFFFFF' : '#111827' }}
                   >
                     {t.toolbar.hideCompleted || 'Hide Completed Tasks'}
                   </span>
                   {hideCompleted && (
                     <Check
-                      className="w-4 h-4"
+                      className="w-4 h-4 flex-shrink-0"
                       style={{ color: isDark ? '#3B82F6' : '#2563EB' }}
                     />
                   )}

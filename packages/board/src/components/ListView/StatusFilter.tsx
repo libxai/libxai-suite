@@ -161,17 +161,17 @@ export function StatusFilter({
                     isSelected && (isDark ? 'bg-white/5' : 'bg-gray-50')
                   )}
                 >
-                  <span className={option.color}>
+                  <span className={cn(option.color, 'flex-shrink-0')}>
                     {option.icon}
                   </span>
                   <span className={cn(
-                    'flex-1 text-left',
+                    'flex-1 text-left whitespace-nowrap',
                     isDark ? 'text-white' : 'text-gray-900'
                   )}>
                     {option.label}
                   </span>
                   {isSelected && (
-                    <Check className={cn('w-4 h-4', isDark ? 'text-[#3B82F6]' : 'text-blue-500')} />
+                    <Check className={cn('w-4 h-4 flex-shrink-0', isDark ? 'text-[#3B82F6]' : 'text-blue-500')} />
                   )}
                 </button>
               );
@@ -201,19 +201,19 @@ export function StatusFilter({
               )}
             >
               <EyeOff className={cn(
-                'w-4 h-4',
+                'w-4 h-4 flex-shrink-0',
                 hideCompleted
                   ? (isDark ? 'text-[#3B82F6]' : 'text-blue-500')
                   : (isDark ? 'text-[#6B7280]' : 'text-gray-400')
               )} />
               <span className={cn(
-                'flex-1 text-left',
+                'flex-1 text-left whitespace-nowrap',
                 isDark ? 'text-white' : 'text-gray-900'
               )}>
                 {t.hideCompleted}
               </span>
               {hideCompleted && (
-                <Check className={cn('w-4 h-4', isDark ? 'text-[#3B82F6]' : 'text-blue-500')} />
+                <Check className={cn('w-4 h-4 flex-shrink-0', isDark ? 'text-[#3B82F6]' : 'text-blue-500')} />
               )}
             </button>
           </div>
