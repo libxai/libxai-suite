@@ -8000,22 +8000,26 @@ body {
      ========================================================================== */
 
 
+/* v0.17.444: Changed overflow-y-hidden to overflow-y-auto and min-h-screen to h-full for proper pan/drag */
+
+
 .asakaa-board {
   position: relative;
   display: flex;
-  min-height: 100vh;
+  height: 100%;
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: auto;
     gap: var(--space-6);
     padding: var(--space-6);
     background: var(--color-bg-primary);
 }
 
 
-/* Theme-aware horizontal scrollbar */
+/* v0.17.444: Theme-aware scrollbars (both horizontal and vertical) */
 
 
 .asakaa-board::-webkit-scrollbar {
+    width: 10px;
     height: 10px;
   }
 
@@ -8035,6 +8039,11 @@ body {
 
 .asakaa-board::-webkit-scrollbar-thumb:hover {
     background: var(--theme-border-secondary, rgba(255, 255, 255, 0.3));
+  }
+
+
+.asakaa-board::-webkit-scrollbar-corner {
+    background: var(--theme-bg-secondary, rgba(20, 20, 20, 0.4));
   }
 
 
