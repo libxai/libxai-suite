@@ -6,7 +6,6 @@
  */
 
 import { useState, useRef, useEffect } from 'react';
-import { flushSync } from 'react-dom';
 import { Filter, Check, CheckCircle2, PlayCircle, Circle, EyeOff } from 'lucide-react';
 import { cn } from '../../utils';
 
@@ -55,12 +54,8 @@ export function StatusFilter({
   const openedAtRef = useRef<number>(0);
   const t = locale === 'es' ? translations.es : translations.en;
 
-  // DEBUG: Log every render
-  console.log('[StatusFilter] RENDER - isOpen:', isOpen, 'value:', value, 'hideCompleted:', hideCompleted);
-
-  // Close on click outside - NO setTimeout to avoid race conditions
+  // Close on click outside
   useEffect(() => {
-    console.log('[StatusFilter] useEffect triggered - isOpen:', isOpen);
     if (!isOpen) return;
 
     const handleClickOutside = (e: MouseEvent) => {
@@ -68,7 +63,6 @@ export function StatusFilter({
       if (Date.now() - openedAtRef.current < 100) return;
 
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        console.log('[StatusFilter] Click outside detected, closing');
         setIsOpen(false);
       }
     };
@@ -77,12 +71,10 @@ export function StatusFilter({
       if (e.key === 'Escape') setIsOpen(false);
     };
 
-    // Register listeners immediately - no setTimeout
     document.addEventListener('mousedown', handleClickOutside);
     document.addEventListener('keydown', handleEscape);
 
     return () => {
-      console.log('[StatusFilter] useEffect cleanup');
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleEscape);
     };
@@ -167,21 +159,10 @@ export function StatusFilter({
               return (
                 <button
                   key={option.value}
-                  onClick={(e) => {
-                    console.log('[StatusFilter] Option clicked:', option.value);
-                    console.log('[StatusFilter] isOpen BEFORE setIsOpen(false):', isOpen);
-                    e.preventDefault();
-                    e.stopPropagation();
-                    // Close dropdown FIRST with flushSync to ensure immediate DOM update
-                    flushSync(() => {
-                      console.log('[StatusFilter] Inside flushSync, calling setIsOpen(false)');
-                      setIsOpen(false);
-                    });
-                    console.log('[StatusFilter] After flushSync');
-                    // Then update parent state
+                  onClick={() => {
                     onChange(option.value);
                     onHideCompletedChange(false);
-                    console.log('[StatusFilter] After calling onChange and onHideCompletedChange');
+                    setIsOpen(false);
                   }}
                   className={cn(
                     'w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors',
@@ -215,19 +196,13 @@ export function StatusFilter({
           {/* Hide Completed Toggle */}
           <div className="py-1">
             <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
+              onClick={() => {
                 const newHideCompleted = !hideCompleted;
-                // Close dropdown FIRST with flushSync
-                flushSync(() => {
-                  setIsOpen(false);
-                });
-                // Then update parent state
                 onHideCompletedChange(newHideCompleted);
                 if (newHideCompleted) {
                   onChange('all');
                 }
+                setIsOpen(false);
               }}
               className={cn(
                 'w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors',
