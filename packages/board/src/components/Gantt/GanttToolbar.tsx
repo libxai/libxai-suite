@@ -640,6 +640,8 @@ function FilterDropdown({ theme, value, onChange, hideCompleted = false, onHideC
                       if (onHideCompletedChange) {
                         onHideCompletedChange(false);
                       }
+                      // Close dropdown after selection
+                      setIsOpen(false);
                     }}
                     className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors"
                     style={{
@@ -687,6 +689,8 @@ function FilterDropdown({ theme, value, onChange, hideCompleted = false, onHideC
                     if (!hideCompleted) {
                       onChange('all');
                     }
+                    // Close dropdown after selection
+                    setIsOpen(false);
                   }}
                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors"
                   style={{
