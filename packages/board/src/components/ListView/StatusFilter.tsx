@@ -57,31 +57,26 @@ export function StatusFilter({
   useEffect(() => {
     if (!isOpen) return;
 
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsOpen(false);
+    };
+
+    // Use setTimeout to avoid capturing the opening click
     const timeoutId = setTimeout(() => {
-      const handleClickOutside = (e: MouseEvent) => {
-        if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-          setIsOpen(false);
-        }
-      };
-
-      const handleEscape = (e: KeyboardEvent) => {
-        if (e.key === 'Escape') setIsOpen(false);
-      };
-
       document.addEventListener('mousedown', handleClickOutside);
       document.addEventListener('keydown', handleEscape);
-
-      (dropdownRef as any)._cleanup = () => {
-        document.removeEventListener('mousedown', handleClickOutside);
-        document.removeEventListener('keydown', handleEscape);
-      };
-    }, 100);
+    }, 10);
 
     return () => {
       clearTimeout(timeoutId);
-      if ((dropdownRef as any)._cleanup) {
-        (dropdownRef as any)._cleanup();
-      }
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
     };
   }, [isOpen]);
 
