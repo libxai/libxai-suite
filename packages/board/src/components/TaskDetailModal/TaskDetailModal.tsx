@@ -240,6 +240,8 @@ export function TaskDetailModal({
   // v0.17.251: Local description state with debounce for auto-save
   const [localDescription, setLocalDescription] = useState('');
   const descriptionDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // v0.17.442: Auto-resize textarea ref
+  const descriptionTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   // v0.17.253: Local task name state with debounce for auto-save
   const [localTaskName, setLocalTaskName] = useState('');
@@ -260,6 +262,21 @@ export function TaskDetailModal({
       setLocalTaskName(normalizedTask.name || '');
     }
   }, [task?.id, availableUsers]);
+
+  // v0.17.442: Auto-resize description textarea when description changes or modal opens
+  useEffect(() => {
+    if (!isOpen || !localDescription) return;
+
+    // Small delay to ensure textarea is rendered
+    const timer = setTimeout(() => {
+      const textarea = descriptionTextareaRef.current;
+      if (textarea) {
+        textarea.style.height = 'auto';
+        textarea.style.height = `${Math.max(100, textarea.scrollHeight)}px`;
+      }
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [isOpen, localDescription]);
 
   // Cleanup debounce timers on unmount
   useEffect(() => {
@@ -303,10 +320,22 @@ export function TaskDetailModal({
     handleUpdate(updatedTask);
   }, [selectedTask, handleUpdate]);
 
+  // v0.17.442: Auto-resize description textarea
+  const autoResizeDescription = useCallback(() => {
+    const textarea = descriptionTextareaRef.current;
+    if (textarea) {
+      textarea.style.height = 'auto';
+      textarea.style.height = `${Math.max(100, textarea.scrollHeight)}px`;
+    }
+  }, []);
+
   // v0.17.251: Handle description change with debounce (auto-save after typing stops)
   const handleDescriptionChange = useCallback((value: string) => {
     // Update local state immediately for responsive UI
     setLocalDescription(value);
+
+    // v0.17.442: Auto-resize textarea
+    setTimeout(autoResizeDescription, 0);
 
     // Clear any existing debounce timer
     if (descriptionDebounceRef.current) {
@@ -320,7 +349,7 @@ export function TaskDetailModal({
         handleUpdate(updatedTask);
       }
     }, 800);
-  }, [selectedTask, handleUpdate]);
+  }, [selectedTask, handleUpdate, autoResizeDescription]);
 
   // v0.17.253: Handle task name change with debounce (auto-save after typing stops)
   const handleTaskNameChange = useCallback((value: string) => {
@@ -1445,11 +1474,12 @@ export function TaskDetailModal({
                     </h3>
                   </div>
                   <textarea
+                    ref={descriptionTextareaRef}
                     value={localDescription}
                     onChange={(e) => handleDescriptionChange(e.target.value)}
                     placeholder={locale === 'es' ? 'Agregar descripción...' : 'Add description...'}
                     className={cn(
-                      "w-full min-h-[100px] px-3 py-2 rounded-lg text-sm resize-none outline-none transition-colors",
+                      "w-full min-h-[100px] max-h-[400px] px-3 py-2 rounded-lg text-sm resize-none outline-none transition-colors overflow-y-auto",
                       isDark
                         ? "bg-white/5 text-white placeholder:text-[#6B7280] focus:bg-white/10"
                         : "bg-gray-100 text-gray-900 placeholder:text-gray-400 focus:bg-gray-200"
