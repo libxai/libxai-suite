@@ -51,13 +51,17 @@ export function StatusFilter({
 }: StatusFilterProps) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const openedAtRef = useRef<number>(0);
   const t = locale === 'es' ? translations.es : translations.en;
 
-  // Close on click outside
+  // Close on click outside - NO setTimeout to avoid race conditions
   useEffect(() => {
     if (!isOpen) return;
 
     const handleClickOutside = (e: MouseEvent) => {
+      // Ignore clicks within 100ms of opening (to avoid capturing the opening click)
+      if (Date.now() - openedAtRef.current < 100) return;
+
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setIsOpen(false);
       }
@@ -67,14 +71,11 @@ export function StatusFilter({
       if (e.key === 'Escape') setIsOpen(false);
     };
 
-    // Use setTimeout to avoid capturing the opening click
-    const timeoutId = setTimeout(() => {
-      document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('keydown', handleEscape);
-    }, 10);
+    // Register listeners immediately - no setTimeout
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
 
     return () => {
-      clearTimeout(timeoutId);
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleEscape);
     };
@@ -95,6 +96,9 @@ export function StatusFilter({
       <button
         onClick={(e) => {
           e.stopPropagation();
+          if (!isOpen) {
+            openedAtRef.current = Date.now();
+          }
           setIsOpen(prev => !prev);
         }}
         className={cn(
