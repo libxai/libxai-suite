@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState, useRef, useEffect } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -49,6 +49,11 @@ export function KanbanBoard({
 
   // State for task detail modal
   const [selectedCard, setSelectedCard] = useState<CardType | null>(null)
+
+  // v0.17.443: Pan/drag state for grabbing and dragging the board (like Gantt)
+  const [isPanning, setIsPanning] = useState(false)
+  const boardRef = useRef<HTMLDivElement>(null)
+  const panStartRef = useRef({ x: 0, y: 0, scrollLeft: 0, scrollTop: 0 })
 
   // Determine theme class - default to 'dark'
   const themeName = config?.theme || 'dark'
@@ -105,6 +110,74 @@ export function KanbanBoard({
 
     return map
   }, [board.cards, board.columns])
+
+  // v0.17.443: Pan/drag handlers for grabbing and dragging the board
+  useEffect(() => {
+    const boardElement = boardRef.current
+    if (!boardElement) return
+
+    const handleMouseDown = (e: MouseEvent) => {
+      // Only start panning on middle mouse button OR when clicking on empty space
+      const target = e.target as HTMLElement
+
+      // Middle mouse button (button === 1) always enables panning
+      // Left click only enables panning on empty board space
+      const isMiddleButton = e.button === 1
+      const isEmptySpace = target === boardElement ||
+                          (target.classList.contains('asakaa-column') && !target.closest('.asakaa-card'))
+
+      if (isMiddleButton || (e.button === 0 && isEmptySpace && !dragState.isDragging)) {
+        e.preventDefault()
+        setIsPanning(true)
+        panStartRef.current = {
+          x: e.clientX,
+          y: e.clientY,
+          scrollLeft: boardElement.scrollLeft,
+          scrollTop: boardElement.scrollTop,
+        }
+        boardElement.style.cursor = 'grabbing'
+        boardElement.style.userSelect = 'none'
+      }
+    }
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isPanning) return
+
+      const deltaX = e.clientX - panStartRef.current.x
+      const deltaY = e.clientY - panStartRef.current.y
+
+      boardElement.scrollLeft = panStartRef.current.scrollLeft - deltaX
+      boardElement.scrollTop = panStartRef.current.scrollTop - deltaY
+    }
+
+    const handleMouseUp = () => {
+      if (isPanning) {
+        setIsPanning(false)
+        boardElement.style.cursor = ''
+        boardElement.style.userSelect = ''
+      }
+    }
+
+    const handleMouseLeave = () => {
+      if (isPanning) {
+        setIsPanning(false)
+        boardElement.style.cursor = ''
+        boardElement.style.userSelect = ''
+      }
+    }
+
+    boardElement.addEventListener('mousedown', handleMouseDown)
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+    boardElement.addEventListener('mouseleave', handleMouseLeave)
+
+    return () => {
+      boardElement.removeEventListener('mousedown', handleMouseDown)
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+      boardElement.removeEventListener('mouseleave', handleMouseLeave)
+    }
+  }, [isPanning, dragState.isDragging])
 
   // v0.17.243: Convert cards to Task format for dependencies in TaskDetailModal
   const availableTasksForDependencies = useMemo((): Task[] => {
@@ -276,7 +349,12 @@ export function KanbanBoard({
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
       >
-        <div className={cn('asakaa-board', themeClass, className)} style={style} data-theme={themeName}>
+        <div
+          ref={boardRef}
+          className={cn('asakaa-board', themeClass, className)}
+          style={{ ...style, cursor: isPanning ? 'grabbing' : undefined }}
+          data-theme={themeName}
+        >
           {board.columns
             .sort((a, b) => a.position - b.position)
             .map((column) => {
