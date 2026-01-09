@@ -107,6 +107,7 @@ function findMentionMatch(text: string, cursorPosition: number): MentionMatch | 
 
 /**
  * Extract all @mentions from text and return mentioned user IDs
+ * Supports: @DivarParra (full name no spaces), @Divar (first name), @Parra (last name)
  */
 export function extractMentionedUserIds(text: string, users: MentionUser[]): string[] {
   const mentionedIds: string[] = [];
@@ -116,10 +117,25 @@ export function extractMentionedUserIds(text: string, users: MentionUser[]): str
   while ((match = mentionRegex.exec(text)) !== null) {
     const mentionName = match[1]?.toLowerCase() ?? '';
     if (!mentionName) continue;
-    const user = users.find(u =>
-      u.name.toLowerCase().replace(/\s+/g, '') === mentionName ||
-      u.name.toLowerCase() === mentionName
-    );
+
+    const user = users.find(u => {
+      const fullNameLower = u.name.toLowerCase();
+      const fullNameNoSpaces = fullNameLower.replace(/\s+/g, '');
+      const nameParts = fullNameLower.split(/\s+/);
+
+      // Match full name (with or without spaces)
+      if (fullNameNoSpaces === mentionName || fullNameLower === mentionName) {
+        return true;
+      }
+
+      // Match any part of the name (first name, last name, etc.)
+      if (nameParts.some(part => part === mentionName)) {
+        return true;
+      }
+
+      return false;
+    });
+
     if (user && !mentionedIds.includes(user.id)) {
       mentionedIds.push(user.id);
     }

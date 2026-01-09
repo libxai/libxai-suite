@@ -63,10 +63,6 @@ export function DependencyLine({
   const goingDown = dy > 0;
   const isSameRow = Math.abs(dy) < 5;
 
-  // Corner radius for smooth turns
-  const cornerRadius = 5;
-  const r = cornerRadius;
-
   // OFFSET from bars for the vertical segment
   const OFFSET = 20;
 
@@ -76,102 +72,39 @@ export function DependencyLine({
   let path: string;
   let turnX: number;
 
-  if (isSameRow) {
-    // Same row - direct horizontal line (or gentle curve)
-    turnX = (x1 + x2) / 2;
-    if (lineStyle === 'squared') {
+  // v0.17.440: Original elegant S-curve for curved style, squared routing for squared style
+  const dx = x2 - x1;
+  const midX = x1 + dx / 2;
+  turnX = midX; // Default for delete button positioning
+
+  if (lineStyle === 'squared') {
+    // Squared style - clean right angles that avoid task bars
+    if (isSameRow) {
       path = `M ${x1} ${y1} L ${x2} ${y2}`;
+    } else if (isBackward) {
+      const exitPadding = 15;
+      const firstTurnX = x1 + exitPadding;
+      const secondTurnX = x2 - OFFSET;
+      const bridgeY = goingDown ? y1 + 20 : y1 - 20;
+      turnX = secondTurnX;
+
+      path = `M ${x1} ${y1} ` +
+             `L ${firstTurnX} ${y1} ` +
+             `L ${firstTurnX} ${bridgeY} ` +
+             `L ${secondTurnX} ${bridgeY} ` +
+             `L ${secondTurnX} ${y2} ` +
+             `L ${x2} ${y2}`;
     } else {
-      const ctrlOffset = Math.min(Math.abs(x2 - x1) / 3, 30);
-      path = `M ${x1} ${y1} C ${x1 + ctrlOffset} ${y1}, ${x2 - ctrlOffset} ${y2}, ${x2} ${y2}`;
+      turnX = x2 - OFFSET;
+      path = `M ${x1} ${y1} ` +
+             `L ${turnX} ${y1} ` +
+             `L ${turnX} ${y2} ` +
+             `L ${x2} ${y2}`;
     }
   } else {
-    // Different rows - need routing
-    // The vertical segment MUST be to the LEFT of the destination (x2)
-    // This is the KEY insight: turnX = x2 - OFFSET, ALWAYS
-    turnX = x2 - OFFSET;
-
-    if (isBackward) {
-      // BACKWARD dependency: destination is to the LEFT of source
-      // The MAIN vertical segment MUST be to the LEFT of the destination bar
-      //
-      // We need a 5-segment path:
-      // 1. Exit right from source (short horizontal)
-      // 2. Go down/up partway (short vertical)
-      // 3. Go LEFT past the destination (long horizontal)
-      // 4. Go down/up to destination row (MAIN vertical - LEFT of destination)
-      // 5. Go RIGHT into destination (short horizontal)
-
-      const exitPadding = 15;
-      const firstTurnX = x1 + exitPadding;   // Just after source
-      const secondTurnX = x2 - OFFSET;        // Just LEFT of destination (this is the main vertical)
-
-      // Y position for the horizontal bridge between the two verticals
-      // Go halfway between source and destination rows
-      const bridgeY = goingDown ? y1 + 20 : y1 - 20;
-
-      turnX = secondTurnX; // For delete button positioning
-
-      if (lineStyle === 'squared') {
-        path = `M ${x1} ${y1} ` +
-               `L ${firstTurnX} ${y1} ` +          // 1. Exit right
-               `L ${firstTurnX} ${bridgeY} ` +     // 2. Short vertical
-               `L ${secondTurnX} ${bridgeY} ` +    // 3. Horizontal left (bridge)
-               `L ${secondTurnX} ${y2} ` +         // 4. Main vertical (LEFT of dest)
-               `L ${x2} ${y2}`;                    // 5. Enter destination from left
-      } else {
-        // Curved version with 4 turns
-        if (goingDown) {
-          path = `M ${x1} ${y1} ` +
-                 `L ${firstTurnX - r} ${y1} ` +
-                 `Q ${firstTurnX} ${y1} ${firstTurnX} ${y1 + r} ` +         // Turn 1: down
-                 `L ${firstTurnX} ${bridgeY - r} ` +
-                 `Q ${firstTurnX} ${bridgeY} ${firstTurnX - r} ${bridgeY} ` + // Turn 2: left
-                 `L ${secondTurnX + r} ${bridgeY} ` +
-                 `Q ${secondTurnX} ${bridgeY} ${secondTurnX} ${bridgeY + r} ` + // Turn 3: down
-                 `L ${secondTurnX} ${y2 - r} ` +
-                 `Q ${secondTurnX} ${y2} ${secondTurnX + r} ${y2} ` +       // Turn 4: right
-                 `L ${x2} ${y2}`;
-        } else {
-          path = `M ${x1} ${y1} ` +
-                 `L ${firstTurnX - r} ${y1} ` +
-                 `Q ${firstTurnX} ${y1} ${firstTurnX} ${y1 - r} ` +         // Turn 1: up
-                 `L ${firstTurnX} ${bridgeY + r} ` +
-                 `Q ${firstTurnX} ${bridgeY} ${firstTurnX - r} ${bridgeY} ` + // Turn 2: left
-                 `L ${secondTurnX + r} ${bridgeY} ` +
-                 `Q ${secondTurnX} ${bridgeY} ${secondTurnX} ${bridgeY - r} ` + // Turn 3: up
-                 `L ${secondTurnX} ${y2 + r} ` +
-                 `Q ${secondTurnX} ${y2} ${secondTurnX + r} ${y2} ` +       // Turn 4: right
-                 `L ${x2} ${y2}`;
-        }
-      }
-    } else {
-      // FORWARD dependency: destination is to the RIGHT of source
-      // turnX is just before destination (to the left of it)
-      if (lineStyle === 'squared') {
-        path = `M ${x1} ${y1} ` +
-               `L ${turnX} ${y1} ` +
-               `L ${turnX} ${y2} ` +
-               `L ${x2} ${y2}`;
-      } else {
-        // Curved version
-        if (goingDown) {
-          path = `M ${x1} ${y1} ` +
-                 `L ${turnX - r} ${y1} ` +
-                 `Q ${turnX} ${y1} ${turnX} ${y1 + r} ` +
-                 `L ${turnX} ${y2 - r} ` +
-                 `Q ${turnX} ${y2} ${turnX + r} ${y2} ` +
-                 `L ${x2} ${y2}`;
-        } else {
-          path = `M ${x1} ${y1} ` +
-                 `L ${turnX - r} ${y1} ` +
-                 `Q ${turnX} ${y1} ${turnX} ${y1 - r} ` +
-                 `L ${turnX} ${y2 + r} ` +
-                 `Q ${turnX} ${y2} ${turnX + r} ${y2} ` +
-                 `L ${x2} ${y2}`;
-        }
-      }
-    }
+    // v0.17.440: ORIGINAL elegant S-curve - simple Bézier, no routing logic
+    // This is the exact curve from before the squared option was added
+    path = `M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}`;
   }
 
   // Arrow marker at the end - ALWAYS points RIGHT (entering from left)

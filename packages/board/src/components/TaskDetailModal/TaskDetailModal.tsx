@@ -109,6 +109,8 @@ function taskToCard(task: Task, originalCard: Card): Card {
     // Keep original assignedUserIds - assignees in Task don't have IDs
     // The original card's assignedUserIds remain unchanged unless consumer updates them
     assignedUserIds: originalCard.assignedUserIds,
+    // v0.17.441: Include dependencies when converting back to Card
+    dependencies: task.dependencies,
   };
 }
 
