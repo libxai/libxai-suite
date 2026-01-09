@@ -55,8 +55,12 @@ export function StatusFilter({
   const openedAtRef = useRef<number>(0);
   const t = locale === 'es' ? translations.es : translations.en;
 
+  // DEBUG: Log every render
+  console.log('[StatusFilter] RENDER - isOpen:', isOpen, 'value:', value, 'hideCompleted:', hideCompleted);
+
   // Close on click outside - NO setTimeout to avoid race conditions
   useEffect(() => {
+    console.log('[StatusFilter] useEffect triggered - isOpen:', isOpen);
     if (!isOpen) return;
 
     const handleClickOutside = (e: MouseEvent) => {
@@ -64,6 +68,7 @@ export function StatusFilter({
       if (Date.now() - openedAtRef.current < 100) return;
 
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        console.log('[StatusFilter] Click outside detected, closing');
         setIsOpen(false);
       }
     };
@@ -77,6 +82,7 @@ export function StatusFilter({
     document.addEventListener('keydown', handleEscape);
 
     return () => {
+      console.log('[StatusFilter] useEffect cleanup');
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleEscape);
     };
@@ -162,15 +168,20 @@ export function StatusFilter({
                 <button
                   key={option.value}
                   onClick={(e) => {
+                    console.log('[StatusFilter] Option clicked:', option.value);
+                    console.log('[StatusFilter] isOpen BEFORE setIsOpen(false):', isOpen);
                     e.preventDefault();
                     e.stopPropagation();
                     // Close dropdown FIRST with flushSync to ensure immediate DOM update
                     flushSync(() => {
+                      console.log('[StatusFilter] Inside flushSync, calling setIsOpen(false)');
                       setIsOpen(false);
                     });
+                    console.log('[StatusFilter] After flushSync');
                     // Then update parent state
                     onChange(option.value);
                     onHideCompletedChange(false);
+                    console.log('[StatusFilter] After calling onChange and onHideCompletedChange');
                   }}
                   className={cn(
                     'w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors',
