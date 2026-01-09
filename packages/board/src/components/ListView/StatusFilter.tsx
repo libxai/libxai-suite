@@ -160,11 +160,11 @@ export function StatusFilter({
               return (
                 <button
                   key={option.value}
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
                     onChange(option.value);
-                    // Selecting any status option disables hide completed
                     onHideCompletedChange(false);
-                    // Close menu after selection
                     setIsOpen(false);
                   }}
                   className={cn(
@@ -199,13 +199,14 @@ export function StatusFilter({
           {/* Hide Completed Toggle */}
           <div className="py-1">
             <button
-              onClick={() => {
-                onHideCompletedChange(!hideCompleted);
-                // If enabling hide completed, reset to show all
-                if (!hideCompleted) {
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const newHideCompleted = !hideCompleted;
+                onHideCompletedChange(newHideCompleted);
+                if (newHideCompleted) {
                   onChange('all');
                 }
-                // Close menu after selection
                 setIsOpen(false);
               }}
               className={cn(
