@@ -6,6 +6,7 @@
  */
 
 import { useState, useRef, useEffect } from 'react';
+import { flushSync } from 'react-dom';
 import { Filter, Check, CheckCircle2, PlayCircle, Circle, EyeOff } from 'lucide-react';
 import { cn } from '../../utils';
 
@@ -163,9 +164,13 @@ export function StatusFilter({
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
+                    // Close dropdown FIRST with flushSync to ensure immediate DOM update
+                    flushSync(() => {
+                      setIsOpen(false);
+                    });
+                    // Then update parent state
                     onChange(option.value);
                     onHideCompletedChange(false);
-                    setIsOpen(false);
                   }}
                   className={cn(
                     'w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors',
@@ -203,11 +208,15 @@ export function StatusFilter({
                 e.preventDefault();
                 e.stopPropagation();
                 const newHideCompleted = !hideCompleted;
+                // Close dropdown FIRST with flushSync
+                flushSync(() => {
+                  setIsOpen(false);
+                });
+                // Then update parent state
                 onHideCompletedChange(newHideCompleted);
                 if (newHideCompleted) {
                   onChange('all');
                 }
-                setIsOpen(false);
               }}
               className={cn(
                 'w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors',
