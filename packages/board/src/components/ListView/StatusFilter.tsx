@@ -165,6 +165,8 @@ export function StatusFilter({
                     onChange(option.value);
                     // Selecting any status option disables hide completed
                     onHideCompletedChange(false);
+                    // Close menu after selection
+                    setIsOpen(false);
                   }}
                   className={cn(
                     'w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors',
@@ -204,6 +206,8 @@ export function StatusFilter({
                 if (!hideCompleted) {
                   onChange('all');
                 }
+                // Close menu after selection
+                setIsOpen(false);
               }}
               className={cn(
                 'w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors',

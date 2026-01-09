@@ -250,8 +250,12 @@ export type {
   AddCardButtonProps, // v0.17.49
   AddCardData, // v0.17.49
   TaskDetailModalProps, // v0.17.247: Unified task detail modal props
+  TaskComment, // v0.17.252: Comment type
   // LazyLoadWrapperProps,
 } from './components'
+
+// v0.17.422: Comment attachments types
+export type { CommentAttachment, PendingFile } from './components/TaskDetailModal/MentionInput'
 
 // export type { SkeletonProps } from './components/Skeleton'
 

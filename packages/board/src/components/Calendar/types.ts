@@ -267,8 +267,23 @@ export interface CalendarBoardProps {
     };
   }>;
 
-  /** v0.17.254: Callback to add a comment */
-  onAddComment?: (taskId: string, content: string, mentionedUserIds?: string[]) => Promise<void>;
+  /** v0.17.254: Callback to add a comment (with optional attachments) */
+  onAddComment?: (taskId: string, content: string, mentionedUserIds?: string[], attachments?: Array<{
+    id: string;
+    name: string;
+    url: string;
+    type: string;
+    size: number;
+  }>) => Promise<void>;
+
+  /** v0.17.425: Upload comment attachments callback */
+  onUploadCommentAttachments?: (files: File[]) => Promise<Array<{
+    id: string;
+    name: string;
+    url: string;
+    type: string;
+    size: number;
+  }>>;
 
   /** v0.17.254: Current user info for comment input */
   currentUser?: {

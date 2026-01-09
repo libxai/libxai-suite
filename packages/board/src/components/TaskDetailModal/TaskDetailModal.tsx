@@ -2,8 +2,9 @@
  * TaskDetailModal Component
  * Shared task detail modal for Calendar, Kanban, and Gantt views
  * ClickUp-style full-screen modal with all task fields
- * @version 0.17.401
+ * @version 0.17.422
  *
+ * v0.17.422: Added emoji picker and file attachments in comments
  * v0.17.401: Added @mentions support in comments
  * v0.17.253: Editable task name with debounce auto-save
  */
@@ -38,7 +39,7 @@ import {
   Diamond,
 } from 'lucide-react';
 import { MentionInput, CommentContent, extractMentionedUserIds } from './MentionInput';
-import type { MentionUser } from './MentionInput';
+import type { MentionUser, CommentAttachment, PendingFile } from './MentionInput';
 import type { Task, Assignee, TaskTag } from '../Gantt/types';
 import type { Card, Attachment } from '../../types';
 import { cn } from '../../utils';
@@ -117,6 +118,8 @@ export interface TaskComment {
   taskId: string;
   userId: string;
   content: string;
+  /** v0.17.422: Attachments for comments */
+  attachments?: CommentAttachment[];
   createdAt: Date | string;
   updatedAt?: Date | string;
   user?: {
@@ -159,8 +162,8 @@ export interface TaskDetailModalProps {
   availableTasks?: Task[];
   /** v0.17.252: Comments for activity panel */
   comments?: TaskComment[];
-  /** v0.17.401: Callback to add a new comment (with optional mentionedUserIds) */
-  onAddComment?: (taskId: string, content: string, mentionedUserIds?: string[]) => Promise<void>;
+  /** v0.17.422: Callback to add a new comment (with optional mentionedUserIds and attachments) */
+  onAddComment?: (taskId: string, content: string, mentionedUserIds?: string[], attachments?: CommentAttachment[]) => Promise<void>;
   /** v0.17.252: Current user info for displaying comments */
   currentUser?: {
     id: string;
@@ -170,6 +173,8 @@ export interface TaskDetailModalProps {
   };
   /** v0.17.401: Users available for @mentions in comments */
   mentionableUsers?: MentionUser[];
+  /** v0.17.422: Upload comment attachments callback */
+  onUploadCommentAttachments?: (files: File[]) => Promise<CommentAttachment[]>;
 }
 
 /**
@@ -194,6 +199,7 @@ export function TaskDetailModal({
   onAddComment,
   currentUser,
   mentionableUsers = [],
+  onUploadCommentAttachments,
 }: TaskDetailModalProps) {
   const isDark = theme === 'dark';
 
@@ -240,6 +246,8 @@ export function TaskDetailModal({
   // v0.17.252: Comment input state
   const [commentText, setCommentText] = useState('');
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+  // v0.17.422: Pending files for comment attachments
+  const [pendingCommentFiles, setPendingCommentFiles] = useState<PendingFile[]>([]);
 
   // Update local state when task prop changes
   useEffect(() => {
@@ -331,20 +339,71 @@ export function TaskDetailModal({
     }, 800);
   }, [selectedTask, handleUpdate]);
 
-  // v0.17.401: Handle submit comment with mentions support
+  // v0.17.422: Handle file selection for comment attachments
+  const handleCommentFilesSelect = useCallback((files: File[]) => {
+    const newPendingFiles: PendingFile[] = files.map(file => {
+      const pendingFile: PendingFile = {
+        id: `pending-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        file,
+      };
+
+      // Create preview for images
+      if (file.type.startsWith('image/')) {
+        pendingFile.preview = URL.createObjectURL(file);
+      }
+
+      return pendingFile;
+    });
+
+    setPendingCommentFiles(prev => [...prev, ...newPendingFiles]);
+  }, []);
+
+  // v0.17.422: Handle remove pending file
+  const handleRemoveCommentFile = useCallback((fileId: string) => {
+    setPendingCommentFiles(prev => {
+      const fileToRemove = prev.find(f => f.id === fileId);
+      // Revoke preview URL to prevent memory leaks
+      if (fileToRemove?.preview) {
+        URL.revokeObjectURL(fileToRemove.preview);
+      }
+      return prev.filter(f => f.id !== fileId);
+    });
+  }, []);
+
+  // v0.17.422: Handle submit comment with mentions and attachments support
   const handleSubmitComment = useCallback(async () => {
-    if (!selectedTask || !commentText.trim() || !onAddComment) return;
+    if (!selectedTask || (!commentText.trim() && pendingCommentFiles.length === 0) || !onAddComment) return;
 
     setIsSubmittingComment(true);
     try {
       // Extract mentioned user IDs from the comment text
       const mentionedUserIds = extractMentionedUserIds(commentText, mentionableUsers);
-      await onAddComment(selectedTask.id, commentText.trim(), mentionedUserIds.length > 0 ? mentionedUserIds : undefined);
+
+      // Upload pending files if any
+      let uploadedAttachments: CommentAttachment[] = [];
+      if (pendingCommentFiles.length > 0 && onUploadCommentAttachments) {
+        const files = pendingCommentFiles.map(pf => pf.file);
+        uploadedAttachments = await onUploadCommentAttachments(files);
+      }
+
+      await onAddComment(
+        selectedTask.id,
+        commentText.trim(),
+        mentionedUserIds.length > 0 ? mentionedUserIds : undefined,
+        uploadedAttachments.length > 0 ? uploadedAttachments : undefined
+      );
+
+      // Clear comment input and pending files
       setCommentText('');
+      // Revoke all preview URLs
+      pendingCommentFiles.forEach(pf => {
+        if (pf.preview) URL.revokeObjectURL(pf.preview);
+      });
+      setPendingCommentFiles([]);
     } finally {
       setIsSubmittingComment(false);
     }
-  }, [selectedTask, commentText, onAddComment, mentionableUsers]);
+  }, [selectedTask, commentText, pendingCommentFiles, onAddComment, mentionableUsers, onUploadCommentAttachments]);
 
   // v0.17.252: Format comment date
   const formatCommentDate = useCallback((date: Date | string) => {
@@ -1673,6 +1732,35 @@ export function TaskDetailModal({
                           <div className={cn("text-sm", isDark ? "text-[#9CA3AF]" : "text-gray-600")}>
                             <CommentContent content={comment.content} theme={theme} />
                           </div>
+                          {/* v0.17.422: Comment Attachments */}
+                          {comment.attachments && comment.attachments.length > 0 && (
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {comment.attachments.map((attachment) => {
+                                const isImage = attachment.type.startsWith('image/');
+                                return (
+                                  <a
+                                    key={attachment.id}
+                                    href={attachment.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={cn(
+                                      "flex items-center gap-2 px-2 py-1.5 rounded-lg transition-colors",
+                                      isDark ? "bg-white/5 hover:bg-white/10" : "bg-gray-100 hover:bg-gray-200"
+                                    )}
+                                  >
+                                    {isImage ? (
+                                      <Image className={cn("w-4 h-4", isDark ? "text-[#9CA3AF]" : "text-gray-500")} />
+                                    ) : (
+                                      <File className={cn("w-4 h-4", isDark ? "text-[#9CA3AF]" : "text-gray-500")} />
+                                    )}
+                                    <span className={cn("text-xs truncate max-w-[100px]", isDark ? "text-white" : "text-gray-900")}>
+                                      {attachment.name}
+                                    </span>
+                                  </a>
+                                );
+                              })}
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -1694,7 +1782,7 @@ export function TaskDetailModal({
                 )}
               </div>
 
-              {/* Comment Input - v0.17.401: Now with @mentions support */}
+              {/* Comment Input - v0.17.422: Now with @mentions, emojis and attachments support */}
               <div className={cn(
                 "p-4 border-t",
                 isDark ? "border-white/10" : "border-gray-200"
@@ -1710,6 +1798,11 @@ export function TaskDetailModal({
                   theme={theme}
                   locale={locale}
                   currentUser={currentUser}
+                  enableEmoji
+                  enableAttachments={!!onUploadCommentAttachments}
+                  pendingFiles={pendingCommentFiles}
+                  onFilesSelect={handleCommentFilesSelect}
+                  onRemoveFile={handleRemoveCommentFile}
                 />
               </div>
             </div>

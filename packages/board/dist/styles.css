@@ -9047,6 +9047,11 @@ body {
 }
 
 
+.w-\[200px\] {
+  width: 200px;
+}
+
+
 .w-\[320px\] {
   width: 320px;
 }
@@ -9064,6 +9069,11 @@ body {
 
 .min-w-0 {
   min-width: 0px;
+}
+
+
+.min-w-\[100px\] {
+  min-width: 100px;
 }
 
 
@@ -9162,6 +9172,11 @@ body {
 }
 
 
+.max-w-\[100px\] {
+  max-width: 100px;
+}
+
+
 .max-w-\[120px\] {
   max-width: 120px;
 }
@@ -9233,6 +9248,13 @@ body {
 
 .rotate-45 {
   --tw-rotate: 45deg;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+}
+
+
+.scale-110 {
+  --tw-scale-x: 1.1;
+  --tw-scale-y: 1.1;
   transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
 }
 
@@ -9339,6 +9361,11 @@ body {
 
 .grid-cols-7 {
   grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+
+.grid-cols-8 {
+  grid-template-columns: repeat(8, minmax(0, 1fr));
 }
 
 
@@ -12015,11 +12042,6 @@ body {
 
 .hover\:underline:hover {
   text-decoration-line: underline;
-}
-
-
-.hover\:opacity-100:hover {
-  opacity: 1;
 }
 
 
