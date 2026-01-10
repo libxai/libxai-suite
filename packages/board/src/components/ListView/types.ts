@@ -440,7 +440,7 @@ export interface FlattenedTask extends Task {
  */
 export const DEFAULT_TABLE_COLUMNS: TableColumn[] = [
   { id: 'name', type: 'name', label: 'Name', width: 300, visible: true, sortable: true, resizable: true },
-  { id: 'status', type: 'status', label: 'Status', width: 120, visible: true, sortable: true, resizable: true },
+  { id: 'status', type: 'status', label: 'Status', width: 140, visible: true, sortable: true, resizable: true },
   { id: 'priority', type: 'priority', label: 'Priority', width: 100, visible: false, sortable: true, resizable: true },
   { id: 'assignees', type: 'assignees', label: 'Assignees', width: 150, visible: false, sortable: false, resizable: true },
   { id: 'startDate', type: 'startDate', label: 'Start Date', width: 120, visible: true, sortable: true, resizable: true },
