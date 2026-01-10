@@ -534,7 +534,7 @@ export function ListView({
   }, [callbacks, isDark, locale, availableUsers, t]);
 
   // Get column label with translations
-  const getColumnLabel = useCallback((column: TableColumn) => {
+  const getColumnLabel = useCallback((column: TableColumn): string => {
     const labelMap: Record<string, string> = {
       name: t.columns.name,
       status: t.columns.status,
@@ -543,11 +543,14 @@ export function ListView({
       startDate: t.columns.startDate,
       endDate: t.columns.endDate,
       progress: t.columns.progress,
+      tags: (t.columns as any).tags || (locale === 'es' ? 'Etiquetas' : 'Tags'),
       // v0.18.3: Time tracking columns
       estimatedTime: (t.columns as any).estimatedTime || (locale === 'es' ? 'Estimado' : 'Estimated'),
       elapsedTime: (t.columns as any).elapsedTime || (locale === 'es' ? 'Tiempo' : 'Time Spent'),
     };
-    return labelMap[column.type] || column.label;
+    const label = labelMap[column.type] || column.label;
+    // Ensure we always return a string to prevent React error #310
+    return typeof label === 'string' ? label : String(label || column.type);
   }, [t, locale]);
 
   // Calculate total width for grid
