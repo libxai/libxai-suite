@@ -15,24 +15,26 @@ export type SortDirection = 'asc' | 'desc';
 
 /**
  * Column types supported in ListView
- * - Standard: name, status, priority, assignees, startDate, endDate, progress, tags
+ * - Standard: name, status, priority, assignees, startDate, endDate, progress, tags, estimatedTime, elapsedTime
  * - Custom: text, number, date, dropdown, checkbox
  */
 export type ColumnType =
-  | 'name'        // Task name (always visible, first column)
-  | 'status'      // Todo/In Progress/Completed
-  | 'priority'    // Urgent/High/Medium/Low
-  | 'assignees'   // Assigned users
-  | 'startDate'   // Start date
-  | 'endDate'     // End date / Due date
-  | 'progress'    // Progress percentage
-  | 'tags'        // Task tags/labels
+  | 'name'           // Task name (always visible, first column)
+  | 'status'         // Todo/In Progress/Completed
+  | 'priority'       // Urgent/High/Medium/Low
+  | 'assignees'      // Assigned users
+  | 'startDate'      // Start date
+  | 'endDate'        // End date / Due date
+  | 'progress'       // Progress percentage
+  | 'tags'           // Task tags/labels
+  | 'estimatedTime'  // Estimated time in minutes (v0.18.3)
+  | 'elapsedTime'    // Elapsed/spent time in minutes (v0.18.3)
   // Custom field types
-  | 'text'        // Custom text field
-  | 'number'      // Custom number field
-  | 'date'        // Custom date field
-  | 'dropdown'    // Custom dropdown/select
-  | 'checkbox';   // Custom checkbox/boolean
+  | 'text'           // Custom text field
+  | 'number'         // Custom number field
+  | 'date'           // Custom date field
+  | 'dropdown'       // Custom dropdown/select
+  | 'checkbox';      // Custom checkbox/boolean
 
 /**
  * Table column configuration for dynamic columns
@@ -281,6 +283,10 @@ export interface ListViewTranslations {
     assignees: string;
     priority: string;
     actions: string;
+    // v0.18.3: Time tracking columns
+    estimatedTime?: string;
+    elapsedTime?: string;
+    tags?: string;
   };
 
   // Toolbar
@@ -441,6 +447,9 @@ export const DEFAULT_TABLE_COLUMNS: TableColumn[] = [
   { id: 'endDate', type: 'endDate', label: 'End Date', width: 120, visible: true, sortable: true, resizable: true },
   { id: 'progress', type: 'progress', label: 'Progress', width: 100, visible: true, sortable: true, resizable: true },
   { id: 'tags', type: 'tags', label: 'Tags', width: 150, visible: false, sortable: false, resizable: true },
+  // v0.18.3: Time tracking columns
+  { id: 'estimatedTime', type: 'estimatedTime', label: 'Estimated', width: 100, visible: false, sortable: true, resizable: true },
+  { id: 'elapsedTime', type: 'elapsedTime', label: 'Time Spent', width: 100, visible: false, sortable: true, resizable: true },
 ];
 
 /**
@@ -456,6 +465,9 @@ export const STANDARD_FIELDS: Array<{ type: ColumnType; labelKey: string; icon: 
   { type: 'endDate', labelKey: 'columns.endDate', icon: 'CalendarCheck' },
   { type: 'progress', labelKey: 'columns.progress', icon: 'BarChart' },
   { type: 'tags', labelKey: 'columns.tags', icon: 'Tag' },
+  // v0.18.3: Time tracking fields
+  { type: 'estimatedTime', labelKey: 'columns.estimatedTime', icon: 'Clock' },
+  { type: 'elapsedTime', labelKey: 'columns.elapsedTime', icon: 'Timer' },
 ];
 
 /**

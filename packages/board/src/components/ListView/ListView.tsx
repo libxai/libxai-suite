@@ -41,6 +41,7 @@ import { NumberCell } from './cells/NumberCell';
 import { DropdownCell } from './cells/DropdownCell';
 import { CheckboxCell } from './cells/CheckboxCell';
 import { TagsCell } from './cells/TagsCell';
+import { TimeCell } from './cells/TimeCell';
 
 // Components
 import { TableContextMenu } from './TableContextMenu';
@@ -506,6 +507,27 @@ export function ListView({
           />
         );
 
+      // v0.18.3: Time tracking columns
+      case 'estimatedTime':
+        return (
+          <TimeCell
+            value={(task as any).estimatedTime}
+            onChange={(minutes) => handleUpdate({ estimatedTime: minutes } as any)}
+            isDark={isDark}
+            locale={locale}
+          />
+        );
+
+      case 'elapsedTime':
+        return (
+          <TimeCell
+            value={(task as any).elapsedTime}
+            onChange={(minutes) => handleUpdate({ elapsedTime: minutes } as any)}
+            isDark={isDark}
+            locale={locale}
+          />
+        );
+
       default:
         return <span className={cn("text-sm", isDark ? "text-[#94A3B8]" : "text-gray-500")}>-</span>;
     }
@@ -521,9 +543,12 @@ export function ListView({
       startDate: t.columns.startDate,
       endDate: t.columns.endDate,
       progress: t.columns.progress,
+      // v0.18.3: Time tracking columns
+      estimatedTime: (t.columns as any).estimatedTime || (locale === 'es' ? 'Estimado' : 'Estimated'),
+      elapsedTime: (t.columns as any).elapsedTime || (locale === 'es' ? 'Tiempo' : 'Time Spent'),
     };
     return labelMap[column.type] || column.label;
-  }, [t]);
+  }, [t, locale]);
 
   // Calculate total width for grid
   const totalWidth = useMemo(() => {

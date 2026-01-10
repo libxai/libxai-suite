@@ -3149,10 +3149,10 @@ declare function useGanttI18n(): GanttTranslations;
 type SortDirection = 'asc' | 'desc';
 /**
  * Column types supported in ListView
- * - Standard: name, status, priority, assignees, startDate, endDate, progress, tags
+ * - Standard: name, status, priority, assignees, startDate, endDate, progress, tags, estimatedTime, elapsedTime
  * - Custom: text, number, date, dropdown, checkbox
  */
-type ColumnType = 'name' | 'status' | 'priority' | 'assignees' | 'startDate' | 'endDate' | 'progress' | 'tags' | 'text' | 'number' | 'date' | 'dropdown' | 'checkbox';
+type ColumnType = 'name' | 'status' | 'priority' | 'assignees' | 'startDate' | 'endDate' | 'progress' | 'tags' | 'estimatedTime' | 'elapsedTime' | 'text' | 'number' | 'date' | 'dropdown' | 'checkbox';
 /**
  * Table column configuration for dynamic columns
  */
@@ -3354,6 +3354,9 @@ interface ListViewTranslations {
         assignees: string;
         priority: string;
         actions: string;
+        estimatedTime?: string;
+        elapsedTime?: string;
+        tags?: string;
     };
     toolbar: {
         search: string;

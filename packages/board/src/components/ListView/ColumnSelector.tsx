@@ -20,6 +20,8 @@ import {
   CalendarCheck,
   BarChart,
   Tag,
+  Clock,
+  Timer,
 } from 'lucide-react';
 import { cn } from '../../utils';
 import type { TableColumn, CustomFieldDefinition, ColumnType } from './types';
@@ -46,6 +48,10 @@ const COLUMN_ICONS: Record<ColumnType, React.ReactNode> = {
   endDate: <CalendarCheck className="w-4 h-4" />,
   progress: <BarChart className="w-4 h-4" />,
   tags: <Tag className="w-4 h-4" />,
+  // v0.18.3: Time tracking columns
+  estimatedTime: <Clock className="w-4 h-4" />,
+  elapsedTime: <Timer className="w-4 h-4" />,
+  // Custom field types
   text: <Type className="w-4 h-4" />,
   number: <Hash className="w-4 h-4" />,
   date: <Calendar className="w-4 h-4" />,
@@ -54,7 +60,7 @@ const COLUMN_ICONS: Record<ColumnType, React.ReactNode> = {
 };
 
 // Standard fields that are always available
-const STANDARD_COLUMNS: ColumnType[] = ['name', 'status', 'priority', 'assignees', 'startDate', 'endDate', 'progress', 'tags'];
+const STANDARD_COLUMNS: ColumnType[] = ['name', 'status', 'priority', 'assignees', 'startDate', 'endDate', 'progress', 'tags', 'estimatedTime', 'elapsedTime'];
 
 export function ColumnSelector({
   isOpen,
@@ -333,6 +339,8 @@ const translations = {
       endDate: 'End Date',
       progress: 'Progress',
       tags: 'Tags',
+      estimatedTime: 'Estimated',
+      elapsedTime: 'Time Spent',
       text: 'Text',
       number: 'Number',
       date: 'Date',
@@ -355,6 +363,8 @@ const translations = {
       endDate: 'Fecha Fin',
       progress: 'Progreso',
       tags: 'Etiquetas',
+      estimatedTime: 'Estimado',
+      elapsedTime: 'Tiempo',
       text: 'Texto',
       number: 'Número',
       date: 'Fecha',

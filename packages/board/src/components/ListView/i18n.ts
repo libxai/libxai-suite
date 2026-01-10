@@ -20,6 +20,10 @@ export const en: ListViewTranslations = {
     assignees: 'Assignees',
     priority: 'Priority',
     actions: 'Actions',
+    // v0.18.3: Time tracking columns
+    estimatedTime: 'Estimated',
+    elapsedTime: 'Time Spent',
+    tags: 'Tags',
   },
 
   toolbar: {
@@ -89,6 +93,10 @@ export const es: ListViewTranslations = {
     assignees: 'Asignados',
     priority: 'Prioridad',
     actions: 'Acciones',
+    // v0.18.3: Time tracking columns
+    estimatedTime: 'Estimado',
+    elapsedTime: 'Tiempo',
+    tags: 'Etiquetas',
   },
 
   toolbar: {
