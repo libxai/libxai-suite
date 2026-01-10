@@ -22,6 +22,7 @@ interface StatusCellProps {
 const STATUS_OPTIONS = [
   { value: 'todo', icon: Circle, color: 'text-gray-400' },
   { value: 'in-progress', icon: PlayCircle, color: 'text-blue-500' },
+  { value: 'inProgress', icon: PlayCircle, color: 'text-blue-500' }, // Alternative format
   { value: 'completed', icon: CheckCircle2, color: 'text-green-500' },
 ];
 
@@ -55,7 +56,8 @@ export function StatusCell({
   const getLabel = (statusValue: string) => {
     switch (statusValue) {
       case 'completed': return translations.completed;
-      case 'in-progress': return translations.inProgress;
+      case 'in-progress':
+      case 'inProgress': return translations.inProgress;
       default: return translations.todo;
     }
   };
@@ -63,8 +65,8 @@ export function StatusCell({
   if (disabled || !onChange) {
     return (
       <div className="flex items-center gap-2">
-        <Icon className={cn('w-4 h-4', currentStatus.color)} />
-        <span className={cn('text-sm', isDark ? 'text-[#94A3B8]' : 'text-gray-500')}>
+        <Icon className={cn('w-4 h-4 flex-shrink-0', currentStatus.color)} />
+        <span className={cn('text-sm whitespace-nowrap', isDark ? 'text-[#94A3B8]' : 'text-gray-500')}>
           {getLabel(value)}
         </span>
       </div>
@@ -83,8 +85,8 @@ export function StatusCell({
           isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100'
         )}
       >
-        <Icon className={cn('w-4 h-4', currentStatus.color)} />
-        <span className={cn('text-sm', isDark ? 'text-[#94A3B8]' : 'text-gray-500')}>
+        <Icon className={cn('w-4 h-4 flex-shrink-0', currentStatus.color)} />
+        <span className={cn('text-sm whitespace-nowrap', isDark ? 'text-[#94A3B8]' : 'text-gray-500')}>
           {getLabel(value)}
         </span>
         <ChevronDown className={cn('w-3 h-3', isDark ? 'text-[#6B7280]' : 'text-gray-400')} />
