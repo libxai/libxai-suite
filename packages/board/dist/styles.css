@@ -8577,6 +8577,12 @@ body {
 }
 
 
+.-mx-2 {
+  margin-left: -0.5rem;
+  margin-right: -0.5rem;
+}
+
+
 .mx-1 {
   margin-left: 0.25rem;
   margin-right: 0.25rem;
@@ -9718,6 +9724,11 @@ body {
 }
 
 
+.border-blue-500\/50 {
+  border-color: rgb(59 130 246 / 0.5);
+}
+
+
 .border-current {
   border-color: currentColor;
 }
@@ -9755,6 +9766,11 @@ body {
 
 .border-green-500\/30 {
   border-color: rgb(34 197 94 / 0.3);
+}
+
+
+.border-green-500\/50 {
+  border-color: rgb(34 197 94 / 0.5);
 }
 
 
@@ -11786,6 +11802,17 @@ body {
 }
 
 
+.hover\:border-green-500:hover {
+  --tw-border-opacity: 1;
+  border-color: rgb(34 197 94 / var(--tw-border-opacity, 1));
+}
+
+
+.hover\:border-green-500\/50:hover {
+  border-color: rgb(34 197 94 / 0.5);
+}
+
+
 .hover\:border-white\/20:hover {
   border-color: rgb(255 255 255 / 0.2);
 }
@@ -12021,6 +12048,12 @@ body {
 }
 
 
+.hover\:text-red-400:hover {
+  --tw-text-opacity: 1;
+  color: rgb(248 113 113 / var(--tw-text-opacity, 1));
+}
+
+
 .hover\:text-red-500:hover {
   --tw-text-opacity: 1;
   color: rgb(239 68 68 / var(--tw-text-opacity, 1));
@@ -12073,6 +12106,12 @@ body {
 
 .hover\:ring-white\/20:hover {
   --tw-ring-color: rgb(255 255 255 / 0.2);
+}
+
+
+.focus\:border-blue-500:focus {
+  --tw-border-opacity: 1;
+  border-color: rgb(59 130 246 / var(--tw-border-opacity, 1));
 }
 
 

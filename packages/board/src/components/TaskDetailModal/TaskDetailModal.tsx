@@ -2,8 +2,9 @@
  * TaskDetailModal Component
  * Shared task detail modal for Calendar, Kanban, and Gantt views
  * ClickUp-style full-screen modal with all task fields
- * @version 0.17.422
+ * @version 0.18.9
  *
+ * v0.18.9: Removed unused sections (Custom Fields, Checklists), made Subtasks functional
  * v0.17.422: Added emoji picker and file attachments in comments
  * v0.17.401: Added @mentions support in comments
  * v0.17.253: Editable task name with debounce auto-save
@@ -26,7 +27,6 @@ import {
   Sparkles,
   Plus,
   Maximize2,
-  ListChecks,
   Upload,
   MessageSquare,
   Check,
@@ -253,6 +253,10 @@ export function TaskDetailModal({
   // v0.17.422: Pending files for comment attachments
   const [pendingCommentFiles, setPendingCommentFiles] = useState<PendingFile[]>([]);
 
+  // v0.18.9: Subtasks state
+  const [newSubtaskName, setNewSubtaskName] = useState('');
+  const [isAddingSubtask, setIsAddingSubtask] = useState(false);
+
   // Update local state when task prop changes
   useEffect(() => {
     if (task) {
@@ -435,6 +439,49 @@ export function TaskDetailModal({
       setIsSubmittingComment(false);
     }
   }, [selectedTask, commentText, pendingCommentFiles, onAddComment, mentionableUsers, onUploadCommentAttachments]);
+
+  // v0.18.9: Handle add subtask
+  const handleAddSubtask = useCallback(() => {
+    if (!selectedTask || !newSubtaskName.trim()) return;
+
+    const newSubtask: Task = {
+      id: `subtask-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      name: newSubtaskName.trim(),
+      progress: 0,
+      startDate: new Date(),
+      endDate: new Date(),
+    };
+
+    const updatedSubtasks = [...(selectedTask.subtasks || []), newSubtask];
+    const updatedTask = { ...selectedTask, subtasks: updatedSubtasks };
+    handleUpdate(updatedTask);
+    setNewSubtaskName('');
+    setIsAddingSubtask(false);
+  }, [selectedTask, newSubtaskName, handleUpdate]);
+
+  // v0.18.9: Handle toggle subtask completion
+  const handleToggleSubtask = useCallback((subtaskId: string) => {
+    if (!selectedTask?.subtasks) return;
+
+    const updatedSubtasks = selectedTask.subtasks.map(subtask => {
+      if (subtask.id === subtaskId) {
+        return { ...subtask, progress: subtask.progress === 100 ? 0 : 100 };
+      }
+      return subtask;
+    });
+
+    const updatedTask = { ...selectedTask, subtasks: updatedSubtasks };
+    handleUpdate(updatedTask);
+  }, [selectedTask, handleUpdate]);
+
+  // v0.18.9: Handle delete subtask
+  const handleDeleteSubtask = useCallback((subtaskId: string) => {
+    if (!selectedTask?.subtasks) return;
+
+    const updatedSubtasks = selectedTask.subtasks.filter(s => s.id !== subtaskId);
+    const updatedTask = { ...selectedTask, subtasks: updatedSubtasks };
+    handleUpdate(updatedTask);
+  }, [selectedTask, handleUpdate]);
 
   // v0.17.252: Format comment date
   const formatCommentDate = useCallback((date: Date | string) => {
@@ -1494,86 +1541,121 @@ export function TaskDetailModal({
                   </button>
                 </div>
 
-                {/* Custom Fields section */}
+                {/* Subtasks section - v0.18.9: Functional */}
                 <div className={cn("mt-6 pt-4 border-t", isDark ? "border-white/10" : "border-gray-200")}>
-                  <h3 className={cn("text-sm font-semibold mb-3", isDark ? "text-white" : "text-gray-900")}>
-                    {locale === 'es' ? 'Campos personalizados' : 'Custom fields'}
-                  </h3>
-                  <button className={cn(
-                    "w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors",
-                    isDark ? "bg-white/5 hover:bg-white/10 text-[#9CA3AF]" : "bg-gray-100 hover:bg-gray-200 text-gray-600"
-                  )}>
-                    <Plus className="w-4 h-4" />
-                    {locale === 'es' ? 'Crea un campo en esta lista' : 'Create a field in this list'}
-                  </button>
-                </div>
-
-                {/* Subtasks section */}
-                <div className={cn("mt-6 pt-4 border-t", isDark ? "border-white/10" : "border-gray-200")}>
-                  <h3 className={cn("text-sm font-semibold mb-3", isDark ? "text-white" : "text-gray-900")}>
-                    {locale === 'es' ? 'Subtareas' : 'Subtasks'}
-                  </h3>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className={cn("text-sm font-semibold", isDark ? "text-white" : "text-gray-900")}>
+                      {locale === 'es' ? 'Subtareas' : 'Subtasks'}
+                      {selectedTask.subtasks && selectedTask.subtasks.length > 0 && (
+                        <span className={cn("ml-2 text-xs font-normal", isDark ? "text-[#6B7280]" : "text-gray-400")}>
+                          ({selectedTask.subtasks.filter(s => s.progress === 100).length}/{selectedTask.subtasks.length})
+                        </span>
+                      )}
+                    </h3>
+                  </div>
                   {selectedTask.subtasks && selectedTask.subtasks.length > 0 && (
                     <div className="space-y-2 mb-3">
                       {selectedTask.subtasks.map((subtask) => (
-                        <div key={subtask.id} className="flex items-center gap-2">
-                          <div className={cn(
-                            "w-4 h-4 rounded border flex items-center justify-center cursor-pointer",
-                            subtask.progress === 100
-                              ? "bg-green-500 border-green-500"
-                              : isDark ? "border-white/20 hover:border-white/40" : "border-gray-300 hover:border-gray-400"
-                          )}>
-                            {subtask.progress === 100 && (
-                              <CheckCircle2 className="w-3 h-3 text-white" />
+                        <div key={subtask.id} className={cn(
+                          "flex items-center gap-2 group p-2 rounded-lg -mx-2 transition-colors",
+                          isDark ? "hover:bg-white/5" : "hover:bg-gray-50"
+                        )}>
+                          <button
+                            onClick={() => handleToggleSubtask(subtask.id)}
+                            className={cn(
+                              "w-5 h-5 rounded border flex items-center justify-center flex-shrink-0 transition-colors",
+                              subtask.progress === 100
+                                ? "bg-green-500 border-green-500"
+                                : isDark ? "border-white/20 hover:border-green-500/50" : "border-gray-300 hover:border-green-500"
                             )}
-                          </div>
+                          >
+                            {subtask.progress === 100 && (
+                              <Check className="w-3 h-3 text-white" />
+                            )}
+                          </button>
                           <span className={cn(
-                            "text-sm",
+                            "text-sm flex-1",
                             subtask.progress === 100
                               ? "line-through text-[#6B7280]"
                               : isDark ? "text-white" : "text-gray-900"
                           )}>
                             {subtask.name}
                           </span>
+                          <button
+                            onClick={() => handleDeleteSubtask(subtask.id)}
+                            className={cn(
+                              "p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity",
+                              isDark ? "hover:bg-white/10 text-[#6B7280] hover:text-red-400" : "hover:bg-gray-100 text-gray-400 hover:text-red-500"
+                            )}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       ))}
                     </div>
                   )}
-                  <button className={cn(
-                    "w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors",
-                    isDark ? "bg-white/5 hover:bg-white/10 text-[#9CA3AF]" : "bg-gray-100 hover:bg-gray-200 text-gray-600"
-                  )}>
-                    <Plus className="w-4 h-4" />
-                    {locale === 'es' ? 'Agregar subtarea' : 'Add subtask'}
-                  </button>
-                </div>
 
-                {/* Checklists Section */}
-                <div className={cn(
-                  "mt-6 pt-4 border-t",
-                  isDark ? "border-white/10" : "border-gray-200"
-                )}>
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className={cn(
-                      "text-sm font-semibold",
-                      isDark ? "text-white" : "text-gray-900"
-                    )}>
-                      {locale === 'es' ? 'Listas de control' : 'Checklists'}
-                    </h3>
-                    <button className={cn(
-                      "p-1 rounded transition-colors",
-                      isDark ? "hover:bg-white/10 text-[#9CA3AF]" : "hover:bg-gray-100 text-gray-500"
-                    )}>
+                  {/* Add subtask form */}
+                  {isAddingSubtask ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={newSubtaskName}
+                        onChange={(e) => setNewSubtaskName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && newSubtaskName.trim()) {
+                            handleAddSubtask();
+                          } else if (e.key === 'Escape') {
+                            setIsAddingSubtask(false);
+                            setNewSubtaskName('');
+                          }
+                        }}
+                        placeholder={locale === 'es' ? 'Nombre de la subtarea...' : 'Subtask name...'}
+                        autoFocus
+                        className={cn(
+                          "flex-1 px-3 py-2 rounded-lg text-sm outline-none transition-colors",
+                          isDark
+                            ? "bg-white/5 border border-white/10 text-white placeholder:text-[#6B7280] focus:border-blue-500/50"
+                            : "bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-blue-500"
+                        )}
+                      />
+                      <button
+                        onClick={handleAddSubtask}
+                        disabled={!newSubtaskName.trim()}
+                        className={cn(
+                          "px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                          newSubtaskName.trim()
+                            ? "bg-blue-500 hover:bg-blue-600 text-white"
+                            : isDark ? "bg-white/5 text-[#6B7280] cursor-not-allowed" : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                        )}
+                      >
+                        {locale === 'es' ? 'Agregar' : 'Add'}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setIsAddingSubtask(false);
+                          setNewSubtaskName('');
+                        }}
+                        className={cn(
+                          "p-2 rounded-lg transition-colors",
+                          isDark ? "hover:bg-white/10 text-[#9CA3AF]" : "hover:bg-gray-100 text-gray-500"
+                        )}
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setIsAddingSubtask(true)}
+                      className={cn(
+                        "w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors",
+                        isDark ? "bg-white/5 hover:bg-white/10 text-[#9CA3AF]" : "bg-gray-100 hover:bg-gray-200 text-gray-600"
+                      )}
+                    >
                       <Plus className="w-4 h-4" />
+                      {locale === 'es' ? 'Agregar subtarea' : 'Add subtask'}
                     </button>
-                  </div>
-                  <button className={cn(
-                    "w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors",
-                    isDark ? "bg-white/5 hover:bg-white/10 text-[#9CA3AF]" : "bg-gray-100 hover:bg-gray-200 text-gray-600"
-                  )}>
-                    <ListChecks className="w-4 h-4" />
-                    {locale === 'es' ? 'Crear lista de control' : 'Create checklist'}
-                  </button>
+                  )}
                 </div>
 
                 {/* Attachments Section - v0.17.241: Functional */}
