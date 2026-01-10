@@ -19,12 +19,24 @@ interface StatusCellProps {
   disabled?: boolean;
 }
 
+// Only 3 options shown in dropdown
 const STATUS_OPTIONS = [
   { value: 'todo', icon: Circle, color: 'text-gray-400' },
   { value: 'in-progress', icon: PlayCircle, color: 'text-blue-500' },
-  { value: 'inProgress', icon: PlayCircle, color: 'text-blue-500' }, // Alternative format
   { value: 'completed', icon: CheckCircle2, color: 'text-green-500' },
 ];
+
+// Normalize status value to handle different formats
+function normalizeStatus(status: string): string {
+  const lower = status?.toLowerCase() || 'todo';
+  if (lower === 'inprogress' || lower === 'in-progress' || lower === 'in_progress') {
+    return 'in-progress';
+  }
+  if (lower === 'completed' || lower === 'done' || lower === 'complete') {
+    return 'completed';
+  }
+  return 'todo';
+}
 
 export function StatusCell({
   value,
@@ -49,15 +61,17 @@ export function StatusCell({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
 
+  // Normalize the incoming value
+  const normalizedValue = normalizeStatus(value);
   const defaultStatus = STATUS_OPTIONS[0]!;
-  const currentStatus = STATUS_OPTIONS.find(s => s.value === value) ?? defaultStatus;
+  const currentStatus = STATUS_OPTIONS.find(s => s.value === normalizedValue) ?? defaultStatus;
   const Icon = currentStatus.icon;
 
   const getLabel = (statusValue: string) => {
-    switch (statusValue) {
+    const normalized = normalizeStatus(statusValue);
+    switch (normalized) {
       case 'completed': return translations.completed;
-      case 'in-progress':
-      case 'inProgress': return translations.inProgress;
+      case 'in-progress': return translations.inProgress;
       default: return translations.todo;
     }
   };
@@ -112,7 +126,7 @@ export function StatusCell({
                 className={cn(
                   'w-full flex items-center gap-2 px-3 py-2 text-sm transition-colors',
                   isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100',
-                  value === option.value && (isDark ? 'bg-white/5' : 'bg-gray-50')
+                  normalizedValue === option.value && (isDark ? 'bg-white/5' : 'bg-gray-50')
                 )}
               >
                 <OptionIcon className={cn('w-4 h-4', option.color)} />
