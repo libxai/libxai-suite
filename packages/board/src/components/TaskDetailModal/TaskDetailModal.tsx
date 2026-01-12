@@ -23,7 +23,6 @@ import {
   Tag,
   Link2,
   FileText,
-  Sparkles,
   Plus,
   Upload,
   MessageSquare,
@@ -893,13 +892,6 @@ export function TaskDetailModal({
                   <span className={cn("text-xs font-mono", isDark ? "text-[#6B7280]" : "text-gray-400")}>
                     {selectedTask.id.slice(0, 8)}
                   </span>
-                  <button className={cn(
-                    "flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium transition-colors",
-                    isDark ? "bg-purple-500/20 text-purple-400 hover:bg-purple-500/30" : "bg-purple-100 text-purple-700 hover:bg-purple-200"
-                  )}>
-                    <Sparkles className="w-3 h-3" />
-                    Ask AI
-                  </button>
                 </div>
                 <div className="flex-1" />
               </div>

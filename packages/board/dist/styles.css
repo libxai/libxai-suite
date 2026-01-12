@@ -10229,12 +10229,6 @@ body {
 }
 
 
-.bg-purple-200 {
-  --tw-bg-opacity: 1;
-  background-color: rgb(233 213 255 / var(--tw-bg-opacity, 1));
-}
-
-
 .bg-purple-500 {
   --tw-bg-opacity: 1;
   background-color: rgb(168 85 247 / var(--tw-bg-opacity, 1));
@@ -10243,11 +10237,6 @@ body {
 
 .bg-purple-500\/20 {
   background-color: rgb(168 85 247 / 0.2);
-}
-
-
-.bg-purple-500\/30 {
-  background-color: rgb(168 85 247 / 0.3);
 }
 
 
@@ -11016,12 +11005,6 @@ body {
 .text-purple-400 {
   --tw-text-opacity: 1;
   color: rgb(192 132 252 / var(--tw-text-opacity, 1));
-}
-
-
-.text-purple-700 {
-  --tw-text-opacity: 1;
-  color: rgb(126 34 206 / var(--tw-text-opacity, 1));
 }
 
 
@@ -12200,17 +12183,6 @@ body {
 .hover\:bg-green-600:hover {
   --tw-bg-opacity: 1;
   background-color: rgb(22 163 74 / var(--tw-bg-opacity, 1));
-}
-
-
-.hover\:bg-purple-200:hover {
-  --tw-bg-opacity: 1;
-  background-color: rgb(233 213 255 / var(--tw-bg-opacity, 1));
-}
-
-
-.hover\:bg-purple-500\/30:hover {
-  background-color: rgb(168 85 247 / 0.3);
 }
 
 
