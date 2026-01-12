@@ -1828,7 +1828,22 @@ export function TaskDetailModal({
               </div>
 
               {/* Activity Content - Comments List */}
-              <div ref={commentsContainerRef} className={cn("flex-1 overflow-y-auto py-4 pl-4 pr-2", isDark ? "scrollbar-slim" : "scrollbar-slim-light")}>
+              <style>{`
+                .activity-comments-scroll::-webkit-scrollbar {
+                  width: 4px !important;
+                }
+                .activity-comments-scroll::-webkit-scrollbar-track {
+                  background: transparent !important;
+                }
+                .activity-comments-scroll::-webkit-scrollbar-thumb {
+                  background: transparent !important;
+                  border-radius: 4px !important;
+                }
+                .activity-comments-scroll:hover::-webkit-scrollbar-thumb {
+                  background: ${isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.15)'} !important;
+                }
+              `}</style>
+              <div ref={commentsContainerRef} className={cn("flex-1 overflow-y-auto py-4 pl-4 pr-2 activity-comments-scroll", isDark ? "scrollbar-slim" : "scrollbar-slim-light")}>
                 {comments.length > 0 ? (
                   <div className="space-y-4">
                     {/* Sort comments by date ascending (oldest first, newest at bottom like a chat) */}
