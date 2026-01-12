@@ -47,6 +47,9 @@ export function KanbanBoard({
 }: KanbanBoardProps & { children?: React.ReactNode }) {
   const [dragState, setDragState] = useDragState()
 
+  // Debug: log if onUploadAttachments is received
+  console.log('[KanbanBoard] onUploadAttachments received:', !!onUploadAttachments);
+
   // State for task detail modal
   const [selectedCard, setSelectedCard] = useState<CardType | null>(null)
 
