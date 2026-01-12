@@ -257,6 +257,9 @@ export function TaskDetailModal({
   const [newSubtaskName, setNewSubtaskName] = useState('');
   const [isAddingSubtask, setIsAddingSubtask] = useState(false);
 
+  // v0.18.11: Comments container ref for auto-scroll to bottom
+  const commentsContainerRef = useRef<HTMLDivElement | null>(null);
+
   // Update local state when task prop changes
   useEffect(() => {
     if (task) {
@@ -293,6 +296,18 @@ export function TaskDetailModal({
       }
     };
   }, []);
+
+  // v0.18.11: Auto-scroll comments to bottom when comments change or modal opens
+  useEffect(() => {
+    if (isOpen && commentsContainerRef.current && comments.length > 0) {
+      // Small delay to ensure DOM is updated
+      setTimeout(() => {
+        if (commentsContainerRef.current) {
+          commentsContainerRef.current.scrollTop = commentsContainerRef.current.scrollHeight;
+        }
+      }, 100);
+    }
+  }, [isOpen, comments.length]);
 
   // Handle update - emit in correct format
   const handleUpdate = useCallback((updatedTask: Task) => {
@@ -1821,10 +1836,15 @@ export function TaskDetailModal({
               </div>
 
               {/* Activity Content - Comments List */}
-              <div className="flex-1 overflow-y-auto p-4">
+              <div ref={commentsContainerRef} className="flex-1 overflow-y-auto p-4">
                 {comments.length > 0 ? (
                   <div className="space-y-4">
-                    {comments.map((comment) => (
+                    {/* Sort comments by date ascending (oldest first, newest at bottom like a chat) */}
+                    {[...comments].sort((a, b) => {
+                      const dateA = typeof a.createdAt === 'string' ? new Date(a.createdAt) : a.createdAt;
+                      const dateB = typeof b.createdAt === 'string' ? new Date(b.createdAt) : b.createdAt;
+                      return dateA.getTime() - dateB.getTime();
+                    }).map((comment) => (
                       <div key={comment.id} className="flex gap-3">
                         {/* Avatar */}
                         <div
