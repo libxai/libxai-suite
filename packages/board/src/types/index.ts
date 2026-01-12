@@ -468,6 +468,9 @@ export interface KanbanBoardProps {
   }>
 
   onTaskOpen?: (taskId: string) => void
+
+  /** v0.18.13: Callback to upload attachments to comments (enables attachment icon in comment input) */
+  onUploadCommentAttachments?: (files: File[]) => Promise<Array<{ id: string; url: string; name: string; type: string; size: number }>>
 }
 
 // ============================================================================

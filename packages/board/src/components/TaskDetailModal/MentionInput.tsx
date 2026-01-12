@@ -203,7 +203,7 @@ export function MentionInput({
   const [mentionMatch, setMentionMatch] = useState<MentionMatch | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
@@ -229,10 +229,21 @@ export function MentionInput({
   }, [users]);
 
   // Handle text change
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;
     onChange(newValue);
     updateMentionState(newValue, e.target.selectionStart || 0);
+
+    // Auto-resize textarea
+    if (inputRef.current) {
+      inputRef.current.style.height = '24px'; // Reset to min height
+      const scrollHeight = inputRef.current.scrollHeight;
+      const maxHeight = 280; // Increased max height for more content
+      const newHeight = Math.min(scrollHeight, maxHeight);
+      inputRef.current.style.height = `${newHeight}px`;
+      // Only show scroll when content exceeds max height
+      inputRef.current.style.overflowY = scrollHeight > maxHeight ? 'auto' : 'hidden';
+    }
   };
 
   // Handle cursor position changes
@@ -267,7 +278,7 @@ export function MentionInput({
   }, [mentionMatch, value, onChange]);
 
   // Handle keyboard navigation
-  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (showDropdown && filteredUsers.length > 0) {
       switch (e.key) {
         case 'ArrowDown':
@@ -443,7 +454,7 @@ export function MentionInput({
         {/* Current User Avatar */}
         {currentUser && (
           <div
-            className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-medium flex-shrink-0"
+            className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-medium flex-shrink-0"
             style={{ backgroundColor: currentUser.color || '#8B5CF6' }}
           >
             {currentUser.name?.slice(0, 2).toUpperCase() || 'U'}
@@ -452,7 +463,7 @@ export function MentionInput({
 
         <div className={cn("flex-1 relative min-w-0")}>
           <div className={cn(
-            "flex items-center gap-1 px-2 py-2 rounded-lg",
+            "flex items-end gap-1 px-2 py-2 rounded-lg",
             isDark ? "bg-white/5" : "bg-white border border-gray-200"
           )}>
             {/* Emoji Picker Button */}
@@ -533,21 +544,27 @@ export function MentionInput({
               </>
             )}
 
-            {/* Input */}
-            <input
+            {/* Input - Textarea with auto-resize */}
+            <textarea
               ref={inputRef}
-              type="text"
               value={value}
               onChange={handleChange}
               onSelect={handleSelect}
               onKeyDown={handleKeyDown}
               placeholder={placeholder || (locale === 'es' ? 'Escribe un comentario...' : 'Write a comment...')}
               disabled={disabled || isSubmitting}
+              rows={1}
               className={cn(
-                "flex-1 bg-transparent text-sm outline-none min-w-[100px]",
-                isDark ? "text-white placeholder:text-[#6B7280]" : "text-gray-900 placeholder:text-gray-400",
+                "flex-1 bg-transparent text-sm outline-none min-w-[100px] resize-none py-0.5",
+                isDark ? "text-white placeholder:text-[#6B7280] scrollbar-slim" : "text-gray-900 placeholder:text-gray-400 scrollbar-slim-light",
                 (disabled || isSubmitting) && "opacity-50"
               )}
+              style={{
+                lineHeight: '1.5',
+                height: '24px',
+                maxHeight: '280px',
+                overflowY: 'hidden'
+              }}
             />
 
             {/* Send Button */}

@@ -8852,6 +8852,11 @@ body {
 }
 
 
+.h-\[49px\] {
+  height: 49px;
+}
+
+
 .h-full {
   height: 100%;
 }
@@ -9049,11 +9054,6 @@ body {
 
 .w-8 {
   width: 2rem;
-}
-
-
-.w-80 {
-  width: 20rem;
 }
 
 
@@ -9396,6 +9396,11 @@ body {
 
 .items-start {
   align-items: flex-start;
+}
+
+
+.items-end {
+  align-items: flex-end;
 }
 
 
@@ -10440,8 +10445,18 @@ body {
 }
 
 
+.pl-4 {
+  padding-left: 1rem;
+}
+
+
 .pl-9 {
   padding-left: 2.25rem;
+}
+
+
+.pr-2 {
+  padding-right: 0.5rem;
 }
 
 
@@ -11711,6 +11726,94 @@ body {
 
 .gantt-grid-scroll::-webkit-scrollbar {
   display: none;  /* Chrome, Safari, Opera */
+}
+
+
+/* ============================================================================
+   SLIM SCROLLBAR - v0.18.17
+   Ultra-thin, subtle scrollbar for activity panels and textareas
+   Only visible on hover, minimal visual footprint
+   ============================================================================ */
+
+
+.scrollbar-slim {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+
+.scrollbar-slim:hover {
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+
+.scrollbar-slim::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+
+.scrollbar-slim::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+
+.scrollbar-slim::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 4px;
+  -webkit-transition: background 0.2s ease;
+  transition: background 0.2s ease;
+}
+
+
+.scrollbar-slim:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+
+.scrollbar-slim::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+
+/* Light theme variant */
+
+
+.scrollbar-slim-light {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+
+.scrollbar-slim-light:hover {
+  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+}
+
+
+.scrollbar-slim-light::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+
+.scrollbar-slim-light::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+
+.scrollbar-slim-light::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 4px;
+}
+
+
+.scrollbar-slim-light:hover::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+
+.scrollbar-slim-light::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
 }
 
 

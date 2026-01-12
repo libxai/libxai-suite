@@ -23,10 +23,8 @@ import {
   Tag,
   Link2,
   FileText,
-  MoreHorizontal,
   Sparkles,
   Plus,
-  Maximize2,
   Upload,
   MessageSquare,
   Check,
@@ -668,7 +666,7 @@ export function TaskDetailModal({
             {/* Main Content */}
             <div className="flex-1 flex flex-col overflow-hidden">
               {/* Header */}
-              <div className={cn("px-6 py-3 border-b flex items-center gap-3", isDark ? "border-white/10" : "border-gray-200")}>
+              <div className={cn("px-6 py-3 border-b flex items-center gap-3 h-[49px]", isDark ? "border-white/10" : "border-gray-200")}>
                 <div className="flex items-center gap-2">
                   <Circle className={cn("w-4 h-4", isDark ? "text-[#9CA3AF]" : "text-gray-500")} />
                   <span className={cn("text-xs px-2 py-0.5 rounded", isDark ? "bg-white/10 text-[#9CA3AF]" : "bg-gray-100 text-gray-600")}>
@@ -686,18 +684,6 @@ export function TaskDetailModal({
                   </button>
                 </div>
                 <div className="flex-1" />
-                <button className={cn("p-1.5 rounded transition-colors", isDark ? "hover:bg-white/10 text-[#9CA3AF]" : "hover:bg-gray-100 text-gray-500")}>
-                  <Maximize2 className="w-4 h-4" />
-                </button>
-                <button className={cn("p-1.5 rounded transition-colors", isDark ? "hover:bg-white/10 text-[#9CA3AF]" : "hover:bg-gray-100 text-gray-500")}>
-                  <MoreHorizontal className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={onClose}
-                  className={cn("p-1.5 rounded transition-colors", isDark ? "hover:bg-white/10 text-[#9CA3AF]" : "hover:bg-gray-100 text-gray-500")}
-                >
-                  <X className="w-5 h-5" />
-                </button>
               </div>
 
               {/* Task Title with checkbox - v0.17.253: Editable name */}
@@ -1814,12 +1800,12 @@ export function TaskDetailModal({
 
             {/* Activity Panel - Right Sidebar */}
             <div className={cn(
-              "w-80 border-l flex flex-col",
+              "w-96 border-l flex flex-col",
               isDark ? "border-white/10 bg-[#0F1117]" : "border-gray-200 bg-gray-50"
             )}>
               {/* Activity Header */}
               <div className={cn(
-                "px-4 py-3 border-b",
+                "px-4 py-3 border-b flex items-center justify-between h-[49px]",
                 isDark ? "border-white/10" : "border-gray-200"
               )}>
                 <h3 className={cn(
@@ -1833,10 +1819,16 @@ export function TaskDetailModal({
                     </span>
                   )}
                 </h3>
+                <button
+                  onClick={onClose}
+                  className={cn("p-1.5 rounded transition-colors", isDark ? "hover:bg-white/10 text-[#9CA3AF]" : "hover:bg-gray-100 text-gray-500")}
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
 
               {/* Activity Content - Comments List */}
-              <div ref={commentsContainerRef} className="flex-1 overflow-y-auto p-4">
+              <div ref={commentsContainerRef} className={cn("flex-1 overflow-y-auto py-4 pl-4 pr-2", isDark ? "scrollbar-slim" : "scrollbar-slim-light")}>
                 {comments.length > 0 ? (
                   <div className="space-y-4">
                     {/* Sort comments by date ascending (oldest first, newest at bottom like a chat) */}
@@ -1848,7 +1840,7 @@ export function TaskDetailModal({
                       <div key={comment.id} className="flex gap-3">
                         {/* Avatar */}
                         <div
-                          className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-medium flex-shrink-0"
+                          className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-medium flex-shrink-0"
                           style={{ backgroundColor: comment.user?.color || '#8B5CF6' }}
                         >
                           {comment.user?.name?.slice(0, 2).toUpperCase() || 'U'}
@@ -1918,7 +1910,7 @@ export function TaskDetailModal({
 
               {/* Comment Input - v0.17.422: Now with @mentions, emojis and attachments support */}
               <div className={cn(
-                "p-4 border-t",
+                "py-4 pl-4 pr-2 border-t",
                 isDark ? "border-white/10" : "border-gray-200"
               )}>
                 <MentionInput

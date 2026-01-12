@@ -44,11 +44,10 @@ export function KanbanBoard({
   currentUser,
   mentionableUsers,
   onTaskOpen,
+  // v0.18.13: Comment attachments support
+  onUploadCommentAttachments,
 }: KanbanBoardProps & { children?: React.ReactNode }) {
   const [dragState, setDragState] = useDragState()
-
-  // Debug: log if onUploadAttachments is received
-  console.log('[KanbanBoard] onUploadAttachments received:', !!onUploadAttachments);
 
   // State for task detail modal
   const [selectedCard, setSelectedCard] = useState<CardType | null>(null)
@@ -424,6 +423,7 @@ export function KanbanBoard({
         onAddComment={onAddComment}
         currentUser={currentUser}
         mentionableUsers={mentionableUsers}
+        onUploadCommentAttachments={onUploadCommentAttachments}
       />
     </KanbanThemeProvider>
   )

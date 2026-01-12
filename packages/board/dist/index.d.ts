@@ -864,6 +864,14 @@ interface KanbanBoardProps {
         color?: string;
     }>;
     onTaskOpen?: (taskId: string) => void;
+    /** v0.18.13: Callback to upload attachments to comments (enables attachment icon in comment input) */
+    onUploadCommentAttachments?: (files: File[]) => Promise<Array<{
+        id: string;
+        url: string;
+        name: string;
+        type: string;
+        size: number;
+    }>>;
 }
 /**
  * Drag event data
@@ -1234,7 +1242,7 @@ declare class KanbanViewAdapter extends BaseViewAdapter<ViewBoardData> {
  */
 declare function createKanbanView(config?: KanbanViewConfig): KanbanViewAdapter;
 
-declare function KanbanBoard({ board, callbacks, onCardClick, renderProps, config, availableUsers, className, style, isLoading, error, children, availableTags, onCreateTag, attachmentsByCard, onUploadAttachments, onDeleteAttachment, comments, onAddComment, currentUser, mentionableUsers, onTaskOpen, }: KanbanBoardProps & {
+declare function KanbanBoard({ board, callbacks, onCardClick, renderProps, config, availableUsers, className, style, isLoading, error, children, availableTags, onCreateTag, attachmentsByCard, onUploadAttachments, onDeleteAttachment, comments, onAddComment, currentUser, mentionableUsers, onTaskOpen, onUploadCommentAttachments, }: KanbanBoardProps & {
     children?: React.ReactNode;
 }): react_jsx_runtime.JSX.Element;
 
