@@ -1533,13 +1533,6 @@ export function TaskDetailModal({
                         : "bg-gray-100 text-gray-900 placeholder:text-gray-400 focus:bg-gray-200"
                     )}
                   />
-                  <button className={cn(
-                    "flex items-center gap-2 text-sm mt-2 transition-colors",
-                    isDark ? "text-purple-400 hover:text-purple-300" : "text-purple-600 hover:text-purple-700"
-                  )}>
-                    <Sparkles className="w-4 h-4" />
-                    {locale === 'es' ? 'Escribe con IA' : 'Write with AI'}
-                  </button>
                 </div>
 
                 {/* Subtasks section - v0.18.9: Functional */}
