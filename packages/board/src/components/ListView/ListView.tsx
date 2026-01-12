@@ -518,6 +518,17 @@ export function ListView({
           />
         );
 
+      // v1.1.0: Quoted time column
+      case 'quotedTime':
+        return (
+          <TimeCell
+            value={(task as any).quotedTime}
+            onChange={(minutes) => handleUpdate({ quotedTime: minutes } as any)}
+            isDark={isDark}
+            locale={locale}
+          />
+        );
+
       case 'elapsedTime':
         return (
           <TimeCell
@@ -546,6 +557,8 @@ export function ListView({
       tags: (t.columns as any).tags || (locale === 'es' ? 'Etiquetas' : 'Tags'),
       // v0.18.3: Time tracking columns
       estimatedTime: (t.columns as any).estimatedTime || (locale === 'es' ? 'Estimado' : 'Estimated'),
+      // v1.1.0: Quoted time column
+      quotedTime: (t.columns as any).quotedTime || (locale === 'es' ? 'Ofertado' : 'Quoted'),
       elapsedTime: (t.columns as any).elapsedTime || (locale === 'es' ? 'Tiempo' : 'Time Spent'),
     };
     const label = labelMap[column.type] || column.label;

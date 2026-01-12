@@ -15,7 +15,7 @@ export type SortDirection = 'asc' | 'desc';
 
 /**
  * Column types supported in ListView
- * - Standard: name, status, priority, assignees, startDate, endDate, progress, tags, estimatedTime, elapsedTime
+ * - Standard: name, status, priority, assignees, startDate, endDate, progress, tags, estimatedTime, quotedTime, elapsedTime
  * - Custom: text, number, date, dropdown, checkbox
  */
 export type ColumnType =
@@ -28,6 +28,7 @@ export type ColumnType =
   | 'progress'       // Progress percentage
   | 'tags'           // Task tags/labels
   | 'estimatedTime'  // Estimated time in minutes (v0.18.3)
+  | 'quotedTime'     // Quoted time in minutes (v1.1.0)
   | 'elapsedTime'    // Elapsed/spent time in minutes (v0.18.3)
   // Custom field types
   | 'text'           // Custom text field
@@ -285,6 +286,8 @@ export interface ListViewTranslations {
     actions: string;
     // v0.18.3: Time tracking columns
     estimatedTime?: string;
+    // v1.1.0: Quoted time column
+    quotedTime?: string;
     elapsedTime?: string;
     tags?: string;
   };
@@ -449,6 +452,8 @@ export const DEFAULT_TABLE_COLUMNS: TableColumn[] = [
   { id: 'tags', type: 'tags', label: 'Tags', width: 150, visible: false, sortable: false, resizable: true },
   // v0.18.3: Time tracking columns
   { id: 'estimatedTime', type: 'estimatedTime', label: 'Estimated', width: 100, visible: false, sortable: true, resizable: true },
+  // v1.1.0: Quoted time column
+  { id: 'quotedTime', type: 'quotedTime', label: 'Quoted', width: 100, visible: false, sortable: true, resizable: true },
   { id: 'elapsedTime', type: 'elapsedTime', label: 'Time Spent', width: 100, visible: false, sortable: true, resizable: true },
 ];
 
@@ -467,6 +472,8 @@ export const STANDARD_FIELDS: Array<{ type: ColumnType; labelKey: string; icon: 
   { type: 'tags', labelKey: 'columns.tags', icon: 'Tag' },
   // v0.18.3: Time tracking fields
   { type: 'estimatedTime', labelKey: 'columns.estimatedTime', icon: 'Clock' },
+  // v1.1.0: Quoted time field
+  { type: 'quotedTime', labelKey: 'columns.quotedTime', icon: 'FileText' },
   { type: 'elapsedTime', labelKey: 'columns.elapsedTime', icon: 'Timer' },
 ];
 

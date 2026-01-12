@@ -92,6 +92,16 @@ export function CalendarBoard({
   mentionableUsers,
   onUploadCommentAttachments,
   onTaskOpen,
+  // v1.1.0: Time tracking props
+  enableTimeTracking,
+  timeTrackingSummary,
+  timeEntries,
+  timerState,
+  onLogTime,
+  onUpdateEstimate,
+  onStartTimer,
+  onStopTimer,
+  onDiscardTimer,
 }: CalendarBoardProps) {
   const {
     theme: themeName = 'dark',
@@ -969,6 +979,17 @@ export function CalendarBoard({
         currentUser={currentUser}
         mentionableUsers={mentionableUsers}
         onUploadCommentAttachments={onUploadCommentAttachments}
+        // v1.1.0: Time tracking props
+        enableTimeTracking={enableTimeTracking}
+        timeTrackingSummary={timeTrackingSummary}
+        timeEntries={timeEntries}
+        isTimerRunning={timerState?.isRunning}
+        timerElapsedSeconds={timerState?.elapsedSeconds}
+        onTimeLog={onLogTime}
+        onEstimateUpdate={onUpdateEstimate}
+        onTimerStart={onStartTimer}
+        onTimerStop={onStopTimer}
+        onTimerDiscard={onDiscardTimer}
       />
 
       {/* v0.17.83: Day Tasks Popover - Shows all tasks for a day */}

@@ -35,14 +35,194 @@ import {
   FileText as FileTextIcon,
   Palette,
   Diamond,
+  Hourglass,
+  Square,
+  Play,
 } from 'lucide-react';
 import { MentionInput, CommentContent, extractMentionedUserIds } from './MentionInput';
 import type { MentionUser, CommentAttachment, PendingFile } from './MentionInput';
 import type { Task, Assignee, TaskTag } from '../Gantt/types';
-import type { Card, Attachment } from '../../types';
+import type { Card, Attachment, TimeEntry, TimeLogInput, TimeTrackingSummary } from '../../types';
 import { cn } from '../../utils';
 import { TagPicker } from '../Gantt/TagPicker';
 import { TASK_COLORS } from '../Gantt/ColorPicker';
+
+// v1.1.0: Helper function to format minutes as display string (e.g., "2h 30m")
+function formatMinutesToDisplay(minutes: number): string {
+  if (minutes < 60) {
+    return `${minutes}m`;
+  }
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  if (remainingMinutes === 0) {
+    return `${hours}h`;
+  }
+  return `${hours}h ${remainingMinutes}m`;
+}
+
+// v1.1.0: Helper function to format seconds as display string for running timer (e.g., "00:05:23")
+function formatSecondsToDisplay(seconds: number): string {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+
+  if (hours > 0) {
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
+  return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
+// v1.1.0: TimeInputPopover component for entering time values
+interface TimeInputPopoverProps {
+  mode: 'estimate' | 'quoted' | 'log';
+  locale: 'en' | 'es';
+  isDark: boolean;
+  currentValue: number | null;
+  onSave: (minutes: number | null, note?: string) => Promise<void>;
+  onClose: () => void;
+}
+
+function TimeInputPopover({ mode, locale, isDark, currentValue, onSave, onClose }: TimeInputPopoverProps) {
+  const [hours, setHours] = useState(currentValue ? Math.floor(currentValue / 60) : 0);
+  const [minutes, setMinutes] = useState(currentValue ? currentValue % 60 : 0);
+  const [note, setNote] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    const totalMinutes = hours * 60 + minutes;
+    await onSave(totalMinutes > 0 ? totalMinutes : null, note || undefined);
+    setIsSaving(false);
+  };
+
+  const handleClear = async () => {
+    setIsSaving(true);
+    await onSave(null);
+    setIsSaving(false);
+  };
+
+  const titles = {
+    estimate: locale === 'es' ? 'Duración estimada' : 'Estimated duration',
+    quoted: locale === 'es' ? 'Tiempo ofertado' : 'Quoted time',
+    log: locale === 'es' ? 'Agregar tiempo' : 'Add time',
+  };
+
+  return (
+    <div
+      className={cn(
+        "p-4 rounded-lg shadow-xl border min-w-[280px]",
+        isDark ? "bg-[#1A1D25] border-white/10" : "bg-white border-gray-200"
+      )}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="flex items-center justify-between mb-4">
+        <h4 className={cn("text-sm font-medium", isDark ? "text-white" : "text-gray-900")}>
+          {titles[mode]}
+        </h4>
+        <button
+          type="button"
+          onClick={onClose}
+          className={cn(
+            "p-1 rounded hover:bg-opacity-10",
+            isDark ? "hover:bg-white text-gray-400" : "hover:bg-gray-200 text-gray-500"
+          )}
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+
+      <div className="flex items-center gap-3 mb-4">
+        <div className="flex-1">
+          <label className={cn("block text-xs mb-1", isDark ? "text-gray-400" : "text-gray-500")}>
+            {locale === 'es' ? 'Horas' : 'Hours'}
+          </label>
+          <input
+            type="number"
+            min="0"
+            max="999"
+            value={hours}
+            onChange={(e) => setHours(Math.max(0, parseInt(e.target.value) || 0))}
+            className={cn(
+              "w-full px-3 py-2 rounded border text-center text-lg font-medium",
+              isDark
+                ? "bg-[#0F1117] border-white/10 text-white focus:border-blue-500"
+                : "bg-gray-50 border-gray-200 text-gray-900 focus:border-blue-500"
+            )}
+          />
+        </div>
+        <span className={cn("text-2xl font-light mt-5", isDark ? "text-gray-500" : "text-gray-400")}>:</span>
+        <div className="flex-1">
+          <label className={cn("block text-xs mb-1", isDark ? "text-gray-400" : "text-gray-500")}>
+            {locale === 'es' ? 'Minutos' : 'Minutes'}
+          </label>
+          <input
+            type="number"
+            min="0"
+            max="59"
+            value={minutes}
+            onChange={(e) => setMinutes(Math.min(59, Math.max(0, parseInt(e.target.value) || 0)))}
+            className={cn(
+              "w-full px-3 py-2 rounded border text-center text-lg font-medium",
+              isDark
+                ? "bg-[#0F1117] border-white/10 text-white focus:border-blue-500"
+                : "bg-gray-50 border-gray-200 text-gray-900 focus:border-blue-500"
+            )}
+          />
+        </div>
+      </div>
+
+      {/* Note field only for log mode */}
+      {mode === 'log' && (
+        <div className="mb-4">
+          <label className={cn("block text-xs mb-1", isDark ? "text-gray-400" : "text-gray-500")}>
+            {locale === 'es' ? 'Nota (opcional)' : 'Note (optional)'}
+          </label>
+          <input
+            type="text"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder={locale === 'es' ? 'Descripción del trabajo...' : 'Work description...'}
+            className={cn(
+              "w-full px-3 py-2 rounded border text-sm",
+              isDark
+                ? "bg-[#0F1117] border-white/10 text-white placeholder:text-gray-500 focus:border-blue-500"
+                : "bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-blue-500"
+            )}
+          />
+        </div>
+      )}
+
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={isSaving}
+          className={cn(
+            "flex-1 px-4 py-2 rounded text-sm font-medium transition-colors",
+            "bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+          )}
+        >
+          {isSaving ? (locale === 'es' ? 'Guardando...' : 'Saving...') : (locale === 'es' ? 'Guardar' : 'Save')}
+        </button>
+        {currentValue && mode !== 'log' && (
+          <button
+            type="button"
+            onClick={handleClear}
+            disabled={isSaving}
+            className={cn(
+              "px-4 py-2 rounded text-sm font-medium transition-colors",
+              isDark
+                ? "bg-red-500/10 text-red-400 hover:bg-red-500/20"
+                : "bg-red-50 text-red-600 hover:bg-red-100"
+            )}
+          >
+            {locale === 'es' ? 'Quitar' : 'Clear'}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
 
 // Type for item that can be either Task or Card
 export type TaskOrCard = Task | Card;
@@ -175,6 +355,27 @@ export interface TaskDetailModalProps {
   mentionableUsers?: MentionUser[];
   /** v0.17.422: Upload comment attachments callback */
   onUploadCommentAttachments?: (files: File[]) => Promise<CommentAttachment[]>;
+  // v1.1.0: Time Tracking Props
+  /** Enable time tracking section */
+  enableTimeTracking?: boolean;
+  /** Time tracking summary for current task */
+  timeTrackingSummary?: TimeTrackingSummary;
+  /** Time entries for current task */
+  timeEntries?: TimeEntry[];
+  /** Whether timer is running for this task */
+  isTimerRunning?: boolean;
+  /** Timer elapsed seconds */
+  timerElapsedSeconds?: number;
+  /** Log time callback */
+  onTimeLog?: (taskId: string, input: TimeLogInput) => Promise<void>;
+  /** Update estimate callback */
+  onEstimateUpdate?: (taskId: string, minutes: number | null) => Promise<void>;
+  /** Start timer callback */
+  onTimerStart?: (taskId: string) => void;
+  /** Stop timer callback */
+  onTimerStop?: (taskId: string) => void;
+  /** Discard timer callback */
+  onTimerDiscard?: (taskId: string) => void;
 }
 
 /**
@@ -200,7 +401,21 @@ export function TaskDetailModal({
   currentUser,
   mentionableUsers = [],
   onUploadCommentAttachments,
+  // v1.1.0: Time Tracking
+  enableTimeTracking = false,
+  timeTrackingSummary,
+  timeEntries: _timeEntries = [],
+  isTimerRunning = false,
+  timerElapsedSeconds = 0,
+  onTimeLog,
+  onEstimateUpdate,
+  onTimerStart,
+  onTimerStop,
+  onTimerDiscard: _onTimerDiscard,
 }: TaskDetailModalProps) {
+  // Suppress unused variable warnings (reserved for future features)
+  void _timeEntries;
+  void _onTimerDiscard;
   const isDark = theme === 'dark';
 
   // Theme object for TagPicker
@@ -230,6 +445,9 @@ export function TaskDetailModal({
   const [showDependenciesDropdown, setShowDependenciesDropdown] = useState(false);
   const [dependencySearch, setDependencySearch] = useState('');
   const [showColorPicker, setShowColorPicker] = useState(false);
+
+  // v1.1.0: Time tracking popover state - 'estimate' | 'quoted' | 'log' | false
+  const [showTimePopover, setShowTimePopover] = useState<false | 'estimate' | 'quoted' | 'log'>(false);
 
   // v0.17.241: Attachment drag state
   const [isDraggingFile, setIsDraggingFile] = useState(false);
@@ -1240,6 +1458,204 @@ export function TaskDetailModal({
                       </span>
                     </div>
                   </div>
+
+                  {/* Time Tracking - v1.1.0 - Rediseñado estilo ClickUp */}
+                  {enableTimeTracking && (
+                    <>
+                      {/* Row 1: Duración estimada (Esfuerzo Estimado) */}
+                      <div className="flex items-center gap-3">
+                        <Hourglass className={cn("w-4 h-4", isDark ? "text-[#6B7280]" : "text-gray-400")} />
+                        <span className={cn("text-sm w-24", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
+                          {locale === 'es' ? 'Duración estima...' : 'Estimated dur...'}
+                        </span>
+                        <div className="flex items-center gap-2 flex-1">
+                          {timeTrackingSummary?.estimateMinutes ? (
+                            <button
+                              type="button"
+                              onClick={() => setShowTimePopover('estimate')}
+                              className={cn(
+                                "text-sm px-2 py-0.5 rounded",
+                                isDark ? "text-white hover:bg-white/10" : "text-gray-900 hover:bg-gray-100"
+                              )}
+                            >
+                              {formatMinutesToDisplay(timeTrackingSummary.estimateMinutes)}
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setShowTimePopover('estimate')}
+                              className={cn(
+                                "text-sm",
+                                isDark ? "text-[#6B7280] hover:text-[#9CA3AF]" : "text-gray-400 hover:text-gray-500"
+                              )}
+                            >
+                              {locale === 'es' ? 'Vacío' : 'Empty'}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Row 2: Tiempo ofertado (Quoted Time) */}
+                      <div className="flex items-center gap-3">
+                        <FileText className={cn("w-4 h-4", isDark ? "text-[#6B7280]" : "text-gray-400")} />
+                        <span className={cn("text-sm w-24", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
+                          {locale === 'es' ? 'Tiempo ofertado' : 'Quoted time'}
+                        </span>
+                        <div className="flex items-center gap-2 flex-1">
+                          {(selectedTask as any).quotedMinutes ? (
+                            <button
+                              type="button"
+                              onClick={() => setShowTimePopover('quoted')}
+                              className={cn(
+                                "text-sm px-2 py-0.5 rounded",
+                                isDark ? "text-white hover:bg-white/10" : "text-gray-900 hover:bg-gray-100"
+                              )}
+                            >
+                              {formatMinutesToDisplay((selectedTask as any).quotedMinutes)}
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setShowTimePopover('quoted')}
+                              className={cn(
+                                "text-sm",
+                                isDark ? "text-[#6B7280] hover:text-[#9CA3AF]" : "text-gray-400 hover:text-gray-500"
+                              )}
+                            >
+                              {locale === 'es' ? 'Vacío' : 'Empty'}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Row 3: Registrar el tiempo (Log Time) */}
+                      <div className="flex items-center gap-3 relative">
+                        <Clock className={cn("w-4 h-4", isDark ? "text-[#6B7280]" : "text-gray-400")} />
+                        <span className={cn("text-sm w-24", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
+                          {locale === 'es' ? 'Registrar el tie...' : 'Track time'}
+                        </span>
+                        <div className="flex items-center gap-2 flex-1">
+                          {/* Timer Play/Stop toggle */}
+                          {isTimerRunning ? (
+                            <button
+                              type="button"
+                              onClick={() => onTimerStop?.(selectedTask.id)}
+                              className={cn(
+                                "flex items-center gap-1.5 px-2 py-1 rounded text-sm transition-colors",
+                                "bg-red-500/10 text-red-500 hover:bg-red-500/20"
+                              )}
+                            >
+                              <Square className="w-3.5 h-3.5 fill-current" />
+                              {formatSecondsToDisplay(timerElapsedSeconds || 0)}
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => onTimerStart?.(selectedTask.id)}
+                              className={cn(
+                                "flex items-center gap-1.5 p-1.5 rounded-full transition-colors",
+                                isDark
+                                  ? "bg-white/10 text-white hover:bg-white/20"
+                                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                              )}
+                              title={locale === 'es' ? 'Iniciar temporizador' : 'Start timer'}
+                            >
+                              <Play className="w-3.5 h-3.5 fill-current" />
+                            </button>
+                          )}
+
+                          {/* Add time button */}
+                          <button
+                            type="button"
+                            onClick={() => setShowTimePopover('log')}
+                            className={cn(
+                              "flex items-center gap-1.5 px-2 py-1 rounded text-sm transition-colors",
+                              isDark
+                                ? "text-[#9CA3AF] hover:bg-white/10 hover:text-white"
+                                : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                            )}
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            {locale === 'es' ? 'Agregar tiempo' : 'Add time'}
+                          </button>
+
+                          {/* Logged time display with health bar */}
+                          {timeTrackingSummary && timeTrackingSummary.loggedMinutes > 0 && (
+                            <div className="flex items-center gap-2 ml-auto">
+                              <span className={cn(
+                                "text-sm font-medium",
+                                timeTrackingSummary.health === 'over-budget'
+                                  ? "text-red-500"
+                                  : timeTrackingSummary.health === 'at-risk'
+                                    ? "text-yellow-500"
+                                    : isDark ? "text-white" : "text-gray-900"
+                              )}>
+                                {formatMinutesToDisplay(timeTrackingSummary.loggedMinutes)}
+                                {timeTrackingSummary.estimateMinutes && (
+                                  <span className={cn("font-normal", isDark ? "text-[#6B7280]" : "text-gray-400")}>
+                                    {' / '}{formatMinutesToDisplay(timeTrackingSummary.estimateMinutes)}
+                                  </span>
+                                )}
+                              </span>
+                              {/* Mini health bar */}
+                              {timeTrackingSummary.health !== 'no-estimate' && (
+                                <div className="w-16 h-1.5 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700">
+                                  <div
+                                    className={cn(
+                                      "h-full rounded-full transition-all",
+                                      timeTrackingSummary.health === 'over-budget'
+                                        ? "bg-red-500"
+                                        : timeTrackingSummary.health === 'at-risk'
+                                          ? "bg-yellow-500"
+                                          : "bg-green-500"
+                                    )}
+                                    style={{ width: `${Math.min(100, timeTrackingSummary.progressPercent || 0)}%` }}
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Time Input Popover */}
+                        <AnimatePresence>
+                          {showTimePopover && (
+                            <motion.div
+                              initial={{ opacity: 0, y: -10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -10 }}
+                              className="absolute top-full left-28 mt-2 z-50"
+                            >
+                              <TimeInputPopover
+                                mode={showTimePopover as 'estimate' | 'quoted' | 'log'}
+                                locale={locale}
+                                isDark={isDark}
+                                currentValue={
+                                  showTimePopover === 'estimate'
+                                    ? timeTrackingSummary?.estimateMinutes || null
+                                    : showTimePopover === 'quoted'
+                                      ? (selectedTask as any).quotedMinutes || null
+                                      : null
+                                }
+                                onSave={async (minutes, note) => {
+                                  if (showTimePopover === 'estimate') {
+                                    await onEstimateUpdate?.(selectedTask.id, minutes);
+                                  } else if (showTimePopover === 'quoted') {
+                                    // Update quoted time on task
+                                    updateTaskField('quotedMinutes' as any, minutes);
+                                  } else if (showTimePopover === 'log' && minutes) {
+                                    await onTimeLog?.(selectedTask.id, { durationMinutes: minutes, note, source: 'manual' });
+                                  }
+                                  setShowTimePopover(false);
+                                }}
+                                onClose={() => setShowTimePopover(false)}
+                              />
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    </>
+                  )}
 
                   {/* Tags */}
                   <div className="flex items-center gap-3">

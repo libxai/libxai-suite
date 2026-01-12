@@ -4,7 +4,7 @@
  */
 
 import type { Task, TaskTag } from '../Gantt/types';
-import type { User, Attachment } from '../../types';
+import type { User, Attachment, TimeEntry, TimeTrackingSummary, TimerState, TimeLogInput } from '../../types';
 
 /**
  * Calendar view modes
@@ -304,4 +304,35 @@ export interface CalendarBoardProps {
   }>;
 
   onTaskOpen?: (taskId: string) => void;
+
+  // ========================================================================
+  // v1.1.0: Time Tracking props
+  // ========================================================================
+
+  /** Enable time tracking features in TaskDetailModal */
+  enableTimeTracking?: boolean;
+
+  /** Time tracking summary for the currently open task */
+  timeTrackingSummary?: TimeTrackingSummary;
+
+  /** Time entries for the currently open task */
+  timeEntries?: TimeEntry[];
+
+  /** Current timer state */
+  timerState?: TimerState;
+
+  /** Callback to log time manually */
+  onLogTime?: (taskId: string, input: TimeLogInput) => Promise<void>;
+
+  /** Callback to update task estimate */
+  onUpdateEstimate?: (taskId: string, minutes: number | null) => Promise<void>;
+
+  /** Callback to start timer */
+  onStartTimer?: (taskId: string) => void;
+
+  /** Callback to stop timer and save time */
+  onStopTimer?: (taskId: string) => void;
+
+  /** Callback to discard timer without saving */
+  onDiscardTimer?: (taskId: string) => void;
 }

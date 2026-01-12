@@ -46,6 +46,16 @@ export function KanbanBoard({
   onTaskOpen,
   // v0.18.13: Comment attachments support
   onUploadCommentAttachments,
+  // v1.1.0: Time tracking support
+  enableTimeTracking,
+  timeTrackingSummary,
+  timeEntries,
+  timerState,
+  onLogTime,
+  onUpdateEstimate,
+  onStartTimer,
+  onStopTimer,
+  onDiscardTimer,
 }: KanbanBoardProps & { children?: React.ReactNode }) {
   const [dragState, setDragState] = useDragState()
 
@@ -424,6 +434,17 @@ export function KanbanBoard({
         currentUser={currentUser}
         mentionableUsers={mentionableUsers}
         onUploadCommentAttachments={onUploadCommentAttachments}
+        // v1.1.0: Time tracking props
+        enableTimeTracking={enableTimeTracking}
+        timeTrackingSummary={timeTrackingSummary}
+        timeEntries={timeEntries}
+        isTimerRunning={timerState?.isRunning}
+        timerElapsedSeconds={timerState?.elapsedSeconds}
+        onTimeLog={onLogTime}
+        onEstimateUpdate={onUpdateEstimate}
+        onTimerStart={onStartTimer}
+        onTimerStop={onStopTimer}
+        onTimerDiscard={onDiscardTimer}
       />
     </KanbanThemeProvider>
   )

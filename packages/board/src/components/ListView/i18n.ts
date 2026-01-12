@@ -22,6 +22,8 @@ export const en: ListViewTranslations = {
     actions: 'Actions',
     // v0.18.3: Time tracking columns
     estimatedTime: 'Estimated',
+    // v1.1.0: Quoted time column
+    quotedTime: 'Quoted',
     elapsedTime: 'Time Spent',
     tags: 'Tags',
   },
@@ -95,6 +97,8 @@ export const es: ListViewTranslations = {
     actions: 'Acciones',
     // v0.18.3: Time tracking columns
     estimatedTime: 'Estimado',
+    // v1.1.0: Quoted time column
+    quotedTime: 'Ofertado',
     elapsedTime: 'Tiempo',
     tags: 'Etiquetas',
   },

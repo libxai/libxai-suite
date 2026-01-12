@@ -22,6 +22,7 @@ import {
   Tag,
   Clock,
   Timer,
+  FileText,
 } from 'lucide-react';
 import { cn } from '../../utils';
 import type { TableColumn, CustomFieldDefinition, ColumnType } from './types';
@@ -50,6 +51,8 @@ const COLUMN_ICONS: Record<ColumnType, React.ReactNode> = {
   tags: <Tag className="w-4 h-4" />,
   // v0.18.3: Time tracking columns
   estimatedTime: <Clock className="w-4 h-4" />,
+  // v1.1.0: Quoted time column
+  quotedTime: <FileText className="w-4 h-4" />,
   elapsedTime: <Timer className="w-4 h-4" />,
   // Custom field types
   text: <Type className="w-4 h-4" />,
@@ -60,7 +63,7 @@ const COLUMN_ICONS: Record<ColumnType, React.ReactNode> = {
 };
 
 // Standard fields that are always available
-const STANDARD_COLUMNS: ColumnType[] = ['name', 'status', 'priority', 'assignees', 'startDate', 'endDate', 'progress', 'tags', 'estimatedTime', 'elapsedTime'];
+const STANDARD_COLUMNS: ColumnType[] = ['name', 'status', 'priority', 'assignees', 'startDate', 'endDate', 'progress', 'tags', 'estimatedTime', 'quotedTime', 'elapsedTime'];
 
 export function ColumnSelector({
   isOpen,
@@ -210,74 +213,36 @@ export function ColumnSelector({
         </div>
       </div>
 
-      {/* Standard Fields */}
-      <div className="px-3 pb-2">
-        <h4 className={cn('text-xs font-medium uppercase tracking-wider mb-2', isDark ? 'text-[#6B7280]' : 'text-gray-400')}>
-          {t.standardFields}
-        </h4>
-        <div className="space-y-1">
-          {filteredStandardColumns.map((type) => {
-            const column = columns.find((c) => c.type === type && !c.customFieldId);
-            const isVisible = column?.visible ?? false;
-            const isName = type === 'name';
-
-            return (
-              <button
-                key={type}
-                onClick={() => {
-                  if (isName) return;
-                  // If column exists, toggle visibility. If not, add it.
-                  if (column) {
-                    toggleColumnVisibility(column.id);
-                  } else {
-                    addColumn(type);
-                  }
-                }}
-                disabled={isName}
-                className={cn(
-                  'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
-                  isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100',
-                  isName && 'opacity-50 cursor-not-allowed'
-                )}
-              >
-                <div className={cn(
-                  'w-5 h-5 rounded border flex items-center justify-center',
-                  isVisible
-                    ? 'bg-[#3B82F6] border-[#3B82F6]'
-                    : isDark ? 'border-[#4B5563]' : 'border-gray-300'
-                )}>
-                  {isVisible && <Check className="w-3 h-3 text-white" />}
-                </div>
-                <span className={isDark ? 'text-[#9CA3AF]' : 'text-gray-400'}>
-                  {COLUMN_ICONS[type]}
-                </span>
-                <span className={isDark ? 'text-white' : 'text-gray-900'}>
-                  {getColumnLabel(type)}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Custom Fields */}
-      {filteredCustomFields.length > 0 && (
+      {/* Scrollable content area - max-height adapts to viewport */}
+      <div className="overflow-y-auto max-h-[calc(100vh-300px)] min-h-[200px]">
+        {/* Standard Fields */}
         <div className="px-3 pb-2">
           <h4 className={cn('text-xs font-medium uppercase tracking-wider mb-2', isDark ? 'text-[#6B7280]' : 'text-gray-400')}>
-            {t.customFields}
+            {t.standardFields}
           </h4>
           <div className="space-y-1">
-            {filteredCustomFields.map((field) => {
-              const column = columns.find((c) => c.customFieldId === field.id);
+            {filteredStandardColumns.map((type) => {
+              const column = columns.find((c) => c.type === type && !c.customFieldId);
               const isVisible = column?.visible ?? false;
+              const isName = type === 'name';
 
               return (
                 <button
-                  key={field.id}
-                  onClick={() => addColumn(field.type as ColumnType, field.id)}
+                  key={type}
+                  onClick={() => {
+                    if (isName) return;
+                    // If column exists, toggle visibility. If not, add it.
+                    if (column) {
+                      toggleColumnVisibility(column.id);
+                    } else {
+                      addColumn(type);
+                    }
+                  }}
+                  disabled={isName}
                   className={cn(
                     'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
-                    isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100'
+                    isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100',
+                    isName && 'opacity-50 cursor-not-allowed'
                   )}
                 >
                   <div className={cn(
@@ -289,17 +254,58 @@ export function ColumnSelector({
                     {isVisible && <Check className="w-3 h-3 text-white" />}
                   </div>
                   <span className={isDark ? 'text-[#9CA3AF]' : 'text-gray-400'}>
-                    {COLUMN_ICONS[field.type as ColumnType] || <Type className="w-4 h-4" />}
+                    {COLUMN_ICONS[type]}
                   </span>
                   <span className={isDark ? 'text-white' : 'text-gray-900'}>
-                    {field.name}
+                    {getColumnLabel(type)}
                   </span>
                 </button>
               );
             })}
           </div>
         </div>
-      )}
+
+        {/* Custom Fields */}
+        {filteredCustomFields.length > 0 && (
+          <div className="px-3 pb-2">
+            <h4 className={cn('text-xs font-medium uppercase tracking-wider mb-2', isDark ? 'text-[#6B7280]' : 'text-gray-400')}>
+              {t.customFields}
+            </h4>
+            <div className="space-y-1">
+              {filteredCustomFields.map((field) => {
+                const column = columns.find((c) => c.customFieldId === field.id);
+                const isVisible = column?.visible ?? false;
+
+                return (
+                  <button
+                    key={field.id}
+                    onClick={() => addColumn(field.type as ColumnType, field.id)}
+                    className={cn(
+                      'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
+                      isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100'
+                    )}
+                  >
+                    <div className={cn(
+                      'w-5 h-5 rounded border flex items-center justify-center',
+                      isVisible
+                        ? 'bg-[#3B82F6] border-[#3B82F6]'
+                        : isDark ? 'border-[#4B5563]' : 'border-gray-300'
+                    )}>
+                      {isVisible && <Check className="w-3 h-3 text-white" />}
+                    </div>
+                    <span className={isDark ? 'text-[#9CA3AF]' : 'text-gray-400'}>
+                      {COLUMN_ICONS[field.type as ColumnType] || <Type className="w-4 h-4" />}
+                    </span>
+                    <span className={isDark ? 'text-white' : 'text-gray-900'}>
+                      {field.name}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Create Custom Field Button */}
       {onCreateCustomField && (
@@ -340,6 +346,7 @@ const translations = {
       progress: 'Progress',
       tags: 'Tags',
       estimatedTime: 'Estimated',
+      quotedTime: 'Quoted',
       elapsedTime: 'Time Spent',
       text: 'Text',
       number: 'Number',
@@ -364,6 +371,7 @@ const translations = {
       progress: 'Progreso',
       tags: 'Etiquetas',
       estimatedTime: 'Estimado',
+      quotedTime: 'Ofertado',
       elapsedTime: 'Tiempo',
       text: 'Texto',
       number: 'Número',

@@ -101,8 +101,12 @@ export interface Card {
   endDate?: Date | string
   /** Task dependencies - supports both legacy format (string[]) and new format (Dependency[]) */
   dependencies?: string[] | Dependency[]
-  /** Estimated time (in hours) */
+  /** Estimated time (in hours) - legacy field */
   estimatedTime?: number
+  /** v1.1.0: Estimated effort in minutes (for time tracking) */
+  effortMinutes?: number | null
+  /** v1.1.0: Total logged time in minutes (aggregated) */
+  timeLoggedMinutes?: number
   /** Manual progress override (0-100%) */
   progress?: number
   /** Cover image URL */
@@ -471,6 +475,37 @@ export interface KanbanBoardProps {
 
   /** v0.18.13: Callback to upload attachments to comments (enables attachment icon in comment input) */
   onUploadCommentAttachments?: (files: File[]) => Promise<Array<{ id: string; url: string; name: string; type: string; size: number }>>
+
+  // ========================================================================
+  // v1.1.0: Time Tracking props
+  // ========================================================================
+
+  /** Enable time tracking features in TaskDetailModal */
+  enableTimeTracking?: boolean
+
+  /** Time tracking summary for the currently open task */
+  timeTrackingSummary?: TimeTrackingSummary
+
+  /** Time entries for the currently open task */
+  timeEntries?: TimeEntry[]
+
+  /** Current timer state */
+  timerState?: TimerState
+
+  /** Callback to log time manually */
+  onLogTime?: (taskId: string, input: TimeLogInput) => Promise<void>
+
+  /** Callback to update task estimate */
+  onUpdateEstimate?: (taskId: string, minutes: number | null) => Promise<void>
+
+  /** Callback to start timer */
+  onStartTimer?: (taskId: string) => void
+
+  /** Callback to stop timer and save time */
+  onStopTimer?: (taskId: string) => void
+
+  /** Callback to discard timer without saving */
+  onDiscardTimer?: (taskId: string) => void
 }
 
 // ============================================================================
@@ -606,6 +641,12 @@ export type ActivityType =
   | 'DEPENDENCY_REMOVED'
   | 'ATTACHMENT_ADDED'
   | 'ATTACHMENT_REMOVED'
+  // v1.1.0: Time tracking activities
+  | 'TIME_LOGGED'
+  | 'TIME_UPDATED'
+  | 'TIME_DELETED'
+  | 'ESTIMATE_SET'
+  | 'ESTIMATE_UPDATED'
 
 /**
  * Activity log entry
@@ -1054,6 +1095,143 @@ export type CallbackFn<T extends (...args: any[]) => any> = T extends (
 ) => infer R
   ? (...args: P) => R
   : never
+
+// ============================================================================
+// TIME TRACKING TYPES (v1.1.0)
+// ============================================================================
+
+/**
+ * Source of time entry - how the time was logged
+ */
+export type TimeLogSource = 'manual' | 'timer' | 'import'
+
+/**
+ * Time entry for a task
+ * Represents a single time log (e.g., "2 hours worked on Jan 10")
+ */
+export interface TimeEntry {
+  /** Unique identifier */
+  id: string
+  /** Task/Card ID */
+  taskId: string
+  /** User who logged the time */
+  userId: string
+  /** Duration in minutes */
+  durationMinutes: number
+  /** When the work was done (date of the work, not when it was logged) */
+  loggedAt: Date | string
+  /** Optional note/description */
+  note?: string
+  /** Source of the entry */
+  source: TimeLogSource
+  /** Created timestamp */
+  createdAt: Date | string
+  /** Updated timestamp */
+  updatedAt?: Date | string
+}
+
+/**
+ * Input for creating a new time log
+ * Used by UI components to send data to callbacks
+ */
+export interface TimeLogInput {
+  /** Duration in minutes */
+  durationMinutes: number
+  /** When the work was done */
+  loggedAt?: Date | string
+  /** Optional note */
+  note?: string
+  /** Source (defaults to 'manual') */
+  source?: TimeLogSource
+}
+
+/**
+ * Time tracking summary for a task
+ * Aggregated view of time data
+ */
+export interface TimeTrackingSummary {
+  /** Estimated effort in minutes (null if not set) */
+  estimateMinutes: number | null
+  /** Total logged time in minutes */
+  loggedMinutes: number
+  /** Remaining time in minutes (estimate - logged, can be negative) */
+  remainingMinutes: number | null
+  /** Progress percentage (0-100+, can exceed 100 if over estimate) */
+  progressPercent: number | null
+  /** Health status based on progress */
+  health: 'on-track' | 'at-risk' | 'over-budget' | 'no-estimate'
+}
+
+/**
+ * Timer state for real-time tracking
+ */
+export interface TimerState {
+  /** Is timer currently running */
+  isRunning: boolean
+  /** Task ID being tracked (null if no timer active) */
+  taskId: string | null
+  /** When timer was started */
+  startedAt: Date | string | null
+  /** Elapsed seconds since start */
+  elapsedSeconds: number
+}
+
+/**
+ * Callbacks for time tracking operations
+ * These allow the library consumer to persist time data
+ */
+export interface TimeTrackingCallbacks {
+  /** Called when user logs time manually */
+  onTimeLog?: (taskId: string, input: TimeLogInput) => Promise<void>
+
+  /** Called when user updates a time entry */
+  onTimeUpdate?: (entryId: string, updates: Partial<TimeLogInput>) => Promise<void>
+
+  /** Called when user deletes a time entry */
+  onTimeDelete?: (entryId: string) => Promise<void>
+
+  /** Called when user sets/updates time estimate */
+  onEstimateUpdate?: (taskId: string, estimateMinutes: number | null) => Promise<void>
+
+  /** Called when timer is started */
+  onTimerStart?: (taskId: string) => void
+
+  /** Called when timer is stopped (returns logged entry) */
+  onTimerStop?: (taskId: string, durationMinutes: number) => Promise<void>
+
+  /** Called when timer is discarded without saving */
+  onTimerDiscard?: (taskId: string) => void
+}
+
+/**
+ * Props extension for time tracking in Card
+ * Add these to Card interface for time-enabled cards
+ */
+export interface CardTimeProps {
+  /** Estimated effort in minutes */
+  effortMinutes?: number | null
+  /** Total logged time in minutes (aggregated from entries) */
+  timeLoggedMinutes?: number
+  /** Time entries for this card */
+  timeEntries?: TimeEntry[]
+}
+
+/**
+ * Props extension for KanbanBoard with time tracking
+ */
+export interface TimeTrackingBoardProps {
+  /** Enable time tracking features */
+  enableTimeTracking?: boolean
+
+  /** Time tracking callbacks */
+  timeTrackingCallbacks?: TimeTrackingCallbacks
+
+  /** Current timer state (for global timer indicator) */
+  timerState?: TimerState
+
+  /** Time entries by task ID (for modal display) */
+  timeEntriesByTask?: Map<string, TimeEntry[]>
+}
 
 // ============================================================================
 // CARD STACKING TYPES (v0.6.0)

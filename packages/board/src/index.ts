@@ -43,6 +43,10 @@ export {
   TaskDetailModal, // v0.17.247: Unified task detail modal (replaces TaskFormModal)
   // LazyLoadWrapper,
   // withLazyLoad,
+  // v1.1.0: Time Tracking Components
+  TimePill,
+  TimePopover,
+  HealthBar,
 } from './components'
 
 // Skeleton Loaders
@@ -252,6 +256,10 @@ export type {
   TaskDetailModalProps, // v0.17.247: Unified task detail modal props
   TaskComment, // v0.17.252: Comment type
   // LazyLoadWrapperProps,
+  // v1.1.0: Time Tracking Props
+  TimePillProps,
+  TimePopoverProps,
+  HealthBarProps,
 } from './components'
 
 // v0.17.422: Comment attachments types
@@ -347,6 +355,15 @@ export type {
   StackingStrategy,
   StackingConfig,
   StackSuggestion,
+  // v1.1.0: Time Tracking Types
+  TimeLogSource,
+  TimeEntry,
+  TimeLogInput,
+  TimeTrackingSummary,
+  TimerState,
+  TimeTrackingCallbacks,
+  CardTimeProps,
+  TimeTrackingBoardProps,
 } from './types'
 
 // Utilities
