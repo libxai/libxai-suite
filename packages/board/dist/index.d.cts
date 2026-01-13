@@ -1235,6 +1235,63 @@ interface TimeTrackingBoardProps {
 }
 
 /**
+ * Profitability metrics for a single task
+ * Compares sold effort vs actual time logged
+ */
+interface TaskProfitability {
+    /** Task ID */
+    taskId: string;
+    /** Task name */
+    taskName: string;
+    /** Project ID (optional) */
+    projectId?: string | null;
+    /** Project name (optional) */
+    projectName?: string | null;
+    /** Sold effort in minutes (tiempo ofertado al cliente) */
+    soldEffortMinutes: number | null;
+    /** Actual time logged in minutes */
+    loggedMinutes: number;
+    /** Variance in minutes (sold - logged, positive = profit, negative = loss) */
+    varianceMinutes: number | null;
+    /** Variance percentage (variance / sold * 100) */
+    variancePercent: number | null;
+    /** Profitability status */
+    status: 'profitable' | 'at-cost' | 'loss' | 'no-estimate';
+}
+/**
+ * Aggregated profitability metrics for a project or workspace
+ */
+interface ProfitabilitySummary {
+    /** Total sold effort in minutes */
+    totalSoldMinutes: number;
+    /** Total logged time in minutes */
+    totalLoggedMinutes: number;
+    /** Total variance in minutes */
+    totalVarianceMinutes: number;
+    /** Average variance percentage */
+    avgVariancePercent: number;
+    /** Number of profitable tasks */
+    profitableTasksCount: number;
+    /** Number of loss-making tasks */
+    lossTasksCount: number;
+    /** Number of tasks at cost (±5% margin) */
+    atCostTasksCount: number;
+    /** Total number of tasks with sold effort set */
+    totalTasksWithEstimate: number;
+}
+/**
+ * Profitability report data
+ */
+interface ProfitabilityReport$1 {
+    /** Summary metrics */
+    summary: ProfitabilitySummary;
+    /** Task-level profitability data */
+    tasks: TaskProfitability[];
+    /** Report generation timestamp */
+    generatedAt: Date | string;
+}
+
+/**
  * KanbanViewAdapter - ViewAdapter implementation for Kanban board
  * @module views/KanbanViewAdapter
  *
@@ -2218,6 +2275,8 @@ interface TaskDetailModalProps {
     onTimeLog?: (taskId: string, input: TimeLogInput) => Promise<void>;
     /** Update estimate callback */
     onEstimateUpdate?: (taskId: string, minutes: number | null) => Promise<void>;
+    /** Update sold effort callback (v1.2.0: Commercial time tracking) */
+    onSoldEffortUpdate?: (taskId: string, minutes: number | null) => Promise<void>;
     /** Start timer callback */
     onTimerStart?: (taskId: string) => void;
     /** Stop timer callback */
@@ -2228,7 +2287,7 @@ interface TaskDetailModalProps {
 /**
  * TaskDetailModal - ClickUp style full-screen task detail
  */
-declare function TaskDetailModal({ task, isOpen, onClose, onTaskUpdate, onCardUpdate, theme, locale, availableUsers, availableTags, onCreateTag, attachments, onUploadAttachments, onDeleteAttachment, availableTasks, comments, onAddComment, currentUser, mentionableUsers, onUploadCommentAttachments, enableTimeTracking, timeTrackingSummary, timeEntries: _timeEntries, isTimerRunning, timerElapsedSeconds, onTimeLog, onEstimateUpdate, onTimerStart, onTimerStop, onTimerDiscard: _onTimerDiscard, }: TaskDetailModalProps): react_jsx_runtime.JSX.Element | null;
+declare function TaskDetailModal({ task, isOpen, onClose, onTaskUpdate, onCardUpdate, theme, locale, availableUsers, availableTags, onCreateTag, attachments, onUploadAttachments, onDeleteAttachment, availableTasks, comments, onAddComment, currentUser, mentionableUsers, onUploadCommentAttachments, enableTimeTracking, timeTrackingSummary, timeEntries: _timeEntries, isTimerRunning, timerElapsedSeconds, onTimeLog, onEstimateUpdate, onSoldEffortUpdate, onTimerStart, onTimerStop, onTimerDiscard: _onTimerDiscard, }: TaskDetailModalProps): react_jsx_runtime.JSX.Element | null;
 
 interface TimePillProps {
     /** Time tracking summary data */
@@ -2285,6 +2344,22 @@ interface HealthBarProps {
     className?: string;
 }
 declare function HealthBar({ summary, showLabel, size, className, }: HealthBarProps): react_jsx_runtime.JSX.Element;
+
+interface ProfitabilityReportProps {
+    /** Report data */
+    report: ProfitabilityReport$1 | null;
+    /** Loading state */
+    isLoading?: boolean;
+    /** Locale for i18n */
+    locale?: 'en' | 'es';
+    /** Theme: 'dark' | 'light' */
+    theme?: 'dark' | 'light';
+    /** Additional class names */
+    className?: string;
+    /** Callback when task is clicked */
+    onTaskClick?: (taskId: string) => void;
+}
+declare function ProfitabilityReport({ report, isLoading, locale, theme, className, onTaskClick, }: ProfitabilityReportProps): react_jsx_runtime.JSX.Element;
 
 /**
  * GanttBoardRef - Imperative API for GanttBoard component
@@ -2714,6 +2789,7 @@ interface TaskFormData {
     dependencies?: string[];
     tags?: TaskTag[];
     pendingFiles?: File[];
+    effortMinutes?: number | null;
 }
 interface TaskFormModalProps {
     isOpen: boolean;
@@ -3372,9 +3448,10 @@ type SortDirection = 'asc' | 'desc';
 /**
  * Column types supported in ListView
  * - Standard: name, status, priority, assignees, startDate, endDate, progress, tags, estimatedTime, quotedTime, elapsedTime
+ * - v1.2.0: effortMinutes, timeLoggedMinutes, soldEffortMinutes
  * - Custom: text, number, date, dropdown, checkbox
  */
-type ColumnType = 'name' | 'status' | 'priority' | 'assignees' | 'startDate' | 'endDate' | 'progress' | 'tags' | 'estimatedTime' | 'quotedTime' | 'elapsedTime' | 'text' | 'number' | 'date' | 'dropdown' | 'checkbox';
+type ColumnType = 'name' | 'status' | 'priority' | 'assignees' | 'startDate' | 'endDate' | 'progress' | 'tags' | 'estimatedTime' | 'quotedTime' | 'elapsedTime' | 'effortMinutes' | 'timeLoggedMinutes' | 'soldEffortMinutes' | 'text' | 'number' | 'date' | 'dropdown' | 'checkbox';
 /**
  * Table column configuration for dynamic columns
  */
@@ -6260,4 +6337,4 @@ declare const themes: Record<ThemeName, Theme>;
  */
 declare const defaultTheme: ThemeName;
 
-export { type AICallbacks, type AICommandResult, type GanttTask as AIGanttTask, type AIMessage, type AIModelKey, type AIOperation, AIUsageDashboard, type AIUsageDashboardProps, AI_FEATURES, AI_MODELS, type Activity, type ActivityType, AddCardButton, type AddCardButtonProps, type AddCardData, AddColumnButton, type AddColumnButtonProps, type AssigneeSuggestion, type Attachment, AttachmentUploader, type AttachmentUploaderProps, type AvailableUser, type Board, type BoardCallbacks, type BoardConfig, BoardProvider, type BoardProviderProps, type BorderRadiusToken, BulkOperationsToolbar, type BulkOperationsToolbarProps, BurnDownChart, type BurnDownChartProps, type BurnDownDataPoint, CUSTOM_FIELD_TYPES, CalendarBoard, type CalendarBoardProps, type CalendarCallbacks, type CalendarConfig, type CalendarDay, type CalendarEvent, type CalendarPermissions, type CalendarSupportedLocale, type CalendarTheme, type CalendarThemeName, type CalendarTranslations, type CalendarViewMode, Card, CardDetailModal, type CardDetailModalProps, CardDetailModalV2, type CardDetailModalV2Props, type CardFilter, type CardFilters, CardHistoryReplay, type CardHistoryReplayProps, CardHistoryTimeline, type CardHistoryTimelineProps, type CardProps, CardRelationshipsGraph, type CardRelationshipsGraphProps, type CardSort, type CardSortKey, CardStack, type CardStackProps, type CardStack$1 as CardStackType, type CardStatus, type CardTemplate, CardTemplateSelector, type CardTemplateSelectorProps, type CardTimeProps, type Card$1 as CardType, CircuitBreaker, Column, ColumnManager, type ColumnProps, type Column$1 as ColumnType, CommandPalette, type CommandPaletteProps, type Comment, type CommentAttachment, ConfigMenu, type ConfigMenuProps, ContextMenu, type ContextMenuAction, type ContextMenuState, type CustomFieldDefinition, type CustomFieldValue, DEFAULT_SHORTCUTS, DEFAULT_TABLE_COLUMNS, DEFAULT_TEMPLATES, type DateFilter, DateRangePicker, type DateRangePickerProps, DependenciesSelector, type DependenciesSelectorProps, DependencyLine, type DesignTokens, DistributionCharts, type DistributionChartsProps, type DistributionDataPoint, type DragData, type DropData, type DurationToken, type EasingToken, EditableColumnTitle, type EditableColumnTitleProps, ErrorBoundary, type ErrorBoundaryProps, type ExportFormat, ExportImportModal, type ExportImportModalProps, type ExportOptions, FilterBar, type FilterBarProps, type FilterState, type FlattenedTask, type FontSizeToken, type FontWeightToken, GANTT_AI_SYSTEM_PROMPT, GanttAIAssistant, type GanttAIAssistantConfig, type Assignee as GanttAssignee, GanttBoard, type GanttConfig as GanttBoardConfig, type GanttBoardRef, type GanttColumn, type ColumnType$1 as GanttColumnType, GanttI18nContext, Milestone as GanttMilestone, type GanttPermissions, type Task as GanttTask, type GanttTemplates, type Theme$1 as GanttTheme, type GanttTheme as GanttThemeConfig, GanttToolbar, type GanttTranslations, GenerateGanttTasksDialog, type GenerateGanttTasksDialogProps, GeneratePlanModal, type GeneratePlanModalProps, type GeneratedPlan, type GeneratedTasksResponse, type GroupByOption, GroupBySelector, type GroupBySelectorProps, HealthBar, type HealthBarProps, type IPluginManager, type ImportResult, type Insight, type InsightSeverity, type InsightType, KanbanBoard, type KanbanBoardProps, KanbanToolbar, type KanbanToolbarProps, KanbanViewAdapter, type KanbanViewConfig, type KeyboardAction, type KeyboardShortcut, KeyboardShortcutsHelp, type KeyboardShortcutsHelpProps, type LineHeightToken, type ListColumn, type ColumnType as ListColumnType, type ListFilter, type ListSort, type ListSortColumn, ListView, type ListViewCallbacks, type ListViewConfig, type ListViewPermissions, type ListViewProps, type ListViewSupportedLocale, type ListViewTheme, type ListViewThemeName, type ListViewTranslations, MenuIcons, type OpacityToken, type PendingFile, type PersistHistoryConfig, type Plugin, type PluginContext, type PluginHooks, PluginManager, type Priority, PrioritySelector, type PrioritySelectorProps, RATE_LIMITS, type RenderProps, type RetryOptions, type RetryResult, STANDARD_FIELDS, type ShadowToken, type SortBy, type SortDirection, type SortOrder, type SortState, type SpacingToken, type StackSuggestion, type StackingConfig, type StackingStrategy, type Subtask, type SupportedLocale, type Swimlane, SwimlaneBoardView, type SwimlaneBoardViewProps, type SwimlaneConfig, type TableColumn, TagBadge, TagList, TagPicker, TaskBar, type TaskComment, TaskDetailModal, type TaskDetailModalProps, type TaskFilterType, type TaskFormData, TaskFormModal, type TaskFormModalProps, TaskGrid, type TaskPriority, type TaskTag, type Theme, type ThemeColors, type ThemeContextValue, ThemeModal, type ThemeModalProps, type ThemeName, ThemeProvider, ThemeSwitcher, type TimeEntry, type TimeLogInput, type TimeLogSource, TimePill, type TimePillProps, TimePopover, type TimePopoverProps, type TimeScale, type TimeTrackingBoardProps, type TimeTrackingCallbacks, type TimeTrackingSummary, Timeline, type TimerState, type ThemeColors$1 as TokenThemeColors, type TokenValue, type UsageStats, type UseAIOptions, type UseAIReturn, type UseBoardReturn as UseBoardCoreReturn, type UseBoardOptions, type UseBoardReturn$1 as UseBoardReturn, type UseCardStackingOptions, type UseCardStackingResult, type UseDragStateReturn, type UseFiltersOptions, type UseFiltersReturn, type UseKanbanStateOptions, type UseKanbanStateReturn, type UseKeyboardShortcutsOptions, type UseKeyboardShortcutsReturn, type UseMultiSelectReturn, type UseSelectionStateReturn, type User$1 as User, UserAssignmentSelector, type UserAssignmentSelectorProps, VelocityChart, type VelocityChartProps, type VelocityDataPoint, VirtualGrid, type VirtualGridProps, VirtualList, type VirtualListProps, type WeekDay, type ZIndexToken, aiUsageTracker, borderRadius, calculatePosition, darkTheme$2 as calendarDarkTheme, en as calendarEnTranslations, es as calendarEsTranslations, lightTheme$2 as calendarLightTheme, neutralTheme$2 as calendarNeutralTheme, calendarThemes, calendarTranslations, cardToGanttTask, cardsToGanttTasks, cn, createKanbanView, createRetryWrapper, darkTheme, darkTheme$1 as darkTokenTheme, defaultTheme, designTokens, duration, easing, exportTokensToCSS, findTaskByName, fontSize, fontWeight, formatCost, en$2 as ganttEnTranslations, es$2 as ganttEsTranslations, ganttTaskToCardUpdate, themes$1 as ganttThemes, gantt as ganttTokens, translations as ganttTranslations, ganttUtils, generateCSSVariables, generateCompleteCSS, generateInitialPositions, generateTasksContext, generateThemeVariables, getCalendarTheme, getCalendarTranslations, getListViewTheme, getListViewTranslations, getMonthNames, getToken, getTranslations, getWeekdayNames, kanban as kanbanTokens, lightTheme, lightTheme$1 as lightTokenTheme, lineHeight, darkTheme$3 as listViewDarkTheme, en$1 as listViewEnTranslations, es$1 as listViewEsTranslations, lightTheme$3 as listViewLightTheme, neutralTheme$3 as listViewNeutralTheme, listViewThemes, listViewTranslations, mergeCalendarTranslations, mergeListViewTranslations, mergeTranslations, neutralTheme, neutralTheme$1 as neutralTokenTheme, opacity, parseLocalCommand, parseNaturalDate, parseNaturalDuration, parseProgress, parseStatus, pluginManager, retrySyncOperation, retryWithBackoff, shadows, shouldVirtualizeGrid, spacing, themes, useAI, useBoard$1 as useBoard, useBoard as useBoardCore, useBoardStore, useCardStacking, useDragState, useFilteredCards, useFilters, useGanttI18n, useKanbanState, useKeyboardShortcuts, useMultiSelect, useSelectionState, useSortedCards, useTheme, useVirtualGrid, useVirtualList, validateAIResponse, withErrorBoundary, wouldCreateCircularDependency, zIndex };
+export { type AICallbacks, type AICommandResult, type GanttTask as AIGanttTask, type AIMessage, type AIModelKey, type AIOperation, AIUsageDashboard, type AIUsageDashboardProps, AI_FEATURES, AI_MODELS, type Activity, type ActivityType, AddCardButton, type AddCardButtonProps, type AddCardData, AddColumnButton, type AddColumnButtonProps, type AssigneeSuggestion, type Attachment, AttachmentUploader, type AttachmentUploaderProps, type AvailableUser, type Board, type BoardCallbacks, type BoardConfig, BoardProvider, type BoardProviderProps, type BorderRadiusToken, BulkOperationsToolbar, type BulkOperationsToolbarProps, BurnDownChart, type BurnDownChartProps, type BurnDownDataPoint, CUSTOM_FIELD_TYPES, CalendarBoard, type CalendarBoardProps, type CalendarCallbacks, type CalendarConfig, type CalendarDay, type CalendarEvent, type CalendarPermissions, type CalendarSupportedLocale, type CalendarTheme, type CalendarThemeName, type CalendarTranslations, type CalendarViewMode, Card, CardDetailModal, type CardDetailModalProps, CardDetailModalV2, type CardDetailModalV2Props, type CardFilter, type CardFilters, CardHistoryReplay, type CardHistoryReplayProps, CardHistoryTimeline, type CardHistoryTimelineProps, type CardProps, CardRelationshipsGraph, type CardRelationshipsGraphProps, type CardSort, type CardSortKey, CardStack, type CardStackProps, type CardStack$1 as CardStackType, type CardStatus, type CardTemplate, CardTemplateSelector, type CardTemplateSelectorProps, type CardTimeProps, type Card$1 as CardType, CircuitBreaker, Column, ColumnManager, type ColumnProps, type Column$1 as ColumnType, CommandPalette, type CommandPaletteProps, type Comment, type CommentAttachment, ConfigMenu, type ConfigMenuProps, ContextMenu, type ContextMenuAction, type ContextMenuState, type CustomFieldDefinition, type CustomFieldValue, DEFAULT_SHORTCUTS, DEFAULT_TABLE_COLUMNS, DEFAULT_TEMPLATES, type DateFilter, DateRangePicker, type DateRangePickerProps, DependenciesSelector, type DependenciesSelectorProps, DependencyLine, type DesignTokens, DistributionCharts, type DistributionChartsProps, type DistributionDataPoint, type DragData, type DropData, type DurationToken, type EasingToken, EditableColumnTitle, type EditableColumnTitleProps, ErrorBoundary, type ErrorBoundaryProps, type ExportFormat, ExportImportModal, type ExportImportModalProps, type ExportOptions, FilterBar, type FilterBarProps, type FilterState, type FlattenedTask, type FontSizeToken, type FontWeightToken, GANTT_AI_SYSTEM_PROMPT, GanttAIAssistant, type GanttAIAssistantConfig, type Assignee as GanttAssignee, GanttBoard, type GanttConfig as GanttBoardConfig, type GanttBoardRef, type GanttColumn, type ColumnType$1 as GanttColumnType, GanttI18nContext, Milestone as GanttMilestone, type GanttPermissions, type Task as GanttTask, type GanttTemplates, type Theme$1 as GanttTheme, type GanttTheme as GanttThemeConfig, GanttToolbar, type GanttTranslations, GenerateGanttTasksDialog, type GenerateGanttTasksDialogProps, GeneratePlanModal, type GeneratePlanModalProps, type GeneratedPlan, type GeneratedTasksResponse, type GroupByOption, GroupBySelector, type GroupBySelectorProps, HealthBar, type HealthBarProps, type IPluginManager, type ImportResult, type Insight, type InsightSeverity, type InsightType, KanbanBoard, type KanbanBoardProps, KanbanToolbar, type KanbanToolbarProps, KanbanViewAdapter, type KanbanViewConfig, type KeyboardAction, type KeyboardShortcut, KeyboardShortcutsHelp, type KeyboardShortcutsHelpProps, type LineHeightToken, type ListColumn, type ColumnType as ListColumnType, type ListFilter, type ListSort, type ListSortColumn, ListView, type ListViewCallbacks, type ListViewConfig, type ListViewPermissions, type ListViewProps, type ListViewSupportedLocale, type ListViewTheme, type ListViewThemeName, type ListViewTranslations, MenuIcons, type OpacityToken, type PendingFile, type PersistHistoryConfig, type Plugin, type PluginContext, type PluginHooks, PluginManager, type Priority, PrioritySelector, type PrioritySelectorProps, ProfitabilityReport, type ProfitabilityReportProps, RATE_LIMITS, type RenderProps, type RetryOptions, type RetryResult, STANDARD_FIELDS, type ShadowToken, type SortBy, type SortDirection, type SortOrder, type SortState, type SpacingToken, type StackSuggestion, type StackingConfig, type StackingStrategy, type Subtask, type SupportedLocale, type Swimlane, SwimlaneBoardView, type SwimlaneBoardViewProps, type SwimlaneConfig, type TableColumn, TagBadge, TagList, TagPicker, TaskBar, type TaskComment, TaskDetailModal, type TaskDetailModalProps, type TaskFilterType, type TaskFormData, TaskFormModal, type TaskFormModalProps, TaskGrid, type TaskPriority, type TaskTag, type Theme, type ThemeColors, type ThemeContextValue, ThemeModal, type ThemeModalProps, type ThemeName, ThemeProvider, ThemeSwitcher, type TimeEntry, type TimeLogInput, type TimeLogSource, TimePill, type TimePillProps, TimePopover, type TimePopoverProps, type TimeScale, type TimeTrackingBoardProps, type TimeTrackingCallbacks, type TimeTrackingSummary, Timeline, type TimerState, type ThemeColors$1 as TokenThemeColors, type TokenValue, type UsageStats, type UseAIOptions, type UseAIReturn, type UseBoardReturn as UseBoardCoreReturn, type UseBoardOptions, type UseBoardReturn$1 as UseBoardReturn, type UseCardStackingOptions, type UseCardStackingResult, type UseDragStateReturn, type UseFiltersOptions, type UseFiltersReturn, type UseKanbanStateOptions, type UseKanbanStateReturn, type UseKeyboardShortcutsOptions, type UseKeyboardShortcutsReturn, type UseMultiSelectReturn, type UseSelectionStateReturn, type User$1 as User, UserAssignmentSelector, type UserAssignmentSelectorProps, VelocityChart, type VelocityChartProps, type VelocityDataPoint, VirtualGrid, type VirtualGridProps, VirtualList, type VirtualListProps, type WeekDay, type ZIndexToken, aiUsageTracker, borderRadius, calculatePosition, darkTheme$2 as calendarDarkTheme, en as calendarEnTranslations, es as calendarEsTranslations, lightTheme$2 as calendarLightTheme, neutralTheme$2 as calendarNeutralTheme, calendarThemes, calendarTranslations, cardToGanttTask, cardsToGanttTasks, cn, createKanbanView, createRetryWrapper, darkTheme, darkTheme$1 as darkTokenTheme, defaultTheme, designTokens, duration, easing, exportTokensToCSS, findTaskByName, fontSize, fontWeight, formatCost, en$2 as ganttEnTranslations, es$2 as ganttEsTranslations, ganttTaskToCardUpdate, themes$1 as ganttThemes, gantt as ganttTokens, translations as ganttTranslations, ganttUtils, generateCSSVariables, generateCompleteCSS, generateInitialPositions, generateTasksContext, generateThemeVariables, getCalendarTheme, getCalendarTranslations, getListViewTheme, getListViewTranslations, getMonthNames, getToken, getTranslations, getWeekdayNames, kanban as kanbanTokens, lightTheme, lightTheme$1 as lightTokenTheme, lineHeight, darkTheme$3 as listViewDarkTheme, en$1 as listViewEnTranslations, es$1 as listViewEsTranslations, lightTheme$3 as listViewLightTheme, neutralTheme$3 as listViewNeutralTheme, listViewThemes, listViewTranslations, mergeCalendarTranslations, mergeListViewTranslations, mergeTranslations, neutralTheme, neutralTheme$1 as neutralTokenTheme, opacity, parseLocalCommand, parseNaturalDate, parseNaturalDuration, parseProgress, parseStatus, pluginManager, retrySyncOperation, retryWithBackoff, shadows, shouldVirtualizeGrid, spacing, themes, useAI, useBoard$1 as useBoard, useBoard as useBoardCore, useBoardStore, useCardStacking, useDragState, useFilteredCards, useFilters, useGanttI18n, useKanbanState, useKeyboardShortcuts, useMultiSelect, useSelectionState, useSortedCards, useTheme, useVirtualGrid, useVirtualList, validateAIResponse, withErrorBoundary, wouldCreateCircularDependency, zIndex };

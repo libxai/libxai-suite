@@ -1238,3 +1238,83 @@ export interface TimeTrackingBoardProps {
 // ============================================================================
 
 export type { CardStack, StackingStrategy, StackingConfig, StackSuggestion } from './card-stack'
+
+// ============================================================================
+// PROFITABILITY REPORT TYPES (v1.2.0)
+// ============================================================================
+
+/**
+ * Profitability metrics for a single task
+ * Compares sold effort vs actual time logged
+ */
+export interface TaskProfitability {
+  /** Task ID */
+  taskId: string
+  /** Task name */
+  taskName: string
+  /** Project ID (optional) */
+  projectId?: string | null
+  /** Project name (optional) */
+  projectName?: string | null
+  /** Sold effort in minutes (tiempo ofertado al cliente) */
+  soldEffortMinutes: number | null
+  /** Actual time logged in minutes */
+  loggedMinutes: number
+  /** Variance in minutes (sold - logged, positive = profit, negative = loss) */
+  varianceMinutes: number | null
+  /** Variance percentage (variance / sold * 100) */
+  variancePercent: number | null
+  /** Profitability status */
+  status: 'profitable' | 'at-cost' | 'loss' | 'no-estimate'
+}
+
+/**
+ * Aggregated profitability metrics for a project or workspace
+ */
+export interface ProfitabilitySummary {
+  /** Total sold effort in minutes */
+  totalSoldMinutes: number
+  /** Total logged time in minutes */
+  totalLoggedMinutes: number
+  /** Total variance in minutes */
+  totalVarianceMinutes: number
+  /** Average variance percentage */
+  avgVariancePercent: number
+  /** Number of profitable tasks */
+  profitableTasksCount: number
+  /** Number of loss-making tasks */
+  lossTasksCount: number
+  /** Number of tasks at cost (±5% margin) */
+  atCostTasksCount: number
+  /** Total number of tasks with sold effort set */
+  totalTasksWithEstimate: number
+}
+
+/**
+ * Profitability report data
+ */
+export interface ProfitabilityReport {
+  /** Summary metrics */
+  summary: ProfitabilitySummary
+  /** Task-level profitability data */
+  tasks: TaskProfitability[]
+  /** Report generation timestamp */
+  generatedAt: Date | string
+}
+
+/**
+ * Filters for profitability reports
+ */
+export interface ProfitabilityReportFilters {
+  /** Filter by project IDs */
+  projectIds?: string[]
+  /** Filter by date range (logged_at) */
+  dateRange?: {
+    start: Date | string
+    end: Date | string
+  }
+  /** Filter by profitability status */
+  statuses?: Array<'profitable' | 'at-cost' | 'loss' | 'no-estimate'>
+  /** Show only tasks with sold effort set */
+  onlyWithSoldEffort?: boolean
+}

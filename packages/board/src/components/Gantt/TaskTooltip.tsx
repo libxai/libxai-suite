@@ -1,8 +1,10 @@
 /**
- * TaskTooltip - v0.17.76
+ * TaskTooltip - v1.2.0
  *
  * Renders task tooltips in a separate SVG layer to ensure they always appear
  * above all task bars regardless of their vertical position.
+ *
+ * v1.2.0: Added three-tier time tracking display (effortMinutes, timeLoggedMinutes, soldEffortMinutes)
  *
  * This solves the SVG z-order issue where tooltips appearing below a task bar
  * would be hidden behind tasks rendered later in the DOM.
@@ -23,14 +25,17 @@ export interface TaskTooltipData {
 interface TaskTooltipProps {
   tooltipData: TaskTooltipData | null;
   theme: any;
+  locale?: 'en' | 'es';
 }
 
-export function TaskTooltip({ tooltipData, theme }: TaskTooltipProps) {
+export function TaskTooltip({ tooltipData, theme, locale = 'en' }: TaskTooltipProps) {
   if (!tooltipData) return null;
 
   const { task, x, y, width, height, showBelow } = tooltipData;
 
-  const tooltipHeight = 82;
+  // v1.2.0: Check if task has time tracking data
+  const hasTimeData = task.effortMinutes != null || task.timeLoggedMinutes != null || task.soldEffortMinutes != null;
+  const tooltipHeight = hasTimeData ? 130 : 82; // Increased height for time data
   const tooltipGap = 13;
 
   // Calculate tooltip Y position
@@ -48,6 +53,10 @@ export function TaskTooltip({ tooltipData, theme }: TaskTooltipProps) {
   const row1Y = tooltipY + 40;
   const row2Y = tooltipY + 55;
   const assigneesY = tooltipY + 70;
+  // v1.2.0: Time tracking rows
+  const timeRow1Y = tooltipY + 90;
+  const timeRow2Y = tooltipY + 105;
+  const timeRow3Y = tooltipY + 120;
 
   // Format date
   const formatDate = (date: Date) => {
@@ -63,6 +72,28 @@ export function TaskTooltip({ tooltipData, theme }: TaskTooltipProps) {
     if (!task.startDate || !task.endDate) return 'N/A';
     const days = Math.ceil((task.endDate.getTime() - task.startDate.getTime()) / (1000 * 60 * 60 * 24));
     return `${days} day${days !== 1 ? 's' : ''}`;
+  };
+
+  // v1.2.0: Format minutes to hours/minutes
+  const formatMinutes = (minutes: number | null | undefined): string => {
+    if (minutes == null || minutes === 0) return locale === 'es' ? 'N/A' : 'N/A';
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    if (hours === 0) return `${mins}m`;
+    if (mins === 0) return `${hours}h`;
+    return `${hours}h ${mins}m`;
+  };
+
+  // v1.2.0: Translations
+  const t = {
+    start: locale === 'es' ? 'Inicio:' : 'Start:',
+    end: locale === 'es' ? 'Fin:' : 'End:',
+    duration: locale === 'es' ? 'Duración:' : 'Duration:',
+    progress: locale === 'es' ? 'Progreso:' : 'Progress:',
+    assignees: locale === 'es' ? 'Asignados:' : 'Assignees:',
+    estimated: locale === 'es' ? 'Estimado:' : 'Estimated:',
+    logged: locale === 'es' ? 'Registrado:' : 'Logged:',
+    quoted: locale === 'es' ? 'Ofertado:' : 'Quoted:',
   };
 
   // Bar size flags for hint text
@@ -120,7 +151,7 @@ export function TaskTooltip({ tooltipData, theme }: TaskTooltipProps) {
           fontSize="11"
           fontFamily="Inter, sans-serif"
         >
-          Start:
+          {t.start}
         </text>
         <text
           x={x + width / 2 - 70}
@@ -141,7 +172,7 @@ export function TaskTooltip({ tooltipData, theme }: TaskTooltipProps) {
           fontSize="11"
           fontFamily="Inter, sans-serif"
         >
-          End:
+          {t.end}
         </text>
         <text
           x={x + width / 2 - 70}
@@ -162,7 +193,7 @@ export function TaskTooltip({ tooltipData, theme }: TaskTooltipProps) {
           fontSize="11"
           fontFamily="Inter, sans-serif"
         >
-          Duration:
+          {t.duration}
         </text>
         <text
           x={x + width / 2 + 65}
@@ -183,7 +214,7 @@ export function TaskTooltip({ tooltipData, theme }: TaskTooltipProps) {
           fontSize="11"
           fontFamily="Inter, sans-serif"
         >
-          Progress:
+          {t.progress}
         </text>
         <text
           x={x + width / 2 + 65}
@@ -206,7 +237,7 @@ export function TaskTooltip({ tooltipData, theme }: TaskTooltipProps) {
               fontSize="11"
               fontFamily="Inter, sans-serif"
             >
-              Assignees:
+              {t.assignees}
             </text>
             <text
               x={x + width / 2 - 50}
@@ -219,6 +250,86 @@ export function TaskTooltip({ tooltipData, theme }: TaskTooltipProps) {
               {task.assignees.map(a => a.name).join(', ').substring(0, 30)}
               {task.assignees.map(a => a.name).join(', ').length > 30 ? '...' : ''}
             </text>
+          </>
+        )}
+
+        {/* v1.2.0: Time Tracking Section */}
+        {hasTimeData && (
+          <>
+            {/* Effort Minutes (Estimated) */}
+            {task.effortMinutes != null && (
+              <>
+                <text
+                  x={x + width / 2 - 110}
+                  y={timeRow1Y}
+                  fill={theme.textTertiary}
+                  fontSize="11"
+                  fontFamily="Inter, sans-serif"
+                >
+                  {t.estimated}
+                </text>
+                <text
+                  x={x + width / 2 - 50}
+                  y={timeRow1Y}
+                  fill={theme.textSecondary}
+                  fontSize="11"
+                  fontWeight="500"
+                  fontFamily="Inter, sans-serif"
+                >
+                  {formatMinutes(task.effortMinutes)}
+                </text>
+              </>
+            )}
+
+            {/* Time Logged Minutes */}
+            {task.timeLoggedMinutes != null && (
+              <>
+                <text
+                  x={x + width / 2 - 110}
+                  y={timeRow2Y}
+                  fill={theme.textTertiary}
+                  fontSize="11"
+                  fontFamily="Inter, sans-serif"
+                >
+                  {t.logged}
+                </text>
+                <text
+                  x={x + width / 2 - 50}
+                  y={timeRow2Y}
+                  fill={theme.accent}
+                  fontSize="11"
+                  fontWeight="600"
+                  fontFamily="Inter, sans-serif"
+                >
+                  {formatMinutes(task.timeLoggedMinutes)}
+                </text>
+              </>
+            )}
+
+            {/* Sold Effort Minutes (Quoted) */}
+            {task.soldEffortMinutes != null && (
+              <>
+                <text
+                  x={x + width / 2 - 110}
+                  y={timeRow3Y}
+                  fill={theme.textTertiary}
+                  fontSize="11"
+                  fontFamily="Inter, sans-serif"
+                >
+                  {t.quoted}
+                </text>
+                <text
+                  x={x + width / 2 - 50}
+                  y={timeRow3Y}
+                  fill={theme.textSecondary}
+                  fontSize="11"
+                  fontWeight="500"
+                  fontFamily="Inter, sans-serif"
+                >
+                  {formatMinutes(task.soldEffortMinutes)}
+                </text>
+              </>
+            )}
           </>
         )}
 

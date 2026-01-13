@@ -83,5 +83,5 @@ export { TaskDetailModal } from './TaskDetailModal'
 export type { TaskDetailModalProps, TaskComment } from './TaskDetailModal'
 
 // Time Tracking Components (v1.1.0)
-export { TimePill, TimePopover, HealthBar } from './TimeTracking'
-export type { TimePillProps, TimePopoverProps, HealthBarProps } from './TimeTracking'
+export { TimePill, TimePopover, HealthBar, ProfitabilityReport } from './TimeTracking'
+export type { TimePillProps, TimePopoverProps, HealthBarProps, ProfitabilityReportProps } from './TimeTracking'

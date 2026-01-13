@@ -731,8 +731,13 @@ export function Timeline({
         )}
 
         {/* v0.17.76: Tooltip layer - rendered last to ensure it's always on top */}
+        {/* v1.2.0: Pass locale for i18n support */}
         {activeTooltip && (
-          <TaskTooltip tooltipData={activeTooltip} theme={theme} />
+          <TaskTooltip
+            tooltipData={activeTooltip}
+            theme={theme}
+            locale={locale === 'es' ? 'es' : 'en'}
+          />
         )}
       </svg>
     </div>

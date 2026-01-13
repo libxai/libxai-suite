@@ -539,6 +539,37 @@ export function ListView({
           />
         );
 
+      // v1.2.0: New time tracking columns
+      case 'effortMinutes':
+        return (
+          <TimeCell
+            value={(task as any).effortMinutes}
+            onChange={(minutes) => handleUpdate({ effortMinutes: minutes } as any)}
+            isDark={isDark}
+            locale={locale}
+          />
+        );
+
+      case 'timeLoggedMinutes':
+        return (
+          <TimeCell
+            value={(task as any).timeLoggedMinutes}
+            onChange={undefined} // Read-only field (auto-calculated)
+            isDark={isDark}
+            locale={locale}
+          />
+        );
+
+      case 'soldEffortMinutes':
+        return (
+          <TimeCell
+            value={(task as any).soldEffortMinutes}
+            onChange={(minutes) => handleUpdate({ soldEffortMinutes: minutes } as any)}
+            isDark={isDark}
+            locale={locale}
+          />
+        );
+
       default:
         return <span className={cn("text-sm", isDark ? "text-[#94A3B8]" : "text-gray-500")}>-</span>;
     }
@@ -560,6 +591,10 @@ export function ListView({
       // v1.1.0: Quoted time column
       quotedTime: (t.columns as any).quotedTime || (locale === 'es' ? 'Ofertado' : 'Quoted'),
       elapsedTime: (t.columns as any).elapsedTime || (locale === 'es' ? 'Tiempo' : 'Time Spent'),
+      // v1.2.0: New time tracking columns
+      effortMinutes: (t.columns as any).effortMinutes || (locale === 'es' ? 'Estimado' : 'Estimated'),
+      timeLoggedMinutes: (t.columns as any).timeLoggedMinutes || (locale === 'es' ? 'Tiempo' : 'Time Logged'),
+      soldEffortMinutes: (t.columns as any).soldEffortMinutes || (locale === 'es' ? 'Ofertado' : 'Quoted'),
     };
     const label = labelMap[column.type] || column.label;
     // Ensure we always return a string to prevent React error #310

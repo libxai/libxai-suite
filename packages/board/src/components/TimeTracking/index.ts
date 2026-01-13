@@ -11,3 +11,6 @@ export type { TimePopoverProps } from './TimePopover'
 
 export { HealthBar } from './HealthBar'
 export type { HealthBarProps } from './HealthBar'
+
+export { ProfitabilityReport } from './ProfitabilityReport'
+export type { ProfitabilityReportProps } from './ProfitabilityReport'

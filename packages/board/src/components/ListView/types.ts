@@ -16,6 +16,7 @@ export type SortDirection = 'asc' | 'desc';
 /**
  * Column types supported in ListView
  * - Standard: name, status, priority, assignees, startDate, endDate, progress, tags, estimatedTime, quotedTime, elapsedTime
+ * - v1.2.0: effortMinutes, timeLoggedMinutes, soldEffortMinutes
  * - Custom: text, number, date, dropdown, checkbox
  */
 export type ColumnType =
@@ -30,6 +31,10 @@ export type ColumnType =
   | 'estimatedTime'  // Estimated time in minutes (v0.18.3)
   | 'quotedTime'     // Quoted time in minutes (v1.1.0)
   | 'elapsedTime'    // Elapsed/spent time in minutes (v0.18.3)
+  // v1.2.0: Three-tier time tracking
+  | 'effortMinutes'      // Effort estimate in minutes (technical goal)
+  | 'timeLoggedMinutes'  // Time logged in minutes (auto-calculated)
+  | 'soldEffortMinutes'  // Sold/quoted effort in minutes (client facing)
   // Custom field types
   | 'text'           // Custom text field
   | 'number'         // Custom number field
@@ -450,11 +455,10 @@ export const DEFAULT_TABLE_COLUMNS: TableColumn[] = [
   { id: 'endDate', type: 'endDate', label: 'End Date', width: 120, visible: true, sortable: true, resizable: true },
   { id: 'progress', type: 'progress', label: 'Progress', width: 100, visible: true, sortable: true, resizable: true },
   { id: 'tags', type: 'tags', label: 'Tags', width: 150, visible: false, sortable: false, resizable: true },
-  // v0.18.3: Time tracking columns
-  { id: 'estimatedTime', type: 'estimatedTime', label: 'Estimated', width: 100, visible: false, sortable: true, resizable: true },
-  // v1.1.0: Quoted time column
-  { id: 'quotedTime', type: 'quotedTime', label: 'Quoted', width: 100, visible: false, sortable: true, resizable: true },
-  { id: 'elapsedTime', type: 'elapsedTime', label: 'Time Spent', width: 100, visible: false, sortable: true, resizable: true },
+  // v1.2.0: Three-tier time tracking columns (replaces old estimatedTime/quotedTime/elapsedTime)
+  { id: 'effortMinutes', type: 'effortMinutes', label: 'Estimated', width: 100, visible: false, sortable: true, resizable: true },
+  { id: 'timeLoggedMinutes', type: 'timeLoggedMinutes', label: 'Time Logged', width: 100, visible: false, sortable: true, resizable: true },
+  { id: 'soldEffortMinutes', type: 'soldEffortMinutes', label: 'Quoted', width: 100, visible: false, sortable: true, resizable: true },
 ];
 
 /**
@@ -470,11 +474,10 @@ export const STANDARD_FIELDS: Array<{ type: ColumnType; labelKey: string; icon: 
   { type: 'endDate', labelKey: 'columns.endDate', icon: 'CalendarCheck' },
   { type: 'progress', labelKey: 'columns.progress', icon: 'BarChart' },
   { type: 'tags', labelKey: 'columns.tags', icon: 'Tag' },
-  // v0.18.3: Time tracking fields
-  { type: 'estimatedTime', labelKey: 'columns.estimatedTime', icon: 'Clock' },
-  // v1.1.0: Quoted time field
-  { type: 'quotedTime', labelKey: 'columns.quotedTime', icon: 'FileText' },
-  { type: 'elapsedTime', labelKey: 'columns.elapsedTime', icon: 'Timer' },
+  // v1.2.0: Three-tier time tracking fields (replaces old estimatedTime/quotedTime/elapsedTime)
+  { type: 'effortMinutes', labelKey: 'columns.effortMinutes', icon: 'Clock' },
+  { type: 'timeLoggedMinutes', labelKey: 'columns.timeLoggedMinutes', icon: 'Timer' },
+  { type: 'soldEffortMinutes', labelKey: 'columns.soldEffortMinutes', icon: 'FileText' },
 ];
 
 /**

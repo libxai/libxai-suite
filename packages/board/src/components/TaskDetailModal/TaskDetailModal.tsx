@@ -369,6 +369,8 @@ export interface TaskDetailModalProps {
   onTimeLog?: (taskId: string, input: TimeLogInput) => Promise<void>;
   /** Update estimate callback */
   onEstimateUpdate?: (taskId: string, minutes: number | null) => Promise<void>;
+  /** Update sold effort callback (v1.2.0: Commercial time tracking) */
+  onSoldEffortUpdate?: (taskId: string, minutes: number | null) => Promise<void>;
   /** Start timer callback */
   onTimerStart?: (taskId: string) => void;
   /** Stop timer callback */
@@ -408,6 +410,7 @@ export function TaskDetailModal({
   timerElapsedSeconds = 0,
   onTimeLog,
   onEstimateUpdate,
+  onSoldEffortUpdate,
   onTimerStart,
   onTimerStop,
   onTimerDiscard: _onTimerDiscard,
@@ -475,15 +478,37 @@ export function TaskDetailModal({
   // v0.18.11: Comments container ref for auto-scroll to bottom
   const commentsContainerRef = useRef<HTMLDivElement | null>(null);
 
-  // Update local state when task prop changes
+  // Update local state when task prop changes or modal opens
   useEffect(() => {
-    if (task) {
+    // v1.2.0: Debug logging for task received by modal
+    console.log('📥 TaskDetailModal useEffect - task received:', {
+      isOpen,
+      taskId: task?.id,
+      taskName: (task as any)?.name,
+      soldEffortMinutes: (task as any)?.soldEffortMinutes,
+      quotedMinutes: (task as any)?.quotedMinutes,
+      effortMinutes: (task as any)?.effortMinutes,
+      timeLoggedMinutes: (task as any)?.timeLoggedMinutes,
+      fullTask: task
+    });
+
+    if (task && isOpen) {
       const normalizedTask = normalizeToTask(task, availableUsers);
+
+      console.log('📥 After normalizeToTask:', {
+        taskId: normalizedTask?.id,
+        taskName: normalizedTask?.name,
+        soldEffortMinutes: (normalizedTask as any)?.soldEffortMinutes,
+        quotedMinutes: (normalizedTask as any)?.quotedMinutes,
+        effortMinutes: (normalizedTask as any)?.effortMinutes,
+        timeLoggedMinutes: (normalizedTask as any)?.timeLoggedMinutes
+      });
+
       setSelectedTask(normalizedTask);
       setLocalDescription((normalizedTask as any).description || '');
       setLocalTaskName(normalizedTask.name || '');
     }
-  }, [task?.id, availableUsers]);
+  }, [task?.id, (task as any)?.quotedMinutes, availableUsers, isOpen]);
 
   // v0.17.442: Auto-resize description textarea when description changes or modal opens
   useEffect(() => {
@@ -1455,7 +1480,7 @@ export function TaskDetailModal({
                   {enableTimeTracking && (
                     <>
                       {/* Row 1: Duración estimada (Esfuerzo Estimado) */}
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 relative">
                         <Hourglass className={cn("w-4 h-4", isDark ? "text-[#6B7280]" : "text-gray-400")} />
                         <span className={cn("text-sm w-24", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
                           {locale === 'es' ? 'Duración estima...' : 'Estimated dur...'}
@@ -1485,10 +1510,34 @@ export function TaskDetailModal({
                             </button>
                           )}
                         </div>
+
+                        {/* Popover for estimate */}
+                        <AnimatePresence>
+                          {showTimePopover === 'estimate' && (
+                            <motion.div
+                              initial={{ opacity: 0, y: -10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -10 }}
+                              className="absolute top-full left-28 mt-2 z-50"
+                            >
+                              <TimeInputPopover
+                                mode="estimate"
+                                locale={locale}
+                                isDark={isDark}
+                                currentValue={timeTrackingSummary?.estimateMinutes || null}
+                                onSave={async (minutes) => {
+                                  await onEstimateUpdate?.(selectedTask.id, minutes);
+                                  setShowTimePopover(false);
+                                }}
+                                onClose={() => setShowTimePopover(false)}
+                              />
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
 
                       {/* Row 2: Tiempo ofertado (Quoted Time) */}
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 relative">
                         <FileText className={cn("w-4 h-4", isDark ? "text-[#6B7280]" : "text-gray-400")} />
                         <span className={cn("text-sm w-24", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
                           {locale === 'es' ? 'Tiempo ofertado' : 'Quoted time'}
@@ -1518,6 +1567,36 @@ export function TaskDetailModal({
                             </button>
                           )}
                         </div>
+
+                        {/* Popover for quoted */}
+                        <AnimatePresence>
+                          {showTimePopover === 'quoted' && (
+                            <motion.div
+                              initial={{ opacity: 0, y: -10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -10 }}
+                              className="absolute top-full left-28 mt-2 z-50"
+                            >
+                              <TimeInputPopover
+                                mode="quoted"
+                                locale={locale}
+                                isDark={isDark}
+                                currentValue={(selectedTask as any).quotedMinutes || null}
+                                onSave={async (minutes) => {
+                                  if (onSoldEffortUpdate) {
+                                    await onSoldEffortUpdate(selectedTask.id, minutes);
+                                    // Update local state to reflect the change
+                                    setSelectedTask(prev => prev ? { ...prev, quotedMinutes: minutes } as any : null);
+                                  } else {
+                                    updateTaskField('quotedMinutes' as any, minutes);
+                                  }
+                                  setShowTimePopover(false);
+                                }}
+                                onClose={() => setShowTimePopover(false)}
+                              />
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
 
                       {/* Row 3: Registrar el tiempo (Log Time) */}
@@ -1609,9 +1688,9 @@ export function TaskDetailModal({
                           )}
                         </div>
 
-                        {/* Time Input Popover */}
+                        {/* Time Input Popover for Log */}
                         <AnimatePresence>
-                          {showTimePopover && (
+                          {showTimePopover === 'log' && (
                             <motion.div
                               initial={{ opacity: 0, y: -10 }}
                               animate={{ opacity: 1, y: 0 }}
@@ -1619,23 +1698,12 @@ export function TaskDetailModal({
                               className="absolute top-full left-28 mt-2 z-50"
                             >
                               <TimeInputPopover
-                                mode={showTimePopover as 'estimate' | 'quoted' | 'log'}
+                                mode="log"
                                 locale={locale}
                                 isDark={isDark}
-                                currentValue={
-                                  showTimePopover === 'estimate'
-                                    ? timeTrackingSummary?.estimateMinutes || null
-                                    : showTimePopover === 'quoted'
-                                      ? (selectedTask as any).quotedMinutes || null
-                                      : null
-                                }
+                                currentValue={null}
                                 onSave={async (minutes, note) => {
-                                  if (showTimePopover === 'estimate') {
-                                    await onEstimateUpdate?.(selectedTask.id, minutes);
-                                  } else if (showTimePopover === 'quoted') {
-                                    // Update quoted time on task
-                                    updateTaskField('quotedMinutes' as any, minutes);
-                                  } else if (showTimePopover === 'log' && minutes) {
+                                  if (minutes) {
                                     await onTimeLog?.(selectedTask.id, { durationMinutes: minutes, note, source: 'manual' });
                                   }
                                   setShowTimePopover(false);

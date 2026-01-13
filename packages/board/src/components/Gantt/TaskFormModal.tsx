@@ -34,6 +34,59 @@ import { TagPicker } from './TagPicker'
 import { AttachmentUploader } from '../Attachments'
 import type { Attachment } from '../../types'
 
+// v1.2.0: Time formatting utilities
+function formatMinutesToDisplay(minutes: number): string {
+  if (minutes < 60) {
+    return `${minutes}m`;
+  }
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  if (remainingMinutes === 0) {
+    return `${hours}h`;
+  }
+  return `${hours}h ${remainingMinutes}m`;
+}
+
+function parseTimeInput(input: string): number | null {
+  if (!input || input.trim() === '') return null;
+
+  const normalized = input.trim().toLowerCase();
+
+  // Pattern: "2h 30m" or "2h30m"
+  const hoursMinutesMatch = normalized.match(/(\d+)h\s*(\d+)m/);
+  if (hoursMinutesMatch && hoursMinutesMatch[1] && hoursMinutesMatch[2]) {
+    const hours = parseInt(hoursMinutesMatch[1], 10);
+    const minutes = parseInt(hoursMinutesMatch[2], 10);
+    return hours * 60 + minutes;
+  }
+
+  // Pattern: "2h"
+  const hoursMatch = normalized.match(/(\d+)h/);
+  if (hoursMatch && hoursMatch[1]) {
+    return parseInt(hoursMatch[1], 10) * 60;
+  }
+
+  // Pattern: "30m"
+  const minutesMatch = normalized.match(/(\d+)m/);
+  if (minutesMatch && minutesMatch[1]) {
+    return parseInt(minutesMatch[1], 10);
+  }
+
+  // Pattern: "1d" (1 day = 8 hours = 480 minutes)
+  const daysMatch = normalized.match(/(\d+)d/);
+  if (daysMatch && daysMatch[1]) {
+    return parseInt(daysMatch[1], 10) * 480;
+  }
+
+  // Pattern: just a number (assume minutes)
+  const numberMatch = normalized.match(/^(\d+)$/);
+  if (numberMatch && numberMatch[1]) {
+    return parseInt(numberMatch[1], 10);
+  }
+
+  return null;
+}
+
 // v0.17.28: Priority type for Kanban sync
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent'
 
@@ -65,6 +118,7 @@ export interface TaskFormData {
   dependencies?: string[]
   tags?: TaskTag[] // v0.17.158: Tags/Labels support
   pendingFiles?: File[] // v0.17.166: Files to upload after task creation
+  effortMinutes?: number | null // v1.2.0: Estimated effort in minutes
 }
 
 export interface TaskFormModalProps {
@@ -930,6 +984,45 @@ export function TaskFormModal({
                           className="overflow-hidden"
                         >
                           <div className="pt-3 space-y-3">
+                            {/* v1.2.0: Duración estimada (Effort Estimate) */}
+                            <div>
+                              <div className="flex items-center gap-2 mb-2">
+                                <svg
+                                  width="16"
+                                  height="16"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  style={{ color: themeColors.textTertiary }}
+                                >
+                                  <path d="M12 6v6l4 2" />
+                                  <circle cx="12" cy="12" r="10" />
+                                </svg>
+                                <span className="text-xs" style={{ color: themeColors.textTertiary }}>
+                                  Duración estimada
+                                </span>
+                              </div>
+                              <input
+                                type="text"
+                                placeholder="ej: 2h 30m, 4h, 1d"
+                                value={formData.effortMinutes ? formatMinutesToDisplay(formData.effortMinutes) : ''}
+                                onChange={(e) => {
+                                  const minutes = parseTimeInput(e.target.value);
+                                  handleChange('effortMinutes', minutes);
+                                }}
+                                className="w-full px-3 py-2 rounded-lg text-sm transition-colors"
+                                style={{
+                                  backgroundColor: themeColors.bgSecondary,
+                                  color: themeColors.textPrimary,
+                                  border: `1px solid ${themeColors.borderLight}`,
+                                }}
+                              />
+                              <p className="text-xs mt-1" style={{ color: themeColors.textTertiary }}>
+                                Formatos: "2h 30m", "4h", "1d" (1 día = 8h)
+                              </p>
+                            </div>
+
                             {/* v0.17.227: Attachments Section - moved here for cleaner form */}
                             {(onUploadAttachments || attachments.length > 0 || mode === 'create') && (
                               <div>
@@ -989,7 +1082,6 @@ export function TaskFormModal({
                                 )}
                               </div>
                             )}
-
 
                             {/* Milestone */}
                             <label className="flex items-center gap-3 cursor-pointer p-2 rounded-lg transition-colors hover:bg-white/5">

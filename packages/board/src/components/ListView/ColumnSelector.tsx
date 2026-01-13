@@ -54,6 +54,10 @@ const COLUMN_ICONS: Record<ColumnType, React.ReactNode> = {
   // v1.1.0: Quoted time column
   quotedTime: <FileText className="w-4 h-4" />,
   elapsedTime: <Timer className="w-4 h-4" />,
+  // v1.2.0: Three-tier time tracking columns
+  effortMinutes: <Clock className="w-4 h-4" />,
+  timeLoggedMinutes: <Timer className="w-4 h-4" />,
+  soldEffortMinutes: <FileText className="w-4 h-4" />,
   // Custom field types
   text: <Type className="w-4 h-4" />,
   number: <Hash className="w-4 h-4" />,
@@ -63,7 +67,7 @@ const COLUMN_ICONS: Record<ColumnType, React.ReactNode> = {
 };
 
 // Standard fields that are always available
-const STANDARD_COLUMNS: ColumnType[] = ['name', 'status', 'priority', 'assignees', 'startDate', 'endDate', 'progress', 'tags', 'estimatedTime', 'quotedTime', 'elapsedTime'];
+const STANDARD_COLUMNS: ColumnType[] = ['name', 'status', 'priority', 'assignees', 'startDate', 'endDate', 'progress', 'tags', 'effortMinutes', 'timeLoggedMinutes', 'soldEffortMinutes'];
 
 export function ColumnSelector({
   isOpen,
@@ -348,6 +352,10 @@ const translations = {
       estimatedTime: 'Estimated',
       quotedTime: 'Quoted',
       elapsedTime: 'Time Spent',
+      // v1.2.0: Three-tier time tracking
+      effortMinutes: 'Estimated',
+      timeLoggedMinutes: 'Time Logged',
+      soldEffortMinutes: 'Quoted',
       text: 'Text',
       number: 'Number',
       date: 'Date',
@@ -373,6 +381,10 @@ const translations = {
       estimatedTime: 'Estimado',
       quotedTime: 'Ofertado',
       elapsedTime: 'Tiempo',
+      // v1.2.0: Three-tier time tracking
+      effortMinutes: 'Estimado',
+      timeLoggedMinutes: 'Tiempo Registrado',
+      soldEffortMinutes: 'Ofertado',
       text: 'Texto',
       number: 'Número',
       date: 'Fecha',

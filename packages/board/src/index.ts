@@ -47,6 +47,7 @@ export {
   TimePill,
   TimePopover,
   HealthBar,
+  ProfitabilityReport,
 } from './components'
 
 // Skeleton Loaders
@@ -260,6 +261,7 @@ export type {
   TimePillProps,
   TimePopoverProps,
   HealthBarProps,
+  ProfitabilityReportProps,
 } from './components'
 
 // v0.17.422: Comment attachments types
