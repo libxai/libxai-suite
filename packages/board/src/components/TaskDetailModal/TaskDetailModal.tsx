@@ -164,142 +164,114 @@ function TimeInputPopover({ mode, locale, isDark, currentValue, onSave, onClose 
   const titles = {
     estimate: locale === 'es' ? 'Duración estimada' : 'Estimated duration',
     quoted: locale === 'es' ? 'Tiempo ofertado' : 'Quoted time',
-    log: locale === 'es' ? 'Agregar tiempo' : 'Add time',
+    log: locale === 'es' ? 'Registrar tiempo' : 'Log time',
   };
 
   const placeholders = {
-    estimate: locale === 'es' ? '2h 30m' : '2h 30m',
-    quoted: locale === 'es' ? '4h' : '4h',
+    estimate: locale === 'es' ? '1h 30m' : '1h 30m',
+    quoted: locale === 'es' ? '1h 30m' : '1h 30m',
     log: locale === 'es' ? '1h 30m' : '1h 30m',
-  };
-
-  const descriptions = {
-    estimate: locale === 'es' ? 'Ingresa la duración estimada para esta tarea' : 'Enter the estimated duration for this task',
-    quoted: locale === 'es' ? 'Ingresa el tiempo presupuestado al cliente' : 'Enter the time quoted to the client',
-    log: locale === 'es' ? 'Registra el tiempo trabajado' : 'Log time worked',
   };
 
   return (
     <div
       className={cn(
-        "p-4 rounded-xl shadow-xl border min-w-[300px]",
-        isDark ? "bg-[#1A1D25] border-white/10" : "bg-white border-gray-200"
+        "w-64 p-3 rounded-lg shadow-xl border",
+        isDark ? "bg-[#1F2937] border-[#374151]" : "bg-white border-gray-200"
       )}
       onClick={(e) => e.stopPropagation()}
     >
-      {/* Header */}
+      {/* Header - Compact */}
       <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <div className={cn(
-            "p-1.5 rounded-lg",
-            isDark ? "bg-blue-500/20" : "bg-blue-50"
-          )}>
-            <Clock className={cn("w-4 h-4", isDark ? "text-blue-400" : "text-blue-600")} />
-          </div>
-          <h4 className={cn("text-sm font-semibold", isDark ? "text-white" : "text-gray-900")}>
-            {titles[mode]}
-          </h4>
-        </div>
+        <span className={cn("text-sm font-medium", isDark ? "text-white" : "text-gray-900")}>
+          {titles[mode]}
+        </span>
         <button
           type="button"
           onClick={onClose}
           className={cn(
-            "p-1.5 rounded-lg transition-colors",
+            "p-1 rounded transition-colors",
             isDark ? "hover:bg-white/10 text-gray-400" : "hover:bg-gray-100 text-gray-500"
           )}
         >
-          <X className="w-4 h-4" />
+          <X className="w-3.5 h-3.5" />
         </button>
       </div>
 
-      {/* Description */}
-      <p className={cn("text-xs mb-4", isDark ? "text-gray-400" : "text-gray-500")}>
-        {descriptions[mode]}
-      </p>
-
-      {/* Duration Input - Modern Style */}
-      <div className="mb-4">
-        <div className="relative">
-          <Clock className={cn(
-            "absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5",
-            isDark ? "text-gray-500" : "text-gray-400"
-          )} />
-          <input
-            ref={inputRef}
-            type="text"
-            value={durationInput}
-            onChange={(e) => setDurationInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={placeholders[mode]}
-            className={cn(
-              "w-full pl-10 pr-4 py-3 text-lg font-medium rounded-xl border-2 transition-all",
-              "focus:outline-none focus:ring-0",
-              isDark
-                ? "bg-[#0F1117] border-white/10 text-white placeholder:text-gray-600 focus:border-blue-500"
-                : "bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-blue-500"
-            )}
-          />
-        </div>
-        <p className={cn("text-xs mt-2", isDark ? "text-gray-500" : "text-gray-400")}>
-          {locale === 'es'
-            ? 'Formatos: 2h 30m, 2:30, 90m, 1.5h'
-            : 'Formats: 2h 30m, 2:30, 90m, 1.5h'}
+      {/* Duration Input - Compact Style like MyTasksView */}
+      <div className="mb-3">
+        <input
+          ref={inputRef}
+          type="text"
+          value={durationInput}
+          onChange={(e) => setDurationInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholders[mode]}
+          className={cn(
+            "w-full px-3 py-2 text-sm rounded-lg border transition-all",
+            "focus:outline-none focus:ring-2 focus:ring-blue-500/50",
+            isDark
+              ? "bg-[#374151] border-[#4B5563] text-white placeholder:text-gray-500"
+              : "bg-gray-100 border-gray-200 text-gray-900 placeholder:text-gray-400"
+          )}
+        />
+        <p className={cn("text-xs mt-1", isDark ? "text-gray-500" : "text-gray-400")}>
+          {locale === 'es' ? 'Ej: 1h 30m, 45m, 2:30' : 'e.g. 1h 30m, 45m, 2:30'}
         </p>
       </div>
 
       {/* Note field only for log mode */}
       {mode === 'log' && (
-        <div className="mb-4">
+        <div className="mb-3">
           <input
             type="text"
             value={note}
             onChange={(e) => setNote(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={locale === 'es' ? 'Nota (opcional)...' : 'Note (optional)...'}
+            placeholder={locale === 'es' ? 'Comentario (opcional)' : 'Comment (optional)'}
             className={cn(
-              "w-full px-4 py-2.5 rounded-xl border transition-all text-sm",
-              "focus:outline-none focus:ring-0",
+              "w-full px-3 py-2 text-sm rounded-lg border transition-all",
+              "focus:outline-none focus:ring-2 focus:ring-blue-500/50",
               isDark
-                ? "bg-[#0F1117] border-white/10 text-white placeholder:text-gray-600 focus:border-blue-500"
-                : "bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-blue-500"
+                ? "bg-[#374151] border-[#4B5563] text-white placeholder:text-gray-500"
+                : "bg-gray-100 border-gray-200 text-gray-900 placeholder:text-gray-400"
             )}
           />
         </div>
       )}
 
-      {/* Action Buttons */}
-      <div className="flex items-center gap-2">
+      {/* Action Button - Single button, full width */}
+      <button
+        type="button"
+        onClick={handleSave}
+        disabled={isSaving || !durationInput.trim()}
+        className={cn(
+          "w-full py-2 px-3 text-sm font-medium rounded-lg transition-colors",
+          "bg-blue-600 hover:bg-blue-700 text-white",
+          "disabled:opacity-50 disabled:cursor-not-allowed"
+        )}
+      >
+        {isSaving
+          ? (locale === 'es' ? 'Guardando...' : 'Saving...')
+          : (locale === 'es' ? 'Guardar' : 'Save')}
+      </button>
+
+      {/* Clear button only for estimate/quoted modes with existing value */}
+      {currentValue && mode !== 'log' && (
         <button
           type="button"
-          onClick={handleSave}
+          onClick={handleClear}
           disabled={isSaving}
           className={cn(
-            "flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all",
-            "bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50",
-            "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
-            isDark && "focus:ring-offset-[#1A1D25]"
+            "w-full mt-2 py-1.5 px-3 text-xs font-medium rounded-lg transition-colors",
+            isDark
+              ? "text-gray-400 hover:text-red-400 hover:bg-red-500/10"
+              : "text-gray-500 hover:text-red-600 hover:bg-red-50"
           )}
         >
-          {isSaving
-            ? (locale === 'es' ? 'Guardando...' : 'Saving...')
-            : (locale === 'es' ? 'Guardar' : 'Save')}
+          {locale === 'es' ? 'Quitar valor' : 'Clear value'}
         </button>
-        {currentValue && mode !== 'log' && (
-          <button
-            type="button"
-            onClick={handleClear}
-            disabled={isSaving}
-            className={cn(
-              "px-4 py-2.5 rounded-xl text-sm font-semibold transition-all",
-              isDark
-                ? "bg-red-500/10 text-red-400 hover:bg-red-500/20"
-                : "bg-red-50 text-red-600 hover:bg-red-100"
-            )}
-          >
-            {locale === 'es' ? 'Quitar' : 'Clear'}
-          </button>
-        )}
-      </div>
+      )}
     </div>
   );
 }
