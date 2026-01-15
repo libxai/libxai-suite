@@ -72,6 +72,7 @@ function formatSecondsToDisplay(seconds: number): string {
 }
 
 // v1.1.0: TimeInputPopover component for entering time values
+// v1.3.0: Modern design with single duration input (e.g., "2h 30m")
 interface TimeInputPopoverProps {
   mode: 'estimate' | 'quoted' | 'log';
   locale: 'en' | 'es';
@@ -81,16 +82,66 @@ interface TimeInputPopoverProps {
   onClose: () => void;
 }
 
+// v1.3.0: Parse duration string to minutes (supports "2h 30m", "2h", "30m", "2:30", "150")
+function parseDurationToMinutes(input: string): number | null {
+  const trimmed = input.trim().toLowerCase();
+
+  if (!trimmed || trimmed === '-') {
+    return null;
+  }
+
+  // Format: "2:30" (hours:minutes)
+  if (trimmed.includes(':')) {
+    const [hours, minutes] = trimmed.split(':').map(Number);
+    return (hours || 0) * 60 + (minutes || 0);
+  }
+
+  // Format: "2h 30m" or "2h" or "30m"
+  const hourMatch = trimmed.match(/(\d+(?:\.\d+)?)\s*h/);
+  const minuteMatch = trimmed.match(/(\d+)\s*m/);
+
+  if (hourMatch || minuteMatch) {
+    const hours = hourMatch?.[1] ? parseFloat(hourMatch[1]) : 0;
+    const minutes = minuteMatch?.[1] ? parseInt(minuteMatch[1], 10) : 0;
+    return Math.round(hours * 60) + minutes;
+  }
+
+  // Format: plain number (assume minutes)
+  const plainNumber = parseFloat(trimmed);
+  if (!isNaN(plainNumber)) {
+    return Math.round(plainNumber);
+  }
+
+  return null;
+}
+
+// v1.3.0: Format minutes as duration string (e.g., "2h 30m")
+function formatMinutesToDuration(minutes: number | null): string {
+  if (!minutes || minutes === 0) return '';
+
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+
+  if (hours === 0) return `${remainingMinutes}m`;
+  if (remainingMinutes === 0) return `${hours}h`;
+  return `${hours}h ${remainingMinutes}m`;
+}
+
 function TimeInputPopover({ mode, locale, isDark, currentValue, onSave, onClose }: TimeInputPopoverProps) {
-  const [hours, setHours] = useState(currentValue ? Math.floor(currentValue / 60) : 0);
-  const [minutes, setMinutes] = useState(currentValue ? currentValue % 60 : 0);
+  const [durationInput, setDurationInput] = useState(formatMinutesToDuration(currentValue));
   const [note, setNote] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Focus input on mount
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
 
   const handleSave = async () => {
     setIsSaving(true);
-    const totalMinutes = hours * 60 + minutes;
-    await onSave(totalMinutes > 0 ? totalMinutes : null, note || undefined);
+    const totalMinutes = parseDurationToMinutes(durationInput);
+    await onSave(totalMinutes && totalMinutes > 0 ? totalMinutes : null, note || undefined);
     setIsSaving(false);
   };
 
@@ -100,108 +151,138 @@ function TimeInputPopover({ mode, locale, isDark, currentValue, onSave, onClose 
     setIsSaving(false);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSave();
+    }
+    if (e.key === 'Escape') {
+      onClose();
+    }
+  };
+
   const titles = {
     estimate: locale === 'es' ? 'Duración estimada' : 'Estimated duration',
     quoted: locale === 'es' ? 'Tiempo ofertado' : 'Quoted time',
     log: locale === 'es' ? 'Agregar tiempo' : 'Add time',
   };
 
+  const placeholders = {
+    estimate: locale === 'es' ? '2h 30m' : '2h 30m',
+    quoted: locale === 'es' ? '4h' : '4h',
+    log: locale === 'es' ? '1h 30m' : '1h 30m',
+  };
+
+  const descriptions = {
+    estimate: locale === 'es' ? 'Ingresa la duración estimada para esta tarea' : 'Enter the estimated duration for this task',
+    quoted: locale === 'es' ? 'Ingresa el tiempo presupuestado al cliente' : 'Enter the time quoted to the client',
+    log: locale === 'es' ? 'Registra el tiempo trabajado' : 'Log time worked',
+  };
+
   return (
     <div
       className={cn(
-        "p-4 rounded-lg shadow-xl border min-w-[280px]",
+        "p-4 rounded-xl shadow-xl border min-w-[300px]",
         isDark ? "bg-[#1A1D25] border-white/10" : "bg-white border-gray-200"
       )}
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="flex items-center justify-between mb-4">
-        <h4 className={cn("text-sm font-medium", isDark ? "text-white" : "text-gray-900")}>
-          {titles[mode]}
-        </h4>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <div className={cn(
+            "p-1.5 rounded-lg",
+            isDark ? "bg-blue-500/20" : "bg-blue-50"
+          )}>
+            <Clock className={cn("w-4 h-4", isDark ? "text-blue-400" : "text-blue-600")} />
+          </div>
+          <h4 className={cn("text-sm font-semibold", isDark ? "text-white" : "text-gray-900")}>
+            {titles[mode]}
+          </h4>
+        </div>
         <button
           type="button"
           onClick={onClose}
           className={cn(
-            "p-1 rounded hover:bg-opacity-10",
-            isDark ? "hover:bg-white text-gray-400" : "hover:bg-gray-200 text-gray-500"
+            "p-1.5 rounded-lg transition-colors",
+            isDark ? "hover:bg-white/10 text-gray-400" : "hover:bg-gray-100 text-gray-500"
           )}
         >
           <X className="w-4 h-4" />
         </button>
       </div>
 
-      <div className="flex items-center gap-3 mb-4">
-        <div className="flex-1">
-          <label className={cn("block text-xs mb-1", isDark ? "text-gray-400" : "text-gray-500")}>
-            {locale === 'es' ? 'Horas' : 'Hours'}
-          </label>
+      {/* Description */}
+      <p className={cn("text-xs mb-4", isDark ? "text-gray-400" : "text-gray-500")}>
+        {descriptions[mode]}
+      </p>
+
+      {/* Duration Input - Modern Style */}
+      <div className="mb-4">
+        <div className="relative">
+          <Clock className={cn(
+            "absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5",
+            isDark ? "text-gray-500" : "text-gray-400"
+          )} />
           <input
-            type="number"
-            min="0"
-            max="999"
-            value={hours}
-            onChange={(e) => setHours(Math.max(0, parseInt(e.target.value) || 0))}
+            ref={inputRef}
+            type="text"
+            value={durationInput}
+            onChange={(e) => setDurationInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={placeholders[mode]}
             className={cn(
-              "w-full px-3 py-2 rounded border text-center text-lg font-medium",
+              "w-full pl-10 pr-4 py-3 text-lg font-medium rounded-xl border-2 transition-all",
+              "focus:outline-none focus:ring-0",
               isDark
-                ? "bg-[#0F1117] border-white/10 text-white focus:border-blue-500"
-                : "bg-gray-50 border-gray-200 text-gray-900 focus:border-blue-500"
+                ? "bg-[#0F1117] border-white/10 text-white placeholder:text-gray-600 focus:border-blue-500"
+                : "bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-blue-500"
             )}
           />
         </div>
-        <span className={cn("text-2xl font-light mt-5", isDark ? "text-gray-500" : "text-gray-400")}>:</span>
-        <div className="flex-1">
-          <label className={cn("block text-xs mb-1", isDark ? "text-gray-400" : "text-gray-500")}>
-            {locale === 'es' ? 'Minutos' : 'Minutes'}
-          </label>
-          <input
-            type="number"
-            min="0"
-            max="59"
-            value={minutes}
-            onChange={(e) => setMinutes(Math.min(59, Math.max(0, parseInt(e.target.value) || 0)))}
-            className={cn(
-              "w-full px-3 py-2 rounded border text-center text-lg font-medium",
-              isDark
-                ? "bg-[#0F1117] border-white/10 text-white focus:border-blue-500"
-                : "bg-gray-50 border-gray-200 text-gray-900 focus:border-blue-500"
-            )}
-          />
-        </div>
+        <p className={cn("text-xs mt-2", isDark ? "text-gray-500" : "text-gray-400")}>
+          {locale === 'es'
+            ? 'Formatos: 2h 30m, 2:30, 90m, 1.5h'
+            : 'Formats: 2h 30m, 2:30, 90m, 1.5h'}
+        </p>
       </div>
 
       {/* Note field only for log mode */}
       {mode === 'log' && (
         <div className="mb-4">
-          <label className={cn("block text-xs mb-1", isDark ? "text-gray-400" : "text-gray-500")}>
-            {locale === 'es' ? 'Nota (opcional)' : 'Note (optional)'}
-          </label>
           <input
             type="text"
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder={locale === 'es' ? 'Descripción del trabajo...' : 'Work description...'}
+            onKeyDown={handleKeyDown}
+            placeholder={locale === 'es' ? 'Nota (opcional)...' : 'Note (optional)...'}
             className={cn(
-              "w-full px-3 py-2 rounded border text-sm",
+              "w-full px-4 py-2.5 rounded-xl border transition-all text-sm",
+              "focus:outline-none focus:ring-0",
               isDark
-                ? "bg-[#0F1117] border-white/10 text-white placeholder:text-gray-500 focus:border-blue-500"
+                ? "bg-[#0F1117] border-white/10 text-white placeholder:text-gray-600 focus:border-blue-500"
                 : "bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-blue-500"
             )}
           />
         </div>
       )}
 
+      {/* Action Buttons */}
       <div className="flex items-center gap-2">
         <button
           type="button"
           onClick={handleSave}
           disabled={isSaving}
           className={cn(
-            "flex-1 px-4 py-2 rounded text-sm font-medium transition-colors",
-            "bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+            "flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all",
+            "bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50",
+            "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
+            isDark && "focus:ring-offset-[#1A1D25]"
           )}
         >
-          {isSaving ? (locale === 'es' ? 'Guardando...' : 'Saving...') : (locale === 'es' ? 'Guardar' : 'Save')}
+          {isSaving
+            ? (locale === 'es' ? 'Guardando...' : 'Saving...')
+            : (locale === 'es' ? 'Guardar' : 'Save')}
         </button>
         {currentValue && mode !== 'log' && (
           <button
@@ -209,7 +290,7 @@ function TimeInputPopover({ mode, locale, isDark, currentValue, onSave, onClose 
             onClick={handleClear}
             disabled={isSaving}
             className={cn(
-              "px-4 py-2 rounded text-sm font-medium transition-colors",
+              "px-4 py-2.5 rounded-xl text-sm font-semibold transition-all",
               isDark
                 ? "bg-red-500/10 text-red-400 hover:bg-red-500/20"
                 : "bg-red-50 text-red-600 hover:bg-red-100"
@@ -964,7 +1045,7 @@ export function TaskDetailModal({
                   {/* Status */}
                   <div className="flex items-center gap-3 relative">
                     <CheckCircle2 className={cn("w-4 h-4", isDark ? "text-[#6B7280]" : "text-gray-400")} />
-                    <span className={cn("text-sm w-24", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
+                    <span className={cn("text-sm w-28 truncate flex-shrink-0", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
                       {locale === 'es' ? 'Estado' : 'Status'}
                     </span>
                     <button
@@ -1028,7 +1109,7 @@ export function TaskDetailModal({
                   {/* Assignees */}
                   <div className="flex items-center gap-3 relative">
                     <User className={cn("w-4 h-4", isDark ? "text-[#6B7280]" : "text-gray-400")} />
-                    <span className={cn("text-sm w-24", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
+                    <span className={cn("text-sm w-28 truncate flex-shrink-0", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
                       {locale === 'es' ? 'Asignados' : 'Assignees'}
                     </span>
                     <button
@@ -1132,7 +1213,7 @@ export function TaskDetailModal({
                   {/* Dates */}
                   <div className="flex items-center gap-3 relative">
                     <CalendarDays className={cn("w-4 h-4", isDark ? "text-[#6B7280]" : "text-gray-400")} />
-                    <span className={cn("text-sm w-24", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
+                    <span className={cn("text-sm w-28 truncate flex-shrink-0", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
                       {locale === 'es' ? 'Fechas' : 'Dates'}
                     </span>
                     <button
@@ -1339,7 +1420,7 @@ export function TaskDetailModal({
                   {/* Priority */}
                   <div className="flex items-center gap-3 relative">
                     <Flag className={cn("w-4 h-4", isDark ? "text-[#6B7280]" : "text-gray-400")} />
-                    <span className={cn("text-sm w-24", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
+                    <span className={cn("text-sm w-28 truncate flex-shrink-0", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
                       {locale === 'es' ? 'Prioridad' : 'Priority'}
                     </span>
                     <button
@@ -1412,7 +1493,7 @@ export function TaskDetailModal({
                   {/* Duration */}
                   <div className="flex items-center gap-3">
                     <Clock className={cn("w-4 h-4", isDark ? "text-[#6B7280]" : "text-gray-400")} />
-                    <span className={cn("text-sm w-24", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
+                    <span className={cn("text-sm w-28 truncate flex-shrink-0", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
                       {locale === 'es' ? 'Duración' : 'Duration'}
                     </span>
                     <span className={cn("text-sm", isDark ? "text-white" : "text-gray-900")}>
@@ -1425,7 +1506,7 @@ export function TaskDetailModal({
                   {/* Progress */}
                   <div className="flex items-center gap-3">
                     <div className={cn("w-4 h-4 rounded-full border-2", isDark ? "border-[#6B7280]" : "border-gray-400")} />
-                    <span className={cn("text-sm w-24", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
+                    <span className={cn("text-sm w-28 truncate flex-shrink-0", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
                       {locale === 'es' ? 'Progreso' : 'Progress'}
                     </span>
                     <div className="flex items-center gap-2 flex-1">
@@ -1482,8 +1563,8 @@ export function TaskDetailModal({
                       {/* Row 1: Duración estimada (Esfuerzo Estimado) */}
                       <div className="flex items-center gap-3 relative">
                         <Hourglass className={cn("w-4 h-4", isDark ? "text-[#6B7280]" : "text-gray-400")} />
-                        <span className={cn("text-sm w-24", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
-                          {locale === 'es' ? 'Duración estima...' : 'Estimated dur...'}
+                        <span className={cn("text-sm w-28 truncate flex-shrink-0", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
+                          {locale === 'es' ? 'Duración estimada' : 'Estimated duration'}
                         </span>
                         <div className="flex items-center gap-2 flex-1">
                           {timeTrackingSummary?.estimateMinutes ? (
@@ -1539,7 +1620,7 @@ export function TaskDetailModal({
                       {/* Row 2: Tiempo ofertado (Quoted Time) */}
                       <div className="flex items-center gap-3 relative">
                         <FileText className={cn("w-4 h-4", isDark ? "text-[#6B7280]" : "text-gray-400")} />
-                        <span className={cn("text-sm w-24", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
+                        <span className={cn("text-sm w-28 truncate flex-shrink-0", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
                           {locale === 'es' ? 'Tiempo ofertado' : 'Quoted time'}
                         </span>
                         <div className="flex items-center gap-2 flex-1">
@@ -1602,8 +1683,8 @@ export function TaskDetailModal({
                       {/* Row 3: Registrar el tiempo (Log Time) */}
                       <div className="flex items-center gap-3 relative">
                         <Clock className={cn("w-4 h-4", isDark ? "text-[#6B7280]" : "text-gray-400")} />
-                        <span className={cn("text-sm w-24", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
-                          {locale === 'es' ? 'Registrar el tie...' : 'Track time'}
+                        <span className={cn("text-sm w-28 truncate flex-shrink-0", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
+                          {locale === 'es' ? 'Registrar tiempo' : 'Track time'}
                         </span>
                         <div className="flex items-center gap-2 flex-1">
                           {/* Timer Play/Stop toggle */}
@@ -1720,7 +1801,7 @@ export function TaskDetailModal({
                   {/* Tags */}
                   <div className="flex items-center gap-3">
                     <Tag className={cn("w-4 h-4", isDark ? "text-[#6B7280]" : "text-gray-400")} />
-                    <span className={cn("text-sm w-24", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
+                    <span className={cn("text-sm w-28 truncate flex-shrink-0", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
                       {locale === 'es' ? 'Etiquetas' : 'Tags'}
                     </span>
                     <TagPicker
@@ -1737,7 +1818,7 @@ export function TaskDetailModal({
                   {/* Dependencies */}
                   <div className="flex items-start gap-3 relative">
                     <Link2 className={cn("w-4 h-4 mt-1.5", isDark ? "text-[#6B7280]" : "text-gray-400")} />
-                    <span className={cn("text-sm w-24 mt-1", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
+                    <span className={cn("text-sm w-28 truncate flex-shrink-0 mt-1", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
                       {locale === 'es' ? 'Relaciones' : 'Relations'}
                     </span>
                     <div className="flex-1">
@@ -1892,7 +1973,7 @@ export function TaskDetailModal({
                   {/* Color */}
                   <div className="flex items-center gap-3 relative">
                     <Palette className={cn("w-4 h-4", isDark ? "text-[#6B7280]" : "text-gray-400")} />
-                    <span className={cn("text-sm w-24", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
+                    <span className={cn("text-sm w-28 truncate flex-shrink-0", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
                       {locale === 'es' ? 'Color' : 'Color'}
                     </span>
                     <button
@@ -1966,7 +2047,7 @@ export function TaskDetailModal({
                   {/* Milestone */}
                   <div className="flex items-center gap-3">
                     <Diamond className={cn("w-4 h-4", isDark ? "text-[#6B7280]" : "text-gray-400")} />
-                    <span className={cn("text-sm w-24", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
+                    <span className={cn("text-sm w-28 truncate flex-shrink-0", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
                       {locale === 'es' ? 'Hito' : 'Milestone'}
                     </span>
                     <label className="flex items-center gap-2 cursor-pointer">

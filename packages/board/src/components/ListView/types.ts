@@ -273,6 +273,10 @@ export interface ListViewConfig {
   showCreateTaskButton?: boolean;
   /** Callback when create task button is clicked */
   onCreateTask?: () => void;
+
+  // v0.18.3: Persist filter state in localStorage
+  /** LocalStorage key for persisting filter state, or false to disable */
+  persistFilter?: string | false;
 }
 
 /**

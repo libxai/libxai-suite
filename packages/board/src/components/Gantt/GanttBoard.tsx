@@ -272,19 +272,18 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
 
   // Sync parent tasks prop changes to local state (e.g., after external DB operations)
   // v0.17.163: Preserve isExpanded state using ref to prevent subtasks from auto-expanding
-  // v0.18.10: Deduplicate subtasks by name to prevent visual duplicates during sync
+  // v0.18.10: Deduplicate subtasks by ID to prevent visual duplicates during sync
+  // v0.18.11: Fixed - dedupe by ID instead of name to allow multiple subtasks with same name
   useEffect(() => {
-    // Deduplicate subtasks by normalized name (keep first occurrence, prefer non-temp IDs)
+    // Deduplicate subtasks by ID (keep first occurrence, prefer non-temp IDs)
     const dedupeSubtasks = (subtasks: Task[]): Task[] => {
       const seen = new Map<string, Task>();
       for (const sub of subtasks) {
-        const key = sub.name.toLowerCase().trim();
+        // v0.18.11: Use ID for deduplication, not name - allows multiple subtasks with same name
+        const key = sub.id;
         const existing = seen.get(key);
         // Keep existing if it has a real ID (not temp), otherwise use new one
         if (!existing) {
-          seen.set(key, sub);
-        } else if (existing.id.startsWith('subtask-') && !sub.id.startsWith('subtask-')) {
-          // Replace temp ID with real ID
           seen.set(key, sub);
         }
       }

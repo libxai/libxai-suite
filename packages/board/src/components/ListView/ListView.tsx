@@ -11,9 +11,6 @@ import {
   List,
   ChevronDown,
   ChevronRight,
-  CheckCircle2,
-  Circle,
-  PlayCircle,
   ArrowUpDown,
   Search,
   Plus,
@@ -83,19 +80,6 @@ function flattenTasksWithLevel(tasks: Task[], level = 0): FlattenedTask[] {
 }
 
 /**
- * Status Icon component
- */
-function StatusIcon({ status, progress }: { status?: string; progress?: number }) {
-  if (progress === 100 || status === 'completed') {
-    return <CheckCircle2 className="w-5 h-5 text-green-500" />;
-  }
-  if ((progress && progress > 0) || status === 'in-progress') {
-    return <PlayCircle className="w-5 h-5 text-blue-500" />;
-  }
-  return <Circle className="w-5 h-5 text-gray-400" />;
-}
-
-/**
  * Main ListView Component
  */
 export function ListView({
@@ -122,17 +106,39 @@ export function ListView({
     // v0.18.0: Create task button
     showCreateTaskButton = false,
     onCreateTask,
+    // v0.18.3: Persist filter state
+    persistFilter = false,
   } = config;
 
   const t = mergeListViewTranslations(locale, customTranslations);
   const isDark = themeName === 'dark';
 
+  // v0.18.3: Load persisted filter state from localStorage
+  const loadPersistedFilter = useCallback(() => {
+    if (!persistFilter || typeof window === 'undefined') {
+      return { statusFilter: 'all' as StatusFilterValue, hideCompleted: false };
+    }
+    try {
+      const saved = localStorage.getItem(persistFilter);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          statusFilter: (parsed.statusFilter || 'all') as StatusFilterValue,
+          hideCompleted: parsed.hideCompleted || false,
+        };
+      }
+    } catch (e) {
+      console.error('Error loading persisted filter:', e);
+    }
+    return { statusFilter: 'all' as StatusFilterValue, hideCompleted: false };
+  }, [persistFilter]);
+
   // State
   const [sortField, setSortField] = useState<SortField>('startDate');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<StatusFilterValue>('all');
-  const [hideCompleted, setHideCompleted] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<StatusFilterValue>(() => loadPersistedFilter().statusFilter);
+  const [hideCompleted, setHideCompleted] = useState(() => loadPersistedFilter().hideCompleted);
   const [columns, setColumns] = useState<TableColumn[]>(tableColumns || DEFAULT_COLUMNS);
   const [showColumnSelector, setShowColumnSelector] = useState(false);
   const [showCreateFieldModal, setShowCreateFieldModal] = useState(false);
@@ -155,6 +161,19 @@ export function ListView({
       setColumns(tableColumns);
     }
   }, [tableColumns]);
+
+  // v0.18.3: Persist filter state to localStorage when it changes
+  useEffect(() => {
+    if (!persistFilter || typeof window === 'undefined') return;
+    try {
+      localStorage.setItem(persistFilter, JSON.stringify({
+        statusFilter,
+        hideCompleted,
+      }));
+    } catch (e) {
+      console.error('Error persisting filter state:', e);
+    }
+  }, [persistFilter, statusFilter, hideCompleted]);
 
   // Build expanded tasks set from task.isExpanded props
   const expandedTasks = useMemo(() => {
@@ -824,17 +843,19 @@ export function ListView({
           </div>
 
           {/* Task List */}
-          <AnimatePresence>
+          <AnimatePresence mode="popLayout">
             {displayTasks.map((task, index) => {
               const isExpanded = expandedTasks.has(task.id);
+              // v0.18.3: Limit animation delay to max 200ms for better filter responsiveness
+              const animationDelay = Math.min(index * 0.01, 0.2);
 
               return (
                 <motion.div
                   key={task.id}
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ delay: index * 0.02 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15, delay: animationDelay }}
                   className={cn(
                     "flex items-center border-b transition-colors",
                     isDark
@@ -874,20 +895,6 @@ export function ListView({
                             </button>
                           )}
                           {showHierarchy && !task.hasChildren && <div className="w-5 flex-shrink-0" />}
-
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              callbacks.onTaskUpdate?.({
-                                ...task,
-                                progress: task.progress === 100 ? 0 : 100,
-                                status: task.progress === 100 ? 'todo' : 'completed'
-                              });
-                            }}
-                            className="flex-shrink-0"
-                          >
-                            <StatusIcon status={task.status} progress={task.progress} />
-                          </button>
 
                           <span className={cn(
                             "truncate font-medium",

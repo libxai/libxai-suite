@@ -8719,11 +8719,6 @@ body {
 }
 
 
-.mt-5 {
-  margin-top: 1.25rem;
-}
-
-
 .mt-6 {
   margin-top: 1.5rem;
 }
@@ -9027,8 +9022,8 @@ body {
 }
 
 
-.w-24 {
-  width: 6rem;
+.w-28 {
+  width: 7rem;
 }
 
 
@@ -10811,11 +10806,6 @@ body {
 }
 
 
-.font-light {
-  font-weight: 300;
-}
-
-
 .font-medium {
   font-weight: 500;
 }
@@ -12063,15 +12053,15 @@ body {
 }
 
 
-.placeholder\:text-gray-500::-moz-placeholder {
+.placeholder\:text-gray-600::-moz-placeholder {
   --tw-text-opacity: 1;
-  color: rgb(107 114 128 / var(--tw-text-opacity, 1));
+  color: rgb(75 85 99 / var(--tw-text-opacity, 1));
 }
 
 
-.placeholder\:text-gray-500::placeholder {
+.placeholder\:text-gray-600::placeholder {
   --tw-text-opacity: 1;
-  color: rgb(107 114 128 / var(--tw-text-opacity, 1));
+  color: rgb(75 85 99 / var(--tw-text-opacity, 1));
 }
 
 
@@ -12282,12 +12272,6 @@ body {
 
 .hover\:bg-red-600\/30:hover {
   background-color: rgb(220 38 38 / 0.3);
-}
-
-
-.hover\:bg-white:hover {
-  --tw-bg-opacity: 1;
-  background-color: rgb(255 255 255 / var(--tw-bg-opacity, 1));
 }
 
 
@@ -12513,6 +12497,16 @@ body {
 
 .focus\:ring-offset-1:focus {
   --tw-ring-offset-width: 1px;
+}
+
+
+.focus\:ring-offset-2:focus {
+  --tw-ring-offset-width: 2px;
+}
+
+
+.focus\:ring-offset-\[\#1A1D25\]:focus {
+  --tw-ring-offset-color: #1A1D25;
 }
 
 

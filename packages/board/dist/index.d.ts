@@ -3639,6 +3639,8 @@ interface ListViewConfig {
     showCreateTaskButton?: boolean;
     /** Callback when create task button is clicked */
     onCreateTask?: () => void;
+    /** LocalStorage key for persisting filter state, or false to disable */
+    persistFilter?: string | false;
 }
 /**
  * ListView translations
