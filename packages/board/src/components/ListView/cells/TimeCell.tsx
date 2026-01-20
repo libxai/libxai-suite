@@ -13,7 +13,7 @@ import { cn } from '../../../utils';
 interface TimeCellProps {
   /** Time value in minutes */
   value?: number | null;
-  /** Called when value changes (in minutes) */
+  /** Called when value changes (in minutes) - enables inline editing */
   onChange?: (value: number | null) => void;
   isDark: boolean;
   locale?: string;
@@ -28,7 +28,8 @@ interface TimeCellProps {
  * @returns Formatted string like "2h 30m" or "2h 30min"
  */
 function formatTime(minutes: number | null | undefined, locale: string = 'en'): string {
-  if (minutes === null || minutes === undefined || minutes === 0) {
+  // Handle null, undefined, 0, empty string, or falsy values
+  if (minutes === null || minutes === undefined || minutes === 0 || !minutes || Number(minutes) === 0) {
     return '-';
   }
 
@@ -147,11 +148,11 @@ export function TimeCell({
     }
   };
 
-  // Read-only mode
+  // Read-only mode (no onChange provided)
   if (disabled || !onChange) {
     return (
       <div className="flex items-center gap-1.5">
-        {value && value > 0 && (
+        {value != null && value > 0 && (
           <Clock className={cn('w-3.5 h-3.5 flex-shrink-0', isDark ? 'text-[#6B7280]' : 'text-gray-400')} />
         )}
         <span className={cn(
@@ -197,12 +198,12 @@ export function TimeCell({
       className={cn(
         'flex items-center gap-1.5 text-sm text-left w-full px-2 py-1 rounded transition-colors',
         isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100',
-        value && value > 0
+        value != null && value > 0
           ? (isDark ? 'text-[#94A3B8]' : 'text-gray-600')
           : (isDark ? 'text-[#6B7280]' : 'text-gray-400')
       )}
     >
-      {value && value > 0 && (
+      {value != null && value > 0 && (
         <Clock className={cn('w-3.5 h-3.5 flex-shrink-0', isDark ? 'text-[#6B7280]' : 'text-gray-400')} />
       )}
       <span>{formattedValue}</span>

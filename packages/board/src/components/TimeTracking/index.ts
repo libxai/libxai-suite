@@ -9,6 +9,9 @@ export type { TimePillProps } from './TimePill'
 export { TimePopover } from './TimePopover'
 export type { TimePopoverProps } from './TimePopover'
 
+export { TimeInputPopover } from './TimeInputPopover'
+export type { TimeInputPopoverProps } from './TimeInputPopover'
+
 export { HealthBar } from './HealthBar'
 export type { HealthBarProps } from './HealthBar'
 

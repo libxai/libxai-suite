@@ -46,6 +46,7 @@ export {
   // v1.1.0: Time Tracking Components
   TimePill,
   TimePopover,
+  TimeInputPopover,
   HealthBar,
   ProfitabilityReport,
 } from './components'
@@ -260,6 +261,7 @@ export type {
   // v1.1.0: Time Tracking Props
   TimePillProps,
   TimePopoverProps,
+  TimeInputPopoverProps,
   HealthBarProps,
   ProfitabilityReportProps,
 } from './components'

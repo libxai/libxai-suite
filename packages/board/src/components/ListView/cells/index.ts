@@ -1,12 +1,14 @@
 /**
  * ListView Cell Renderers
- * @version 0.18.3
+ * @version 1.3.0
  */
 
 export { StatusCell } from './StatusCell';
 export { PriorityCell } from './PriorityCell';
 export { AssigneesCell } from './AssigneesCell';
 export { DateCell } from './DateCell';
+export { DateRangePicker } from './DateRangePicker';
+export type { DateRangePickerProps } from './DateRangePicker';
 export { ProgressCell } from './ProgressCell';
 export { TextCell } from './TextCell';
 export { NumberCell } from './NumberCell';

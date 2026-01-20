@@ -398,6 +398,10 @@ export interface ListViewCallbacks {
   onTaskDuplicate?: (task: Task) => void;
   /** Create custom field */
   onCreateCustomField?: (field: CustomFieldDefinition) => Promise<void>;
+
+  // v1.3.0: Time logging callback for timeLoggedMinutes column (inline edit)
+  /** Handler for inline time logging - receives task and minutes to log */
+  onLogTime?: (task: Task, minutes: number | null) => void;
 }
 
 /**

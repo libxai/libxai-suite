@@ -445,6 +445,9 @@ export function ListView({
             onChange={(startDate) => handleUpdate({ startDate })}
             isDark={isDark}
             locale={locale}
+            dateField="start"
+            startDate={task.startDate}
+            endDate={task.endDate}
           />
         );
 
@@ -455,6 +458,9 @@ export function ListView({
             onChange={(endDate) => handleUpdate({ endDate })}
             isDark={isDark}
             locale={locale}
+            dateField="end"
+            startDate={task.startDate}
+            endDate={task.endDate}
           />
         );
 
@@ -573,9 +579,13 @@ export function ListView({
         return (
           <TimeCell
             value={(task as any).timeLoggedMinutes}
-            onChange={undefined} // Read-only field (auto-calculated)
+            onChange={callbacks.onLogTime ? (minutes) => {
+              // Inline time logging - pass minutes directly to callback
+              callbacks.onLogTime?.(task, minutes);
+            } : undefined}
             isDark={isDark}
             locale={locale}
+            placeholder={locale === 'es' ? 'Agregar' : 'Add'}
           />
         );
 
