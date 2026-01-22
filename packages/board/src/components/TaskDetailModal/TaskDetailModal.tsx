@@ -1455,8 +1455,20 @@ export function TaskDetailModal({
                           {locale === 'es' ? 'Registrar tiempo' : 'Track time'}
                         </span>
                         <div className="flex items-center gap-2 flex-1">
-                          {/* Timer Play/Stop toggle */}
-                          {isTimerRunning ? (
+                          {/* Timer Play/Stop toggle - disabled for completed tasks */}
+                          {(selectedTask.status === 'completed' || selectedTask.progress === 100) ? (
+                            <div
+                              className={cn(
+                                "flex items-center gap-1.5 p-1.5 rounded-full cursor-not-allowed",
+                                isDark
+                                  ? "bg-white/5 text-gray-600"
+                                  : "bg-gray-50 text-gray-300"
+                              )}
+                              title={locale === 'es' ? 'Tarea completada' : 'Task completed'}
+                            >
+                              <Play className="w-3.5 h-3.5 fill-current" />
+                            </div>
+                          ) : isTimerRunning ? (
                             <button
                               type="button"
                               onClick={() => onTimerStop?.(selectedTask.id)}
@@ -1484,20 +1496,33 @@ export function TaskDetailModal({
                             </button>
                           )}
 
-                          {/* Add time button */}
-                          <button
-                            type="button"
-                            onClick={() => setShowTimePopover('log')}
-                            className={cn(
-                              "flex items-center gap-1.5 px-2 py-1 rounded text-sm transition-colors",
-                              isDark
-                                ? "text-[#9CA3AF] hover:bg-white/10 hover:text-white"
-                                : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-                            )}
-                          >
-                            <Plus className="w-3.5 h-3.5" />
-                            {locale === 'es' ? 'Agregar tiempo' : 'Add time'}
-                          </button>
+                          {/* Add time button - disabled for completed tasks */}
+                          {(selectedTask.status === 'completed' || selectedTask.progress === 100) ? (
+                            <div
+                              className={cn(
+                                "flex items-center gap-1.5 px-2 py-1 rounded text-sm cursor-not-allowed",
+                                isDark ? "text-gray-600" : "text-gray-300"
+                              )}
+                              title={locale === 'es' ? 'Tarea completada' : 'Task completed'}
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                              {locale === 'es' ? 'Agregar tiempo' : 'Add time'}
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setShowTimePopover('log')}
+                              className={cn(
+                                "flex items-center gap-1.5 px-2 py-1 rounded text-sm transition-colors",
+                                isDark
+                                  ? "text-[#9CA3AF] hover:bg-white/10 hover:text-white"
+                                  : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                              )}
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                              {locale === 'es' ? 'Agregar tiempo' : 'Add time'}
+                            </button>
+                          )}
 
                           {/* Logged time display with health bar */}
                           {timeTrackingSummary && timeTrackingSummary.loggedMinutes > 0 && (
