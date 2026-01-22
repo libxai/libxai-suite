@@ -533,49 +533,62 @@ export function ListView({
         );
 
       // v0.18.3: Time tracking columns
-      case 'estimatedTime':
+      case 'estimatedTime': {
+        const isCompleted = task.status === 'completed' || task.progress === 100;
         return (
           <TimeCell
             value={(task as any).estimatedTime}
             onChange={(minutes) => handleUpdate({ estimatedTime: minutes } as any)}
             isDark={isDark}
             locale={locale}
+            disabled={isCompleted}
           />
         );
+      }
 
       // v1.1.0: Quoted time column
-      case 'quotedTime':
+      case 'quotedTime': {
+        const isCompleted = task.status === 'completed' || task.progress === 100;
         return (
           <TimeCell
             value={(task as any).quotedTime}
             onChange={(minutes) => handleUpdate({ quotedTime: minutes } as any)}
             isDark={isDark}
             locale={locale}
+            disabled={isCompleted}
           />
         );
+      }
 
-      case 'elapsedTime':
+      case 'elapsedTime': {
+        const isCompleted = task.status === 'completed' || task.progress === 100;
         return (
           <TimeCell
             value={(task as any).elapsedTime}
             onChange={(minutes) => handleUpdate({ elapsedTime: minutes } as any)}
             isDark={isDark}
             locale={locale}
+            disabled={isCompleted}
           />
         );
+      }
 
       // v1.2.0: New time tracking columns
-      case 'effortMinutes':
+      case 'effortMinutes': {
+        const isCompleted = task.status === 'completed' || task.progress === 100;
         return (
           <TimeCell
             value={(task as any).effortMinutes}
             onChange={(minutes) => handleUpdate({ effortMinutes: minutes } as any)}
             isDark={isDark}
             locale={locale}
+            disabled={isCompleted}
           />
         );
+      }
 
-      case 'timeLoggedMinutes':
+      case 'timeLoggedMinutes': {
+        const isCompleted = task.status === 'completed' || task.progress === 100;
         return (
           <TimeCell
             value={(task as any).timeLoggedMinutes}
@@ -586,18 +599,23 @@ export function ListView({
             isDark={isDark}
             locale={locale}
             placeholder={locale === 'es' ? 'Agregar' : 'Add'}
+            disabled={isCompleted}
           />
         );
+      }
 
-      case 'soldEffortMinutes':
+      case 'soldEffortMinutes': {
+        const isCompleted = task.status === 'completed' || task.progress === 100;
         return (
           <TimeCell
             value={(task as any).soldEffortMinutes}
             onChange={(minutes) => handleUpdate({ soldEffortMinutes: minutes } as any)}
             isDark={isDark}
             locale={locale}
+            disabled={isCompleted}
           />
         );
+      }
 
       default:
         return <span className={cn("text-sm", isDark ? "text-[#94A3B8]" : "text-gray-500")}>-</span>;
