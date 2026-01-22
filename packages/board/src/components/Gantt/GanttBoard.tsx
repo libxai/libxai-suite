@@ -1891,6 +1891,16 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
                 separator: true,
                 onClick: () => {},
               },
+              // v1.4.3: Duplicate Task
+              {
+                id: 'duplicate',
+                label: translations.contextMenu?.duplicateTask || 'Duplicate Task',
+                icon: MenuIcons.Duplicate,
+                onClick: () => {
+                  setLocalTasks((prev) => duplicateTasks(prev, [task.id]));
+                  setContextMenu({ isOpen: false, x: 0, y: 0, task: null });
+                },
+              },
               // Split Task (existing feature from v0.8.0)
               {
                 id: 'split',

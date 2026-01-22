@@ -2786,6 +2786,7 @@ declare const MenuIcons: {
     Show: react_jsx_runtime.JSX.Element;
     Settings: react_jsx_runtime.JSX.Element;
     Split: react_jsx_runtime.JSX.Element;
+    Duplicate: react_jsx_runtime.JSX.Element;
     MarkIncomplete: react_jsx_runtime.JSX.Element;
     SetInProgress: react_jsx_runtime.JSX.Element;
     MarkComplete: react_jsx_runtime.JSX.Element;
@@ -3338,6 +3339,7 @@ interface GanttTranslations {
         markIncomplete: string;
         setInProgress: string;
         markComplete: string;
+        duplicateTask: string;
         splitTask: string;
         deleteTask: string;
     };

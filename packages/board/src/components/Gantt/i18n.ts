@@ -66,6 +66,7 @@ export interface GanttTranslations {
     markIncomplete: string;
     setInProgress: string;
     markComplete: string;
+    duplicateTask: string;
     splitTask: string;
     deleteTask: string;
   };
@@ -219,6 +220,7 @@ export const en: GanttTranslations = {
     markIncomplete: 'Mark Incomplete',
     setInProgress: 'Set In Progress',
     markComplete: 'Mark Complete',
+    duplicateTask: 'Duplicate Task',
     splitTask: 'Split Task',
     deleteTask: 'Delete Task',
   },
@@ -366,6 +368,7 @@ export const es: GanttTranslations = {
     markIncomplete: 'Marcar Incompleta',
     setInProgress: 'Marcar En Progreso',
     markComplete: 'Marcar Completada',
+    duplicateTask: 'Duplicar Tarea',
     splitTask: 'Dividir Tarea',
     deleteTask: 'Eliminar Tarea',
   },

@@ -19,6 +19,7 @@ import {
   PlayCircle, // v0.16.0: For Set In Progress
   CheckCircle2, // v0.16.0: For Mark Complete
   Pencil, // v0.16.0: Alias for Edit
+  Copy, // v1.4.3: For Duplicate task
 } from 'lucide-react';
 
 export interface ContextMenuItem {
@@ -210,6 +211,7 @@ export const MenuIcons = {
   Show: <Eye className="w-4 h-4" />,
   Settings: <Settings className="w-4 h-4" />,
   Split: <Scissors className="w-4 h-4" />, // v0.8.0: Split task
+  Duplicate: <Copy className="w-4 h-4" />, // v1.4.3: Duplicate task
   // v0.16.0: Task status icons
   MarkIncomplete: <Circle className="w-4 h-4" />,
   SetInProgress: <PlayCircle className="w-4 h-4" />,

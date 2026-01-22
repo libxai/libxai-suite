@@ -972,6 +972,15 @@ export function TaskGrid({
       },
       // Separator before advanced options
       { id: 'sep2', label: '', onClick: () => {}, separator: true },
+      // v1.4.3: Duplicate Task
+      {
+        id: 'duplicate',
+        label: translations?.contextMenu?.duplicateTask || 'Duplicate Task',
+        icon: MenuIcons.Duplicate,
+        onClick: () => {
+          onTaskDuplicate?.([task.id]);
+        },
+      },
       // Split Task
       {
         id: 'split',
