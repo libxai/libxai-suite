@@ -215,13 +215,13 @@ export function Timeline({
       .map((task) => {
         const { x, width } = getTaskPosition(task);
         const actualIndex = flatTasks.findIndex(t => t.id === task.id);
-        const y = actualIndex * ROW_HEIGHT + 12;
+        const y = actualIndex * ROW_HEIGHT + 14; // v1.4.4: Adjusted for 24px bar height
         return {
           id: task.id,
           x,
           y,
           width,
-          height: 32, // TaskBar height
+          height: 24, // v1.4.4: TaskBar height reduced from 32
         };
       });
   }, [flatTasks, getTaskPosition]);
@@ -506,7 +506,7 @@ export function Timeline({
           }
 
           const { x, width } = getTaskPosition(task);
-          const y = index * ROW_HEIGHT + 12;
+          const y = index * ROW_HEIGHT + 14; // v1.4.4: Adjusted for 24px bar height
 
           // Container phase (has subtasks): render as bracket bar
           const isContainer = task.subtasks && task.subtasks.length > 0 && !task.isMilestone;
@@ -517,7 +517,7 @@ export function Timeline({
                 key={task.id}
                 task={task}
                 x={x + width / 2}
-                y={y + 16}
+                y={y + 12}
                 theme={theme}
                 onClick={onTaskClick}
               />
@@ -565,7 +565,7 @@ export function Timeline({
                   x1={x}
                   y1={y}
                   x2={x}
-                  y2={y + 32}
+                  y2={y + 24}
                   stroke={theme.primary}
                   strokeWidth={3}
                   opacity={0.9}
@@ -576,7 +576,7 @@ export function Timeline({
                   x1={x + width}
                   y1={y}
                   x2={x + width}
-                  y2={y + 32}
+                  y2={y + 24}
                   stroke={theme.primary}
                   strokeWidth={3}
                   opacity={0.9}
@@ -585,9 +585,9 @@ export function Timeline({
                 {/* Bottom bracket line */}
                 <line
                   x1={x}
-                  y1={y + 32}
+                  y1={y + 24}
                   x2={x + width}
-                  y2={y + 32}
+                  y2={y + 24}
                   stroke={theme.primary}
                   strokeWidth={3}
                   opacity={0.9}
@@ -597,7 +597,7 @@ export function Timeline({
                 {width > 60 && (
                   <text
                     x={x + 12}
-                    y={y + 16}
+                    y={y + 12}
                     dominantBaseline="middle"
                     fill="#FFFFFF"
                     fontSize="13"
@@ -653,11 +653,11 @@ export function Timeline({
             // v0.17.363: TRUE ClickUp-style dependency lines
             // Line exits from RIGHT-CENTER of origin bar
             const exitX = fromPos.x + fromPos.width;
-            const exitY = fromIndex * ROW_HEIGHT + 28;
+            const exitY = fromIndex * ROW_HEIGHT + 26; // v1.4.4: Adjusted for 24px bar (14 offset + 12 half-height)
 
             // Line enters at LEFT-CENTER of destination bar
             const enterX = toPos.x;
-            const enterY = toIndex * ROW_HEIGHT + 28;
+            const enterY = toIndex * ROW_HEIGHT + 26; // v1.4.4: Adjusted for 24px bar
 
             return (
               <DependencyLine

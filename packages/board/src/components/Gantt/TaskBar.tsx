@@ -81,7 +81,7 @@ export function TaskBar({
     resetDragState
   } = dragState;
 
-  const height = 32;
+  const height = 24; // v1.4.4: Reduced from 32 for slimmer bars
   const borderRadius = 8;
 
   // Detect task states for neutral theme visualization
