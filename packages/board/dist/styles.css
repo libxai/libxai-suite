@@ -8958,11 +8958,6 @@ body {
 }
 
 
-.max-h-\[calc\(100vh-300px\)\] {
-  max-height: calc(100vh - 300px);
-}
-
-
 .max-h-\[calc\(80vh-120px\)\] {
   max-height: calc(80vh - 120px);
 }
@@ -8980,11 +8975,6 @@ body {
 
 .min-h-\[120px\] {
   min-height: 120px;
-}
-
-
-.min-h-\[200px\] {
-  min-height: 200px;
 }
 
 
@@ -12302,11 +12292,6 @@ body {
 }
 
 
-.hover\:bg-\[\#3B82F6\]\/30:hover {
-  background-color: rgb(59 130 246 / 0.3);
-}
-
-
 .hover\:bg-\[\#3a3a4e\]:hover {
   --tw-bg-opacity: 1;
   background-color: rgb(58 58 78 / var(--tw-bg-opacity, 1));
@@ -12322,12 +12307,6 @@ body {
 .hover\:bg-\[\#7C3AED\]:hover {
   --tw-bg-opacity: 1;
   background-color: rgb(124 58 237 / var(--tw-bg-opacity, 1));
-}
-
-
-.hover\:bg-blue-100:hover {
-  --tw-bg-opacity: 1;
-  background-color: rgb(219 234 254 / var(--tw-bg-opacity, 1));
 }
 
 

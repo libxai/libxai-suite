@@ -3,11 +3,11 @@
  * @version 0.18.0
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import {
   X,
   Search,
-  Plus,
+  // Plus, // Disabled - custom fields feature not active
   Check,
   Type,
   Hash,
@@ -75,13 +75,36 @@ export function ColumnSelector({
   columns,
   customFields = [],
   onColumnsChange,
-  onCreateCustomField,
+  onCreateCustomField: _onCreateCustomField, // Disabled - custom fields feature not active
   isDark,
   locale,
 }: ColumnSelectorProps) {
   const [search, setSearch] = useState('');
+  const [maxHeight, setMaxHeight] = useState<number | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const t = locale === 'es' ? translations.es : translations.en;
+
+  // Calculate max height based on panel position in viewport
+  useLayoutEffect(() => {
+    if (!isOpen || !panelRef.current) return;
+
+    const updateMaxHeight = () => {
+      if (!panelRef.current) return;
+      const rect = panelRef.current.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      // Leave 20px padding from bottom of viewport
+      const availableHeight = viewportHeight - rect.top - 20;
+      // Minimum height of 300px, maximum of available space
+      setMaxHeight(Math.max(300, availableHeight));
+    };
+
+    // Initial calculation after render
+    requestAnimationFrame(updateMaxHeight);
+
+    // Recalculate on resize
+    window.addEventListener('resize', updateMaxHeight);
+    return () => window.removeEventListener('resize', updateMaxHeight);
+  }, [isOpen]);
 
   // Close on click outside (with delay to prevent immediate close)
   useEffect(() => {
@@ -174,8 +197,9 @@ export function ColumnSelector({
   return (
     <div
       ref={panelRef}
+      style={maxHeight ? { maxHeight: `${maxHeight}px` } : undefined}
       className={cn(
-        'absolute right-0 top-full mt-1 w-72 rounded-lg shadow-xl border z-50',
+        'absolute right-0 top-full mt-1 w-72 rounded-lg shadow-xl border z-50 flex flex-col',
         isDark ? 'bg-[#0F1117] border-white/10' : 'bg-white border-gray-200'
       )}
     >
@@ -217,8 +241,8 @@ export function ColumnSelector({
         </div>
       </div>
 
-      {/* Scrollable content area - max-height adapts to viewport */}
-      <div className="overflow-y-auto max-h-[calc(100vh-300px)] min-h-[200px]">
+      {/* Scrollable content area - flex-1 takes remaining space */}
+      <div className="overflow-y-auto flex-1 min-h-0">
         {/* Standard Fields */}
         <div className="px-3 pb-2">
           <h4 className={cn('text-xs font-medium uppercase tracking-wider mb-2', isDark ? 'text-[#6B7280]' : 'text-gray-400')}>
@@ -311,23 +335,7 @@ export function ColumnSelector({
         )}
       </div>
 
-      {/* Create Custom Field Button */}
-      {onCreateCustomField && (
-        <div className={cn('p-3 border-t', isDark ? 'border-white/10' : 'border-gray-200')}>
-          <button
-            onClick={onCreateCustomField}
-            className={cn(
-              'w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-              isDark
-                ? 'bg-[#3B82F6]/20 text-[#3B82F6] hover:bg-[#3B82F6]/30'
-                : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
-            )}
-          >
-            <Plus className="w-4 h-4" />
-            {t.createField}
-          </button>
-        </div>
-      )}
+      {/* Create Custom Field Button - disabled for now */}
     </div>
   );
 }
