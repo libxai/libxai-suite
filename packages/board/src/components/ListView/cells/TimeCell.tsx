@@ -1,6 +1,7 @@
 /**
  * TimeCell - Displays time in human-readable format (hours/minutes)
  * v0.18.3: Added for time tracking columns (estimatedTime, elapsedTime)
+ * v1.4.0: Added micro-interactions (flash on save)
  *
  * Input: time in minutes (number)
  * Output: formatted string like "2h 30m" or "45m"
@@ -9,6 +10,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Clock } from 'lucide-react';
 import { cn } from '../../../utils';
+import { useSaveFlash } from '../../../hooks/useMicroInteractions';
 
 interface TimeCellProps {
   /** Time value in minutes */
@@ -19,15 +21,17 @@ interface TimeCellProps {
   locale?: string;
   placeholder?: string;
   disabled?: boolean;
+  /** Enable flash green on save */
+  enableSaveFlash?: boolean;
 }
 
 /**
  * Format minutes to human-readable time string
  * @param minutes - Time in minutes
  * @param locale - Locale for formatting ('en' or 'es')
- * @returns Formatted string like "2h 30m" or "2h 30min"
+ * @returns Formatted string like "2h 30m" (compact format for both locales)
  */
-function formatTime(minutes: number | null | undefined, locale: string = 'en'): string {
+function formatTime(minutes: number | null | undefined, _locale: string = 'en'): string {
   // Handle null, undefined, 0, empty string, or falsy values
   if (minutes === null || minutes === undefined || minutes === 0 || !minutes || Number(minutes) === 0) {
     return '-';
@@ -36,13 +40,14 @@ function formatTime(minutes: number | null | undefined, locale: string = 'en'): 
   const hours = Math.floor(minutes / 60);
   const mins = minutes % 60;
 
+  // Use compact format for both locales to fit in cells
   if (hours === 0) {
-    return locale === 'es' ? `${mins}min` : `${mins}m`;
+    return `${mins}m`;
   }
   if (mins === 0) {
     return `${hours}h`;
   }
-  return locale === 'es' ? `${hours}h ${mins}min` : `${hours}h ${mins}m`;
+  return `${hours}h ${mins}m`;
 }
 
 /**
@@ -100,10 +105,14 @@ export function TimeCell({
   locale = 'en',
   placeholder,
   disabled = false,
+  enableSaveFlash = true,
 }: TimeCellProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Micro-interaction: flash green on save
+  const { isFlashing, triggerFlash } = useSaveFlash();
 
   const displayPlaceholder = placeholder || '-';
   const formattedValue = formatTime(value, locale);
@@ -136,6 +145,10 @@ export function TimeCell({
     const parsedMinutes = parseTimeToMinutes(editValue);
     if (parsedMinutes !== value) {
       onChange?.(parsedMinutes);
+      // Trigger flash after save
+      if (enableSaveFlash) {
+        triggerFlash();
+      }
     }
     setIsEditing(false);
   };
@@ -196,17 +209,19 @@ export function TimeCell({
         setIsEditing(true);
       }}
       className={cn(
-        'flex items-center gap-1.5 text-sm text-left w-full px-2 py-1 rounded transition-colors',
+        'flex items-center gap-1 text-sm text-left w-full px-1.5 py-1 rounded transition-all duration-300 overflow-hidden',
         isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100',
         value != null && value > 0
           ? (isDark ? 'text-[#94A3B8]' : 'text-gray-600')
-          : (isDark ? 'text-[#6B7280]' : 'text-gray-400')
+          : (isDark ? 'text-[#6B7280]' : 'text-gray-400'),
+        // Flash animation
+        isFlashing && (isDark ? 'bg-green-500/30' : 'bg-green-500/20')
       )}
     >
       {value != null && value > 0 && (
-        <Clock className={cn('w-3.5 h-3.5 flex-shrink-0', isDark ? 'text-[#6B7280]' : 'text-gray-400')} />
+        <Clock className={cn('w-3 h-3 flex-shrink-0', isDark ? 'text-[#6B7280]' : 'text-gray-400')} />
       )}
-      <span>{formattedValue}</span>
+      <span className="truncate">{formattedValue}</span>
     </button>
   );
 }

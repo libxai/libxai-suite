@@ -3780,6 +3780,22 @@ interface AvailableUser {
     email?: string;
     avatarUrl?: string;
     color?: string;
+    /** v1.4.0: Workload indicator for Smart Dropdown */
+    workload?: UserWorkload;
+}
+/**
+ * v1.4.0: User workload indicator for Smart Dropdown
+ * Shows user capacity in the assignment dropdown
+ */
+interface UserWorkload {
+    /** Total hours assigned this week */
+    assignedHoursThisWeek: number;
+    /** Total hours capacity per week (typically 40) */
+    weeklyCapacity: number;
+    /** Number of active tasks assigned */
+    activeTasks: number;
+    /** Workload level for visual indicator */
+    level: 'light' | 'moderate' | 'heavy' | 'overloaded';
 }
 /**
  * Main ListView props
