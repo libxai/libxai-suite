@@ -242,7 +242,10 @@ export function ColumnSelector({
       </div>
 
       {/* Scrollable content area - flex-1 takes remaining space */}
-      <div className="overflow-y-auto flex-1 min-h-0">
+      <div
+        className="overflow-y-auto flex-1 min-h-0 overscroll-contain"
+        onWheel={(e) => e.stopPropagation()}
+      >
         {/* Standard Fields */}
         <div className="px-3 pb-2">
           <h4 className={cn('text-xs font-medium uppercase tracking-wider mb-2', isDark ? 'text-[#6B7280]' : 'text-gray-400')}>
