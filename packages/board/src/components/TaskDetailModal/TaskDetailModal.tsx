@@ -1501,7 +1501,7 @@ export function TaskDetailModal({
 
                           {/* Logged time display with health bar */}
                           {timeTrackingSummary && timeTrackingSummary.loggedMinutes > 0 && (
-                            <div className="flex items-center gap-2 ml-auto">
+                            <div className="flex items-center gap-2">
                               <span className={cn(
                                 "text-sm font-medium",
                                 timeTrackingSummary.health === 'over-budget'
