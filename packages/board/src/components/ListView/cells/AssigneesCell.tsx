@@ -1,11 +1,12 @@
 /**
  * AssigneesCell - User assignment cell for ListView
+ * v1.4.0: Smart Dropdown with workload indicators
  */
 
 import { useState, useRef, useEffect } from 'react';
-import { User, Plus, X, Check } from 'lucide-react';
+import { User, Plus, X, Check, AlertTriangle, Clock } from 'lucide-react';
 import { cn } from '../../../utils';
-import type { AvailableUser } from '../types';
+import type { AvailableUser, UserWorkload } from '../types';
 
 // Local type that matches Task.assignees inline definition (includes avatar)
 interface TaskAssignee {
@@ -22,6 +23,8 @@ interface AssigneesCellProps {
   isDark: boolean;
   locale: string;
   disabled?: boolean;
+  /** v1.4.0: Enable workload indicators in dropdown */
+  showWorkloadIndicators?: boolean;
 }
 
 function getInitials(name: string): string {
@@ -45,6 +48,46 @@ function getAvatarColor(name: string): string {
   return colors[Math.abs(hash) % colors.length] ?? 'bg-blue-500';
 }
 
+/**
+ * Get workload level color and icon
+ */
+function getWorkloadIndicator(workload: UserWorkload | undefined, isDark: boolean) {
+  if (!workload) return null;
+
+  const utilizationPercent = Math.round((workload.assignedHoursThisWeek / workload.weeklyCapacity) * 100);
+
+  switch (workload.level) {
+    case 'light':
+      return {
+        color: isDark ? 'text-green-400 bg-green-500/20' : 'text-green-600 bg-green-100',
+        icon: null,
+        label: `${utilizationPercent}%`,
+        tooltip: `${workload.assignedHoursThisWeek}h / ${workload.weeklyCapacity}h - ${workload.activeTasks} tareas`,
+      };
+    case 'moderate':
+      return {
+        color: isDark ? 'text-yellow-400 bg-yellow-500/20' : 'text-yellow-600 bg-yellow-100',
+        icon: Clock,
+        label: `${utilizationPercent}%`,
+        tooltip: `${workload.assignedHoursThisWeek}h / ${workload.weeklyCapacity}h - ${workload.activeTasks} tareas`,
+      };
+    case 'heavy':
+      return {
+        color: isDark ? 'text-orange-400 bg-orange-500/20' : 'text-orange-600 bg-orange-100',
+        icon: Clock,
+        label: `${utilizationPercent}%`,
+        tooltip: `${workload.assignedHoursThisWeek}h / ${workload.weeklyCapacity}h - ${workload.activeTasks} tareas`,
+      };
+    case 'overloaded':
+      return {
+        color: isDark ? 'text-red-400 bg-red-500/20' : 'text-red-600 bg-red-100',
+        icon: AlertTriangle,
+        label: `${utilizationPercent}%`,
+        tooltip: `SOBRECARGADO: ${workload.assignedHoursThisWeek}h / ${workload.weeklyCapacity}h - ${workload.activeTasks} tareas`,
+      };
+  }
+}
+
 export function AssigneesCell({
   value = [],
   availableUsers = [],
@@ -52,6 +95,7 @@ export function AssigneesCell({
   isDark,
   locale,
   disabled = false,
+  showWorkloadIndicators = true,
 }: AssigneesCellProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -74,6 +118,16 @@ export function AssigneesCell({
     u.name.toLowerCase().includes(search.toLowerCase()) ||
     u.email?.toLowerCase().includes(search.toLowerCase())
   );
+
+  // Sort users by workload (lightest first) when workload indicators are enabled
+  const sortedUsers = showWorkloadIndicators
+    ? [...filteredUsers].sort((a, b) => {
+        const workloadOrder = { light: 0, moderate: 1, heavy: 2, overloaded: 3 };
+        const aLevel = a.workload?.level ?? 'light';
+        const bLevel = b.workload?.level ?? 'light';
+        return workloadOrder[aLevel] - workloadOrder[bLevel];
+      })
+    : filteredUsers;
 
   // Check if user is assigned by name (since Assignee type uses name, not id)
   const isAssigned = (userName: string) => value.some(a => a.name === userName);
@@ -187,10 +241,33 @@ export function AssigneesCell({
       {isOpen && (
         <div
           className={cn(
-            'absolute z-50 top-full left-0 mt-1 rounded-lg shadow-lg border w-64',
+            'absolute z-50 top-full left-0 mt-1 rounded-lg shadow-lg border w-72',
             isDark ? 'bg-[#1F2937] border-white/10' : 'bg-white border-gray-200'
           )}
         >
+          {/* Header with workload legend */}
+          {showWorkloadIndicators && (
+            <div
+              className={cn(
+                'px-3 py-2 text-xs border-b flex items-center gap-3',
+                isDark ? 'text-[#9CA3AF] border-white/10' : 'text-gray-500 border-gray-200'
+              )}
+            >
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-green-500" />
+                {locale === 'es' ? 'Ligera' : 'Light'}
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-yellow-500" />
+                {locale === 'es' ? 'Moderada' : 'Moderate'}
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-red-500" />
+                {locale === 'es' ? 'Alta' : 'Heavy'}
+              </span>
+            </div>
+          )}
+
           {/* Search */}
           <div className="p-2 border-b" style={{ borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#E5E7EB' }}>
             <input
@@ -210,48 +287,69 @@ export function AssigneesCell({
 
           {/* User list */}
           <div className="max-h-48 overflow-y-auto py-1">
-            {filteredUsers.length === 0 ? (
+            {sortedUsers.length === 0 ? (
               <p className={cn('px-3 py-2 text-sm', isDark ? 'text-[#6B7280]' : 'text-gray-400')}>
                 {locale === 'es' ? 'No se encontraron usuarios' : 'No users found'}
               </p>
             ) : (
-              filteredUsers.map((user) => (
-                <button
-                  key={user.id}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleToggleUser(user);
-                  }}
-                  className={cn(
-                    'w-full flex items-center gap-3 px-3 py-2 text-sm transition-colors',
-                    isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100'
-                  )}
-                >
-                  <div
+              sortedUsers.map((user) => {
+                const workloadIndicator = getWorkloadIndicator(user.workload, isDark);
+
+                return (
+                  <button
+                    key={user.id}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggleUser(user);
+                    }}
                     className={cn(
-                      'w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium text-white',
-                      !user.avatarUrl && getAvatarColor(user.name)
+                      'w-full flex items-center gap-3 px-3 py-2 text-sm transition-colors',
+                      isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100',
+                      // Highlight overloaded users
+                      user.workload?.level === 'overloaded' && (isDark ? 'bg-red-500/5' : 'bg-red-50')
                     )}
+                    title={workloadIndicator?.tooltip}
                   >
-                    {user.avatarUrl ? (
-                      <img src={user.avatarUrl} alt={user.name} className="w-full h-full rounded-full object-cover" />
-                    ) : (
-                      getInitials(user.name)
-                    )}
-                  </div>
-                  <div className="flex-1 text-left">
-                    <div className={isDark ? 'text-white' : 'text-gray-900'}>{user.name}</div>
-                    {user.email && (
-                      <div className={cn('text-xs', isDark ? 'text-[#6B7280]' : 'text-gray-400')}>
-                        {user.email}
+                    <div
+                      className={cn(
+                        'w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium text-white',
+                        !user.avatarUrl && getAvatarColor(user.name)
+                      )}
+                    >
+                      {user.avatarUrl ? (
+                        <img src={user.avatarUrl} alt={user.name} className="w-full h-full rounded-full object-cover" />
+                      ) : (
+                        getInitials(user.name)
+                      )}
+                    </div>
+                    <div className="flex-1 text-left">
+                      <div className={isDark ? 'text-white' : 'text-gray-900'}>{user.name}</div>
+                      {user.email && (
+                        <div className={cn('text-xs', isDark ? 'text-[#6B7280]' : 'text-gray-400')}>
+                          {user.email}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Workload indicator */}
+                    {showWorkloadIndicators && workloadIndicator && (
+                      <div
+                        className={cn(
+                          'flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium',
+                          workloadIndicator.color
+                        )}
+                      >
+                        {workloadIndicator.icon && <workloadIndicator.icon className="w-3 h-3" />}
+                        {workloadIndicator.label}
                       </div>
                     )}
-                  </div>
-                  {isAssigned(user.name) && (
-                    <Check className="w-4 h-4 text-green-500" />
-                  )}
-                </button>
-              ))
+
+                    {isAssigned(user.name) && (
+                      <Check className="w-4 h-4 text-green-500" />
+                    )}
+                  </button>
+                );
+              })
             )}
           </div>
 

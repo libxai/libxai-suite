@@ -1,9 +1,11 @@
 /**
  * NumberCell - Editable number cell for ListView
+ * v1.4.0: Added micro-interactions (slot machine, flash on save)
  */
 
 import { useState, useRef, useEffect } from 'react';
 import { cn } from '../../../utils';
+import { useSaveFlash, useSlotMachine } from '../../../hooks/useMicroInteractions';
 
 interface NumberCellProps {
   value?: number;
@@ -13,6 +15,10 @@ interface NumberCellProps {
   min?: number;
   max?: number;
   disabled?: boolean;
+  /** Enable slot machine animation on value change */
+  enableSlotMachine?: boolean;
+  /** Enable flash green on save */
+  enableSaveFlash?: boolean;
 }
 
 export function NumberCell({
@@ -23,10 +29,18 @@ export function NumberCell({
   min,
   max,
   disabled = false,
+  enableSlotMachine = true,
+  enableSaveFlash = true,
 }: NumberCellProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(value?.toString() || '');
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Micro-interactions
+  const { isFlashing, triggerFlash } = useSaveFlash();
+  const { displayValue, isAnimating } = useSlotMachine(value, {
+    enabled: enableSlotMachine && !isEditing,
+  });
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -47,6 +61,10 @@ export function NumberCell({
       if (max !== undefined) finalValue = Math.min(max, finalValue);
       if (finalValue !== value) {
         onChange?.(finalValue);
+        // Trigger flash after save
+        if (enableSaveFlash) {
+          triggerFlash();
+        }
       }
     }
     setIsEditing(false);
@@ -59,12 +77,19 @@ export function NumberCell({
       setEditValue(value?.toString() || '');
       setIsEditing(false);
     }
+    // Tab navigation handled by parent
   };
 
   if (disabled || !onChange) {
     return (
-      <span className={cn('text-sm', isDark ? 'text-[#94A3B8]' : 'text-gray-500')}>
-        {value !== undefined ? value : placeholder}
+      <span
+        className={cn(
+          'text-sm transition-all',
+          isDark ? 'text-[#94A3B8]' : 'text-gray-500',
+          isAnimating && 'font-medium'
+        )}
+      >
+        {displayValue !== undefined ? displayValue : placeholder}
       </span>
     );
   }
@@ -98,12 +123,16 @@ export function NumberCell({
         setIsEditing(true);
       }}
       className={cn(
-        'text-sm text-left w-full px-2 py-1 rounded transition-colors',
+        'text-sm text-left w-full px-2 py-1 rounded transition-all duration-300',
         isDark ? 'text-[#94A3B8] hover:bg-white/10' : 'text-gray-500 hover:bg-gray-100',
-        value === undefined && (isDark ? 'text-[#6B7280]' : 'text-gray-400')
+        displayValue === undefined && (isDark ? 'text-[#6B7280]' : 'text-gray-400'),
+        // Flash animation
+        isFlashing && (isDark ? 'bg-green-500/30' : 'bg-green-500/20'),
+        // Slot machine animation
+        isAnimating && 'font-medium scale-105'
       )}
     >
-      {value !== undefined ? value : placeholder}
+      {displayValue !== undefined ? displayValue : placeholder}
     </button>
   );
 }
