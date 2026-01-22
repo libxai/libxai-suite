@@ -15,8 +15,17 @@ export { useKeyboardShortcuts, DEFAULT_SHORTCUTS } from './keyboard/useKeyboardS
 export { useCardStacking } from './useCardStacking'
 export { useClickOutside } from './useClickOutside'
 export { useKeyboardNav } from './useKeyboardNav'
+export { useExcelNav } from './useExcelNav'
+export {
+  useSaveFlash,
+  useSlotMachine,
+  useDelayedCheckbox,
+  getFlashClasses,
+  FLASH_ANIMATION_CSS,
+} from './useMicroInteractions'
 export type { UseCardStackingOptions, UseCardStackingResult } from './useCardStacking'
 export type { UseKeyboardNavOptions, UseKeyboardNavReturn } from './useKeyboardNav'
+export type { CellPosition, UseExcelNavOptions, UseExcelNavReturn } from './useExcelNav'
 
 export type { UseKanbanStateOptions, UseKanbanStateReturn } from './useKanbanState'
 export type { UseBoardOptions, UseBoardReturn } from './useBoard'

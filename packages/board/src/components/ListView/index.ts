@@ -29,6 +29,8 @@ export type {
   ContextMenuAction,
   ContextMenuState,
   AvailableUser,
+  // v1.4.0: User workload for Smart Dropdown
+  UserWorkload,
 } from './types';
 
 // v0.18.0: Export constants
