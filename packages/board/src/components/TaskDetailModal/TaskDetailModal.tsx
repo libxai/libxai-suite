@@ -1328,14 +1328,26 @@ export function TaskDetailModal({
                   {/* Time Tracking - v1.1.0 - Rediseñado estilo ClickUp */}
                   {enableTimeTracking && (
                     <>
-                      {/* Row 1: Duración estimada (Esfuerzo Estimado) */}
+                      {/* Row 1: Duración estimada (Esfuerzo Estimado) - disabled for completed tasks */}
                       <div className="flex items-center gap-3 relative">
                         <Hourglass className={cn("w-4 h-4", isDark ? "text-[#6B7280]" : "text-gray-400")} />
                         <span className={cn("text-sm w-28 truncate flex-shrink-0", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
                           {locale === 'es' ? 'Duración estimada' : 'Estimated duration'}
                         </span>
                         <div className="flex items-center gap-2 flex-1">
-                          {timeTrackingSummary?.estimateMinutes ? (
+                          {(selectedTask.status === 'completed' || selectedTask.progress === 100) ? (
+                            <span
+                              className={cn(
+                                "text-sm px-2 py-0.5 cursor-not-allowed",
+                                isDark ? "text-gray-600" : "text-gray-300"
+                              )}
+                              title={locale === 'es' ? 'Tarea completada' : 'Task completed'}
+                            >
+                              {timeTrackingSummary?.estimateMinutes
+                                ? formatMinutesToDisplay(timeTrackingSummary.estimateMinutes)
+                                : (locale === 'es' ? 'Vacío' : 'Empty')}
+                            </span>
+                          ) : timeTrackingSummary?.estimateMinutes ? (
                             <button
                               type="button"
                               onClick={() => setShowTimePopover('estimate')}
@@ -1385,14 +1397,26 @@ export function TaskDetailModal({
                         </AnimatePresence>
                       </div>
 
-                      {/* Row 2: Tiempo ofertado (Quoted Time) */}
+                      {/* Row 2: Tiempo ofertado (Quoted Time) - disabled for completed tasks */}
                       <div className="flex items-center gap-3 relative">
                         <FileText className={cn("w-4 h-4", isDark ? "text-[#6B7280]" : "text-gray-400")} />
                         <span className={cn("text-sm w-28 truncate flex-shrink-0", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
                           {locale === 'es' ? 'Tiempo ofertado' : 'Quoted time'}
                         </span>
                         <div className="flex items-center gap-2 flex-1">
-                          {(selectedTask as any).quotedMinutes ? (
+                          {(selectedTask.status === 'completed' || selectedTask.progress === 100) ? (
+                            <span
+                              className={cn(
+                                "text-sm px-2 py-0.5 cursor-not-allowed",
+                                isDark ? "text-gray-600" : "text-gray-300"
+                              )}
+                              title={locale === 'es' ? 'Tarea completada' : 'Task completed'}
+                            >
+                              {(selectedTask as any).quotedMinutes
+                                ? formatMinutesToDisplay((selectedTask as any).quotedMinutes)
+                                : (locale === 'es' ? 'Vacío' : 'Empty')}
+                            </span>
+                          ) : (selectedTask as any).quotedMinutes ? (
                             <button
                               type="button"
                               onClick={() => setShowTimePopover('quoted')}
