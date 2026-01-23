@@ -447,6 +447,13 @@ export interface GanttConfig {
   persistFilter?: boolean | string;
 
   /**
+   * v1.4.10: Clear filters key - when this value changes, internal filters are reset
+   * Useful for navigation scenarios where filters should be cleared (e.g., from notifications)
+   * Pass a timestamp or counter that changes when you want to reset filters
+   */
+  clearFiltersKey?: string | number;
+
+  /**
    * v0.17.310: Dependency line style
    * Controls how dependency arrows are rendered between tasks
    * - 'curved': Smooth bezier curves (default)

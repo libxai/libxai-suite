@@ -68,6 +68,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     enableAutoCriticalPath = true, // v0.11.1: Allow disabling automatic CPM calculation
     persistExpandedState, // v0.17.181: Persist expanded state in localStorage
     persistFilter, // v0.18.0: Persist filter state in localStorage
+    clearFiltersKey, // v1.4.10: Clear filters when this key changes
     aiAssistant, // v0.14.0: AI Assistant configuration
     // v0.15.0: Internationalization
     locale = 'en',
@@ -168,6 +169,27 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       console.warn('[GanttBoard] Error saving filter state to localStorage:', e);
     }
   }, [taskFilter, hideCompleted, getFilterStorageKey]);
+
+  // v1.4.10: Reset filters when clearFiltersKey changes (for notification navigation)
+  const prevClearFiltersKeyRef = useRef(clearFiltersKey);
+  useEffect(() => {
+    // Only reset if the key actually changed (not on initial mount)
+    if (prevClearFiltersKeyRef.current !== clearFiltersKey && clearFiltersKey !== undefined) {
+      setInternalTaskFilter('all');
+      setHideCompleted(false);
+      // Also clear localStorage
+      const key = getFilterStorageKey();
+      if (key) {
+        try {
+          localStorage.removeItem(key);
+        } catch (e) {
+          console.warn('[GanttBoard] Error clearing filter state from localStorage:', e);
+        }
+      }
+    }
+    prevClearFiltersKeyRef.current = clearFiltersKey;
+  }, [clearFiltersKey, getFilterStorageKey]);
+
   const [scrollTop, setScrollTop] = useState(0);
   const [isResizing, setIsResizing] = useState(false);
   const [gridWidthOverride, setGridWidthOverride] = useState<number | null>(null);
