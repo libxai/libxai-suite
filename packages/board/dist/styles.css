@@ -11310,6 +11310,11 @@ body {
 }
 
 
+.opacity-60 {
+  opacity: 0.6;
+}
+
+
 .opacity-70 {
   opacity: 0.7;
 }
@@ -11463,6 +11468,12 @@ body {
 
 .blur {
   --tw-blur: blur(8px);
+  filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
+}
+
+
+.blur-\[4px\] {
+  --tw-blur: blur(4px);
   filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
 }
 

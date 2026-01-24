@@ -277,6 +277,18 @@ export interface ListViewConfig {
   // v0.18.3: Persist filter state in localStorage
   /** LocalStorage key for persisting filter state, or false to disable */
   persistFilter?: string | false;
+
+  // v1.4.9: Governance v2.0 - Financial data blur
+  /**
+   * Configuration for blurring financial data based on user permissions
+   * When enabled, financial columns (soldEffortMinutes, quotedTime) will be blurred
+   */
+  financialBlur?: {
+    /** Whether to blur financial time columns */
+    enabled: boolean;
+    /** Specific columns to blur (defaults to ['soldEffortMinutes', 'quotedTime'] if not specified) */
+    columns?: Array<'soldEffortMinutes' | 'quotedTime' | 'quotedTimeMinutes'>;
+  };
 }
 
 /**

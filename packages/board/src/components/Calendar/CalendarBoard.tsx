@@ -99,9 +99,12 @@ export function CalendarBoard({
   timerState,
   onLogTime,
   onUpdateEstimate,
+  onUpdateSoldEffort,
   onStartTimer,
   onStopTimer,
   onDiscardTimer,
+  // v1.4.11: Governance v2.0 - Financial blur
+  blurFinancials = false,
 }: CalendarBoardProps) {
   const {
     theme: themeName = 'dark',
@@ -987,9 +990,12 @@ export function CalendarBoard({
         timerElapsedSeconds={timerState?.elapsedSeconds}
         onTimeLog={onLogTime}
         onEstimateUpdate={onUpdateEstimate}
+        onSoldEffortUpdate={onUpdateSoldEffort}
         onTimerStart={onStartTimer}
         onTimerStop={onStopTimer}
         onTimerDiscard={onDiscardTimer}
+        // v1.4.11: Governance v2.0 - Financial blur
+        blurFinancials={blurFinancials}
       />
 
       {/* v0.17.83: Day Tasks Popover - Shows all tasks for a day */}

@@ -108,6 +108,8 @@ export function ListView({
     onCreateTask,
     // v0.18.3: Persist filter state
     persistFilter = false,
+    // v1.4.9: Governance v2.0 - Financial blur
+    financialBlur,
   } = config;
 
   const t = mergeListViewTranslations(locale, customTranslations);
@@ -549,6 +551,10 @@ export function ListView({
       // v1.1.0: Quoted time column
       case 'quotedTime': {
         const isCompleted = task.status === 'completed' || task.progress === 100;
+        // v1.4.9: Governance v2.0 - Check if this column should be blurred
+        const shouldBlurQuoted = financialBlur?.enabled && (
+          !financialBlur.columns || financialBlur.columns.includes('quotedTime')
+        );
         return (
           <TimeCell
             value={(task as any).quotedTime}
@@ -556,6 +562,7 @@ export function ListView({
             isDark={isDark}
             locale={locale}
             disabled={isCompleted}
+            isBlurred={shouldBlurQuoted}
           />
         );
       }
@@ -606,6 +613,10 @@ export function ListView({
 
       case 'soldEffortMinutes': {
         const isCompleted = task.status === 'completed' || task.progress === 100;
+        // v1.4.9: Governance v2.0 - Check if this column should be blurred
+        const shouldBlurSold = financialBlur?.enabled && (
+          !financialBlur.columns || financialBlur.columns.includes('soldEffortMinutes')
+        );
         return (
           <TimeCell
             value={(task as any).soldEffortMinutes}
@@ -613,6 +624,7 @@ export function ListView({
             isDark={isDark}
             locale={locale}
             disabled={isCompleted}
+            isBlurred={shouldBlurSold}
           />
         );
       }

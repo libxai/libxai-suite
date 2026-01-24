@@ -250,7 +250,14 @@ function TaskRow({
   isDark: boolean;
   onClick?: (taskId: string) => void;
 }) {
-  const varianceSign = task.varianceMinutes !== null && task.varianceMinutes > 0 ? '+' : '';
+  // Show + for profit, - for loss, nothing for zero
+  const varianceSign = task.varianceMinutes !== null
+    ? task.varianceMinutes > 0
+      ? '+'
+      : task.varianceMinutes < 0
+        ? '-'
+        : ''
+    : '';
   const borderColor = isDark ? 'border-white/5' : 'border-gray-200';
   const textPrimary = isDark ? 'text-[#E5E7EB]' : 'text-gray-900';
   const textMuted = isDark ? 'text-[#9CA3AF]' : 'text-gray-500';

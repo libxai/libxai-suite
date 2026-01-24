@@ -64,10 +64,11 @@ function parseDuration(input: string): number {
     return Math.round(hours * 60) + minutes
   }
 
-  // Format: plain number (assume minutes)
+  // Format: plain number (assume HOURS, not minutes)
+  // e.g., "100" = 100 hours = 6000 minutes
   const plainNumber = parseFloat(trimmed)
   if (!isNaN(plainNumber)) {
-    return Math.round(plainNumber)
+    return Math.round(plainNumber * 60)
   }
 
   return 0
@@ -293,7 +294,7 @@ export function TimePopover({
               value={durationInput}
               onChange={(e) => setDurationInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="2h 30m"
+              placeholder="8 (=8h), 2h 30m"
               className={cn(
                 'w-full pl-8 pr-3 py-1.5 text-sm rounded-lg',
                 'bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600',

@@ -56,10 +56,11 @@ function parseDurationToMinutes(input: string): number | null {
     return Math.round(hours * 60) + minutes;
   }
 
-  // Format: plain number (assume minutes)
+  // Format: plain number (assume HOURS, not minutes)
+  // e.g., "100" = 100 hours = 6000 minutes
   const plainNumber = parseFloat(trimmed);
   if (!isNaN(plainNumber)) {
-    return Math.round(plainNumber);
+    return Math.round(plainNumber * 60);
   }
 
   return null;
@@ -128,9 +129,9 @@ export function TimeInputPopover({
   };
 
   const placeholders = {
-    estimate: locale === 'es' ? '1h 30m' : '1h 30m',
-    quoted: locale === 'es' ? '1h 30m' : '1h 30m',
-    log: locale === 'es' ? '1h 30m' : '1h 30m',
+    estimate: locale === 'es' ? '8 (=8h)' : '8 (=8h)',
+    quoted: locale === 'es' ? '8 (=8h)' : '8 (=8h)',
+    log: locale === 'es' ? '8 (=8h)' : '8 (=8h)',
   };
 
   return (
@@ -177,7 +178,7 @@ export function TimeInputPopover({
           )}
         />
         <p className={cn("text-xs mt-1", isDark ? "text-gray-500" : "text-gray-400")}>
-          {locale === 'es' ? 'Ej: 1h 30m, 45m, 2:30' : 'e.g. 1h 30m, 45m, 2:30'}
+          {locale === 'es' ? 'Ej: 8 (=8h), 1h 30m, 45m, 2:30' : 'e.g. 8 (=8h), 1h 30m, 45m, 2:30'}
         </p>
       </div>
 

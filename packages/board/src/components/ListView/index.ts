@@ -78,3 +78,5 @@ export { NumberCell } from './cells/NumberCell';
 export { DropdownCell } from './cells/DropdownCell';
 export { CheckboxCell } from './cells/CheckboxCell';
 export { TagsCell } from './cells/TagsCell';
+// v0.18.3: Time tracking cell
+export { TimeCell } from './cells/TimeCell';

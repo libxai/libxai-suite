@@ -78,10 +78,11 @@ function parseTimeInput(input: string): number | null {
     return parseInt(daysMatch[1], 10) * 480;
   }
 
-  // Pattern: just a number (assume minutes)
+  // Pattern: just a number (assume HOURS, not minutes)
+  // e.g., "100" = 100 hours = 6000 minutes
   const numberMatch = normalized.match(/^(\d+)$/);
   if (numberMatch && numberMatch[1]) {
-    return parseInt(numberMatch[1], 10);
+    return parseInt(numberMatch[1], 10) * 60;
   }
 
   return null;
@@ -1005,7 +1006,7 @@ export function TaskFormModal({
                               </div>
                               <input
                                 type="text"
-                                placeholder="ej: 2h 30m, 4h, 1d"
+                                placeholder="ej: 8 (=8h), 2h 30m, 1d"
                                 value={formData.effortMinutes ? formatMinutesToDisplay(formData.effortMinutes) : ''}
                                 onChange={(e) => {
                                   const minutes = parseTimeInput(e.target.value);
@@ -1019,7 +1020,7 @@ export function TaskFormModal({
                                 }}
                               />
                               <p className="text-xs mt-1" style={{ color: themeColors.textTertiary }}>
-                                Formatos: "2h 30m", "4h", "1d" (1 día = 8h)
+                                Ej: 8 (=8h), 2h 30m, 45m, 1d (1 día = 8h)
                               </p>
                             </div>
 

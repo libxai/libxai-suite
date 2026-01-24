@@ -327,6 +327,9 @@ export interface CalendarBoardProps {
   /** Callback to update task estimate */
   onUpdateEstimate?: (taskId: string, minutes: number | null) => Promise<void>;
 
+  /** Callback to update sold effort (quoted time) */
+  onUpdateSoldEffort?: (taskId: string, minutes: number | null) => Promise<void>;
+
   /** Callback to start timer */
   onStartTimer?: (taskId: string) => void;
 
@@ -335,4 +338,11 @@ export interface CalendarBoardProps {
 
   /** Callback to discard timer without saving */
   onDiscardTimer?: (taskId: string) => void;
+
+  // ========================================================================
+  // v1.4.11: Governance v2.0 - Financial blur
+  // ========================================================================
+
+  /** Blur financial data (tiempo ofertado) for unauthorized users */
+  blurFinancials?: boolean;
 }

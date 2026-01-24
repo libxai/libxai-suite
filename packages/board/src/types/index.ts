@@ -107,6 +107,8 @@ export interface Card {
   effortMinutes?: number | null
   /** v1.1.0: Total logged time in minutes (aggregated) */
   timeLoggedMinutes?: number
+  /** v1.2.0: Sold/quoted effort in minutes (client facing - "Tiempo ofertado") */
+  soldEffortMinutes?: number | null
   /** Manual progress override (0-100%) */
   progress?: number
   /** Cover image URL */
@@ -498,6 +500,9 @@ export interface KanbanBoardProps {
   /** Callback to update task estimate */
   onUpdateEstimate?: (taskId: string, minutes: number | null) => Promise<void>
 
+  /** Callback to update sold effort (quoted time) */
+  onUpdateSoldEffort?: (taskId: string, minutes: number | null) => Promise<void>
+
   /** Callback to start timer */
   onStartTimer?: (taskId: string) => void
 
@@ -506,6 +511,13 @@ export interface KanbanBoardProps {
 
   /** Callback to discard timer without saving */
   onDiscardTimer?: (taskId: string) => void
+
+  // ========================================================================
+  // v1.4.11: Governance v2.0 - Financial blur
+  // ========================================================================
+
+  /** Blur financial data (tiempo ofertado) for unauthorized users */
+  blurFinancials?: boolean
 }
 
 // ============================================================================

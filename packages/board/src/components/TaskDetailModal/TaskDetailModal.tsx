@@ -114,6 +114,10 @@ function normalizeToTask(item: TaskOrCard, availableUsers: Assignee[] = []): Tas
       })),
       color: card.color,
       description: card.description,
+      // v1.2.0: Preserve time tracking fields from Card
+      effortMinutes: card.effortMinutes,
+      timeLoggedMinutes: card.timeLoggedMinutes,
+      soldEffortMinutes: card.soldEffortMinutes,
     } as Task;
   }
   return item as Task;
@@ -226,6 +230,11 @@ export interface TaskDetailModalProps {
   onTimerStop?: (taskId: string) => void;
   /** Discard timer callback */
   onTimerDiscard?: (taskId: string) => void;
+  /**
+   * v1.4.11: Governance v2.0 - Blur financial data for unauthorized users
+   * When true, "Tiempo ofertado" (Quoted time) field will be blurred
+   */
+  blurFinancials?: boolean;
 }
 
 /**
@@ -263,6 +272,8 @@ export function TaskDetailModal({
   onTimerStart,
   onTimerStop,
   onTimerDiscard: _onTimerDiscard,
+  // v1.4.11: Governance v2.0 - Financial blur
+  blurFinancials = false,
 }: TaskDetailModalProps) {
   // Suppress unused variable warnings (reserved for future features)
   void _timeEntries;
@@ -1398,13 +1409,26 @@ export function TaskDetailModal({
                       </div>
 
                       {/* Row 2: Tiempo ofertado (Quoted Time) - disabled for completed tasks */}
+                      {/* v1.4.11: Governance v2.0 - Blur for unauthorized users */}
                       <div className="flex items-center gap-3 relative">
                         <FileText className={cn("w-4 h-4", isDark ? "text-[#6B7280]" : "text-gray-400")} />
                         <span className={cn("text-sm w-28 truncate flex-shrink-0", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
                           {locale === 'es' ? 'Tiempo ofertado' : 'Quoted time'}
                         </span>
                         <div className="flex items-center gap-2 flex-1">
-                          {(selectedTask.status === 'completed' || selectedTask.progress === 100) ? (
+                          {/* v1.4.11: Blurred mode for unauthorized users */}
+                          {blurFinancials ? (
+                            <span
+                              className={cn(
+                                "text-sm select-none blur-[4px] opacity-60 pointer-events-none",
+                                isDark ? "text-[#94A3B8]" : "text-gray-500"
+                              )}
+                              title={locale === 'es' ? 'No tienes permisos para ver este dato' : "You don't have permission to view this data"}
+                              aria-hidden="true"
+                            >
+                              ••••
+                            </span>
+                          ) : (selectedTask.status === 'completed' || selectedTask.progress === 100) ? (
                             <span
                               className={cn(
                                 "text-sm px-2 py-0.5 cursor-not-allowed",
@@ -1441,9 +1465,9 @@ export function TaskDetailModal({
                           )}
                         </div>
 
-                        {/* Popover for quoted */}
+                        {/* Popover for quoted - only show if not blurred */}
                         <AnimatePresence>
-                          {showTimePopover === 'quoted' && (
+                          {showTimePopover === 'quoted' && !blurFinancials && (
                             <motion.div
                               initial={{ opacity: 0, y: -10 }}
                               animate={{ opacity: 1, y: 0 }}

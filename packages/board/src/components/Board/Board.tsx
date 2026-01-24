@@ -53,9 +53,12 @@ export function KanbanBoard({
   timerState,
   onLogTime,
   onUpdateEstimate,
+  onUpdateSoldEffort,
   onStartTimer,
   onStopTimer,
   onDiscardTimer,
+  // v1.4.11: Governance v2.0 - Financial blur
+  blurFinancials = false,
 }: KanbanBoardProps & { children?: React.ReactNode }) {
   const [dragState, setDragState] = useDragState()
 
@@ -442,9 +445,12 @@ export function KanbanBoard({
         timerElapsedSeconds={timerState?.elapsedSeconds}
         onTimeLog={onLogTime}
         onEstimateUpdate={onUpdateEstimate}
+        onSoldEffortUpdate={onUpdateSoldEffort}
         onTimerStart={onStartTimer}
         onTimerStop={onStopTimer}
         onTimerDiscard={onDiscardTimer}
+        // v1.4.11: Governance v2.0 - Financial blur
+        blurFinancials={blurFinancials}
       />
     </KanbanThemeProvider>
   )

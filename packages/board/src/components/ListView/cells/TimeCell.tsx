@@ -23,6 +23,11 @@ interface TimeCellProps {
   disabled?: boolean;
   /** Enable flash green on save */
   enableSaveFlash?: boolean;
+  /**
+   * Governance v2.0: Blur the value for unauthorized users
+   * When true, shows a blurred placeholder instead of the actual value
+   */
+  isBlurred?: boolean;
 }
 
 /**
@@ -63,7 +68,7 @@ function parseTimeToMinutes(input: string): number | null {
 
   // Try hours:minutes format (2:30)
   const colonMatch = trimmed.match(/^(\d+):(\d+)$/);
-  if (colonMatch) {
+  if (colonMatch && colonMatch[1] && colonMatch[2]) {
     const hours = parseInt(colonMatch[1], 10);
     const mins = parseInt(colonMatch[2], 10);
     return hours * 60 + mins;
@@ -71,7 +76,7 @@ function parseTimeToMinutes(input: string): number | null {
 
   // Try hours and minutes format (2h 30m, 2h30m, 2h 30min)
   const hmMatch = trimmed.match(/^(\d+\.?\d*)\s*h\s*(\d+)?\s*(m|min)?$/);
-  if (hmMatch) {
+  if (hmMatch && hmMatch[1]) {
     const hours = parseFloat(hmMatch[1]);
     const mins = hmMatch[2] ? parseInt(hmMatch[2], 10) : 0;
     return Math.round(hours * 60) + mins;
@@ -79,20 +84,21 @@ function parseTimeToMinutes(input: string): number | null {
 
   // Try hours only format (2h, 2.5h)
   const hMatch = trimmed.match(/^(\d+\.?\d*)\s*h$/);
-  if (hMatch) {
+  if (hMatch && hMatch[1]) {
     return Math.round(parseFloat(hMatch[1]) * 60);
   }
 
-  // Try minutes only format (30m, 30min)
-  const mMatch = trimmed.match(/^(\d+)\s*(m|min)?$/);
-  if (mMatch) {
+  // Try minutes only format (30m, 30min) - MUST have 'm' or 'min' suffix
+  const mMatch = trimmed.match(/^(\d+)\s*(m|min)$/);
+  if (mMatch && mMatch[1]) {
     return parseInt(mMatch[1], 10);
   }
 
-  // Try plain number (assumes minutes)
+  // Plain number (assumes HOURS, not minutes)
+  // e.g., "100" = 100 hours = 6000 minutes
   const num = parseFloat(trimmed);
   if (!isNaN(num)) {
-    return Math.round(num);
+    return Math.round(num * 60);
   }
 
   return null;
@@ -103,9 +109,10 @@ export function TimeCell({
   onChange,
   isDark,
   locale = 'en',
-  placeholder,
+  placeholder: _placeholder,
   disabled = false,
   enableSaveFlash = true,
+  isBlurred = false,
 }: TimeCellProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState('');
@@ -114,7 +121,6 @@ export function TimeCell({
   // Micro-interaction: flash green on save
   const { isFlashing, triggerFlash } = useSaveFlash();
 
-  const displayPlaceholder = placeholder || '-';
   const formattedValue = formatTime(value, locale);
 
   useEffect(() => {
@@ -161,6 +167,27 @@ export function TimeCell({
     }
   };
 
+  // Governance v2.0: Blurred mode for unauthorized users
+  if (isBlurred) {
+    return (
+      <div
+        className="flex items-center gap-1.5"
+        title={locale === 'es' ? 'No tienes permisos para ver este dato' : 'You don\'t have permission to view this data'}
+      >
+        <Clock className={cn('w-3.5 h-3.5 flex-shrink-0', isDark ? 'text-[#6B7280]' : 'text-gray-400')} />
+        <span
+          className={cn(
+            'text-sm select-none blur-[4px] opacity-60 pointer-events-none',
+            isDark ? 'text-[#94A3B8]' : 'text-gray-500'
+          )}
+          aria-hidden="true"
+        >
+          ••••
+        </span>
+      </div>
+    );
+  }
+
   // Read-only mode (no onChange provided)
   if (disabled || !onChange) {
     return (
@@ -190,7 +217,7 @@ export function TimeCell({
         onBlur={handleSave}
         onKeyDown={handleKeyDown}
         onClick={(e) => e.stopPropagation()}
-        placeholder={locale === 'es' ? '1h 30m' : '1h 30m'}
+        placeholder={locale === 'es' ? '8 (=8h), 1h 30m' : '8 (=8h), 1h 30m'}
         className={cn(
           'w-full px-2 py-1 text-sm rounded border outline-none',
           isDark

@@ -596,6 +596,8 @@ interface Card$1 {
     effortMinutes?: number | null;
     /** v1.1.0: Total logged time in minutes (aggregated) */
     timeLoggedMinutes?: number;
+    /** v1.2.0: Sold/quoted effort in minutes (client facing - "Tiempo ofertado") */
+    soldEffortMinutes?: number | null;
     /** Manual progress override (0-100%) */
     progress?: number;
     /** Cover image URL */
@@ -894,12 +896,16 @@ interface KanbanBoardProps {
     onLogTime?: (taskId: string, input: TimeLogInput) => Promise<void>;
     /** Callback to update task estimate */
     onUpdateEstimate?: (taskId: string, minutes: number | null) => Promise<void>;
+    /** Callback to update sold effort (quoted time) */
+    onUpdateSoldEffort?: (taskId: string, minutes: number | null) => Promise<void>;
     /** Callback to start timer */
     onStartTimer?: (taskId: string) => void;
     /** Callback to stop timer and save time */
     onStopTimer?: (taskId: string) => void;
     /** Callback to discard timer without saving */
     onDiscardTimer?: (taskId: string) => void;
+    /** Blur financial data (tiempo ofertado) for unauthorized users */
+    blurFinancials?: boolean;
 }
 /**
  * Drag event data
@@ -1443,7 +1449,7 @@ declare class KanbanViewAdapter extends BaseViewAdapter<ViewBoardData> {
  */
 declare function createKanbanView(config?: KanbanViewConfig): KanbanViewAdapter;
 
-declare function KanbanBoard({ board, callbacks, onCardClick, renderProps, config, availableUsers, className, style, isLoading, error, children, availableTags, onCreateTag, attachmentsByCard, onUploadAttachments, onDeleteAttachment, comments, onAddComment, currentUser, mentionableUsers, onTaskOpen, onUploadCommentAttachments, enableTimeTracking, timeTrackingSummary, timeEntries, timerState, onLogTime, onUpdateEstimate, onStartTimer, onStopTimer, onDiscardTimer, }: KanbanBoardProps & {
+declare function KanbanBoard({ board, callbacks, onCardClick, renderProps, config, availableUsers, className, style, isLoading, error, children, availableTags, onCreateTag, attachmentsByCard, onUploadAttachments, onDeleteAttachment, comments, onAddComment, currentUser, mentionableUsers, onTaskOpen, onUploadCommentAttachments, enableTimeTracking, timeTrackingSummary, timeEntries, timerState, onLogTime, onUpdateEstimate, onUpdateSoldEffort, onStartTimer, onStopTimer, onDiscardTimer, blurFinancials, }: KanbanBoardProps & {
     children?: React.ReactNode;
 }): react_jsx_runtime.JSX.Element;
 
@@ -2289,11 +2295,16 @@ interface TaskDetailModalProps {
     onTimerStop?: (taskId: string) => void;
     /** Discard timer callback */
     onTimerDiscard?: (taskId: string) => void;
+    /**
+     * v1.4.11: Governance v2.0 - Blur financial data for unauthorized users
+     * When true, "Tiempo ofertado" (Quoted time) field will be blurred
+     */
+    blurFinancials?: boolean;
 }
 /**
  * TaskDetailModal - ClickUp style full-screen task detail
  */
-declare function TaskDetailModal({ task, isOpen, onClose, onTaskUpdate, onCardUpdate, theme, locale, availableUsers, availableTags, onCreateTag, attachments, onUploadAttachments, onDeleteAttachment, availableTasks, comments, onAddComment, currentUser, mentionableUsers, onUploadCommentAttachments, enableTimeTracking, timeTrackingSummary, timeEntries: _timeEntries, isTimerRunning, timerElapsedSeconds, onTimeLog, onEstimateUpdate, onSoldEffortUpdate, onTimerStart, onTimerStop, onTimerDiscard: _onTimerDiscard, }: TaskDetailModalProps): react_jsx_runtime.JSX.Element | null;
+declare function TaskDetailModal({ task, isOpen, onClose, onTaskUpdate, onCardUpdate, theme, locale, availableUsers, availableTags, onCreateTag, attachments, onUploadAttachments, onDeleteAttachment, availableTasks, comments, onAddComment, currentUser, mentionableUsers, onUploadCommentAttachments, enableTimeTracking, timeTrackingSummary, timeEntries: _timeEntries, isTimerRunning, timerElapsedSeconds, onTimeLog, onEstimateUpdate, onSoldEffortUpdate, onTimerStart, onTimerStop, onTimerDiscard: _onTimerDiscard, blurFinancials, }: TaskDetailModalProps): react_jsx_runtime.JSX.Element | null;
 
 interface TimePillProps {
     /** Time tracking summary data */
@@ -3676,6 +3687,16 @@ interface ListViewConfig {
     onCreateTask?: () => void;
     /** LocalStorage key for persisting filter state, or false to disable */
     persistFilter?: string | false;
+    /**
+     * Configuration for blurring financial data based on user permissions
+     * When enabled, financial columns (soldEffortMinutes, quotedTime) will be blurred
+     */
+    financialBlur?: {
+        /** Whether to blur financial time columns */
+        enabled: boolean;
+        /** Specific columns to blur (defaults to ['soldEffortMinutes', 'quotedTime'] if not specified) */
+        columns?: Array<'soldEffortMinutes' | 'quotedTime' | 'quotedTimeMinutes'>;
+    };
 }
 /**
  * ListView translations
@@ -4199,18 +4220,22 @@ interface CalendarBoardProps {
     onLogTime?: (taskId: string, input: TimeLogInput) => Promise<void>;
     /** Callback to update task estimate */
     onUpdateEstimate?: (taskId: string, minutes: number | null) => Promise<void>;
+    /** Callback to update sold effort (quoted time) */
+    onUpdateSoldEffort?: (taskId: string, minutes: number | null) => Promise<void>;
     /** Callback to start timer */
     onStartTimer?: (taskId: string) => void;
     /** Callback to stop timer and save time */
     onStopTimer?: (taskId: string) => void;
     /** Callback to discard timer without saving */
     onDiscardTimer?: (taskId: string) => void;
+    /** Blur financial data (tiempo ofertado) for unauthorized users */
+    blurFinancials?: boolean;
 }
 
 /**
  * Main CalendarBoard Component
  */
-declare function CalendarBoard({ tasks, config, callbacks, initialDate, isLoading, error, className, style, availableTags, onCreateTag, attachmentsByTask, comments, onAddComment, currentUser, mentionableUsers, onUploadCommentAttachments, onTaskOpen, enableTimeTracking, timeTrackingSummary, timeEntries, timerState, onLogTime, onUpdateEstimate, onStartTimer, onStopTimer, onDiscardTimer, }: CalendarBoardProps): react_jsx_runtime.JSX.Element;
+declare function CalendarBoard({ tasks, config, callbacks, initialDate, isLoading, error, className, style, availableTags, onCreateTag, attachmentsByTask, comments, onAddComment, currentUser, mentionableUsers, onUploadCommentAttachments, onTaskOpen, enableTimeTracking, timeTrackingSummary, timeEntries, timerState, onLogTime, onUpdateEstimate, onUpdateSoldEffort, onStartTimer, onStopTimer, onDiscardTimer, blurFinancials, }: CalendarBoardProps): react_jsx_runtime.JSX.Element;
 
 /**
  * CalendarBoard Themes
