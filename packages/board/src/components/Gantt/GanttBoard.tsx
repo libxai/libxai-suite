@@ -103,6 +103,8 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     onAfterTaskUpdate,
     onBeforeTaskDelete,
     onAfterTaskDelete,
+    // v1.4.10: Permissions
+    permissions,
   } = config;
 
   // Try to get global theme from ThemeProvider (will return undefined if not in ThemeProvider)
@@ -1658,7 +1660,8 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         onRowDensityChange={setRowDensity}
         showThemeSelector={showThemeSelector}
         // v0.14.3: Create Task button
-        showCreateTaskButton={showCreateTaskButton}
+        // v1.4.10: Hide if canCreateTask is false OR canCreateSubtaskOnly is true (user can only create subtasks, not root tasks)
+        showCreateTaskButton={showCreateTaskButton && permissions?.canCreateTask !== false && !permissions?.canCreateSubtaskOnly}
         createTaskLabel={createTaskLabel}
         onCreateTask={onCreateTask}
         // v0.17.300: Task filter
@@ -1795,11 +1798,17 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
             const task = ganttUtils.findTaskById(localTasks, staleTask.id) || staleTask;
             const isParentTask = task.subtasks && task.subtasks.length > 0;
 
+            // v1.4.10: Check if user can create tasks (affects Add Subtask option)
+            const canCreateTask = permissions?.canCreateTask !== false;
+            const canDeleteTask = permissions?.canDeleteTask !== false;
+
             // v0.17.46: Parent tasks can only add subtasks and delete - status/progress is auto-calculated
             if (isParentTask) {
-              return [
-                // Add Subtask - main action for parent tasks
-                {
+              const items = [];
+
+              // Add Subtask - main action for parent tasks (only if canCreateTask)
+              if (canCreateTask) {
+                items.push({
                   id: 'addSubtask',
                   label: translations.contextMenu?.addSubtask || 'Add Subtask',
                   icon: MenuIcons.Add,
@@ -1810,16 +1819,21 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
                       handleCreateSubtask(task.id);
                     }
                   },
-                },
-                // Separator before delete
-                {
-                  id: 'separator-delete',
-                  label: '',
-                  separator: true,
-                  onClick: () => {},
-                },
-                // Delete Task
-                {
+                });
+              }
+
+              // Delete Task (only if canDeleteTask)
+              if (canDeleteTask) {
+                // Separator before delete (only if there are items before)
+                if (items.length > 0) {
+                  items.push({
+                    id: 'separator-delete',
+                    label: '',
+                    separator: true,
+                    onClick: () => {},
+                  });
+                }
+                items.push({
                   id: 'delete',
                   label: translations.contextMenu?.deleteTask || 'Delete Task',
                   icon: MenuIcons.Delete,
@@ -1829,14 +1843,22 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
                       taskName: task.name,
                     });
                   },
-                },
-              ];
+                });
+              }
+
+              return items;
             }
 
             // Regular tasks (no subtasks) - full menu
-            return [
-              // v0.16.0: Edit Task - opens edit modal or calls custom handler
-              {
+            // v1.4.10: Additional permission checks
+            const canUpdateTask = permissions?.canUpdateTask !== false;
+            const canDuplicateTask = permissions?.canDuplicateTask !== false;
+
+            const items = [];
+
+            // v0.16.0: Edit Task - opens edit modal or calls custom handler
+            if (canUpdateTask) {
+              items.push({
                 id: 'edit',
                 label: translations.contextMenu?.editTask || 'Edit Task',
                 icon: MenuIcons.Pencil,
@@ -1847,9 +1869,12 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
                     setEditingTask(task);
                   }
                 },
-              },
-              // v0.16.0: Add Subtask
-              {
+              });
+            }
+
+            // v0.16.0: Add Subtask (only if canCreateTask)
+            if (canCreateTask) {
+              items.push({
                 id: 'addSubtask',
                 label: translations.contextMenu?.addSubtask || 'Add Subtask',
                 icon: MenuIcons.Add,
@@ -1860,16 +1885,23 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
                     handleCreateSubtask(task.id);
                   }
                 },
-              },
-              // Separator before status changes
-              {
+              });
+            }
+
+            // Separator before status changes (only if there are items before and we can update)
+            if (items.length > 0 && canUpdateTask) {
+              items.push({
                 id: 'separator-status',
                 label: '',
                 separator: true,
                 onClick: () => {},
-              },
+              });
+            }
+
+            // Status change options (only if canUpdateTask)
+            if (canUpdateTask) {
               // v0.16.0: Mark Incomplete (status: 'todo', progress: 0)
-              {
+              items.push({
                 id: 'markIncomplete',
                 label: translations.contextMenu?.markIncomplete || 'Mark Incomplete',
                 icon: MenuIcons.MarkIncomplete,
@@ -1881,9 +1913,10 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
                   }
                 },
                 disabled: task.status === 'todo',
-              },
+              });
+
               // v0.16.0: Set In Progress (status: 'in-progress')
-              {
+              items.push({
                 id: 'setInProgress',
                 label: translations.contextMenu?.setInProgress || 'Set In Progress',
                 icon: MenuIcons.SetInProgress,
@@ -1895,9 +1928,10 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
                   }
                 },
                 disabled: task.status === 'in-progress',
-              },
+              });
+
               // v0.16.0: Mark Complete (status: 'completed', progress: 100)
-              {
+              items.push({
                 id: 'markComplete',
                 label: translations.contextMenu?.markComplete || 'Mark Complete',
                 icon: MenuIcons.MarkComplete,
@@ -1905,16 +1939,23 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
                   handleTaskUpdate(task.id, { status: 'completed', progress: 100 });
                 },
                 disabled: task.status === 'completed',
-              },
-              // Separator before advanced options
-              {
+              });
+            }
+
+            // Advanced options section
+            const hasAdvancedOptions = canDuplicateTask || (canUpdateTask && task.startDate && task.endDate);
+            if (hasAdvancedOptions && items.length > 0) {
+              items.push({
                 id: 'separator-advanced',
                 label: '',
                 separator: true,
                 onClick: () => {},
-              },
-              // v1.4.3: Duplicate Task
-              {
+              });
+            }
+
+            // v1.4.3: Duplicate Task (only if canDuplicateTask)
+            if (canDuplicateTask) {
+              items.push({
                 id: 'duplicate',
                 label: translations.contextMenu?.duplicateTask || 'Duplicate Task',
                 icon: MenuIcons.Duplicate,
@@ -1922,38 +1963,42 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
                   setLocalTasks((prev) => duplicateTasks(prev, [task.id]));
                   setContextMenu({ isOpen: false, x: 0, y: 0, task: null });
                 },
-              },
-              // Split Task (existing feature from v0.8.0)
-              {
+              });
+            }
+
+            // Split Task (existing feature from v0.8.0) - requires canUpdateTask
+            if (canUpdateTask && task.startDate && task.endDate) {
+              items.push({
                 id: 'split',
                 label: translations.contextMenu?.splitTask || 'Split Task',
                 icon: MenuIcons.Split,
                 onClick: () => {
-                  if (!task.startDate || !task.endDate) {
-                    console.warn('Cannot split task without dates');
-                    return;
-                  }
-
                   // Calculate midpoint date for split
-                  const startTime = task.startDate.getTime();
-                  const endTime = task.endDate.getTime();
+                  const startTime = task.startDate!.getTime();
+                  const endTime = task.endDate!.getTime();
                   const midTime = startTime + (endTime - startTime) / 2;
                   const splitDate = new Date(midTime);
 
                   // Call split handler
                   handleSplitTask(task, splitDate);
                 },
-                disabled: !task.startDate || !task.endDate,
-              },
-              // Separator before delete
-              {
-                id: 'separator-delete',
-                label: '',
-                separator: true,
-                onClick: () => {},
-              },
+              });
+            }
+
+            // Delete section
+            if (canDeleteTask) {
+              // Separator before delete (only if there are items before)
+              if (items.length > 0) {
+                items.push({
+                  id: 'separator-delete',
+                  label: '',
+                  separator: true,
+                  onClick: () => {},
+                });
+              }
+
               // Delete Task - v0.17.33: Now shows confirmation modal
-              {
+              items.push({
                 id: 'delete',
                 label: translations.contextMenu?.deleteTask || 'Delete Task',
                 icon: MenuIcons.Delete,
@@ -1963,8 +2008,10 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
                     taskName: task.name,
                   });
                 },
-              },
-            ];
+              });
+            }
+
+            return items;
           })()}
         />
       )}

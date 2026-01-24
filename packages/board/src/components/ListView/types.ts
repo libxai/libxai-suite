@@ -216,6 +216,8 @@ export interface ListViewTheme {
  */
 export interface ListViewPermissions {
   canCreateTask?: boolean;
+  /** v1.4.10: When true, user can only create subtasks (not root-level tasks) */
+  canCreateSubtaskOnly?: boolean;
   canUpdateTask?: boolean;
   canDeleteTask?: boolean;
   canBulkSelect?: boolean;
