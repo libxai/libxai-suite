@@ -642,7 +642,14 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     },
 
     duplicateTask: (id: string) => {
-      setLocalTasks((prev) => duplicateTasks(prev, [id]));
+      // v1.4.14: If callback exists, delegate to consumer (SaaS handles DB persistence)
+      if (config.onTaskDuplicate) {
+        const task = ganttUtils.findTaskById(localTasks, id);
+        if (task) config.onTaskDuplicate(task);
+      } else {
+        // No callback - duplicate in memory only (standalone mode)
+        setLocalTasks((prev) => duplicateTasks(prev, [id]).tasks);
+      }
     },
 
     // v0.8.1: Split task feature (creates GAP like Bryntum)
@@ -1047,10 +1054,19 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     }
   }, [config, onBeforeTaskDelete, onAfterTaskDelete]);
 
+  // v1.4.14: Pass original task to callback - consumer handles persistence and reload
   const handleTaskDuplicate = useCallback((taskIds: string[]) => {
-    setLocalTasks((prev) => duplicateTasks(prev, taskIds));
-    taskIds.forEach(id => config.onTaskDuplicate?.(id));
-  }, [config]);
+    // If callback exists, delegate to consumer (SaaS handles DB persistence)
+    if (config.onTaskDuplicate) {
+      taskIds.forEach(id => {
+        const task = ganttUtils.findTaskById(localTasks, id);
+        if (task) config.onTaskDuplicate!(task);
+      });
+    } else {
+      // No callback - duplicate in memory only (standalone mode)
+      setLocalTasks((prev) => duplicateTasks(prev, taskIds).tasks);
+    }
+  }, [config, localTasks]);
 
   const handleTaskCreate = useCallback((afterTaskId: string, direction: 'above' | 'below') => {
     setLocalTasks((prev) => {
@@ -1802,9 +1818,11 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
             const canCreateTask = permissions?.canCreateTask !== false;
             const canDeleteTask = permissions?.canDeleteTask !== false;
 
-            // v0.17.46: Parent tasks can only add subtasks and delete - status/progress is auto-calculated
+            // v0.17.46: Parent tasks - limited menu (status/progress is auto-calculated from subtasks)
+            // v1.4.14: Added duplicate option for parent tasks
             if (isParentTask) {
               const items = [];
+              const canDuplicateTask = permissions?.canDuplicateTask !== false;
 
               // Add Subtask - main action for parent tasks (only if canCreateTask)
               if (canCreateTask) {
@@ -1818,6 +1836,26 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
                     } else {
                       handleCreateSubtask(task.id);
                     }
+                  },
+                });
+              }
+
+              // v1.4.14: Duplicate Task with subtasks (only if canDuplicateTask)
+              if (canDuplicateTask) {
+                items.push({
+                  id: 'duplicate',
+                  label: translations.contextMenu?.duplicateTask || 'Duplicate Task',
+                  icon: MenuIcons.Duplicate,
+                  onClick: () => {
+                    // v1.4.14: If callback exists, delegate to consumer (SaaS handles DB persistence)
+                    // Consumer will reload tasks after creating, so don't update local state
+                    if (config.onTaskDuplicate) {
+                      config.onTaskDuplicate(task);
+                    } else {
+                      // No callback - duplicate in memory only (standalone mode)
+                      setLocalTasks((prev) => duplicateTasks(prev, [task.id]).tasks);
+                    }
+                    setContextMenu({ isOpen: false, x: 0, y: 0, task: null });
                   },
                 });
               }
@@ -1960,7 +1998,14 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
                 label: translations.contextMenu?.duplicateTask || 'Duplicate Task',
                 icon: MenuIcons.Duplicate,
                 onClick: () => {
-                  setLocalTasks((prev) => duplicateTasks(prev, [task.id]));
+                  // v1.4.14: If callback exists, delegate to consumer (SaaS handles DB persistence)
+                  // Consumer will reload tasks after creating, so don't update local state
+                  if (config.onTaskDuplicate) {
+                    config.onTaskDuplicate(task);
+                  } else {
+                    // No callback - duplicate in memory only (standalone mode)
+                    setLocalTasks((prev) => duplicateTasks(prev, [task.id]).tasks);
+                  }
                   setContextMenu({ isOpen: false, x: 0, y: 0, task: null });
                 },
               });

@@ -442,7 +442,7 @@ interface GanttConfig {
     onTaskCreate?: (parentId: string | undefined, position: number) => void;
     onTaskDelete?: (taskId: string) => void;
     onMultiTaskDelete?: (taskIds: string[]) => void;
-    onTaskDuplicate?: (taskId: string) => void;
+    onTaskDuplicate?: (task: Task) => void;
     onTaskMove?: (taskId: string, direction: 'up' | 'down') => void;
     onTaskIndent?: (taskId: string) => void;
     onTaskOutdent?: (taskId: string) => void;

@@ -222,47 +222,55 @@ export function deleteTasks(tasks: Task[], taskIds: string[]): Task[] {
 
 /**
  * Duplicate tasks
+ * v1.4.14: Returns both updated tasks array and array of duplicated tasks (with subtasks)
  */
-export function duplicateTasks(tasks: Task[], taskIds: string[]): Task[] {
+export function duplicateTasks(tasks: Task[], taskIds: string[]): { tasks: Task[]; duplicatedTasks: Task[] } {
   const result = [...tasks];
+  const duplicatedTasks: Task[] = [];
 
   for (const taskId of taskIds) {
-    const duplicateTask = (tasks: Task[]): boolean => {
+    const duplicateSubtasks = (subtasks: Task[], parentId: string): Task[] => {
+      return subtasks.map((task, idx) => ({
+        ...task,
+        id: `${task.id}-copy-${Date.now()}-${idx}`,
+        parentId,
+        subtasks: task.subtasks ? duplicateSubtasks(task.subtasks, `${task.id}-copy-${Date.now()}-${idx}`) : undefined,
+      }));
+    };
+
+    const duplicateTask = (tasks: Task[]): Task | null => {
       const index = tasks.findIndex((t) => t.id === taskId);
       if (index === -1) {
         // Try in subtasks
         for (const task of tasks) {
-          if (task.subtasks && duplicateTask(task.subtasks)) {
-            return true;
+          if (task.subtasks) {
+            const found = duplicateTask(task.subtasks);
+            if (found) return found;
           }
         }
-        return false;
+        return null;
       }
 
       const original = tasks[index];
-      const copy = {
+      const newId = `${original.id}-copy-${Date.now()}`;
+      const copy: Task = {
         ...original,
-        id: `${original.id}-copy-${Date.now()}`,
+        id: newId,
         name: `${original.name} (Copy)`,
-        subtasks: original.subtasks ? duplicateSubtasks(original.subtasks) : undefined,
+        subtasks: original.subtasks ? duplicateSubtasks(original.subtasks, newId) : undefined,
       };
 
       tasks.splice(index + 1, 0, copy);
-      return true;
+      return copy;
     };
 
-    const duplicateSubtasks = (subtasks: Task[]): Task[] => {
-      return subtasks.map((task) => ({
-        ...task,
-        id: `${task.id}-copy-${Date.now()}`,
-        subtasks: task.subtasks ? duplicateSubtasks(task.subtasks) : undefined,
-      }));
-    };
-
-    duplicateTask(result);
+    const duplicated = duplicateTask(result);
+    if (duplicated) {
+      duplicatedTasks.push(duplicated);
+    }
   }
 
-  return result;
+  return { tasks: result, duplicatedTasks };
 }
 
 /**
