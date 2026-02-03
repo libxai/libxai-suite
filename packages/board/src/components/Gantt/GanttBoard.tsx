@@ -31,6 +31,7 @@ import {
   toggleTaskExpansion,
   createSubtask,
   reparentTask,
+  findTask,
 } from './hierarchyUtils';
 
 interface GanttBoardProps {
@@ -1095,12 +1096,24 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   }, [config]);
 
   const handleCreateSubtask = useCallback((parentTaskId: string) => {
+    // v1.4.15: If onTaskAddSubtask is provided, use it for proper position handling
+    // This ensures the subtask is created with the correct position in the database
+    const { onTaskAddSubtask } = config;
+    if (onTaskAddSubtask) {
+      const parentTask = findTask(localTasks, parentTaskId);
+      if (parentTask) {
+        onTaskAddSubtask(parentTask);
+        return;
+      }
+    }
+
+    // Fallback: create subtask locally (when no callback is provided)
     setLocalTasks((prev) => {
       const { tasks } = createSubtask(prev, parentTaskId);
       config.onTaskCreate?.(parentTaskId, 0);
       return tasks;
     });
-  }, [config]);
+  }, [config, localTasks]);
 
   // 🚀 KILLER FEATURE #2: Handle task date changes WITH auto-scheduling
   // When you move a task, all dependent tasks are automatically rescheduled
