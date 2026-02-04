@@ -1,4 +1,4 @@
-import { useMemo, useCallback, useState } from 'react';
+import { useMemo, useCallback, useState, useRef } from 'react';
 import { TimeScale, Task, GanttTemplates, DependentTaskPreview, DependencyLineStyle } from './types';
 import { TaskBar, TaskTooltipData } from './TaskBar';
 import { TaskTooltip } from './TaskTooltip';
@@ -73,6 +73,35 @@ export function Timeline({
     enterX: number;
     enterY: number;
   } | null>(null);
+
+  // v0.17.452: Ref to track if mouse is over a dependency line (for fast mouse movement fix)
+  const isOverDependencyRef = useRef(false);
+
+  // v0.17.452: Track deleted dependencies locally for instant UI feedback
+  // Note: We don't clear this on tasks change - once deleted, it stays hidden
+  // The Set will naturally become irrelevant as the dependency no longer exists in data
+  const [deletedDeps, setDeletedDeps] = useState<Set<string>>(new Set());
+
+  // v0.17.452: Handler for SVG mouse move - clears hover if mouse moved off dependency lines
+  const handleSvgMouseMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
+    // If we have a hovered line but mouse is not over a dependency element, clear it
+    if (hoveredDepLine && !isOverDependencyRef.current) {
+      // Check if the target or any parent has the dependency data attribute
+      let target = e.target as Element | null;
+      let isOverDep = false;
+      while (target && target !== e.currentTarget) {
+        if (target.getAttribute?.('data-dependency-line') === 'true' ||
+            target.getAttribute?.('data-dependency-hover-overlay') === 'true') {
+          isOverDep = true;
+          break;
+        }
+        target = target.parentElement;
+      }
+      if (!isOverDep) {
+        setHoveredDepLine(null);
+      }
+    }
+  }, [hoveredDepLine]);
 
   // v0.17.76: Callback for TaskBar hover changes
   const handleTooltipChange = useCallback((tooltipData: TaskTooltipData | null) => {
@@ -383,10 +412,12 @@ export function Timeline({
 
       {/* Scrollable Content Area */}
       {/* v0.17.31: Added overflow:visible to allow tooltips to render above the header */}
+      {/* v0.17.452: Added onMouseMove to detect when mouse leaves dependency lines (fast movement fix) */}
       <svg
         width={Math.max(timelineWidth, 1000)}
         height={contentHeight}
         style={{ display: 'block', flexShrink: 0, overflow: 'visible' }}
+        onMouseMove={handleSvgMouseMove}
       >
         <defs>
           <filter id="shadow">
@@ -668,6 +699,9 @@ export function Timeline({
 
             const lineKey = `dep-${depId}-${task.id}`;
 
+            // v0.17.452: Skip rendering if this dependency was deleted locally
+            if (deletedDeps.has(lineKey)) return null;
+
             return (
               <DependencyLine
                 key={lineKey}
@@ -679,6 +713,8 @@ export function Timeline({
                 lineStyle={dependencyLineStyle}
                 onDelete={() => onDependencyDelete?.(task.id, depId)}
                 onHoverChange={(isHovered) => {
+                  // v0.17.452: Update ref for fast mouse movement detection
+                  isOverDependencyRef.current = isHovered;
                   if (isHovered) {
                     setHoveredDepLine({
                       key: lineKey,
@@ -747,9 +783,18 @@ export function Timeline({
             y2={hoveredDepLine.enterY}
             theme={theme}
             lineStyle={dependencyLineStyle}
-            onDelete={() => onDependencyDelete?.(hoveredDepLine.toId, hoveredDepLine.fromId)}
+            onDelete={() => {
+              // v0.17.452: Clear hover state and mark as deleted for instant UI feedback
+              const lineKey = hoveredDepLine.key;
+              setHoveredDepLine(null);
+              isOverDependencyRef.current = false;
+              setDeletedDeps(prev => new Set(prev).add(lineKey));
+              onDependencyDelete?.(hoveredDepLine.toId, hoveredDepLine.fromId);
+            }}
             hoverOverlayOnly={true}
             onHoverChange={(isHovered) => {
+              // v0.17.452: Update ref for fast mouse movement detection
+              isOverDependencyRef.current = isHovered;
               // Only clear if mouse actually left the overlay area
               if (!isHovered) {
                 setHoveredDepLine(null);
