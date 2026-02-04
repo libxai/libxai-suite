@@ -143,7 +143,9 @@ export const ganttUtils = {
     const result: Task[] = [];
 
     const flatten = (taskList: Task[]) => {
-      taskList.forEach(task => {
+      // Sort by position to maintain creation order
+      const sortedList = [...taskList].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+      sortedList.forEach(task => {
         result.push(task);
         if (task.subtasks && task.subtasks.length > 0) {
           flatten(task.subtasks);

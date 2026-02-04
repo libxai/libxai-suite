@@ -214,14 +214,16 @@ export function TaskGrid({
 
   const flattenTasks = (tasks: Task[], level = 0): Array<{ task: Task; level: number }> => {
     const result: Array<{ task: Task; level: number }> = [];
-    
-    for (const task of tasks) {
+
+    // Sort by position to maintain creation order
+    const sortedTasks = [...tasks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+    for (const task of sortedTasks) {
       result.push({ task, level });
       if (task.subtasks && task.subtasks.length > 0 && task.isExpanded) {
         result.push(...flattenTasks(task.subtasks, level + 1));
       }
     }
-    
+
     return result;
   };
 

@@ -559,15 +559,17 @@ export function TaskDetailModal({
   const handleAddSubtask = useCallback(() => {
     if (!selectedTask || !newSubtaskName.trim()) return;
 
+    const existingSubtasks = selectedTask.subtasks || [];
     const newSubtask: Task = {
       id: `subtask-${Date.now()}-${Math.random().toString(36).slice(2)}`,
       name: newSubtaskName.trim(),
       progress: 0,
       startDate: new Date(),
       endDate: new Date(),
+      position: existingSubtasks.length,
     };
 
-    const updatedSubtasks = [...(selectedTask.subtasks || []), newSubtask];
+    const updatedSubtasks = [...existingSubtasks, newSubtask];
     const updatedTask = { ...selectedTask, subtasks: updatedSubtasks };
     handleUpdate(updatedTask);
     setNewSubtaskName('');
@@ -1947,7 +1949,7 @@ export function TaskDetailModal({
                   </div>
                   {selectedTask.subtasks && selectedTask.subtasks.length > 0 && (
                     <div className="space-y-2 mb-3">
-                      {selectedTask.subtasks.map((subtask) => (
+                      {[...selectedTask.subtasks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0)).map((subtask) => (
                         <div key={subtask.id} className={cn(
                           "flex items-center gap-2 group p-2 rounded-lg -mx-2 transition-colors",
                           isDark ? "hover:bg-white/5" : "hover:bg-gray-50"

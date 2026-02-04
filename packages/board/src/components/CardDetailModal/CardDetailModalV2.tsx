@@ -149,7 +149,10 @@ export function CardDetailModalV2({
   const [localCard, setLocalCard] = useState<Card | null>(card)
 
   const [isEditingDescription, setIsEditingDescription] = useState(false)
-  const [subtasks, setSubtasks] = useState<Subtask[]>(card?.subtasks || [])
+  const [subtasks, setSubtasks] = useState<Subtask[]>(() => {
+    const initialSubtasks = card?.subtasks || []
+    return [...initialSubtasks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+  })
   const [isAddingSubtask, setIsAddingSubtask] = useState(false)
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('')
   const [commentText, setCommentText] = useState('')
@@ -185,10 +188,12 @@ export function CardDetailModalV2({
   useEffect(() => {
     if (card && !localCard) {
       setLocalCard({ ...card })
-      setSubtasks(card.subtasks || [])
+      const sortedSubtasks = [...(card.subtasks || [])].sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+      setSubtasks(sortedSubtasks)
     } else if (card && localCard && card.id !== localCard.id) {
       setLocalCard({ ...card })
-      setSubtasks(card.subtasks || [])
+      const sortedSubtasks = [...(card.subtasks || [])].sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+      setSubtasks(sortedSubtasks)
     }
   }, [card, localCard])
 
@@ -439,6 +444,7 @@ export function CardDetailModalV2({
         id: `subtask-${Date.now()}`,
         title: newSubtaskTitle.trim(),
         completed: false,
+        position: subtasks.length,
         createdAt: new Date(),
       }
       const updatedSubtasks = [...subtasks, newSubtask]

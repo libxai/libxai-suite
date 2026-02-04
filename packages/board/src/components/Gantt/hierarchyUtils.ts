@@ -6,8 +6,10 @@ import { Task } from './types';
 export function flattenTasks(tasks: Task[]): Task[] {
   const result: Task[] = [];
   const traverse = (tasks: Task[], parentId?: string, level = 0) => {
-    for (let i = 0; i < tasks.length; i++) {
-      const task = { ...tasks[i], parentId, level, position: i };
+    // Sort tasks by position to maintain creation order
+    const sortedTasks = [...tasks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+    for (let i = 0; i < sortedTasks.length; i++) {
+      const task = { ...sortedTasks[i], parentId, level, position: sortedTasks[i].position ?? i };
       result.push(task);
       if (task.subtasks && task.subtasks.length > 0 && task.isExpanded) {
         traverse(task.subtasks, task.id, level + 1);
@@ -379,6 +381,20 @@ export function createSubtask(
   const startDate = parentTask?.startDate || today;
   const endDate = parentTask?.endDate || weekFromNow;
 
+  // Find parent to get subtask count for position
+  const getSubtaskCount = (tasks: Task[]): number => {
+    for (const task of tasks) {
+      if (task.id === parentTaskId) return (task.subtasks || []).length;
+      if (task.subtasks) {
+        const count = getSubtaskCount(task.subtasks);
+        if (count >= 0) return count;
+      }
+    }
+    return 0;
+  };
+
+  const subtaskCount = getSubtaskCount(tasks);
+
   const newTask: Task = {
     id: `task-${Date.now()}`,
     name: 'New Subtask',
@@ -387,6 +403,8 @@ export function createSubtask(
     startDate: new Date(startDate), // Clone to avoid reference issues
     endDate: new Date(endDate),     // Clone to avoid reference issues
     color: parentTask?.color || '#3B82F6', // v0.16.7: Inherit parent color (default: electric blue)
+    position: subtaskCount, // Ensure position is at the end
+    parentId: parentTaskId, // Link to parent for proper hierarchy
   };
 
   const addSubtask = (tasks: Task[]): Task[] => {
