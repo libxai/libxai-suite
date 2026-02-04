@@ -2734,6 +2734,8 @@ interface DependencyLineProps {
     onDelete?: () => void;
     lineStyle?: DependencyLineStyle;
     isHoverLayer?: boolean;
+    onHoverChange?: (isHovered: boolean) => void;
+    hoverOverlayOnly?: boolean;
 }
 /**
  * v0.17.364: TRUE ClickUp-style dependency line routing
@@ -2753,7 +2755,7 @@ interface DependencyLineProps {
  *   The vertical segment must still be LEFT of destination: turnX = x2 - OFFSET
  *   Path: right → horizontal past source → down/up → LEFT back to destination
  */
-declare function DependencyLine({ x1, y1, x2, y2, theme, onDelete, lineStyle, isHoverLayer, }: DependencyLineProps): react_jsx_runtime.JSX.Element;
+declare function DependencyLine({ x1, y1, x2, y2, theme, onDelete, lineStyle, isHoverLayer, onHoverChange, hoverOverlayOnly, }: DependencyLineProps): react_jsx_runtime.JSX.Element;
 
 interface MilestoneProps {
     task: Task;
