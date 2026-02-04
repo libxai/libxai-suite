@@ -63,7 +63,16 @@ export function Timeline({
   // v0.17.76: State for active tooltip - rendered in top layer for proper z-order
   const [activeTooltip, setActiveTooltip] = useState<TaskTooltipData | null>(null);
 
-  // v0.17.363: Simplified - removed hoveredDependency state (DependencyLine handles its own hover)
+  // v0.17.451: Track hovered dependency line for top-layer rendering
+  const [hoveredDepLine, setHoveredDepLine] = useState<{
+    key: string;
+    fromId: string;
+    toId: string;
+    exitX: number;
+    exitY: number;
+    enterX: number;
+    enterY: number;
+  } | null>(null);
 
   // v0.17.76: Callback for TaskBar hover changes
   const handleTooltipChange = useCallback((tooltipData: TaskTooltipData | null) => {
@@ -168,7 +177,9 @@ export function Timeline({
 
     // Helper function to flatten tasks for rendering
     const flattenTasks = (tasks: Task[], result: Task[] = []): Task[] => {
-      for (const task of tasks) {
+      // Sort by position to maintain creation order
+      const sortedTasks = [...tasks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+      for (const task of sortedTasks) {
         result.push(task);
         // Only include subtasks if parent is expanded (or if isExpanded is undefined, default to true)
         if (task.subtasks && task.subtasks.length > 0 && (task.isExpanded === undefined || task.isExpanded)) {
@@ -636,7 +647,7 @@ export function Timeline({
         })}
 
         {/* v0.17.363: SINGLE dependency layer - rendered AFTER tasks for proper z-order */}
-        {/* DependencyLine component handles its own hover state and delete button */}
+        {/* v0.17.451: Base layer only - hover overlay rendered separately at end */}
         {flatTasks.map((task, toIndex) => {
           if (!task.dependencies || task.dependencies.length === 0) return null;
           if (!task.startDate || !task.endDate) return null;
@@ -650,18 +661,16 @@ export function Timeline({
             const fromPos = getTaskPosition(depTask);
             const toPos = getTaskPosition(task);
 
-            // v0.17.363: TRUE ClickUp-style dependency lines
-            // Line exits from RIGHT-CENTER of origin bar
             const exitX = fromPos.x + fromPos.width;
-            const exitY = fromIndex * ROW_HEIGHT + 26; // v1.4.4: Adjusted for 24px bar (14 offset + 12 half-height)
-
-            // Line enters at LEFT-CENTER of destination bar
+            const exitY = fromIndex * ROW_HEIGHT + 26;
             const enterX = toPos.x;
-            const enterY = toIndex * ROW_HEIGHT + 26; // v1.4.4: Adjusted for 24px bar
+            const enterY = toIndex * ROW_HEIGHT + 26;
+
+            const lineKey = `dep-${depId}-${task.id}`;
 
             return (
               <DependencyLine
-                key={`dep-${depId}-${task.id}`}
+                key={lineKey}
                 x1={exitX}
                 y1={exitY}
                 x2={enterX}
@@ -669,6 +678,20 @@ export function Timeline({
                 theme={theme}
                 lineStyle={dependencyLineStyle}
                 onDelete={() => onDependencyDelete?.(task.id, depId)}
+                onHoverChange={(isHovered) => {
+                  if (isHovered) {
+                    setHoveredDepLine({
+                      key: lineKey,
+                      fromId: depId,
+                      toId: task.id,
+                      exitX,
+                      exitY,
+                      enterX,
+                      enterY,
+                    });
+                  }
+                  // v0.17.451: Don't clear on base layer mouseLeave - let overlay handle it
+                }}
               />
             );
           });
@@ -714,7 +737,26 @@ export function Timeline({
           </g>
         ))}
 
-        {/* v0.17.363: Removed separate hover layer - DependencyLine handles its own hover */}
+        {/* v0.17.451: Dependency hover overlay - rendered LAST to appear on top of all lines */}
+        {hoveredDepLine && (
+          <DependencyLine
+            key={`${hoveredDepLine.key}-hover-overlay`}
+            x1={hoveredDepLine.exitX}
+            y1={hoveredDepLine.exitY}
+            x2={hoveredDepLine.enterX}
+            y2={hoveredDepLine.enterY}
+            theme={theme}
+            lineStyle={dependencyLineStyle}
+            onDelete={() => onDependencyDelete?.(hoveredDepLine.toId, hoveredDepLine.fromId)}
+            hoverOverlayOnly={true}
+            onHoverChange={(isHovered) => {
+              // Only clear if mouse actually left the overlay area
+              if (!isHovered) {
+                setHoveredDepLine(null);
+              }
+            }}
+          />
+        )}
 
         {/* v0.17.179: Today Line - Thinner like ClickUp (1px) */}
         {todayX >= 0 && todayX <= timelineWidth && (

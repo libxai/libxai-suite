@@ -31,7 +31,7 @@ export const themes: Record<string, GanttTheme> = {
     // Dependencies & Critical Path
     // v0.17.361: Solid colors for better visibility
     dependency: '#9CA3AF',
-    dependencyHover: '#6B7280',
+    dependencyHover: '#60A5FA',  // v0.17.450: Bright blue hover for better visibility
     criticalPath: '#EF4444',
     criticalPathLight: 'rgba(239, 68, 68, 0.12)',
 
@@ -81,7 +81,7 @@ export const themes: Record<string, GanttTheme> = {
     // Dependencies & Critical Path
     // v0.17.361: Solid colors for better visibility
     dependency: '#6B7280',
-    dependencyHover: '#4B5563',
+    dependencyHover: '#3B82F6',  // v0.17.450: Bright blue hover for better visibility
     criticalPath: '#DC2626',
     criticalPathLight: 'rgba(220, 38, 38, 0.1)',
 
@@ -131,7 +131,7 @@ export const themes: Record<string, GanttTheme> = {
     // Dependencies & Critical Path
     // v0.17.361: Solid colors for better visibility
     dependency: '#78716C',
-    dependencyHover: '#57534E',
+    dependencyHover: '#A8A29E',  // v0.17.450: Lighter stone hover for better visibility
     criticalPath: '#44403C',  // Dark gray instead of red - monochromatic
     criticalPathLight: 'rgba(68, 64, 60, 0.08)',
 

@@ -29,6 +29,10 @@ interface DependencyLineProps {
   lineStyle?: DependencyLineStyle;
   // v0.17.363: Is this line being rendered in the hover layer?
   isHoverLayer?: boolean;
+  // v0.17.451: Callback when hover state changes (for z-order management)
+  onHoverChange?: (isHovered: boolean) => void;
+  // v0.17.451: Only render the hover overlay (for top-layer)
+  hoverOverlayOnly?: boolean;
 }
 
 /**
@@ -55,8 +59,11 @@ export function DependencyLine({
   onDelete,
   lineStyle = 'curved',
   isHoverLayer = false,
+  onHoverChange,
+  hoverOverlayOnly = false,
 }: DependencyLineProps) {
-  const [isHovered, setIsHovered] = useState(false);
+  // v0.17.451: Local hover state only used for tracking, actual rendering done via Timeline
+  const [, setIsLocalHovered] = useState(false);
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
 
   const dy = y2 - y1;
@@ -213,8 +220,14 @@ export function DependencyLine({
   };
 
   const handleMouseLeave = () => {
-    setIsHovered(false);
+    setIsLocalHovered(false);
     setMousePos(null);
+    onHoverChange?.(false);
+  };
+
+  const handleMouseEnter = () => {
+    setIsLocalHovered(true);
+    onHoverChange?.(true);
   };
 
   // For hover layer, we render with glow effect
@@ -322,11 +335,119 @@ export function DependencyLine({
     );
   }
 
+  // v0.17.451: If hoverOverlayOnly, only render the hover overlay for top-layer
+  if (hoverOverlayOnly) {
+    return (
+      <g
+        data-dependency-hover-overlay="true"
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        onMouseMove={handleMouseMove}
+        style={{ cursor: onDelete ? 'pointer' : 'default' }}
+      >
+        {/* Invisible wider path for hover detection */}
+        <path
+          d={path}
+          fill="none"
+          stroke="transparent"
+          strokeWidth={16}
+          strokeLinecap="round"
+          style={{ cursor: onDelete ? 'pointer' : 'default' }}
+        />
+        {/* Background cover - hide gray lines underneath */}
+        <path
+          d={path}
+          fill="none"
+          stroke={theme.bgPrimary || '#1A1D21'}
+          strokeWidth={4}
+          strokeLinecap="round"
+          style={{ pointerEvents: 'none' }}
+        />
+        {/* Subtle outer glow - very light */}
+        <path
+          d={path}
+          fill="none"
+          stroke={hoverColor}
+          strokeWidth={5}
+          strokeLinecap="round"
+          opacity={0.12}
+          style={{ pointerEvents: 'none' }}
+        />
+        {/* Main highlighted line - same width as base */}
+        <path
+          d={path}
+          fill="none"
+          stroke={hoverColor}
+          strokeWidth={2}
+          strokeLinecap="round"
+          style={{ pointerEvents: 'none' }}
+        />
+        {/* Highlighted arrow */}
+        <path
+          d={arrowPath}
+          fill="none"
+          stroke={hoverColor}
+          strokeWidth={2}
+          strokeLinecap="round"
+          style={{ pointerEvents: 'none' }}
+        />
+        {/* Highlighted dot - slightly larger */}
+        <circle
+          cx={x2}
+          cy={y2}
+          r={3.5}
+          fill={hoverColor}
+          style={{ pointerEvents: 'none' }}
+        />
+        {/* Delete button */}
+        {onDelete && (
+          <motion.g
+            initial={{ opacity: 0, scale: 0 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.15 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
+            style={{ cursor: 'pointer' }}
+          >
+            <circle
+              cx={deleteX}
+              cy={deleteY}
+              r={9}
+              fill={deleteColorSoft}
+              stroke={deleteColor}
+              strokeWidth={1.5}
+            />
+            <line
+              x1={deleteX - 3}
+              y1={deleteY - 3}
+              x2={deleteX + 3}
+              y2={deleteY + 3}
+              stroke={deleteColor}
+              strokeWidth={1.5}
+              strokeLinecap="round"
+            />
+            <line
+              x1={deleteX + 3}
+              y1={deleteY - 3}
+              x2={deleteX - 3}
+              y2={deleteY + 3}
+              stroke={deleteColor}
+              strokeWidth={1.5}
+              strokeLinecap="round"
+            />
+          </motion.g>
+        )}
+      </g>
+    );
+  }
+
   // Base layer rendering (non-hover)
   return (
     <g
       data-dependency-line="true"
-      onMouseEnter={() => setIsHovered(true)}
+      onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onMouseMove={handleMouseMove}
       style={{ cursor: onDelete ? 'pointer' : 'default' }}
@@ -341,12 +462,12 @@ export function DependencyLine({
         style={{ cursor: onDelete ? 'pointer' : 'default' }}
       />
 
-      {/* Main dependency line */}
+      {/* Main dependency line - base layer (always gray) */}
       <motion.path
         d={path}
         fill="none"
-        stroke={isHovered ? hoverColor : lineColor}
-        strokeWidth={isHovered ? 2.5 : 2}
+        stroke={lineColor}
+        strokeWidth={2}
         strokeLinecap="round"
         initial={{ pathLength: 0, opacity: 0 }}
         animate={{ pathLength: 1, opacity: 1 }}
@@ -354,71 +475,35 @@ export function DependencyLine({
           pathLength: { duration: 0.5, ease: 'easeInOut' },
           opacity: { duration: 0.2 },
         }}
+        style={{ pointerEvents: 'none' }}
       />
 
-      {/* Arrow head */}
+      {/* Arrow head - base layer */}
       <motion.path
         d={arrowPath}
         fill="none"
-        stroke={isHovered ? hoverColor : lineColor}
-        strokeWidth={isHovered ? 2.5 : 2}
+        stroke={lineColor}
+        strokeWidth={2}
         strokeLinecap="round"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.2, delay: 0.3 }}
+        style={{ pointerEvents: 'none' }}
       />
 
-      {/* Endpoint dot */}
+      {/* Endpoint dot - base layer */}
       <motion.circle
         cx={x2}
         cy={y2}
-        r={isHovered ? 4 : 3}
-        fill={isHovered ? hoverColor : lineColor}
+        r={3}
+        fill={lineColor}
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         transition={{ delay: 0.3, duration: 0.15 }}
+        style={{ pointerEvents: 'none' }}
       />
 
-      {/* Delete button (appears on hover) - v0.17.366: Follows cursor along entire line */}
-      {isHovered && onDelete && (
-        <motion.g
-          initial={{ opacity: 0, scale: 0 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.15 }}
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete();
-          }}
-          style={{ cursor: 'pointer' }}
-        >
-          <circle
-            cx={deleteX}
-            cy={deleteY}
-            r={9}
-            fill={deleteColorSoft}
-            stroke={deleteColor}
-            strokeWidth={1.5}
-          />
-          <line
-            x1={deleteX - 3}
-            y1={deleteY - 3}
-            x2={deleteX + 3}
-            y2={deleteY + 3}
-            stroke={deleteColor}
-            strokeWidth={1.5}
-            strokeLinecap="round"
-          />
-          <line
-            x1={deleteX + 3}
-            y1={deleteY - 3}
-            x2={deleteX - 3}
-            y2={deleteY + 3}
-            stroke={deleteColor}
-            strokeWidth={1.5}
-            strokeLinecap="round"
-          />
-        </motion.g>
-      )}
+      {/* v0.17.451: Hover overlay is now rendered in a separate top-layer via Timeline */}
     </g>
   );
 }
