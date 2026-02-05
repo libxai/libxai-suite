@@ -1119,6 +1119,9 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   // When you move a task, all dependent tasks are automatically rescheduled
   // This is BETTER than DHTMLX - they require manual configuration
   const handleTaskDateChange = useCallback((task: Task, newStart: Date, newEnd: Date) => {
+    // v1.4.18: Check if this is creating a new bar for a task without dates (ClickUp-style)
+    const isCreatingNewBar = !task.startDate && !task.endDate;
+
     // v0.13.3: Calculate daysDelta to preserve relative gaps in cascade
     const daysDelta = task.startDate
       ? Math.round((newStart.getTime() - task.startDate.getTime()) / (1000 * 60 * 60 * 24))
@@ -1154,8 +1157,16 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
 
     // v0.8.1: Pass full updated task object including segments
     const updatedTask = { ...task, startDate: newStart, endDate: newEnd };
-    onTaskUpdate?.(updatedTask);
-  }, [localTasks, onTaskUpdate]);
+
+    // v1.4.18: If creating a new bar (task had no dates), call config.onTaskDateChange
+    // This allows the parent app to persist the new dates to the database
+    if (isCreatingNewBar && config?.onTaskDateChange) {
+      config.onTaskDateChange(task, newStart, newEnd);
+    } else {
+      // Normal case: task already had dates, use onTaskUpdate for drag operations
+      onTaskUpdate?.(updatedTask);
+    }
+  }, [localTasks, onTaskUpdate, config]);
 
   // 🚀 KILLER FEATURE #3: Handle context menu for Split task
   // This is BETTER than DHTMLX - they don't have a built-in split task feature
