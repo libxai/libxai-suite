@@ -82,6 +82,15 @@ export function Timeline({
   // The Set will naturally become irrelevant as the dependency no longer exists in data
   const [deletedDeps, setDeletedDeps] = useState<Set<string>>(new Set());
 
+  // v1.4.19: State for click-to-schedule indicator (ClickUp-style)
+  // Tracks mouse position over empty task rows to show where the bar will be created
+  const [scheduleIndicator, setScheduleIndicator] = useState<{
+    taskId: string;
+    x: number;
+    y: number;
+    date: Date;
+  } | null>(null);
+
   // v0.17.452: Handler for SVG mouse move - clears hover if mouse moved off dependency lines
   const handleSvgMouseMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
     // If we have a hovered line but mouse is not over a dependency element, clear it
@@ -160,9 +169,42 @@ export function Timeline({
     const endDate = new Date(clickedDate);
     endDate.setDate(endDate.getDate() + 1);
 
+    // Clear the schedule indicator
+    setScheduleIndicator(null);
+
     // Call the date change handler to create the task bar
     onTaskDateChange?.(task, clickedDate, endDate);
   }, [pixelToDate, onTaskDateChange]);
+
+  // v1.4.19: Handle mouse move over empty task row to show schedule indicator
+  const handleEmptyRowMouseMove = useCallback((e: React.MouseEvent<SVGRectElement>, task: Task, rowIndex: number) => {
+    const svgElement = e.currentTarget.ownerSVGElement;
+    if (!svgElement) return;
+
+    const point = svgElement.createSVGPoint();
+    point.x = e.clientX;
+    point.y = e.clientY;
+    const svgPoint = point.matrixTransform(svgElement.getScreenCTM()?.inverse());
+
+    // Calculate the date at cursor position
+    const hoverDate = pixelToDate(svgPoint.x);
+
+    // Calculate snapped X position (align to day grid)
+    const days = Math.round(svgPoint.x / (dayWidth * zoom));
+    const snappedX = days * dayWidth * zoom;
+
+    setScheduleIndicator({
+      taskId: task.id,
+      x: snappedX,
+      y: rowIndex * ROW_HEIGHT + ROW_HEIGHT / 2,
+      date: hoverDate,
+    });
+  }, [pixelToDate, dayWidth, zoom, ROW_HEIGHT]);
+
+  // v1.4.19: Handle mouse leave from empty task row
+  const handleEmptyRowMouseLeave = useCallback(() => {
+    setScheduleIndicator(null);
+  }, []);
 
   // Calculate parent task dates from subtasks and flatten for rendering
   const flatTasks = useMemo(() => {
@@ -493,7 +535,7 @@ export function Timeline({
                 style={{ pointerEvents: 'none' }}
               />
 
-              {/* Clickable area for tasks without dates */}
+              {/* Clickable area for tasks without dates - v1.4.19: ClickUp-style with moving indicator */}
               {!hasTaskBar && (
                 <>
                   <rect
@@ -508,30 +550,86 @@ export function Timeline({
                       pointerEvents: 'all'
                     }}
                     onClick={(e) => handleTimelineClick(e, task)}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.setAttribute('fill', theme.accentLight);
-                      e.currentTarget.setAttribute('opacity', '0.5');
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.setAttribute('fill', 'transparent');
-                      e.currentTarget.setAttribute('opacity', '1');
+                    onMouseMove={(e) => handleEmptyRowMouseMove(e, task, index)}
+                    onMouseLeave={() => {
+                      handleEmptyRowMouseLeave();
                     }}
                   />
-                  {/* Placeholder text for empty tasks */}
-                  <text
-                    key={`placeholder-${task.id}`}
-                    x={todayX > 0 ? todayX : 100}
-                    y={index * ROW_HEIGHT + ROW_HEIGHT / 2}
-                    fill={theme.textTertiary}
-                    fontSize="12"
-                    fontFamily="Inter, sans-serif"
-                    fontStyle="italic"
-                    dominantBaseline="middle"
-                    opacity={0.4}
-                    style={{ pointerEvents: 'none', userSelect: 'none' }}
-                  >
-                    {t.labels.clickToSetDates}
-                  </text>
+                  {/* v1.4.19: Schedule indicator - circular marker that follows cursor (ClickUp-style) */}
+                  {scheduleIndicator && scheduleIndicator.taskId === task.id && (
+                    <g style={{ pointerEvents: 'none' }}>
+                      {/* Vertical line at cursor position */}
+                      <line
+                        x1={scheduleIndicator.x}
+                        y1={index * ROW_HEIGHT + 4}
+                        x2={scheduleIndicator.x}
+                        y2={index * ROW_HEIGHT + ROW_HEIGHT - 4}
+                        stroke={theme.accent}
+                        strokeWidth={2}
+                        opacity={0.8}
+                      />
+                      {/* Circle indicator */}
+                      <circle
+                        cx={scheduleIndicator.x}
+                        cy={scheduleIndicator.y}
+                        r={8}
+                        fill={theme.accent}
+                        opacity={0.9}
+                      />
+                      {/* Inner circle for visual effect */}
+                      <circle
+                        cx={scheduleIndicator.x}
+                        cy={scheduleIndicator.y}
+                        r={4}
+                        fill="white"
+                        opacity={0.9}
+                      />
+                      {/* Date tooltip above the indicator */}
+                      <g transform={`translate(${scheduleIndicator.x}, ${index * ROW_HEIGHT - 8})`}>
+                        <rect
+                          x={-40}
+                          y={-20}
+                          width={80}
+                          height={20}
+                          rx={4}
+                          fill={theme.bgSecondary}
+                          stroke={theme.border}
+                          strokeWidth={1}
+                        />
+                        <text
+                          x={0}
+                          y={-6}
+                          textAnchor="middle"
+                          fill={theme.textPrimary}
+                          fontSize="11"
+                          fontFamily="Inter, sans-serif"
+                          fontWeight="500"
+                        >
+                          {scheduleIndicator.date.toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', {
+                            day: 'numeric',
+                            month: 'short'
+                          })}
+                        </text>
+                      </g>
+                    </g>
+                  )}
+                  {/* Placeholder text - only show when no indicator is active */}
+                  {(!scheduleIndicator || scheduleIndicator.taskId !== task.id) && (
+                    <text
+                      key={`placeholder-${task.id}`}
+                      x={todayX > 0 ? todayX : 100}
+                      y={index * ROW_HEIGHT + ROW_HEIGHT / 2}
+                      fill={theme.textTertiary}
+                      fontSize="12"
+                      fontFamily="Inter, sans-serif"
+                      fontStyle="italic"
+                      dominantBaseline="middle"
+                      opacity={0.4}
+                      style={{ pointerEvents: 'none', userSelect: 'none' }}
+                    >
+                      {t.labels.clickToSetDates}
+                    </text>
+                  )}
                 </>
               )}
             </g>
