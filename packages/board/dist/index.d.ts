@@ -2656,12 +2656,14 @@ interface TaskGridProps {
     onOpenTaskModal?: (task: Task) => void;
     onDeleteRequest?: (taskId: string, taskName: string) => void;
     onTaskReparent?: (taskId: string, newParentId: string | null, position?: number) => void;
+    scrollContainerRef?: React.RefObject<HTMLElement>;
 }
 declare function TaskGrid({ tasks, theme, rowHeight: ROW_HEIGHT, availableUsers, templates: _templates, // TODO: Use templates for custom rendering
 onTaskClick, onTaskDblClick, // v0.8.0
 onTaskContextMenu, // v0.8.0
 onTaskToggle, scrollTop: _scrollTop, columns, onToggleColumn, onColumnResize, onTaskUpdate, onTaskIndent, onTaskOutdent, onTaskMove, onMultiTaskDelete, onTaskDuplicate, onTaskCreate, onTaskRename, onCreateSubtask, onOpenTaskModal, onDeleteRequest, // v0.17.34
-onTaskReparent, }: TaskGridProps): react_jsx_runtime.JSX.Element;
+onTaskReparent, // v0.17.68
+scrollContainerRef, }: TaskGridProps): react_jsx_runtime.JSX.Element;
 
 interface TimelineProps {
     tasks: Task[];
