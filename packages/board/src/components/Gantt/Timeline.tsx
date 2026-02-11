@@ -665,9 +665,14 @@ export function Timeline({
           }
 
           if (isContainer) {
-            // Render container as elegant bracket bar with task name
-            // v0.17.45: Added onContextMenu handler for adding subtasks
-            // v0.17.46: Removed onDoubleClick - parent tasks are not directly editable (MS Project style)
+            // v1.5.0: Summary bar — thin bar with end caps (MS Project / Chronos style)
+            // Parent tasks show a slim summary line spanning all subtask dates
+            const summaryH = 8;
+            const summaryY = y + 10; // Centered vertically in the row
+            const capSize = 5;       // Triangle cap size at each end
+            const barColor = theme.taskBarPrimary;
+            const progressW = width * (task.progress / 100);
+
             return (
               <g
                 key={task.id}
@@ -677,75 +682,78 @@ export function Timeline({
                   e.stopPropagation();
                   onTaskContextMenu?.(task, e as unknown as React.MouseEvent);
                 }}
+                onMouseEnter={() => {
+                  handleTooltipChange({
+                    task,
+                    x,
+                    y: summaryY,
+                    width,
+                    height: summaryH,
+                    showBelow: summaryY < 100,
+                  });
+                }}
+                onMouseLeave={() => handleTooltipChange(null)}
                 style={{ cursor: 'default' }}
               >
-                {/* Background fill - elegant and visible */}
+                {/* Invisible hover area — full row height for easy targeting */}
                 <rect
                   x={x}
                   y={y}
                   width={width}
-                  height={32}
-                  fill={theme.primary}
-                  opacity={0.25}
-                  rx={6}
+                  height={ROW_HEIGHT}
+                  fill="transparent"
+                  style={{ pointerEvents: 'all' }}
                 />
-                {/* Top bracket line */}
-                <line
-                  x1={x}
-                  y1={y}
-                  x2={x + width}
-                  y2={y}
-                  stroke={theme.primary}
-                  strokeWidth={3}
+                {/* Background bar (track) */}
+                <rect
+                  x={x}
+                  y={summaryY}
+                  width={width}
+                  height={summaryH}
+                  fill={barColor}
+                  opacity={0.35}
+                  rx={2}
+                />
+                {/* Progress fill */}
+                {task.progress > 0 && (
+                  <rect
+                    x={x}
+                    y={summaryY}
+                    width={progressW}
+                    height={summaryH}
+                    fill={barColor}
+                    opacity={1}
+                    rx={2}
+                    style={{ pointerEvents: 'none' }}
+                  />
+                )}
+                {/* Left end cap — downward triangle */}
+                <path
+                  d={`M ${x} ${summaryY} L ${x + capSize} ${summaryY} L ${x} ${summaryY + summaryH + capSize} Z`}
+                  fill={barColor}
                   opacity={0.9}
-                  strokeLinecap="round"
                 />
-                {/* Left vertical */}
-                <line
-                  x1={x}
-                  y1={y}
-                  x2={x}
-                  y2={y + 24}
-                  stroke={theme.primary}
-                  strokeWidth={3}
+                {/* Right end cap — downward triangle */}
+                <path
+                  d={`M ${x + width - capSize} ${summaryY} L ${x + width} ${summaryY} L ${x + width} ${summaryY + summaryH + capSize} Z`}
+                  fill={barColor}
                   opacity={0.9}
-                  strokeLinecap="round"
                 />
-                {/* Right vertical */}
-                <line
-                  x1={x + width}
-                  y1={y}
-                  x2={x + width}
-                  y2={y + 24}
-                  stroke={theme.primary}
-                  strokeWidth={3}
-                  opacity={0.9}
-                  strokeLinecap="round"
-                />
-                {/* Bottom bracket line */}
-                <line
-                  x1={x}
-                  y1={y + 24}
-                  x2={x + width}
-                  y2={y + 24}
-                  stroke={theme.primary}
-                  strokeWidth={3}
-                  opacity={0.9}
-                  strokeLinecap="round"
-                />
-                {/* Task name text - Matching TaskBar pattern */}
+                {/* Task name text */}
                 {width > 60 && (
                   <text
                     x={x + 12}
-                    y={y + 12}
+                    y={summaryY + summaryH / 2}
                     dominantBaseline="middle"
-                    fill="#FFFFFF"
-                    fontSize="13"
-                    fontWeight="500"
+                    fill={theme.textPrimary}
+                    fontSize="12"
+                    fontWeight="600"
                     fontFamily="Inter, sans-serif"
                     style={{ pointerEvents: 'none', userSelect: 'none' }}
                   >
-                    {task.name}
+                    {task.name.length > Math.floor(width / 8)
+                      ? `${task.name.substring(0, Math.floor(width / 8))}...`
+                      : task.name}
                   </text>
                 )}
               </g>
