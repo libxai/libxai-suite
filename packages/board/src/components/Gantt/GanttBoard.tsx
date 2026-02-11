@@ -483,6 +483,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   }, [gridWidthOverride, calculatedGridWidth]);
 
   const gridScrollRef = useRef<HTMLDivElement>(null);
+  const gridScrollInnerRef = useRef<HTMLDivElement>(null); // v0.18.15: The actual scrollable .gantt-grid-scroll element
   const timelineScrollRef = useRef<HTMLDivElement>(null);
   const ganttContainerRef = useRef<HTMLDivElement>(null);
 
@@ -1759,6 +1760,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         {/* v0.17.222: Real scroll instead of transform - synced bidirectionally with Timeline */}
         {/* v0.17.223: Hide scrollbar visually but keep scroll functional */}
         <div
+          ref={gridScrollInnerRef}
           className="gantt-grid-scroll flex-shrink-0"
           style={{
             width: gridWidth,
@@ -1794,6 +1796,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
             onOpenTaskModal={onTaskClick ? (task: Task) => onTaskClick(task) : undefined}
             onDeleteRequest={(taskId: string, taskName: string) => setDeleteConfirmation({ taskId, taskName })} // v0.17.34
             onTaskReparent={handleTaskReparent} // v0.17.68
+            scrollContainerRef={gridScrollInnerRef} // v0.18.15: Auto-scroll during drag
           />
         </div>
 

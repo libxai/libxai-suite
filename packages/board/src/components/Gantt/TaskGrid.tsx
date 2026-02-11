@@ -44,6 +44,8 @@ interface TaskGridProps {
   onDeleteRequest?: (taskId: string, taskName: string) => void;
   // v0.17.68: Reparent task via drag & drop
   onTaskReparent?: (taskId: string, newParentId: string | null, position?: number) => void;
+  // v0.18.15: Scroll container ref for auto-scroll during drag
+  scrollContainerRef?: React.RefObject<HTMLElement>;
 }
 
 export function TaskGrid({
@@ -72,6 +74,7 @@ export function TaskGrid({
   onOpenTaskModal,
   onDeleteRequest, // v0.17.34
   onTaskReparent, // v0.17.68
+  scrollContainerRef, // v0.18.15
 }: TaskGridProps) {
   // v0.16.2: Get translations from context
   const translations = useContext(GanttI18nContext);
@@ -109,6 +112,8 @@ export function TaskGrid({
   // v0.17.146: Ghost position for drag preview + isDragging state for re-render
   const [ghostPosition, setGhostPosition] = useState<{ x: number; y: number } | null>(null);
   const [isDraggingState, setIsDraggingState] = useState(false);
+  // v0.18.15: Auto-scroll during drag
+  const autoScrollRAF = useRef<number | null>(null);
 
   // v0.17.132: Date picker state for column cells
   const [datePickerState, setDatePickerState] = useState<{
@@ -298,6 +303,44 @@ export function TaskGrid({
 
     if (!isDraggingRef.current) return;
 
+    // v0.18.15: Auto-scroll when dragging near edges of scroll container
+    if (scrollContainerRef?.current) {
+      const container = scrollContainerRef.current;
+      const rect = container.getBoundingClientRect();
+      const edgeZone = 60; // px from edge to start scrolling
+      const maxSpeed = 12; // max px per frame
+
+      if (autoScrollRAF.current) {
+        cancelAnimationFrame(autoScrollRAF.current);
+        autoScrollRAF.current = null;
+      }
+
+      const distFromTop = e.clientY - rect.top;
+      const distFromBottom = rect.bottom - e.clientY;
+
+      if (distFromTop < edgeZone && container.scrollTop > 0) {
+        // Scroll up — speed increases as mouse gets closer to edge
+        const speed = Math.round(maxSpeed * (1 - distFromTop / edgeZone));
+        const scroll = () => {
+          container.scrollTop -= speed;
+          if (isDraggingRef.current && container.scrollTop > 0) {
+            autoScrollRAF.current = requestAnimationFrame(scroll);
+          }
+        };
+        autoScrollRAF.current = requestAnimationFrame(scroll);
+      } else if (distFromBottom < edgeZone && container.scrollTop < container.scrollHeight - container.clientHeight) {
+        // Scroll down
+        const speed = Math.round(maxSpeed * (1 - distFromBottom / edgeZone));
+        const scroll = () => {
+          container.scrollTop += speed;
+          if (isDraggingRef.current && container.scrollTop < container.scrollHeight - container.clientHeight) {
+            autoScrollRAF.current = requestAnimationFrame(scroll);
+          }
+        };
+        autoScrollRAF.current = requestAnimationFrame(scroll);
+      }
+    }
+
     // Find which task we're hovering over
     const rows = document.querySelectorAll('[data-task-row]');
     let foundTarget: string | null = null;
@@ -384,6 +427,10 @@ export function TaskGrid({
     }
 
     // Reset drag state
+    if (autoScrollRAF.current) {
+      cancelAnimationFrame(autoScrollRAF.current);
+      autoScrollRAF.current = null;
+    }
     setDraggedTaskId(null);
     setDropTargetTaskId(null);
     setDropPosition(null);
