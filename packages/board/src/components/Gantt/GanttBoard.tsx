@@ -295,11 +295,24 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     }
   }, [getStorageKey]);
 
+  // v0.18.13: Counter-based skip to handle multiple sync cycles after internal operations.
+  // Each internal operation increments the counter; each useEffect([tasks]) cycle decrements it.
+  // This prevents the parent's stale tasks prop from overwriting localTasks after reparent/move/indent.
+  const skipSyncCountRef = useRef(0);
+
+  // v0.18.13: Also suppress onTasksChange for internal hierarchy ops (reparent/move/indent/outdent).
+  // These operations have their own dedicated callbacks; onTasksChange is for date/property edits only.
+  const skipOnTasksChangeRef = useRef(false);
+
   // Sync parent tasks prop changes to local state (e.g., after external DB operations)
   // v0.17.163: Preserve isExpanded state using ref to prevent subtasks from auto-expanding
   // v0.18.10: Deduplicate subtasks by ID to prevent visual duplicates during sync
   // v0.18.11: Fixed - dedupe by ID instead of name to allow multiple subtasks with same name
   useEffect(() => {
+    if (skipSyncCountRef.current > 0) {
+      skipSyncCountRef.current -= 1;
+      return;
+    }
     // Deduplicate subtasks by ID (keep first occurrence, prefer non-temp IDs)
     const dedupeSubtasks = (subtasks: Task[]): Task[] => {
       const seen = new Map<string, Task>();
@@ -362,13 +375,15 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       return;
     }
 
+    // v0.18.13: Skip onTasksChange for internal hierarchy ops (they have dedicated callbacks)
+    if (skipOnTasksChangeRef.current) {
+      skipOnTasksChangeRef.current = false;
+      prevTasksRef.current = localTasks;
+      return;
+    }
+
     if (!onTasksChange) return;
 
-    // Compare tasks to detect meaningful changes (not just reference changes)
-    // We use JSON stringify for deep comparison - this catches:
-    // - Added/removed tasks
-    // - Changed task properties (name, dates, progress, etc.)
-    // - But NOT just reordering of the same data in memory
     const prevJson = JSON.stringify(prevTasksRef.current);
     const currentJson = JSON.stringify(localTasks);
 
@@ -995,26 +1010,37 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   }, [localTasks, onTaskUpdate, onBeforeTaskUpdate, onAfterTaskUpdate, onProgressChange]);
 
   // Hierarchy handlers
+  // v0.18.13: All hierarchy handlers set both skipSyncCountRef (to prevent useEffect([tasks]) overwrite)
+  // and skipOnTasksChangeRef (to prevent useEffect([localTasks]) from calling onTasksChange,
+  // since these operations have their own dedicated callbacks).
   const handleTaskIndent = useCallback((taskIds: string[]) => {
     if (taskIds.length === 0) return;
+    skipSyncCountRef.current += 1;
+    skipOnTasksChangeRef.current = true;
     setLocalTasks((prev) => indentTasks(prev, taskIds));
     config.onTaskIndent?.(taskIds[0]!);
   }, [config]);
 
   const handleTaskOutdent = useCallback((taskIds: string[]) => {
     if (taskIds.length === 0) return;
+    skipSyncCountRef.current += 1;
+    skipOnTasksChangeRef.current = true;
     setLocalTasks((prev) => outdentTasks(prev, taskIds));
     config.onTaskOutdent?.(taskIds[0]!);
   }, [config]);
 
   // v0.17.68: Handle task reparenting via drag & drop
   const handleTaskReparent = useCallback((taskId: string, newParentId: string | null, position?: number) => {
+    skipSyncCountRef.current += 1;
+    skipOnTasksChangeRef.current = true;
     setLocalTasks((prev) => reparentTask(prev, taskId, newParentId, position));
     config.onTaskReparent?.(taskId, newParentId, position);
   }, [config]);
 
   const handleTaskMove = useCallback((taskIds: string[], direction: 'up' | 'down') => {
     if (taskIds.length === 0) return;
+    skipSyncCountRef.current += 1;
+    skipOnTasksChangeRef.current = true;
     setLocalTasks((prev) => moveTasks(prev, taskIds, direction));
     config.onTaskMove?.(taskIds[0]!, direction);
   }, [config]);

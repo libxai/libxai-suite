@@ -1,6 +1,18 @@
 import { Task } from './types';
 
 /**
+ * Re-index position properties for all tasks at each level
+ * so that array order matches position values.
+ */
+function reindexPositions(tasks: Task[]): Task[] {
+  return tasks.map((t, idx) => ({
+    ...t,
+    position: idx,
+    subtasks: t.subtasks?.length ? reindexPositions(t.subtasks) : t.subtasks,
+  }));
+}
+
+/**
  * Flatten tasks into a single array with level information
  */
 export function flattenTasks(tasks: Task[]): Task[] {
@@ -102,7 +114,9 @@ export function indentTasks(tasks: Task[], taskIds: string[]): Task[] {
 
   const idsSet = new Set(taskIds);
   const { tasks: filtered, removed } = removeTasks(tasks, idsSet);
-  return addAsChildren(filtered, targetParent.id, removed);
+  const indented = addAsChildren(filtered, targetParent.id, removed);
+  // Re-index positions at each level to reflect new order
+  return reindexPositions(indented);
 }
 
 /**
@@ -165,7 +179,8 @@ export function outdentTasks(tasks: Task[], taskIds: string[]): Task[] {
     }
   }
 
-  return result;
+  // Re-index positions at each level to reflect new order
+  return reindexPositions(result);
 }
 
 /**
@@ -195,6 +210,9 @@ export function moveTasks(tasks: Task[], taskIds: string[], direction: 'up' | 'd
 
     // Swap tasks
     [tasks[index], tasks[newIndex]] = [tasks[newIndex], tasks[index]];
+    // Update position properties after swap
+    tasks[index] = { ...tasks[index], position: index };
+    tasks[newIndex] = { ...tasks[newIndex], position: newIndex };
     return true;
   };
 
@@ -464,16 +482,17 @@ export function reparentTask(
     if (isDescendant(taskToMove, newParentId)) return tasks;
   }
 
-  // Step 1: Remove the task from its current location
+  // Step 1: Remove the task from its current location and re-index siblings
   const removeTask = (taskList: Task[]): Task[] => {
-    return taskList
-      .filter((t) => t.id !== taskId)
-      .map((t) => {
-        if (t.subtasks && t.subtasks.length > 0) {
-          return { ...t, subtasks: removeTask(t.subtasks) };
-        }
-        return t;
-      });
+    const filtered = taskList.filter((t) => t.id !== taskId);
+    const hadRemoval = filtered.length < taskList.length;
+    return filtered.map((t, idx) => {
+      const updated = hadRemoval ? { ...t, position: idx } : t;
+      if (updated.subtasks && updated.subtasks.length > 0) {
+        return { ...updated, subtasks: removeTask(updated.subtasks) };
+      }
+      return updated;
+    });
   };
 
   let result = removeTask(tasks);
@@ -483,6 +502,8 @@ export function reparentTask(
     // Move to root level
     const insertPos = position !== undefined ? position : result.length;
     result.splice(insertPos, 0, { ...taskToMove, parentId: undefined });
+    // Update position property for all root-level siblings
+    result = result.map((t, idx) => ({ ...t, position: idx }));
   } else {
     // Move to be a child of newParentId
     const addToParent = (taskList: Task[]): Task[] => {
@@ -492,9 +513,11 @@ export function reparentTask(
           const insertPos = position !== undefined ? position : subtasks.length;
           const newSubtasks = [...subtasks];
           newSubtasks.splice(insertPos, 0, { ...taskToMove, parentId: newParentId });
+          // Update position property for all siblings in the new parent
+          const reindexed = newSubtasks.map((s, idx) => ({ ...s, position: idx }));
           return {
             ...t,
-            subtasks: newSubtasks,
+            subtasks: reindexed,
             isExpanded: true, // Auto-expand to show the moved task
           };
         }

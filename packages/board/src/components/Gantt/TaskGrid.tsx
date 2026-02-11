@@ -337,8 +337,8 @@ export function TaskGrid({
         onTaskReparent?.(draggedTaskId, dropTargetTaskId);
       } else if (dropPosition === 'above' || dropPosition === 'below') {
         // Find the parent of the target task
-        const findParent = (tasks: Task[], targetId: string, parent: string | null = null): string | null => {
-          for (const t of tasks) {
+        const findParent = (taskList: Task[], targetId: string, parent: string | null = null): string | null => {
+          for (const t of taskList) {
             if (t.id === targetId) return parent;
             if (t.subtasks) {
               const found = findParent(t.subtasks, targetId, t.id);
@@ -348,23 +348,35 @@ export function TaskGrid({
           return undefined as unknown as string | null;
         };
 
+        // Find the parent of the dragged task (to know if it's in the same sibling group)
+        const draggedParent = findParent(tasks, draggedTaskId, null);
         const targetParent = findParent(tasks, dropTargetTaskId, null);
 
-        // Find position within siblings
-        const findPositionInSiblings = (taskList: Task[], targetId: string): number => {
-          const idx = taskList.findIndex(t => t.id === targetId);
-          return dropPosition === 'below' ? idx + 1 : idx;
+        // v0.18.13: Compute position accounting for the dragged task being removed first.
+        // reparentTask() removes the task then inserts — if the dragged task is before the
+        // target in the SAME sibling group, all subsequent indices shift down by 1.
+        const computePosition = (siblings: Task[], targetId: string, dragId: string, sameGroup: boolean): number => {
+          const targetIdx = siblings.findIndex(t => t.id === targetId);
+          const dragIdx = sameGroup ? siblings.findIndex(t => t.id === dragId) : -1;
+          let pos = dropPosition === 'below' ? targetIdx + 1 : targetIdx;
+          // If dragged task is before the target in the same group, removing it shifts indices down
+          if (sameGroup && dragIdx !== -1 && dragIdx < targetIdx) {
+            pos -= 1;
+          }
+          return Math.max(0, pos);
         };
 
         if (targetParent === null) {
           // Target is at root level
-          const pos = findPositionInSiblings(tasks, dropTargetTaskId);
+          const sameGroup = draggedParent === null; // dragged is also at root
+          const pos = computePosition(tasks, dropTargetTaskId, draggedTaskId, sameGroup);
           onTaskReparent?.(draggedTaskId, null, pos);
         } else {
           // Target has a parent
           const parentTask = flatTasks.find(ft => ft.task.id === targetParent)?.task;
           if (parentTask?.subtasks) {
-            const pos = findPositionInSiblings(parentTask.subtasks, dropTargetTaskId);
+            const sameGroup = draggedParent === targetParent; // same parent
+            const pos = computePosition(parentTask.subtasks, dropTargetTaskId, draggedTaskId, sameGroup);
             onTaskReparent?.(draggedTaskId, targetParent, pos);
           }
         }
