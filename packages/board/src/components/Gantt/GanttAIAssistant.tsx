@@ -141,9 +141,16 @@ export function GanttAIAssistant({
   const [isLoading, setIsLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(true);
 
+  // @mention autocomplete state
+  const [mentionQuery, setMentionQuery] = useState('');
+  const [mentionStartIndex, setMentionStartIndex] = useState(-1);
+  const [showMentionDropdown, setShowMentionDropdown] = useState(false);
+  const [mentionSelectedIndex, setMentionSelectedIndex] = useState(0);
+
   const inputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const mentionDropdownRef = useRef<HTMLDivElement>(null);
 
   const {
     enabled = true,
@@ -153,11 +160,101 @@ export function GanttAIAssistant({
     suggestions = DEFAULT_SUGGESTIONS,
     maxHistory = 50,
     persistHistory,
+    mentionableUsers = [],
   } = config;
 
   // Get storage key for localStorage
   const storageKey = persistHistory?.storageKey || 'gantt-ai-history';
   const persistMaxMessages = persistHistory?.maxMessages ?? 5;
+
+  // Filter mentionable users based on current query
+  const filteredMentionUsers = mentionableUsers.filter((u) => {
+    if (!mentionQuery) return true;
+    const q = mentionQuery.toLowerCase();
+    return u.name.toLowerCase().includes(q) || (u.email && u.email.toLowerCase().includes(q));
+  }).slice(0, 5);
+
+  // Handle @mention detection on input change
+  const handleInputChange = useCallback((value: string) => {
+    setInputValue(value);
+
+    if (mentionableUsers.length === 0) return;
+
+    const input = inputRef.current;
+    if (!input) return;
+
+    const cursorPos = input.selectionStart || value.length;
+    const textBeforeCursor = value.slice(0, cursorPos);
+
+    // Find the last @ symbol before cursor
+    const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+
+    if (lastAtIndex >= 0) {
+      // Check there's no space before @ (or it's at the start)
+      const charBefore = lastAtIndex > 0 ? textBeforeCursor[lastAtIndex - 1] : ' ';
+      if (charBefore === ' ' || lastAtIndex === 0) {
+        const query = textBeforeCursor.slice(lastAtIndex + 1);
+        // Show dropdown while query is reasonable length (names can have spaces)
+        if (query.length <= 40) {
+          setMentionQuery(query);
+          setMentionStartIndex(lastAtIndex);
+          setShowMentionDropdown(true);
+          setMentionSelectedIndex(0);
+          return;
+        }
+      }
+    }
+
+    setShowMentionDropdown(false);
+    setMentionQuery('');
+    setMentionStartIndex(-1);
+  }, [mentionableUsers.length]);
+
+  // Select a user from the mention dropdown
+  const selectMention = useCallback((user: { id: string; name: string }) => {
+    const before = inputValue.slice(0, mentionStartIndex);
+    const after = inputValue.slice(
+      mentionStartIndex + 1 + mentionQuery.length
+    );
+    const newValue = `${before}@${user.name} ${after}`;
+    setInputValue(newValue);
+    setShowMentionDropdown(false);
+    setMentionQuery('');
+    setMentionStartIndex(-1);
+    // Re-focus input
+    setTimeout(() => inputRef.current?.focus(), 0);
+  }, [inputValue, mentionStartIndex, mentionQuery]);
+
+  // Handle keyboard navigation in mention dropdown
+  const handleMentionKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (!showMentionDropdown || filteredMentionUsers.length === 0) return false;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setMentionSelectedIndex((prev) =>
+        prev < filteredMentionUsers.length - 1 ? prev + 1 : 0
+      );
+      return true;
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setMentionSelectedIndex((prev) =>
+        prev > 0 ? prev - 1 : filteredMentionUsers.length - 1
+      );
+      return true;
+    }
+    if (e.key === 'Enter' || e.key === 'Tab') {
+      e.preventDefault();
+      const selected = filteredMentionUsers[mentionSelectedIndex];
+      if (selected) selectMention(selected);
+      return true;
+    }
+    if (e.key === 'Escape') {
+      setShowMentionDropdown(false);
+      return true;
+    }
+    return false;
+  }, [showMentionDropdown, filteredMentionUsers, mentionSelectedIndex, selectMention]);
 
   // Load persisted history on mount
   useEffect(() => {
@@ -576,10 +673,71 @@ export function GanttAIAssistant({
 
                   {/* Input */}
                   <form
-                    onSubmit={handleSubmit}
-                    className="p-3 border-t"
+                    onSubmit={(e) => {
+                      // Don't submit if mention dropdown is open (Enter selects mention)
+                      if (showMentionDropdown && filteredMentionUsers.length > 0) {
+                        e.preventDefault();
+                        return;
+                      }
+                      handleSubmit(e);
+                    }}
+                    className="p-3 border-t relative"
                     style={{ borderColor: theme.border }}
                   >
+                    {/* @Mention Autocomplete Dropdown */}
+                    <AnimatePresence>
+                      {showMentionDropdown && filteredMentionUsers.length > 0 && (
+                        <motion.div
+                          ref={mentionDropdownRef}
+                          initial={{ opacity: 0, y: 4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 4 }}
+                          transition={{ duration: 0.12 }}
+                          className="absolute bottom-full left-3 right-3 mb-1 rounded-lg overflow-hidden z-10"
+                          style={{
+                            background: theme.bgSecondary,
+                            border: `1px solid ${theme.border}`,
+                            boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.25)',
+                          }}
+                        >
+                          {filteredMentionUsers.map((user, idx) => (
+                            <button
+                              key={user.id}
+                              type="button"
+                              onClick={() => selectMention(user)}
+                              className="w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors"
+                              style={{
+                                background: idx === mentionSelectedIndex
+                                  ? 'rgba(59, 130, 246, 0.15)'
+                                  : 'transparent',
+                                color: theme.textPrimary,
+                              }}
+                              onMouseEnter={() => setMentionSelectedIndex(idx)}
+                            >
+                              {/* Avatar circle */}
+                              <div
+                                className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                                style={{
+                                  background: 'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)',
+                                  color: 'white',
+                                }}
+                              >
+                                {user.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-medium truncate">{user.name}</div>
+                                {user.email && (
+                                  <div className="text-xs truncate" style={{ color: theme.textSecondary }}>
+                                    {user.email}
+                                  </div>
+                                )}
+                              </div>
+                            </button>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
                     <div
                       className="flex items-center gap-2 rounded-xl px-4 py-2"
                       style={{
@@ -591,7 +749,11 @@ export function GanttAIAssistant({
                         ref={inputRef}
                         type="text"
                         value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
+                        onChange={(e) => handleInputChange(e.target.value)}
+                        onKeyDown={(e) => {
+                          // Let mention keyboard handler take priority
+                          if (handleMentionKeyDown(e)) return;
+                        }}
                         placeholder={placeholder}
                         disabled={isLoading}
                         className="flex-1 bg-transparent text-sm outline-none"
