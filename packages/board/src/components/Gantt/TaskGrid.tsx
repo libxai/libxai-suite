@@ -949,7 +949,7 @@ export function TaskGrid({
   const getTaskContextMenuItems = (task: Task): ContextMenuItem[] => {
     const isParentTask = task.subtasks && task.subtasks.length > 0;
 
-    // v0.17.46: Parent tasks can only add subtasks and delete - status/progress is auto-calculated
+    // v0.17.46: Parent tasks can only add subtasks, duplicate and delete - status/progress is auto-calculated
     if (isParentTask) {
       return [
         // Add Subtask - main action for parent tasks
@@ -959,6 +959,15 @@ export function TaskGrid({
           icon: MenuIcons.Add,
           onClick: () => {
             onCreateSubtask?.(task.id);
+          },
+        },
+        // Duplicate Task (with subtasks)
+        {
+          id: 'duplicate',
+          label: translations?.contextMenu?.duplicateTask || 'Duplicate Task',
+          icon: MenuIcons.Duplicate,
+          onClick: () => {
+            onTaskDuplicate?.([task.id]);
           },
         },
         // Separator before delete
