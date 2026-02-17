@@ -84,7 +84,7 @@ export function NumberCell({
     return (
       <span
         className={cn(
-          'text-sm font-mono transition-all',
+          'text-sm font-mono',
           isDark ? 'text-white/60' : 'text-gray-500',
           isAnimating && 'font-medium'
         )}
@@ -123,7 +123,7 @@ export function NumberCell({
         setIsEditing(true);
       }}
       className={cn(
-        'text-sm text-left w-full px-2 py-1 rounded transition-all duration-300',
+        'text-sm text-left w-full px-2 py-1 rounded transition-[background-color] duration-300',
         isDark ? 'text-white/60 hover:bg-white/[0.05]' : 'text-gray-500 hover:bg-gray-100',
         displayValue === undefined && (isDark ? 'text-white/30' : 'text-gray-400'),
         // Flash animation

@@ -337,6 +337,8 @@ export const Card = memo<CardProps>(
       prevProps.card.startDate === nextProps.card.startDate &&
       prevProps.card.endDate === nextProps.card.endDate &&
       prevProps.isSelected === nextProps.isSelected &&
+      // v2.1.1: Compare render prop so theme changes propagate to custom cards
+      prevProps.render === nextProps.render &&
       JSON.stringify(prevProps.card.labels) ===
         JSON.stringify(nextProps.card.labels) &&
       JSON.stringify(prevProps.card.assignedUserIds) ===

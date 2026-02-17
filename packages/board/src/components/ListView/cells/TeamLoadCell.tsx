@@ -37,40 +37,40 @@ export function TeamLoadCell({
       : 'bg-[#32D74B]/15 text-[#32D74B]'; // healthy
 
   return (
-    <div className="flex items-center gap-2">
-      {/* Avatar */}
-      {assignee && (
-        assignee.avatar ? (
-          <img
-            src={assignee.avatar}
-            alt={assignee.name}
-            className="w-5 h-5 rounded-full object-cover ring-1 ring-white/10"
-          />
-        ) : (
-          <div
-            className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white ring-1 ring-white/10"
-            style={{ backgroundColor: assignee.color || '#6B7280' }}
-          >
-            {assignee.initials || assignee.name?.charAt(0)?.toUpperCase() || '?'}
-          </div>
-        )
-      )}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+      {/* Row 1: Avatar + Name */}
+      <div className="flex items-center gap-2">
+        {assignee && (
+          assignee.avatar ? (
+            <img
+              src={assignee.avatar}
+              alt={assignee.name}
+              className={cn("w-5 h-5 rounded-full object-cover ring-1", isDark ? "ring-white/10" : "ring-gray-200")}
+            />
+          ) : (
+            <div
+              className={cn("w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white ring-1", isDark ? "ring-white/10" : "ring-gray-200")}
+              style={{ backgroundColor: assignee.color || '#6B7280' }}
+            >
+              {assignee.initials || assignee.name?.charAt(0)?.toUpperCase() || '?'}
+            </div>
+          )
+        )}
+        <span className={cn(
+          'text-[11px] truncate',
+          isDark ? 'text-white/60' : 'text-gray-600'
+        )}>
+          {loadLabel}
+        </span>
+      </div>
 
-      {/* Name */}
-      <span className={cn(
-        'text-[11px] truncate max-w-[60px]',
-        isDark ? 'text-white/60' : 'text-gray-600'
-      )}>
-        {loadLabel}
-      </span>
-
-      {/* Load badge */}
+      {/* Row 2: Load badge */}
       {teamLoad && (
         <span className={cn(
-          'px-1.5 py-0.5 rounded text-[9px] font-mono uppercase tracking-wide',
+          'px-1.5 py-0.5 rounded text-[9px] font-mono uppercase tracking-wide w-fit',
           badgeColor
         )}>
-          {loadPercent}%
+          {loadPercent}% LOAD
         </span>
       )}
     </div>

@@ -236,7 +236,7 @@ export function TimeCell({
         setIsEditing(true);
       }}
       className={cn(
-        'flex items-center gap-1 text-sm text-left w-full px-1.5 py-1 rounded transition-all duration-300 overflow-hidden',
+        'flex items-center gap-1 text-sm text-left w-full px-1.5 py-1 rounded transition-[background-color] duration-300 overflow-hidden',
         isDark ? 'hover:bg-white/[0.05]' : 'hover:bg-gray-100',
         value != null && value > 0
           ? (isDark ? 'text-white/60' : 'text-gray-600')

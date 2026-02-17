@@ -934,6 +934,8 @@ interface KanbanBoardProps {
     sidePanel?: React.ReactNode;
     /** Custom renderer for column header metrics (below title) */
     renderColumnMetrics?: (column: Column$1, cards: Card$1[]) => React.ReactNode;
+    /** v2.1.0: Suppress internal TaskDetailModal (consumer provides own drawer) */
+    suppressDetailModal?: boolean;
 }
 /**
  * Drag event data
@@ -1477,7 +1479,7 @@ declare class KanbanViewAdapter extends BaseViewAdapter<ViewBoardData> {
  */
 declare function createKanbanView(config?: KanbanViewConfig): KanbanViewAdapter;
 
-declare function KanbanBoard({ board, callbacks, onCardClick, renderProps, config, availableUsers, className, style, isLoading, error, children, availableTags, onCreateTag, attachmentsByCard, onUploadAttachments, onDeleteAttachment, comments, onAddComment, currentUser, mentionableUsers, onTaskOpen, onUploadCommentAttachments, enableTimeTracking, timeTrackingSummary, timeEntries, timerState, onLogTime, onUpdateEstimate, onUpdateSoldEffort, onStartTimer, onStopTimer, onDiscardTimer, blurFinancials, sidePanel, renderColumnMetrics, }: KanbanBoardProps & {
+declare function KanbanBoard({ board, callbacks, onCardClick, renderProps, config, availableUsers, className, style, isLoading, error, children, availableTags, onCreateTag, attachmentsByCard, onUploadAttachments, onDeleteAttachment, comments, onAddComment, currentUser, mentionableUsers, onTaskOpen, onUploadCommentAttachments, enableTimeTracking, timeTrackingSummary, timeEntries, timerState, onLogTime, onUpdateEstimate, onUpdateSoldEffort, onStartTimer, onStopTimer, onDiscardTimer, blurFinancials, sidePanel, renderColumnMetrics, suppressDetailModal, }: KanbanBoardProps & {
     children?: React.ReactNode;
 }): react_jsx_runtime.JSX.Element;
 
@@ -3866,6 +3868,10 @@ interface ListViewCallbacks {
     onLogTime?: (task: Task, minutes: number | null) => void;
     /** Handler for opening time log modal from HoursBar cell */
     onOpenTimeLog?: (task: Task) => void;
+    /** Handler for reporting a blocker on a task */
+    onReportBlocker?: (task: Task) => void;
+    /** Handler for copying task link to clipboard */
+    onCopyTaskLink?: (task: Task) => void;
 }
 /**
  * Available user for assignment
@@ -3915,6 +3921,8 @@ interface ListViewProps {
     availableUsers?: AvailableUser[];
     /** Custom fields defined for this project */
     customFields?: CustomFieldDefinition[];
+    /** Render custom content on the right side of toolbar (before create button) */
+    toolbarRightContent?: ReactNode;
 }
 /**
  * Flattened task with hierarchy info
@@ -3951,7 +3959,7 @@ declare const CUSTOM_FIELD_TYPES: Array<{
 /**
  * Main ListView Component
  */
-declare function ListView({ tasks, config, callbacks, isLoading, error, className, style, availableUsers, customFields, }: ListViewProps): react_jsx_runtime.JSX.Element;
+declare function ListView({ tasks, config, callbacks, isLoading, error, className, style, availableUsers, customFields, toolbarRightContent, }: ListViewProps): react_jsx_runtime.JSX.Element;
 
 /**
  * ListView Themes
@@ -4321,12 +4329,14 @@ interface CalendarBoardProps {
     onDiscardTimer?: (taskId: string) => void;
     /** Blur financial data (tiempo ofertado) for unauthorized users */
     blurFinancials?: boolean;
+    /** v2.1.0: Suppress internal TaskDetailModal (consumer provides own drawer) */
+    suppressDetailModal?: boolean;
 }
 
 /**
  * Main CalendarBoard Component — Chronos V2.0
  */
-declare function CalendarBoard({ tasks, config, callbacks, initialDate, isLoading, error, className, style, availableTags, onCreateTag, attachmentsByTask, comments, onAddComment, currentUser, mentionableUsers, onUploadCommentAttachments, onTaskOpen, enableTimeTracking, timeTrackingSummary, timeEntries, timerState, onLogTime, onUpdateEstimate, onUpdateSoldEffort, onStartTimer, onStopTimer, onDiscardTimer, blurFinancials, }: CalendarBoardProps): react_jsx_runtime.JSX.Element;
+declare function CalendarBoard({ tasks, config, callbacks, initialDate, isLoading, error, className, style, availableTags, onCreateTag, attachmentsByTask, comments, onAddComment, currentUser, mentionableUsers, onUploadCommentAttachments, onTaskOpen, enableTimeTracking, timeTrackingSummary, timeEntries, timerState, onLogTime, onUpdateEstimate, onUpdateSoldEffort, onStartTimer, onStopTimer, onDiscardTimer, blurFinancials, suppressDetailModal, }: CalendarBoardProps): react_jsx_runtime.JSX.Element;
 
 /**
  * CalendarBoard Themes — Chronos V2.0

@@ -57,7 +57,7 @@ export function ProgressCell({
   return (
     <div
       className={cn(
-        "flex items-center gap-2 w-full rounded px-1 py-0.5 transition-all duration-300",
+        "flex items-center gap-2 w-full rounded px-1 py-0.5 transition-[background-color] duration-300",
         // Flash animation
         isFlashing && (isDark ? 'bg-[#32D74B]/30' : 'bg-[#32D74B]/20')
       )}
@@ -72,7 +72,7 @@ export function ProgressCell({
       >
         <div
           className={cn(
-            'h-full rounded-full transition-all',
+            'h-full rounded-full transition-[width]',
             displayPercent === 100 ? 'bg-[#32D74B]' : 'bg-[#007BFF]',
             isAnimating && 'transition-none'
           )}
@@ -81,7 +81,7 @@ export function ProgressCell({
       </div>
       <span
         className={cn(
-          'text-xs w-8 text-right tabular-nums font-mono transition-all',
+          'text-xs w-8 text-right tabular-nums font-mono',
           isDark ? 'text-white/60' : 'text-gray-500',
           // Slot machine animation emphasis
           isAnimating && 'font-medium scale-105'

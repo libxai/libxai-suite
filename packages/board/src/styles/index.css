@@ -263,7 +263,7 @@
     border: 1px solid rgba(255, 255, 255, var(--opacity-subtle));
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-md);
-    transition: all var(--duration-base) var(--ease-smooth);
+    transition: border-color var(--duration-base) var(--ease-smooth), box-shadow var(--duration-base) var(--ease-smooth);
   }
 
   .asakaa-column:hover {
@@ -340,7 +340,7 @@
     border: 1px solid rgba(255, 255, 255, var(--opacity-subtle));
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-sm);
-    transition: all var(--duration-fast) var(--ease-smooth);
+    transition: border-color var(--duration-fast) var(--ease-smooth), box-shadow var(--duration-fast) var(--ease-smooth), transform var(--duration-fast) var(--ease-smooth);
   }
 
   .asakaa-card:hover {
@@ -545,7 +545,7 @@
   .asakaa-swimlane {
     @apply relative overflow-hidden;
     background: rgba(20, 20, 20, var(--opacity-medium));
-    transition: all var(--duration-base) var(--ease-smooth);
+    transition: background var(--duration-base) var(--ease-smooth);
   }
 
   .asakaa-swimlane:hover {
@@ -779,7 +779,7 @@
   border: 2px dashed var(--color-border-primary);
   border-radius: var(--radius-lg);
   cursor: pointer;
-  transition: all var(--duration-fast) var(--ease-smooth);
+  transition: color var(--duration-fast) var(--ease-smooth), border-color var(--duration-fast) var(--ease-smooth), background var(--duration-fast) var(--ease-smooth);
 }
 
 .asakaa-add-column__button:hover:not(:disabled) {
@@ -847,7 +847,7 @@
   border: none;
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all var(--duration-fast) var(--ease-smooth);
+  transition: opacity var(--duration-fast) var(--ease-smooth), background var(--duration-fast) var(--ease-smooth);
 }
 
 .asakaa-add-column__submit {

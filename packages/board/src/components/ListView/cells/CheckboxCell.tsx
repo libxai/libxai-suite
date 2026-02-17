@@ -59,7 +59,7 @@ export function CheckboxCell({
         onClick={handleClick}
         disabled={disabled || !onChange}
         className={cn(
-          'relative w-5 h-5 rounded border-2 flex items-center justify-center transition-all',
+          'relative w-5 h-5 rounded border-2 flex items-center justify-center transition-[border-color,background-color,box-shadow]',
           displayValue
             ? 'bg-[#007BFF] border-[#007BFF]'
             : isDark

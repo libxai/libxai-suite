@@ -139,6 +139,7 @@ export function ListView({
   style,
   availableUsers = [],
   customFields = [],
+  toolbarRightContent,
 }: ListViewProps) {
   const {
     theme: themeName = 'dark',
@@ -744,7 +745,7 @@ export function ListView({
       soldEffortMinutes: (t.columns as any).soldEffortMinutes || (locale === 'es' ? 'Ofertado' : 'Quoted'),
       // v2.0.0: Chronos columns
       scheduleVariance: (t.columns as any).scheduleVariance || (locale === 'es' ? 'Prog / Var' : 'Sched / Var'),
-      hoursBar: (t.columns as any).hoursBar || (locale === 'es' ? 'Horas' : 'Hours'),
+      hoursBar: (t.columns as any).hoursBar || (locale === 'es' ? 'Horas (Usado / Asignado)' : 'Hours (Spent / Allocated)'),
       teamLoad: (t.columns as any).teamLoad || (locale === 'es' ? 'Carga Equipo' : 'Team Load'),
       blockers: (t.columns as any).blockers || (locale === 'es' ? 'Bloqueantes' : 'Blockers'),
     };
@@ -753,9 +754,21 @@ export function ListView({
     return typeof label === 'string' ? label : String(label || column.type);
   }, [t, locale]);
 
-  // Calculate total width for grid
+  // Calculate total width for grid and column percentages
   const totalWidth = useMemo(() => {
     return visibleColumns.reduce((sum, col) => sum + col.width, 0) + (allowColumnCustomization ? 48 : 0);
+  }, [visibleColumns, allowColumnCustomization]);
+
+  // v2.1.0: Calculate proportional percentage for each column so they fill available width
+  const columnWidthPercent = useMemo(() => {
+    const colTotal = visibleColumns.reduce((sum, col) => sum + col.width, 0);
+    const addColWidth = allowColumnCustomization ? 48 : 0;
+    const fullTotal = colTotal + addColWidth;
+    const map: Record<string, string> = {};
+    for (const col of visibleColumns) {
+      map[col.id] = `${(col.width / fullTotal) * 100}%`;
+    }
+    return map;
   }, [visibleColumns, allowColumnCustomization]);
 
   // Loading state
@@ -816,12 +829,20 @@ export function ListView({
     <div
       ref={tableRef}
       className={cn(
-        "flex-1 flex flex-col w-full h-full overflow-hidden",
         isDark ? "bg-[#0D0D0D]" : "bg-white",
         resizingColumn && "select-none",
         className
       )}
-      style={style}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        flex: '1 1 0%',
+        width: '100%',
+        height: '100%',
+        overflow: 'hidden',
+        minHeight: 0,
+        ...style,
+      }}
     >
       {/* Toolbar */}
       <div className={cn("flex-shrink-0 px-6 py-4 border-b", isDark ? "border-[#222]" : "border-gray-200")}>
@@ -863,11 +884,18 @@ export function ListView({
           {/* Spacer to push right items */}
           <div className="flex-1" />
 
+          {/* v2.1.0: Custom right toolbar content (e.g., lens toggle) */}
+          {toolbarRightContent && (
+            <div className="flex items-center gap-2">
+              {toolbarRightContent}
+            </div>
+          )}
+
           {/* Create Task Button - v0.18.0: Same style as GanttToolbar */}
           {showCreateTaskButton && onCreateTask && (
             <motion.button
               onClick={onCreateTask}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-all"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-[transform,box-shadow]"
               style={{
                 background: 'linear-gradient(135deg, #007BFF 0%, #005FCC 100%)',
                 color: '#FFFFFF',
@@ -889,25 +917,25 @@ export function ListView({
       </div>
 
       {/* Table + Sidebar Container */}
-      <div className="flex-1 flex overflow-hidden">
+      <div style={{ display: 'flex', flex: '1 1 0%', overflow: 'hidden', minHeight: 0 }}>
       {/* Table Container */}
-      <div className="flex-1 overflow-auto">
-        <div style={{ minWidth: totalWidth }}>
+      <div style={{ flex: '1 1 0%', overflow: 'auto', minHeight: 0 }}>
+        <div style={{ width: '100%', minWidth: totalWidth }}>
           {/* List Header */}
           <div
             className={cn(
-              "flex-shrink-0 flex items-center border-b text-[10px] font-bold uppercase tracking-wider sticky top-0 z-10",
-              isDark ? "border-[#222] bg-[#1A1A1A] shadow-md font-mono" : "border-gray-200 bg-gray-50"
+              "flex-shrink-0 flex items-center border-b text-[9px] font-bold uppercase tracking-wider sticky top-0 z-10",
+              isDark ? "border-[#222] bg-[#1A1A1A] font-mono" : "border-gray-200 bg-gray-50"
             )}
           >
             {visibleColumns.map((column) => (
               <div
                 key={column.id}
                 className={cn(
-                  "relative flex items-center gap-2 px-4 py-3",
+                  "relative flex items-center gap-2 px-4 py-2",
                   isDark ? "text-white/60" : "text-gray-500"
                 )}
-                style={{ width: column.width, minWidth: column.minWidth }}
+                style={{ width: columnWidthPercent[column.id], minWidth: column.minWidth }}
                 onContextMenu={(e) => handleContextMenu(e, undefined, column.id)}
               >
                 {column.sortable ? (
@@ -941,14 +969,14 @@ export function ListView({
 
             {/* Add column button */}
             {allowColumnCustomization && (
-              <div className="relative flex items-center justify-center px-3 py-3">
+              <div className="relative flex items-center justify-center px-3 py-0.5">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     setShowColumnSelector(prev => !prev);
                   }}
                   className={cn(
-                    "p-1.5 rounded-lg transition-colors",
+                    "p-0.5 rounded transition-colors",
                     isDark
                       ? "hover:bg-white/[0.05] text-white/60 hover:text-white"
                       : "hover:bg-gray-200 text-gray-400 hover:text-gray-600",
@@ -956,7 +984,7 @@ export function ListView({
                   )}
                   title={locale === 'es' ? 'Agregar columna' : 'Add column'}
                 >
-                  <Plus className="w-4 h-4" />
+                  <Plus className="w-3 h-3" />
                 </button>
 
                 {/* Column Selector - positioned relative to button */}
@@ -984,7 +1012,7 @@ export function ListView({
               // v0.18.3: Limit animation delay to max 200ms for better filter responsiveness
               const animationDelay = Math.min(index * 0.01, 0.2);
               // Chronos V2.0: Group header for parent tasks at level 0
-              const isGroupHeader = isDark && task.hasChildren && task.level === 0;
+              const isGroupHeader = task.hasChildren && task.level === 0;
               const subtaskCount = task.subtasks?.length || 0;
 
               // Chronos V2.0: WBS Group Header Row
@@ -996,7 +1024,7 @@ export function ListView({
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.15, delay: animationDelay }}
-                    className="flex items-center border-y border-[#222] bg-[#222] cursor-pointer"
+                    className={cn("flex items-center border-y cursor-pointer", isDark ? "border-[#222] bg-[#222]" : "border-gray-200 bg-gray-100")}
                     onClick={() => toggleExpand(task.id)}
                   >
                     <div className="flex items-center gap-3 px-4 py-2.5 w-full">
@@ -1005,30 +1033,30 @@ export function ListView({
                           e.stopPropagation();
                           toggleExpand(task.id);
                         }}
-                        className="p-0.5 rounded hover:bg-white/[0.05] flex-shrink-0"
+                        className={cn("p-0.5 rounded flex-shrink-0", isDark ? "hover:bg-white/[0.05]" : "hover:bg-gray-200")}
                       >
                         {isExpanded ? (
-                          <ChevronDown className="w-4 h-4 text-white/40" />
+                          <ChevronDown className={cn("w-4 h-4", isDark ? "text-white/40" : "text-gray-500")} />
                         ) : (
-                          <ChevronRight className="w-4 h-4 text-white/40" />
+                          <ChevronRight className={cn("w-4 h-4", isDark ? "text-white/40" : "text-gray-500")} />
                         )}
                       </button>
                       {isExpanded ? (
-                        <FolderOpen className="w-4 h-4 text-[#007BFF] flex-shrink-0" />
+                        <FolderOpen className="w-4 h-4 flex-shrink-0" style={{ color: isDark ? '#FFD60A' : '#B45309' }} />
                       ) : (
-                        <Folder className="w-4 h-4 text-[#007BFF] flex-shrink-0" />
+                        <Folder className="w-4 h-4 flex-shrink-0" style={{ color: isDark ? '#FFD60A' : '#B45309' }} />
                       )}
                       {/* WBS code prefix */}
                       {task.wbsCode && (
-                        <span className="text-[10px] font-mono text-[#007BFF] flex-shrink-0">
+                        <span className="text-[10px] font-mono flex-shrink-0" style={{ color: isDark ? '#FFD60A' : '#B45309' }}>
                           {task.wbsCode}
                         </span>
                       )}
-                      <span className="text-xs font-bold text-gray-200 font-mono uppercase tracking-wide truncate">
+                      <span className={cn("text-xs font-bold font-mono uppercase tracking-wide truncate", isDark ? "text-gray-200" : "text-gray-800")}>
                         {task.name}
                       </span>
-                      <span className="text-[10px] font-mono text-white/30 bg-white/[0.05] px-2 py-0.5 rounded-full flex-shrink-0">
-                        {subtaskCount} {subtaskCount === 1 ? 'task' : 'tasks'}
+                      <span className={cn("text-[10px] font-mono px-2 py-0.5 rounded-full flex-shrink-0", isDark ? "text-white/30 bg-white/[0.05]" : "text-gray-500 bg-gray-200")}>
+                        ({subtaskCount} {locale === 'es' ? (subtaskCount === 1 ? 'Tarea' : 'Tareas') : (subtaskCount === 1 ? 'Item' : 'Items')})
                       </span>
 
                       {/* Spacer */}
@@ -1090,11 +1118,11 @@ export function ListView({
                   {visibleColumns.map((column) => (
                     <div
                       key={column.id}
-                      className="flex items-center px-4 py-3 min-h-[52px]"
-                      style={{ width: column.width, minWidth: column.minWidth }}
+                      className="flex items-center px-4 py-3 min-h-[56px]"
+                      style={{ width: columnWidthPercent[column.id], minWidth: column.minWidth }}
                     >
                       {column.type === 'name' ? (
-                        // Name column with hierarchy
+                        // Name column with hierarchy — Chronos V2.0 two-line layout
                         <div className="flex items-center gap-2 min-w-0 w-full">
                           {/* Indentation spacer for hierarchy levels */}
                           {showHierarchy && task.level > 0 && (
@@ -1117,39 +1145,44 @@ export function ListView({
                           )}
                           {showHierarchy && !task.hasChildren && <div className="w-5 flex-shrink-0" />}
 
-                          {/* WBS code badge */}
-                          {isDark && task.wbsCode && (
-                            <span className="text-[10px] font-mono text-[#007BFF] flex-shrink-0">
-                              {task.wbsCode}
+                          {/* Two-line name layout */}
+                          <div className="flex flex-col min-w-0 flex-1">
+                            {/* Line 1: WBS code + Task code */}
+                            {(task.wbsCode || task.taskCode) && (
+                              <div className="flex items-center gap-1.5">
+                                {task.wbsCode && (
+                                  <span className={cn("text-[10px] font-mono", isDark ? "text-[#007BFF]" : "text-blue-600")}>
+                                    {task.wbsCode}
+                                  </span>
+                                )}
+                                {task.taskCode && (
+                                  <span className={cn("text-[10px] font-mono", isDark ? "text-white/40" : "text-gray-400")}>
+                                    {task.taskCode}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                            {/* Line 2: Task name */}
+                            <span className={cn(
+                              "truncate font-bold text-[13px]",
+                              isDark ? "text-white" : "text-gray-900",
+                              task.progress === 100 && (isDark ? "line-through text-white/30" : "line-through text-gray-400")
+                            )}>
+                              {task.name}
                             </span>
-                          )}
-                          {/* Task code */}
-                          {isDark && task.taskCode && (
-                            <span className="text-[10px] font-mono text-white/40 flex-shrink-0">
-                              {task.taskCode}
-                            </span>
-                          )}
-
-                          <span className={cn(
-                            "truncate font-medium",
-                            isDark ? "text-white" : "text-gray-900",
-                            task.progress === 100 && (isDark ? "line-through text-white/30" : "line-through text-gray-400")
-                          )}>
-                            {task.name}
-                          </span>
-
-                          {/* First tag as mono badge */}
-                          {isDark && task.tags?.[0] && (
-                            <span
-                              className="text-[9px] font-mono uppercase tracking-wide px-1.5 py-0.5 rounded flex-shrink-0"
-                              style={{
-                                backgroundColor: `${task.tags[0].color}20`,
-                                color: task.tags[0].color,
-                              }}
-                            >
-                              {task.tags[0].name}
-                            </span>
-                          )}
+                            {/* Line 3: First tag badge */}
+                            {task.tags?.[0] && (
+                              <span
+                                className="text-[9px] font-mono uppercase tracking-wide px-1.5 py-0.5 rounded w-fit"
+                                style={{
+                                  backgroundColor: `${task.tags[0].color}20`,
+                                  color: task.tags[0].color,
+                                }}
+                              >
+                                {task.tags[0].name}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       ) : (
                         renderCell(task, column)
@@ -1203,6 +1236,9 @@ export function ListView({
         onColumnHide={handleColumnHide}
         onColumnSort={handleColumnSort}
         availableUsers={availableUsers}
+        onOpenTimeLog={callbacks.onOpenTimeLog}
+        onReportBlocker={callbacks.onReportBlocker}
+        onCopyTaskLink={callbacks.onCopyTaskLink}
       />
 
       {/* Create Field Modal */}
