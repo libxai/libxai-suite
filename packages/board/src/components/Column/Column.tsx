@@ -51,6 +51,8 @@ export interface ColumnProps {
   isDeletable?: boolean
   /** Custom className */
   className?: string
+  /** v2.0.0: Custom metrics renderer below column header */
+  renderMetrics?: (column: ColumnType, cards: CardType[]) => React.ReactNode
 }
 
 /**
@@ -77,6 +79,7 @@ export const Column = memo<ColumnProps>(
     onColumnDelete,
     isDeletable = false,
     className,
+    renderMetrics,
   }) => {
     const { setNodeRef, isOver } = useDroppable({
       id: column.id,
@@ -211,6 +214,9 @@ export const Column = memo<ColumnProps>(
             </div>
           </div>
         )}
+
+        {/* v2.0.0: Column metrics (below header) */}
+        {renderMetrics && renderMetrics(column, cards)}
 
         {/* Cards */}
         {!isCollapsed && (

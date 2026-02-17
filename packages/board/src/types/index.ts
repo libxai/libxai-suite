@@ -518,6 +518,15 @@ export interface KanbanBoardProps {
 
   /** Blur financial data (tiempo ofertado) for unauthorized users */
   blurFinancials?: boolean
+
+  // ========================================================================
+  // v2.0.0: Kanban RBAC — Oracle Conscious Board
+  // ========================================================================
+
+  /** Side panel rendered alongside the board columns */
+  sidePanel?: React.ReactNode
+  /** Custom renderer for column header metrics (below title) */
+  renderColumnMetrics?: (column: Column, cards: Card[]) => React.ReactNode
 }
 
 // ============================================================================

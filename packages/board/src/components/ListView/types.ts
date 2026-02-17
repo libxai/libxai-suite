@@ -35,6 +35,11 @@ export type ColumnType =
   | 'effortMinutes'      // Effort estimate in minutes (technical goal)
   | 'timeLoggedMinutes'  // Time logged in minutes (auto-calculated)
   | 'soldEffortMinutes'  // Sold/quoted effort in minutes (client facing)
+  // v2.0.0: Chronos Interactive Time Manager columns
+  | 'scheduleVariance'    // Schedule dates + variance badge
+  | 'hoursBar'            // Visual hours bar (spent/allocated) + Log button
+  | 'teamLoad'            // Avatar + team name + load badge
+  | 'blockers'            // Blocker badges (RFI, Pending, etc.)
   // Custom field types
   | 'text'           // Custom text field
   | 'number'         // Custom number field
@@ -209,6 +214,14 @@ export interface ListViewTheme {
   focusRing: string;
   checkboxBg: string;
   checkboxChecked: string;
+
+  // Chronos V2.0 extended tokens
+  bgGroupHeader: string;
+  headerBg: string;
+  neonRed: string;
+  neonGreen: string;
+  neonAmber: string;
+  neonBlue: string;
 }
 
 /**
@@ -225,6 +238,17 @@ export interface ListViewPermissions {
   canSort?: boolean;
   canFilter?: boolean;
   canReorder?: boolean;
+}
+
+/**
+ * v2.0.0: Project Health data for sidebar panel
+ */
+export interface ProjectHealthData {
+  openRFIs?: number;
+  submittalsApprovalPercent?: number;
+  scheduleVarianceDays?: number;
+  scheduleVarianceLabel?: string;
+  teams?: Array<{ name: string; color: string; utilizationPercent: number }>;
 }
 
 /**
@@ -280,6 +304,10 @@ export interface ListViewConfig {
   /** LocalStorage key for persisting filter state, or false to disable */
   persistFilter?: string | false;
 
+  // v2.0.0: Chronos project health sidebar
+  /** Configuration for project health sidebar panel */
+  healthSidebar?: { enabled: boolean; data: ProjectHealthData };
+
   // v1.4.9: Governance v2.0 - Financial data blur
   /**
    * Configuration for blurring financial data based on user permissions
@@ -313,6 +341,11 @@ export interface ListViewTranslations {
     quotedTime?: string;
     elapsedTime?: string;
     tags?: string;
+    // v2.0.0: Chronos columns
+    scheduleVariance?: string;
+    hoursBar?: string;
+    teamLoad?: string;
+    blockers?: string;
   };
 
   // Toolbar
@@ -416,6 +449,10 @@ export interface ListViewCallbacks {
   // v1.3.0: Time logging callback for timeLoggedMinutes column (inline edit)
   /** Handler for inline time logging - receives task and minutes to log */
   onLogTime?: (task: Task, minutes: number | null) => void;
+
+  // v2.0.0: Chronos Time Manager callback
+  /** Handler for opening time log modal from HoursBar cell */
+  onOpenTimeLog?: (task: Task) => void;
 }
 
 /**
@@ -498,6 +535,11 @@ export const DEFAULT_TABLE_COLUMNS: TableColumn[] = [
   { id: 'effortMinutes', type: 'effortMinutes', label: 'Estimated', width: 100, visible: false, sortable: true, resizable: true },
   { id: 'timeLoggedMinutes', type: 'timeLoggedMinutes', label: 'Time Logged', width: 100, visible: false, sortable: true, resizable: true },
   { id: 'soldEffortMinutes', type: 'soldEffortMinutes', label: 'Quoted', width: 100, visible: false, sortable: true, resizable: true },
+  // v2.0.0: Chronos Interactive Time Manager columns
+  { id: 'scheduleVariance', type: 'scheduleVariance', label: 'Sched / Var', width: 180, visible: false, sortable: true, resizable: true },
+  { id: 'hoursBar', type: 'hoursBar', label: 'Hours', width: 200, visible: false, sortable: true, resizable: true },
+  { id: 'teamLoad', type: 'teamLoad', label: 'Team Load', width: 160, visible: false, sortable: true, resizable: true },
+  { id: 'blockers', type: 'blockers', label: 'Blockers', width: 150, visible: false, sortable: false, resizable: true },
 ];
 
 /**
@@ -517,6 +559,11 @@ export const STANDARD_FIELDS: Array<{ type: ColumnType; labelKey: string; icon: 
   { type: 'effortMinutes', labelKey: 'columns.effortMinutes', icon: 'Clock' },
   { type: 'timeLoggedMinutes', labelKey: 'columns.timeLoggedMinutes', icon: 'Timer' },
   { type: 'soldEffortMinutes', labelKey: 'columns.soldEffortMinutes', icon: 'FileText' },
+  // v2.0.0: Chronos Interactive Time Manager fields
+  { type: 'scheduleVariance', labelKey: 'columns.scheduleVariance', icon: 'CalendarClock' },
+  { type: 'hoursBar', labelKey: 'columns.hoursBar', icon: 'BarChart3' },
+  { type: 'teamLoad', labelKey: 'columns.teamLoad', icon: 'Users' },
+  { type: 'blockers', labelKey: 'columns.blockers', icon: 'AlertTriangle' },
 ];
 
 /**

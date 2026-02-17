@@ -26,6 +26,11 @@ export const en: ListViewTranslations = {
     quotedTime: 'Quoted',
     elapsedTime: 'Time Spent',
     tags: 'Tags',
+    // v2.0.0: Chronos columns
+    scheduleVariance: 'Sched / Var',
+    hoursBar: 'Hours',
+    teamLoad: 'Team Load',
+    blockers: 'Blockers',
   },
 
   toolbar: {
@@ -101,6 +106,11 @@ export const es: ListViewTranslations = {
     quotedTime: 'Ofertado',
     elapsedTime: 'Tiempo',
     tags: 'Etiquetas',
+    // v2.0.0: Chronos columns
+    scheduleVariance: 'Prog / Var',
+    hoursBar: 'Horas',
+    teamLoad: 'Carga Equipo',
+    blockers: 'Bloqueantes',
   },
 
   toolbar: {

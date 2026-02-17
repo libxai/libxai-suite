@@ -76,6 +76,14 @@ export interface CalendarTheme {
 
   // Interactive
   focusRing: string;
+
+  // Chronos V2.0 extended tokens
+  glass: string;
+  glassBorder: string;
+  glassHover: string;
+  neonRed: string;
+  glowBlue: string;
+  glowRed: string;
 }
 
 /**
@@ -119,6 +127,8 @@ export interface CalendarConfig {
   enableDragDrop?: boolean;
   /** Show task details on hover */
   showTooltip?: boolean;
+  /** Show right sidebar with unscheduled/backlog tasks (default: true) */
+  showBacklog?: boolean;
 }
 
 /**
@@ -188,6 +198,21 @@ export interface CalendarTranslations {
     newTask: string;
     viewAll: string;
     week: string;
+    // v2.0.0: Chronos Oracle labels
+    backlogTitle: string;
+    systemStatus: string;
+    budgetUtil: string;
+    variance: string;
+    cost: string;
+    estimate: string;
+    sold: string;
+    cashOut: string;
+    typeToAdd: string;
+    critical: string;
+    blocker: string;
+    risk: string;
+    delay: string;
+    days: string;
   };
 
   // Tooltips

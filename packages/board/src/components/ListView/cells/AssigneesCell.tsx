@@ -153,7 +153,7 @@ export function AssigneesCell({
   if (disabled || !onChange) {
     if (value.length === 0) {
       return (
-        <span className={cn('text-sm', isDark ? 'text-[#6B7280]' : 'text-gray-400')}>
+        <span className={cn('text-sm', isDark ? 'text-white/30' : 'text-gray-400')}>
           -
         </span>
       );
@@ -166,7 +166,7 @@ export function AssigneesCell({
             key={`${assignee.name}-${idx}`}
             className={cn(
               'w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium text-white border-2',
-              isDark ? 'border-[#0F1117]' : 'border-white',
+              isDark ? 'border-[#0D0D0D]' : 'border-white',
               !assignee.avatar && getAvatarColor(assignee.name)
             )}
             style={assignee.color && !assignee.avatar ? { backgroundColor: assignee.color } : undefined}
@@ -183,7 +183,7 @@ export function AssigneesCell({
           <div
             className={cn(
               'w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium border-2',
-              isDark ? 'bg-[#374151] border-[#0F1117] text-white' : 'bg-gray-200 border-white text-gray-600'
+              isDark ? 'bg-[#1A1A1A] border-[#0D0D0D] text-white' : 'bg-gray-200 border-white text-gray-600'
             )}
           >
             +{value.length - 3}
@@ -202,13 +202,13 @@ export function AssigneesCell({
         }}
         className={cn(
           'flex items-center gap-1 px-2 py-1 rounded transition-colors',
-          isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100'
+          isDark ? 'hover:bg-white/[0.05]' : 'hover:bg-gray-100'
         )}
       >
         {value.length === 0 ? (
           <>
-            <User className={cn('w-4 h-4', isDark ? 'text-[#6B7280]' : 'text-gray-400')} />
-            <Plus className={cn('w-3 h-3', isDark ? 'text-[#6B7280]' : 'text-gray-400')} />
+            <User className={cn('w-4 h-4', isDark ? 'text-white/30' : 'text-gray-400')} />
+            <Plus className={cn('w-3 h-3', isDark ? 'text-white/30' : 'text-gray-400')} />
           </>
         ) : (
           <div className="flex items-center -space-x-1">
@@ -217,7 +217,7 @@ export function AssigneesCell({
                 key={`${assignee.name}-${idx}`}
                 className={cn(
                   'w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-medium text-white border',
-                  isDark ? 'border-[#0F1117]' : 'border-white',
+                  isDark ? 'border-[#0D0D0D]' : 'border-white',
                   !assignee.avatar && getAvatarColor(assignee.name)
                 )}
                 style={assignee.color && !assignee.avatar ? { backgroundColor: assignee.color } : undefined}
@@ -230,7 +230,7 @@ export function AssigneesCell({
               </div>
             ))}
             {value.length > 2 && (
-              <span className={cn('text-xs ml-1', isDark ? 'text-[#9CA3AF]' : 'text-gray-500')}>
+              <span className={cn('text-xs ml-1', isDark ? 'text-white/60' : 'text-gray-500')}>
                 +{value.length - 2}
               </span>
             )}
@@ -242,7 +242,7 @@ export function AssigneesCell({
         <div
           className={cn(
             'absolute z-50 top-full left-0 mt-1 rounded-lg shadow-lg border w-72',
-            isDark ? 'bg-[#1F2937] border-white/10' : 'bg-white border-gray-200'
+            isDark ? 'bg-[#1A1A1A] border-[#222]' : 'bg-white border-gray-200'
           )}
         >
           {/* Header with workload legend */}
@@ -250,7 +250,7 @@ export function AssigneesCell({
             <div
               className={cn(
                 'px-3 py-2 text-xs border-b flex items-center gap-3',
-                isDark ? 'text-[#9CA3AF] border-white/10' : 'text-gray-500 border-gray-200'
+                isDark ? 'text-white/60 border-[#222]' : 'text-gray-500 border-gray-200'
               )}
             >
               <span className="flex items-center gap-1">
@@ -278,7 +278,7 @@ export function AssigneesCell({
               className={cn(
                 'w-full px-3 py-1.5 text-sm rounded border outline-none',
                 isDark
-                  ? 'bg-white/5 border-white/10 text-white placeholder:text-[#6B7280]'
+                  ? 'bg-white/[0.03] border-[#222] text-white placeholder:text-white/30'
                   : 'bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400'
               )}
               onClick={(e) => e.stopPropagation()}
@@ -288,7 +288,7 @@ export function AssigneesCell({
           {/* User list */}
           <div className="max-h-48 overflow-y-auto py-1">
             {sortedUsers.length === 0 ? (
-              <p className={cn('px-3 py-2 text-sm', isDark ? 'text-[#6B7280]' : 'text-gray-400')}>
+              <p className={cn('px-3 py-2 text-sm', isDark ? 'text-white/30' : 'text-gray-400')}>
                 {locale === 'es' ? 'No se encontraron usuarios' : 'No users found'}
               </p>
             ) : (
@@ -304,7 +304,7 @@ export function AssigneesCell({
                     }}
                     className={cn(
                       'w-full flex items-center gap-3 px-3 py-2 text-sm transition-colors',
-                      isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100',
+                      isDark ? 'hover:bg-white/[0.05]' : 'hover:bg-gray-100',
                       // Highlight overloaded users
                       user.workload?.level === 'overloaded' && (isDark ? 'bg-red-500/5' : 'bg-red-50')
                     )}
@@ -325,7 +325,7 @@ export function AssigneesCell({
                     <div className="flex-1 text-left">
                       <div className={isDark ? 'text-white' : 'text-gray-900'}>{user.name}</div>
                       {user.email && (
-                        <div className={cn('text-xs', isDark ? 'text-[#6B7280]' : 'text-gray-400')}>
+                        <div className={cn('text-xs', isDark ? 'text-white/30' : 'text-gray-400')}>
                           {user.email}
                         </div>
                       )}
@@ -361,7 +361,7 @@ export function AssigneesCell({
                   key={`${assignee.name}-${idx}`}
                   className={cn(
                     'inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full',
-                    isDark ? 'bg-white/10 text-white' : 'bg-gray-100 text-gray-700'
+                    isDark ? 'bg-white/[0.05] text-white' : 'bg-gray-100 text-gray-700'
                   )}
                 >
                   {assignee.name}

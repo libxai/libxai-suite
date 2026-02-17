@@ -152,6 +152,8 @@ export type {
   ContextMenuAction,
   ContextMenuState,
   AvailableUser,
+  // v2.0.0: Chronos Project Health
+  ProjectHealthData,
 } from './components/ListView'
 // v0.18.0: Export constants
 export {

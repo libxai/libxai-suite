@@ -31,6 +31,8 @@ export type {
   AvailableUser,
   // v1.4.0: User workload for Smart Dropdown
   UserWorkload,
+  // v2.0.0: Chronos Project Health
+  ProjectHealthData,
 } from './types';
 
 // v0.18.0: Export constants
@@ -80,3 +82,10 @@ export { CheckboxCell } from './cells/CheckboxCell';
 export { TagsCell } from './cells/TagsCell';
 // v0.18.3: Time tracking cell
 export { TimeCell } from './cells/TimeCell';
+// v2.0.0: Chronos Interactive Time Manager cells
+export { ScheduleVarianceCell } from './cells/ScheduleVarianceCell';
+export { HoursBarCell } from './cells/HoursBarCell';
+export { TeamLoadCell } from './cells/TeamLoadCell';
+export { BlockersCell } from './cells/BlockersCell';
+// v2.0.0: Chronos ProjectHealthSidebar
+export { ProjectHealthSidebar } from './ProjectHealthSidebar';

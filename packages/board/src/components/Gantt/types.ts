@@ -60,6 +60,18 @@ export interface Task {
   parentId?: string;  // ID of parent task (undefined for root-level tasks)
   level?: number;     // Indentation level (0 for root, 1 for first level children, etc.)
   position?: number;  // Position within its level/parent
+
+  // v2.0.0: Chronos Interactive Time Manager fields (computed by app)
+  wbsCode?: string;           // "1.1.1" — WBS code from hierarchy position
+  taskCode?: string;           // "TK-102" — Sequential task identifier
+  scheduleVariance?: number;   // Days: negative = delay, positive = ahead
+  blockers?: Array<{ type: string; id: string; severity: 'critical' | 'warning' | 'info' }>;
+  teamLoad?: { percentage: number; label: string };
+
+  // v1.2.0: Three-tier time tracking (from DB)
+  effortMinutes?: number;       // Technical effort estimate
+  timeLoggedMinutes?: number;   // Auto-calculated logged time
+  soldEffortMinutes?: number;   // Client-facing quoted effort
 }
 
 export type TimeScale = 'day' | 'week' | 'month';

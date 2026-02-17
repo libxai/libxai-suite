@@ -14,6 +14,8 @@ import {
   ArrowUpDown,
   Search,
   Plus,
+  FolderOpen,
+  Folder,
 } from 'lucide-react';
 import type { Task } from '../Gantt/types';
 import type {
@@ -39,12 +41,18 @@ import { DropdownCell } from './cells/DropdownCell';
 import { CheckboxCell } from './cells/CheckboxCell';
 import { TagsCell } from './cells/TagsCell';
 import { TimeCell } from './cells/TimeCell';
+// v2.0.0: Chronos Interactive Time Manager cells
+import { ScheduleVarianceCell } from './cells/ScheduleVarianceCell';
+import { HoursBarCell } from './cells/HoursBarCell';
+import { TeamLoadCell } from './cells/TeamLoadCell';
+import { BlockersCell } from './cells/BlockersCell';
 
 // Components
 import { TableContextMenu } from './TableContextMenu';
 import { ColumnSelector } from './ColumnSelector';
 import { CreateFieldModal } from './CreateFieldModal';
 import { StatusFilter, type StatusFilterValue } from './StatusFilter';
+import { ProjectHealthSidebar } from './ProjectHealthSidebar';
 
 type SortField = 'name' | 'startDate' | 'endDate' | 'progress' | 'status' | 'priority' | string;
 type SortOrder = 'asc' | 'desc';
@@ -80,6 +88,45 @@ function flattenTasksWithLevel(tasks: Task[], level = 0): FlattenedTask[] {
 }
 
 /**
+ * Calculate average SPI (Schedule Performance Index) for a group task's subtasks
+ * SPI = progress / expected_progress (based on elapsed time vs duration)
+ */
+function calculateGroupSPI(task: Task): number | null {
+  const subtasks = task.subtasks;
+  if (!subtasks?.length) return null;
+
+  const now = new Date();
+  let totalSPI = 0;
+  let count = 0;
+
+  for (const sub of subtasks) {
+    if (!sub.startDate || !sub.endDate) continue;
+    const start = sub.startDate.getTime();
+    const end = sub.endDate.getTime();
+    const duration = end - start;
+    if (duration <= 0) continue;
+
+    const elapsed = Math.max(0, Math.min(now.getTime() - start, duration));
+    const expectedProgress = (elapsed / duration) * 100;
+    if (expectedProgress <= 0) continue;
+
+    const spi = (sub.progress || 0) / expectedProgress;
+    totalSPI += spi;
+    count++;
+  }
+
+  return count > 0 ? totalSPI / count : null;
+}
+
+/**
+ * Count resource conflicts in a group (subtasks with >100% team load)
+ */
+function countResourceConflicts(task: Task): number {
+  if (!task.subtasks?.length) return 0;
+  return task.subtasks.filter(sub => sub.teamLoad && sub.teamLoad.percentage >= 100).length;
+}
+
+/**
  * Main ListView Component
  */
 export function ListView({
@@ -110,6 +157,8 @@ export function ListView({
     persistFilter = false,
     // v1.4.9: Governance v2.0 - Financial blur
     financialBlur,
+    // v2.0.0: Chronos health sidebar
+    healthSidebar,
   } = config;
 
   const t = mergeListViewTranslations(locale, customTranslations);
@@ -629,8 +678,47 @@ export function ListView({
         );
       }
 
+      // v2.0.0: Chronos Interactive Time Manager columns
+      case 'scheduleVariance':
+        return (
+          <ScheduleVarianceCell
+            startDate={task.startDate}
+            endDate={task.endDate}
+            scheduleVariance={task.scheduleVariance}
+            isDark={isDark}
+            locale={locale}
+          />
+        );
+
+      case 'hoursBar':
+        return (
+          <HoursBarCell
+            task={task}
+            isDark={isDark}
+            locale={locale}
+            onOpenTimeLog={callbacks.onOpenTimeLog}
+          />
+        );
+
+      case 'teamLoad':
+        return (
+          <TeamLoadCell
+            task={task}
+            isDark={isDark}
+          />
+        );
+
+      case 'blockers':
+        return (
+          <BlockersCell
+            blockers={task.blockers}
+            isDark={isDark}
+            locale={locale}
+          />
+        );
+
       default:
-        return <span className={cn("text-sm", isDark ? "text-[#94A3B8]" : "text-gray-500")}>-</span>;
+        return <span className={cn("text-sm", isDark ? "text-white/60" : "text-gray-500")}>-</span>;
     }
   }, [callbacks, isDark, locale, availableUsers, t]);
 
@@ -654,6 +742,11 @@ export function ListView({
       effortMinutes: (t.columns as any).effortMinutes || (locale === 'es' ? 'Estimado' : 'Estimated'),
       timeLoggedMinutes: (t.columns as any).timeLoggedMinutes || (locale === 'es' ? 'Tiempo' : 'Time Logged'),
       soldEffortMinutes: (t.columns as any).soldEffortMinutes || (locale === 'es' ? 'Ofertado' : 'Quoted'),
+      // v2.0.0: Chronos columns
+      scheduleVariance: (t.columns as any).scheduleVariance || (locale === 'es' ? 'Prog / Var' : 'Sched / Var'),
+      hoursBar: (t.columns as any).hoursBar || (locale === 'es' ? 'Horas' : 'Hours'),
+      teamLoad: (t.columns as any).teamLoad || (locale === 'es' ? 'Carga Equipo' : 'Team Load'),
+      blockers: (t.columns as any).blockers || (locale === 'es' ? 'Bloqueantes' : 'Blockers'),
     };
     const label = labelMap[column.type] || column.label;
     // Ensure we always return a string to prevent React error #310
@@ -668,10 +761,10 @@ export function ListView({
   // Loading state
   if (isLoading) {
     return (
-      <div className={cn("flex-1 flex items-center justify-center", isDark ? "bg-[#0F1117]" : "bg-white", className)} style={style}>
+      <div className={cn("flex-1 flex items-center justify-center", isDark ? "bg-[#0D0D0D]" : "bg-white", className)} style={style}>
         <div className="flex flex-col items-center gap-4">
-          <div className="w-8 h-8 animate-spin rounded-full border-b-2 border-[#3B82F6]" />
-          <p className={cn("text-sm", isDark ? "text-[#9CA3AF]" : "text-gray-600")}>
+          <div className="w-8 h-8 animate-spin rounded-full border-b-2 border-[#007BFF]" />
+          <p className={cn("text-sm", isDark ? "text-white/60" : "text-gray-600")}>
             {t.empty.noTasks}...
           </p>
         </div>
@@ -682,7 +775,7 @@ export function ListView({
   // Error state
   if (error) {
     return (
-      <div className={cn("flex-1 flex items-center justify-center", isDark ? "bg-[#0F1117]" : "bg-white", className)} style={style}>
+      <div className={cn("flex-1 flex items-center justify-center", isDark ? "bg-[#0D0D0D]" : "bg-white", className)} style={style}>
         <div className="flex flex-col items-center gap-4 max-w-md text-center">
           <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center">
             <span className="text-red-500 text-2xl">⚠</span>
@@ -691,7 +784,7 @@ export function ListView({
             <h3 className={cn("text-lg font-semibold mb-2", isDark ? "text-white" : "text-gray-900")}>
               Error
             </h3>
-            <p className={cn("text-sm", isDark ? "text-[#9CA3AF]" : "text-gray-600")}>
+            <p className={cn("text-sm", isDark ? "text-white/60" : "text-gray-600")}>
               {typeof error === 'string' ? error : error.message}
             </p>
           </div>
@@ -703,15 +796,15 @@ export function ListView({
   // Empty state
   if (tasks.length === 0) {
     return (
-      <div className={cn("flex-1 flex items-center justify-center", isDark ? "bg-[#0F1117]" : "bg-white", className)} style={style}>
+      <div className={cn("flex-1 flex items-center justify-center", isDark ? "bg-[#0D0D0D]" : "bg-white", className)} style={style}>
         <div className="text-center max-w-md">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-[#3B82F6]/10 flex items-center justify-center">
-            <List className="w-8 h-8 text-[#3B82F6]" />
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-[#007BFF]/10 flex items-center justify-center">
+            <List className="w-8 h-8 text-[#007BFF]" />
           </div>
           <h3 className={cn("text-lg font-semibold mb-2", isDark ? "text-white" : "text-gray-900")}>
             {t.empty.noTasks}
           </h3>
-          <p className={cn("text-sm", isDark ? "text-[#9CA3AF]" : "text-gray-600")}>
+          <p className={cn("text-sm", isDark ? "text-white/60" : "text-gray-600")}>
             {t.empty.addFirstTask}
           </p>
         </div>
@@ -724,14 +817,14 @@ export function ListView({
       ref={tableRef}
       className={cn(
         "flex-1 flex flex-col w-full h-full overflow-hidden",
-        isDark ? "bg-[#0F1117]" : "bg-white",
+        isDark ? "bg-[#0D0D0D]" : "bg-white",
         resizingColumn && "select-none",
         className
       )}
       style={style}
     >
       {/* Toolbar */}
-      <div className={cn("flex-shrink-0 px-6 py-4 border-b", isDark ? "border-white/10" : "border-gray-200")}>
+      <div className={cn("flex-shrink-0 px-6 py-4 border-b", isDark ? "border-[#222]" : "border-gray-200")}>
         <div className="flex items-center gap-4">
           {/* Status Filter */}
           <StatusFilter
@@ -744,23 +837,23 @@ export function ListView({
           />
 
           {/* Task count - next to filters */}
-          <div className={cn("text-sm", isDark ? "text-[#9CA3AF]" : "text-gray-600")}>
+          <div className={cn("text-sm", isDark ? "text-white/60" : "text-gray-600")}>
             {displayTasks.length} {t.pagination.tasks}
           </div>
 
           {/* Search */}
           {showSearch && (
             <div className="relative flex-1 max-w-md">
-              <Search className={cn("absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4", isDark ? "text-[#9CA3AF]" : "text-gray-400")} />
+              <Search className={cn("absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4", isDark ? "text-white/60" : "text-gray-400")} />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={t.toolbar.searchPlaceholder}
                 className={cn(
-                  "w-full h-9 pl-10 pr-4 rounded-lg border outline-none focus:ring-2 focus:ring-[#3B82F6]/30",
+                  "w-full h-9 pl-10 pr-4 rounded-lg border outline-none focus:ring-2 focus:ring-[#007BFF]/30",
                   isDark
-                    ? "bg-white/5 border-white/10 text-white placeholder:text-[#6B7280]"
+                    ? "bg-white/[0.03] border-[#222] text-white placeholder:text-white/30 font-mono"
                     : "bg-gray-100 border-gray-200 text-gray-900 placeholder:text-gray-400"
                 )}
               />
@@ -776,15 +869,15 @@ export function ListView({
               onClick={onCreateTask}
               className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-all"
               style={{
-                background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)',
+                background: 'linear-gradient(135deg, #007BFF 0%, #005FCC 100%)',
                 color: '#FFFFFF',
                 fontFamily: 'Inter, sans-serif',
                 fontWeight: 500,
-                boxShadow: '0 2px 8px rgba(59, 130, 246, 0.3)',
+                boxShadow: '0 2px 8px rgba(0, 123, 255, 0.3)',
               }}
               whileHover={{
                 scale: 1.02,
-                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.4)',
+                boxShadow: '0 4px 12px rgba(0, 123, 255, 0.4)',
               }}
               whileTap={{ scale: 0.98 }}
             >
@@ -795,14 +888,16 @@ export function ListView({
         </div>
       </div>
 
+      {/* Table + Sidebar Container */}
+      <div className="flex-1 flex overflow-hidden">
       {/* Table Container */}
       <div className="flex-1 overflow-auto">
         <div style={{ minWidth: totalWidth }}>
           {/* List Header */}
           <div
             className={cn(
-              "flex-shrink-0 flex items-center border-b text-xs font-medium uppercase tracking-wider sticky top-0 z-10",
-              isDark ? "border-white/10 bg-[#0F1117]" : "border-gray-200 bg-gray-50"
+              "flex-shrink-0 flex items-center border-b text-[10px] font-bold uppercase tracking-wider sticky top-0 z-10",
+              isDark ? "border-[#222] bg-[#1A1A1A] shadow-md font-mono" : "border-gray-200 bg-gray-50"
             )}
           >
             {visibleColumns.map((column) => (
@@ -810,7 +905,7 @@ export function ListView({
                 key={column.id}
                 className={cn(
                   "relative flex items-center gap-2 px-4 py-3",
-                  isDark ? "text-[#9CA3AF]" : "text-gray-500"
+                  isDark ? "text-white/60" : "text-gray-500"
                 )}
                 style={{ width: column.width, minWidth: column.minWidth }}
                 onContextMenu={(e) => handleContextMenu(e, undefined, column.id)}
@@ -818,12 +913,12 @@ export function ListView({
                 {column.sortable ? (
                   <button
                     onClick={() => handleSort(column.id)}
-                    className="flex items-center gap-1 hover:text-[#3B82F6]"
+                    className="flex items-center gap-1 hover:text-[#007BFF]"
                   >
                     {getColumnLabel(column)}
                     <ArrowUpDown className={cn(
                       "w-3 h-3",
-                      sortField === column.id && "text-[#3B82F6]"
+                      sortField === column.id && "text-[#007BFF]"
                     )} />
                   </button>
                 ) : (
@@ -835,8 +930,8 @@ export function ListView({
                   <div
                     className={cn(
                       "absolute right-0 top-0 bottom-0 w-1 cursor-col-resize group",
-                      "hover:bg-[#3B82F6]",
-                      resizingColumn === column.id && "bg-[#3B82F6]"
+                      "hover:bg-[#007BFF]",
+                      resizingColumn === column.id && "bg-[#007BFF]"
                     )}
                     onMouseDown={(e) => handleResizeStart(e, column.id)}
                   />
@@ -855,9 +950,9 @@ export function ListView({
                   className={cn(
                     "p-1.5 rounded-lg transition-colors",
                     isDark
-                      ? "hover:bg-white/10 text-[#9CA3AF] hover:text-white"
+                      ? "hover:bg-white/[0.05] text-white/60 hover:text-white"
                       : "hover:bg-gray-200 text-gray-400 hover:text-gray-600",
-                    showColumnSelector && (isDark ? "bg-white/10" : "bg-gray-200")
+                    showColumnSelector && (isDark ? "bg-white/[0.05]" : "bg-gray-200")
                   )}
                   title={locale === 'es' ? 'Agregar columna' : 'Add column'}
                 >
@@ -888,6 +983,92 @@ export function ListView({
               const isExpanded = expandedTasks.has(task.id);
               // v0.18.3: Limit animation delay to max 200ms for better filter responsiveness
               const animationDelay = Math.min(index * 0.01, 0.2);
+              // Chronos V2.0: Group header for parent tasks at level 0
+              const isGroupHeader = isDark && task.hasChildren && task.level === 0;
+              const subtaskCount = task.subtasks?.length || 0;
+
+              // Chronos V2.0: WBS Group Header Row
+              if (isGroupHeader) {
+                return (
+                  <motion.div
+                    key={task.id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15, delay: animationDelay }}
+                    className="flex items-center border-y border-[#222] bg-[#222] cursor-pointer"
+                    onClick={() => toggleExpand(task.id)}
+                  >
+                    <div className="flex items-center gap-3 px-4 py-2.5 w-full">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleExpand(task.id);
+                        }}
+                        className="p-0.5 rounded hover:bg-white/[0.05] flex-shrink-0"
+                      >
+                        {isExpanded ? (
+                          <ChevronDown className="w-4 h-4 text-white/40" />
+                        ) : (
+                          <ChevronRight className="w-4 h-4 text-white/40" />
+                        )}
+                      </button>
+                      {isExpanded ? (
+                        <FolderOpen className="w-4 h-4 text-[#007BFF] flex-shrink-0" />
+                      ) : (
+                        <Folder className="w-4 h-4 text-[#007BFF] flex-shrink-0" />
+                      )}
+                      {/* WBS code prefix */}
+                      {task.wbsCode && (
+                        <span className="text-[10px] font-mono text-[#007BFF] flex-shrink-0">
+                          {task.wbsCode}
+                        </span>
+                      )}
+                      <span className="text-xs font-bold text-gray-200 font-mono uppercase tracking-wide truncate">
+                        {task.name}
+                      </span>
+                      <span className="text-[10px] font-mono text-white/30 bg-white/[0.05] px-2 py-0.5 rounded-full flex-shrink-0">
+                        {subtaskCount} {subtaskCount === 1 ? 'task' : 'tasks'}
+                      </span>
+
+                      {/* Spacer */}
+                      <div className="flex-1" />
+
+                      {/* Group metrics: Avg SPI + Resource Conflicts */}
+                      {(() => {
+                        const spi = calculateGroupSPI(task);
+                        const conflicts = countResourceConflicts(task);
+                        return (
+                          <div className="flex items-center gap-3 flex-shrink-0">
+                            {spi !== null && (
+                              <span className={cn(
+                                "text-[10px] font-mono",
+                                spi >= 1 ? "text-[#32D74B]" : spi >= 0.8 ? "text-[#FFD60A]" : "text-[#FF453A]"
+                              )}>
+                                Avg SPI: {spi.toFixed(2)}
+                              </span>
+                            )}
+                            {conflicts > 0 && (
+                              <span className="text-[10px] font-mono text-[#FF453A]">
+                                {locale === 'es' ? 'Conflicto Recurso' : 'Resource Conflict'}: {conflicts}
+                              </span>
+                            )}
+                            {/* Progress summary */}
+                            {task.progress != null && task.progress > 0 && (
+                              <span className={cn(
+                                "text-[10px] font-mono",
+                                task.progress === 100 ? "text-[#32D74B]" : "text-[#007BFF]"
+                              )}>
+                                {task.progress}%
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  </motion.div>
+                );
+              }
 
               return (
                 <motion.div
@@ -899,7 +1080,7 @@ export function ListView({
                   className={cn(
                     "flex items-center border-b transition-colors",
                     isDark
-                      ? "border-white/5 hover:bg-white/5"
+                      ? "border-[#222] hover:bg-white/[0.05]"
                       : "border-gray-100 hover:bg-gray-50"
                   )}
                   onClick={() => callbacks.onTaskClick?.(task)}
@@ -925,24 +1106,50 @@ export function ListView({
                                 e.stopPropagation();
                                 toggleExpand(task.id);
                               }}
-                              className={cn("p-0.5 rounded flex-shrink-0", isDark ? "hover:bg-white/10" : "hover:bg-gray-200")}
+                              className={cn("p-0.5 rounded flex-shrink-0", isDark ? "hover:bg-white/[0.05]" : "hover:bg-gray-200")}
                             >
                               {isExpanded ? (
-                                <ChevronDown className={cn("w-4 h-4", isDark ? "text-[#9CA3AF]" : "text-gray-400")} />
+                                <ChevronDown className={cn("w-4 h-4", isDark ? "text-white/60" : "text-gray-400")} />
                               ) : (
-                                <ChevronRight className={cn("w-4 h-4", isDark ? "text-[#9CA3AF]" : "text-gray-400")} />
+                                <ChevronRight className={cn("w-4 h-4", isDark ? "text-white/60" : "text-gray-400")} />
                               )}
                             </button>
                           )}
                           {showHierarchy && !task.hasChildren && <div className="w-5 flex-shrink-0" />}
 
+                          {/* WBS code badge */}
+                          {isDark && task.wbsCode && (
+                            <span className="text-[10px] font-mono text-[#007BFF] flex-shrink-0">
+                              {task.wbsCode}
+                            </span>
+                          )}
+                          {/* Task code */}
+                          {isDark && task.taskCode && (
+                            <span className="text-[10px] font-mono text-white/40 flex-shrink-0">
+                              {task.taskCode}
+                            </span>
+                          )}
+
                           <span className={cn(
                             "truncate font-medium",
                             isDark ? "text-white" : "text-gray-900",
-                            task.progress === 100 && (isDark ? "line-through text-[#6B7280]" : "line-through text-gray-400")
+                            task.progress === 100 && (isDark ? "line-through text-white/30" : "line-through text-gray-400")
                           )}>
                             {task.name}
                           </span>
+
+                          {/* First tag as mono badge */}
+                          {isDark && task.tags?.[0] && (
+                            <span
+                              className="text-[9px] font-mono uppercase tracking-wide px-1.5 py-0.5 rounded flex-shrink-0"
+                              style={{
+                                backgroundColor: `${task.tags[0].color}20`,
+                                color: task.tags[0].color,
+                              }}
+                            >
+                              {task.tags[0].name}
+                            </span>
+                          )}
                         </div>
                       ) : (
                         renderCell(task, column)
@@ -963,14 +1170,24 @@ export function ListView({
           {displayTasks.length === 0 && searchQuery && (
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
-                <List className={cn("w-12 h-12 mx-auto mb-4", isDark ? "text-[#6B7280]" : "text-gray-400")} />
-                <p className={cn(isDark ? "text-[#9CA3AF]" : "text-gray-600")}>
+                <List className={cn("w-12 h-12 mx-auto mb-4", isDark ? "text-white/30" : "text-gray-400")} />
+                <p className={cn(isDark ? "text-white/60" : "text-gray-600")}>
                   {t.empty.noResults}
                 </p>
               </div>
             </div>
           )}
         </div>
+      </div>
+
+      {/* v2.0.0: Project Health Sidebar */}
+      {healthSidebar?.enabled && healthSidebar.data && (
+        <ProjectHealthSidebar
+          data={healthSidebar.data}
+          isDark={isDark}
+          locale={locale}
+        />
+      )}
       </div>
 
       {/* Context Menu */}

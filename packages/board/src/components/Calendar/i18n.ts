@@ -68,6 +68,21 @@ export const en: CalendarTranslations = {
     newTask: 'New Task',
     viewAll: 'View all',
     week: 'Week',
+    // v2.0.0: Chronos Oracle labels
+    backlogTitle: 'BACKLOG / UNSCHEDULED',
+    systemStatus: 'SYSTEM STATUS',
+    budgetUtil: 'Budget Util.',
+    variance: 'VARIANCE',
+    cost: 'COST',
+    estimate: 'Est',
+    sold: 'Sold',
+    cashOut: 'Cash Out',
+    typeToAdd: 'Type to add (e.g., Crane Inspection)',
+    critical: 'CRITICAL',
+    blocker: 'Blocker',
+    risk: 'Risk',
+    delay: 'delay',
+    days: 'Days',
   },
 
   tooltips: {
@@ -140,6 +155,21 @@ export const es: CalendarTranslations = {
     newTask: 'Nueva Tarea',
     viewAll: 'Ver todo',
     week: 'Semana',
+    // v2.0.0: Chronos Oracle labels
+    backlogTitle: 'BACKLOG / SIN FECHA',
+    systemStatus: 'ESTADO DEL SISTEMA',
+    budgetUtil: 'Util. Presupuesto',
+    variance: 'VARIANZA',
+    cost: 'COSTO',
+    estimate: 'Est',
+    sold: 'Vendido',
+    cashOut: 'Desembolso',
+    typeToAdd: 'Escribe para agregar (ej: Inspección)',
+    critical: 'CRÍTICO',
+    blocker: 'Bloqueador',
+    risk: 'Riesgo',
+    delay: 'retraso',
+    days: 'Días',
   },
 
   tooltips: {

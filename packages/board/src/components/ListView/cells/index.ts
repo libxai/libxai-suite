@@ -16,3 +16,8 @@ export { DropdownCell } from './DropdownCell';
 export { CheckboxCell } from './CheckboxCell';
 export { TagsCell } from './TagsCell';
 export { TimeCell } from './TimeCell';
+// v2.0.0: Chronos Interactive Time Manager cells
+export { ScheduleVarianceCell } from './ScheduleVarianceCell';
+export { HoursBarCell } from './HoursBarCell';
+export { TeamLoadCell } from './TeamLoadCell';
+export { BlockersCell } from './BlockersCell';

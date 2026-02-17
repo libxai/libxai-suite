@@ -23,6 +23,9 @@ import {
   Clock,
   Timer,
   FileText,
+  CalendarClock,
+  BarChart3,
+  AlertTriangle,
 } from 'lucide-react';
 import { cn } from '../../utils';
 import type { TableColumn, CustomFieldDefinition, ColumnType } from './types';
@@ -58,6 +61,11 @@ const COLUMN_ICONS: Record<ColumnType, React.ReactNode> = {
   effortMinutes: <Clock className="w-4 h-4" />,
   timeLoggedMinutes: <Timer className="w-4 h-4" />,
   soldEffortMinutes: <FileText className="w-4 h-4" />,
+  // v2.0.0: Chronos Interactive Time Manager columns
+  scheduleVariance: <CalendarClock className="w-4 h-4" />,
+  hoursBar: <BarChart3 className="w-4 h-4" />,
+  teamLoad: <Users className="w-4 h-4" />,
+  blockers: <AlertTriangle className="w-4 h-4" />,
   // Custom field types
   text: <Type className="w-4 h-4" />,
   number: <Hash className="w-4 h-4" />,
@@ -200,22 +208,22 @@ export function ColumnSelector({
       style={maxHeight ? { maxHeight: `${maxHeight}px` } : undefined}
       className={cn(
         'absolute right-0 top-full mt-1 w-72 rounded-lg shadow-xl border z-50 flex flex-col',
-        isDark ? 'bg-[#0F1117] border-white/10' : 'bg-white border-gray-200'
+        isDark ? 'bg-[#0D0D0D] border-[#222]' : 'bg-white border-gray-200'
       )}
     >
       {/* Header */}
       <div className={cn(
         'flex items-center justify-between px-4 py-3 border-b',
-        isDark ? 'border-white/10' : 'border-gray-200'
+        isDark ? 'border-[#222]' : 'border-gray-200'
       )}>
         <h3 className={cn('font-medium', isDark ? 'text-white' : 'text-gray-900')}>
           {t.title}
         </h3>
         <button
           onClick={onClose}
-          className={cn('p-1 rounded', isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100')}
+          className={cn('p-1 rounded', isDark ? 'hover:bg-white/[0.05]' : 'hover:bg-gray-100')}
         >
-          <X className={cn('w-4 h-4', isDark ? 'text-[#9CA3AF]' : 'text-gray-400')} />
+          <X className={cn('w-4 h-4', isDark ? 'text-white/60' : 'text-gray-400')} />
         </button>
       </div>
 
@@ -224,7 +232,7 @@ export function ColumnSelector({
         <div className="relative">
           <Search className={cn(
             'absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4',
-            isDark ? 'text-[#6B7280]' : 'text-gray-400'
+            isDark ? 'text-white/30' : 'text-gray-400'
           )} />
           <input
             type="text"
@@ -234,7 +242,7 @@ export function ColumnSelector({
             className={cn(
               'w-full pl-9 pr-3 py-2 text-sm rounded-lg border outline-none',
               isDark
-                ? 'bg-white/5 border-white/10 text-white placeholder:text-[#6B7280]'
+                ? 'bg-white/[0.03] border-[#222] text-white placeholder:text-white/30'
                 : 'bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400'
             )}
           />
@@ -248,7 +256,7 @@ export function ColumnSelector({
       >
         {/* Standard Fields */}
         <div className="px-3 pb-2">
-          <h4 className={cn('text-xs font-medium uppercase tracking-wider mb-2', isDark ? 'text-[#6B7280]' : 'text-gray-400')}>
+          <h4 className={cn('text-xs font-medium uppercase tracking-wider mb-2', isDark ? 'text-white/30' : 'text-gray-400')}>
             {t.standardFields}
           </h4>
           <div className="space-y-1">
@@ -272,19 +280,19 @@ export function ColumnSelector({
                   disabled={isName}
                   className={cn(
                     'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
-                    isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100',
+                    isDark ? 'hover:bg-white/[0.05]' : 'hover:bg-gray-100',
                     isName && 'opacity-50 cursor-not-allowed'
                   )}
                 >
                   <div className={cn(
                     'w-5 h-5 rounded border flex items-center justify-center',
                     isVisible
-                      ? 'bg-[#3B82F6] border-[#3B82F6]'
-                      : isDark ? 'border-[#4B5563]' : 'border-gray-300'
+                      ? 'bg-[#007BFF] border-[#007BFF]'
+                      : isDark ? 'border-[#333]' : 'border-gray-300'
                   )}>
                     {isVisible && <Check className="w-3 h-3 text-white" />}
                   </div>
-                  <span className={isDark ? 'text-[#9CA3AF]' : 'text-gray-400'}>
+                  <span className={isDark ? 'text-white/60' : 'text-gray-400'}>
                     {COLUMN_ICONS[type]}
                   </span>
                   <span className={isDark ? 'text-white' : 'text-gray-900'}>
@@ -299,7 +307,7 @@ export function ColumnSelector({
         {/* Custom Fields */}
         {filteredCustomFields.length > 0 && (
           <div className="px-3 pb-2">
-            <h4 className={cn('text-xs font-medium uppercase tracking-wider mb-2', isDark ? 'text-[#6B7280]' : 'text-gray-400')}>
+            <h4 className={cn('text-xs font-medium uppercase tracking-wider mb-2', isDark ? 'text-white/30' : 'text-gray-400')}>
               {t.customFields}
             </h4>
             <div className="space-y-1">
@@ -313,18 +321,18 @@ export function ColumnSelector({
                     onClick={() => addColumn(field.type as ColumnType, field.id)}
                     className={cn(
                       'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
-                      isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100'
+                      isDark ? 'hover:bg-white/[0.05]' : 'hover:bg-gray-100'
                     )}
                   >
                     <div className={cn(
                       'w-5 h-5 rounded border flex items-center justify-center',
                       isVisible
-                        ? 'bg-[#3B82F6] border-[#3B82F6]'
-                        : isDark ? 'border-[#4B5563]' : 'border-gray-300'
+                        ? 'bg-[#007BFF] border-[#007BFF]'
+                        : isDark ? 'border-[#333]' : 'border-gray-300'
                     )}>
                       {isVisible && <Check className="w-3 h-3 text-white" />}
                     </div>
-                    <span className={isDark ? 'text-[#9CA3AF]' : 'text-gray-400'}>
+                    <span className={isDark ? 'text-white/60' : 'text-gray-400'}>
                       {COLUMN_ICONS[field.type as ColumnType] || <Type className="w-4 h-4" />}
                     </span>
                     <span className={isDark ? 'text-white' : 'text-gray-900'}>
