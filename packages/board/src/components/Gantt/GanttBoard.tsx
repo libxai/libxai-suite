@@ -32,6 +32,7 @@ import {
   createSubtask,
   reparentTask,
   findTask,
+  rollUpParentDates,
 } from './hierarchyUtils';
 
 interface GanttBoardProps {
@@ -346,8 +347,9 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     };
 
     // If we have preserved states, apply them; otherwise just use tasks as-is
+    // Apply roll-up on initial load so parent dates/progress reflect children
     if (expandedStatesRef.current.size > 0) {
-      setLocalTasks(applyExpandedState(tasks));
+      setLocalTasks(rollUpParentDates(applyExpandedState(tasks)));
     } else {
       // Still deduplicate even without preserved states
       const dedupeAll = (taskList: Task[]): Task[] => {
@@ -358,7 +360,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
           return task;
         });
       };
-      setLocalTasks(dedupeAll(tasks));
+      setLocalTasks(rollUpParentDates(dedupeAll(tasks)));
     }
   }, [tasks, setLocalTasks]);
 
@@ -703,11 +705,11 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
 
     // ==================== Hierarchy Methods ====================
     indentTask: (taskId: string) => {
-      setLocalTasks((prev) => indentTasks(prev, [taskId]));
+      setLocalTasks((prev) => rollUpParentDates(indentTasks(prev, [taskId])));
     },
 
     outdentTask: (taskId: string) => {
-      setLocalTasks((prev) => outdentTasks(prev, [taskId]));
+      setLocalTasks((prev) => rollUpParentDates(outdentTasks(prev, [taskId])));
     },
 
     moveTask: (taskId: string, direction: 'up' | 'down') => {
@@ -728,8 +730,8 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         }
       }
 
-      // Only update state if not cancelled
-      setLocalTasks(newTasks);
+      // Only update state if not cancelled — apply roll-up to recalculate parent
+      setLocalTasks(rollUpParentDates(newTasks));
 
       // v0.8.0: After event (non-cancelable)
       if (onAfterTaskAdd) {
@@ -1018,7 +1020,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     if (taskIds.length === 0) return;
     skipSyncCountRef.current += 1;
     skipOnTasksChangeRef.current = true;
-    setLocalTasks((prev) => indentTasks(prev, taskIds));
+    setLocalTasks((prev) => rollUpParentDates(indentTasks(prev, taskIds)));
     config.onTaskIndent?.(taskIds[0]!);
   }, [config]);
 
@@ -1026,7 +1028,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     if (taskIds.length === 0) return;
     skipSyncCountRef.current += 1;
     skipOnTasksChangeRef.current = true;
-    setLocalTasks((prev) => outdentTasks(prev, taskIds));
+    setLocalTasks((prev) => rollUpParentDates(outdentTasks(prev, taskIds)));
     config.onTaskOutdent?.(taskIds[0]!);
   }, [config]);
 
@@ -1034,7 +1036,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   const handleTaskReparent = useCallback((taskId: string, newParentId: string | null, position?: number) => {
     skipSyncCountRef.current += 1;
     skipOnTasksChangeRef.current = true;
-    setLocalTasks((prev) => reparentTask(prev, taskId, newParentId, position));
+    setLocalTasks((prev) => rollUpParentDates(reparentTask(prev, taskId, newParentId, position)));
     config.onTaskReparent?.(taskId, newParentId, position);
   }, [config]);
 
@@ -1072,7 +1074,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       config.onMultiTaskDelete(allowedTaskIds);
     } else {
       // Fallback: update local state and call individual delete handlers
-      setLocalTasks((prev) => deleteTasks(prev, allowedTaskIds));
+      setLocalTasks((prev) => rollUpParentDates(deleteTasks(prev, allowedTaskIds)));
       allowedTaskIds.forEach(id => config.onTaskDelete?.(id));
     }
 
@@ -1179,6 +1181,9 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     // Then, auto-schedule all dependent tasks (cascade effect)
     // v0.13.3: Pass daysDelta to preserve relative gaps between tasks
     updatedTasks = ganttUtils.autoScheduleDependents(updatedTasks, task.id, daysDelta);
+
+    // Roll-up: recalculate parent dates/progress from children
+    updatedTasks = rollUpParentDates(updatedTasks);
 
     setLocalTasks(updatedTasks);
 

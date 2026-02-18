@@ -468,6 +468,9 @@ export function TaskGrid({
 
   // Render cell content based on column type
   const renderCellContent = (column: GanttColumn, task: Task, level: number) => {
+    // Leaf Node Rule: parent tasks with children are read-only containers
+    const isParentTask = task.subtasks && task.subtasks.length > 0;
+
     switch (column.id) {
       case 'name':
         const isEditing = editingTaskId === task.id;
@@ -652,8 +655,14 @@ export function TaskGrid({
             <button
               type="button"
               className="flex items-center gap-1.5 px-2 py-1 rounded text-xs transition-colors hover:bg-white/5"
-              style={{ color: theme.textSecondary }}
+              style={{
+                color: theme.textSecondary,
+                opacity: isParentTask ? 0.5 : 1,
+                cursor: isParentTask ? 'default' : 'pointer',
+              }}
+              title={isParentTask ? 'Auto-calculated from subtasks' : undefined}
               onClick={(e) => {
+                if (isParentTask) return; // Parent dates are read-only (roll-up)
                 if (isDatePickerOpen) {
                   setDatePickerState(null);
                 } else {
@@ -669,6 +678,7 @@ export function TaskGrid({
             >
               <Calendar className="w-3 h-3" style={{ color: theme.textTertiary }} />
               <span>{formatDisplayDate(dateValue)}</span>
+              {isParentTask && <span style={{ fontSize: '9px', color: theme.textTertiary, marginLeft: '2px' }}>▼</span>}
             </button>
 
             {/* Date Picker Popover - Using Portal to render outside overflow:hidden containers */}
@@ -827,6 +837,14 @@ export function TaskGrid({
         );
       
       case 'assignees':
+        // Parent tasks: no assignees (read-only container)
+        if (isParentTask) {
+          return (
+            <div className="flex items-center justify-center w-full" style={{ opacity: 0.4 }}>
+              <span className="text-xs" style={{ color: theme.textTertiary }}>—</span>
+            </div>
+          );
+        }
         const taskAssignedUsers: User[] = availableUsers.filter(user =>
           task.assignees?.some(a => a.name === user.name || a.initials === user.initials)
         );
@@ -853,8 +871,17 @@ export function TaskGrid({
             />
           </div>
         );
-      
+
       case 'status':
+        // Parent tasks: show rolled-up status (read-only)
+        if (isParentTask) {
+          const statusLabel = task.progress === 100 ? '✓' : task.progress > 0 ? '◐' : '○';
+          return (
+            <div className="flex items-center justify-center w-full" style={{ opacity: 0.5 }}>
+              <span className="text-xs" style={{ color: theme.textTertiary }}>{statusLabel}</span>
+            </div>
+          );
+        }
         return (
           <div
             className="flex items-center justify-center w-full"
@@ -871,10 +898,10 @@ export function TaskGrid({
             />
           </div>
         );
-      
+
       case 'progress':
         return (
-          <div className="flex items-center justify-center gap-2 w-full">
+          <div className="flex items-center justify-center gap-2 w-full" style={{ opacity: isParentTask ? 0.6 : 1 }}>
             <div className="flex-1 h-1.5 rounded-full overflow-hidden max-w-[60px]" style={{ backgroundColor: theme.bgSecondary }}>
               <div
                 className="h-full rounded-full transition-all"

@@ -699,7 +699,7 @@ export function TaskBar({
 
       {/* Main Task Bar - Background */}
       {!task.segments && isChronos && isSummaryTask && (
-        /* Chronos V2: Summary tasks (with children) — thin outline only (like reference design) */
+        /* Chronos V2: Summary tasks (with children) — read-only container, no drag */
         <>
           <rect
             x={displayX}
@@ -711,11 +711,9 @@ export function TaskBar({
             stroke="rgba(255,255,255,0.15)"
             strokeWidth={1}
             data-task-class={customClass}
-            onMouseDown={(e) => handleMouseDown(e as any)}
             style={{
-              cursor: isDragging ? (isConnecting ? 'crosshair' : isResizing ? 'ew-resize' : 'grabbing') : 'grab',
+              cursor: 'default',
               pointerEvents: 'all',
-              opacity: isDragging && !isConnecting ? 0.3 : 1,
             }}
           />
           {/* Summary bar: thin solid line at bottom to show span */}
@@ -780,9 +778,9 @@ export function TaskBar({
             scale: isHovered && !isDragging ? 1.02 : 1,
           }}
           transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-          onMouseDown={(e) => handleMouseDown(e as any)}
+          onMouseDown={isSummaryTask ? undefined : (e) => handleMouseDown(e as any)}
           style={{
-            cursor: isDragging ? (isConnecting ? 'crosshair' : isResizing ? 'ew-resize' : 'grabbing') : 'grab',
+            cursor: isSummaryTask ? 'default' : (isDragging ? (isConnecting ? 'crosshair' : isResizing ? 'ew-resize' : 'grabbing') : 'grab'),
             pointerEvents: 'all',
           }}
         />
@@ -1054,8 +1052,8 @@ export function TaskBar({
         </g>
       )}
 
-      {/* v0.17.340: ClickUp-style resize handles - invisible hit area + visible indicator */}
-      {(isHovered || isResizing) && !isConnecting && !task.segments && (
+      {/* v0.17.340: ClickUp-style resize handles - hidden for summary tasks (read-only) */}
+      {(isHovered || isResizing) && !isConnecting && !task.segments && !isSummaryTask && (
         <>
           {/* LEFT RESIZE HANDLE */}
           <g>
