@@ -388,15 +388,18 @@ export function Timeline({
       style={{ backgroundColor: theme.bgPrimary }}
     >
       {/* v0.13.7: Sticky Header - stays visible during vertical scroll */}
+      {/* Chronos V2: Frosted glass header */}
       <div
         style={{
           position: 'sticky',
           top: 0,
           zIndex: 10,
-          backgroundColor: theme.bgGrid,
+          backgroundColor: theme.glassHeader || theme.bgGrid,
+          backdropFilter: theme.glassHeader ? 'blur(12px)' : undefined,
+          WebkitBackdropFilter: theme.glassHeader ? 'blur(12px)' : undefined,
           flexShrink: 0,
           height: `${HEADER_HEIGHT}px`,
-          borderBottom: `1px solid ${theme.border}`,
+          borderBottom: `1px solid ${theme.borderLight}`,
           boxSizing: 'border-box', // Border included in height
         }}
       >
@@ -405,13 +408,13 @@ export function Timeline({
           height={HEADER_HEIGHT - 1} // -1 for border
           style={{ display: 'block' }}
         >
-          {/* Header Background */}
+          {/* Header Background — Chronos V2: transparent when glass, fallback to bgGrid */}
           <rect
             x={0}
             y={0}
             width={Math.max(timelineWidth, 1000)}
             height={HEADER_HEIGHT}
-            fill={theme.bgGrid}
+            fill={theme.glassHeader ? 'transparent' : theme.bgGrid}
           />
 
           {/* Header Grid Lines and Text */}
@@ -445,9 +448,22 @@ export function Timeline({
             </g>
           ))}
 
-          {/* Today marker in header */}
+          {/* Today marker in header — Chronos V2: Badge instead of circle */}
           {todayX >= 0 && todayX <= timelineWidth && (
-            <circle cx={todayX} cy={HEADER_HEIGHT - 10} r={6} fill={theme.today} opacity={1} />
+            <g>
+              {/* Neon glow circle */}
+              <circle cx={todayX} cy={HEADER_HEIGHT - 10} r={4} fill={theme.today} opacity={1} />
+              {theme.neonRedGlow && (
+                <circle cx={todayX} cy={HEADER_HEIGHT - 10} r={6} fill="none" stroke={theme.today} strokeWidth={1} opacity={0.3} />
+              )}
+              {/* TODAY badge */}
+              {theme.neonRedGlow && (
+                <g transform={`translate(${todayX - 18}, 2)`}>
+                  <rect x={0} y={0} width={36} height={14} rx={2} fill="rgba(0,0,0,0.8)" stroke={theme.today} strokeWidth={0.5} opacity={0.8} />
+                  <text x={18} y={10} textAnchor="middle" fill={theme.today} fontSize="7" fontFamily="'JetBrains Mono', monospace" fontWeight="700" letterSpacing="0.1em">TODAY</text>
+                </g>
+              )}
+            </g>
           )}
         </svg>
       </div>
@@ -470,6 +486,11 @@ export function Timeline({
           <pattern id="diagonal-stripes" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
             <line x1="0" y1="0" x2="0" y2="8" stroke={theme.border} strokeWidth="2" />
           </pattern>
+
+          {/* Chronos V2: Weekend hatched pattern */}
+          <pattern id="weekend-hatch" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)">
+            <line x1="0" y1="0" x2="0" y2="10" stroke="rgba(255,255,255,0.015)" strokeWidth="5" />
+          </pattern>
         </defs>
 
         {/* Full SVG Background - v0.17.220: Matches TaskGrid bgPrimary for alignment */}
@@ -488,28 +509,41 @@ export function Timeline({
 
           return (
             <g key={index}>
-              {/* Weekend background - subtle highlight */}
+              {/* Weekend background — Chronos V2: hatched pattern, fallback to solid */}
               {isWeekendDay && (
-                <rect
-                  x={header.x}
-                  y={0}
-                  width={nextX - header.x}
-                  height={flatTasks.length * ROW_HEIGHT}
-                  fill={theme.bgWeekend}
-                  opacity={1}
-                />
+                <>
+                  <rect
+                    x={header.x}
+                    y={0}
+                    width={nextX - header.x}
+                    height={flatTasks.length * ROW_HEIGHT}
+                    fill={theme.neonRedGlow ? 'rgba(17,17,17,0.4)' : theme.bgWeekend}
+                    opacity={1}
+                  />
+                  {theme.neonRedGlow && (
+                    <rect
+                      x={header.x}
+                      y={0}
+                      width={nextX - header.x}
+                      height={flatTasks.length * ROW_HEIGHT}
+                      fill="url(#weekend-hatch)"
+                      opacity={1}
+                    />
+                  )}
+                </>
               )}
 
               {/* Grid line - skip first line since TaskGrid border serves as divider */}
+              {/* Chronos V2: Very subtle grid lines (white/5%) */}
               {index > 0 && (
                 <line
                   x1={header.x}
                   y1={0}
                   x2={header.x}
                   y2={flatTasks.length * ROW_HEIGHT}
-                  stroke={theme.border}
+                  stroke={theme.borderLight}
                   strokeWidth={1}
-                  opacity={0.1}
+                  opacity={theme.neonRedGlow ? 1 : 0.1}
                 />
               )}
             </g>
@@ -909,18 +943,32 @@ export function Timeline({
           />
         )}
 
-        {/* v0.17.179: Today Line - Thinner like ClickUp (1px) */}
+        {/* v0.17.179: Today Line — Chronos V2: Neon red with glow */}
         {todayX >= 0 && todayX <= timelineWidth && (
-          <line
-            x1={todayX}
-            y1={0}
-            x2={todayX}
-            y2={contentHeight}
-            stroke={theme.today}
-            strokeWidth={1}
-            opacity={1}
-            style={{ pointerEvents: 'none' }}
-          />
+          <g style={{ pointerEvents: 'none' }}>
+            {/* Glow effect (wider, transparent) */}
+            {theme.neonRedGlow && (
+              <line
+                x1={todayX}
+                y1={0}
+                x2={todayX}
+                y2={contentHeight}
+                stroke={theme.today}
+                strokeWidth={6}
+                opacity={0.15}
+              />
+            )}
+            {/* Sharp line */}
+            <line
+              x1={todayX}
+              y1={0}
+              x2={todayX}
+              y2={contentHeight}
+              stroke={theme.today}
+              strokeWidth={1}
+              opacity={1}
+            />
+          </g>
         )}
 
         {/* v0.17.76: Tooltip layer - rendered last to ensure it's always on top */}

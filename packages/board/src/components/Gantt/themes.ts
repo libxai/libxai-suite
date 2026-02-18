@@ -2,53 +2,59 @@ import { GanttTheme } from './types';
 
 export const themes: Record<string, GanttTheme> = {
   dark: {
-    // Backgrounds
-    // v0.17.71: Improved contrast - sidebar darker, main area brighter
-    bgPrimary: '#1A1D21',
-    bgSecondary: '#22262D',  // Slightly lighter for better card contrast
-    bgGrid: '#1E2126',  // v0.17.71: More visible zebra stripes
-    bgWeekend: 'rgba(59, 130, 246, 0.03)',
+    // Backgrounds — Chronos V2: Ultra-dark base
+    bgPrimary: '#050505',
+    bgSecondary: '#0A0A0A',
+    bgGrid: 'rgba(255, 255, 255, 0.02)',
+    bgWeekend: 'rgba(17, 17, 17, 0.4)',
 
-    // Borders - v0.17.71: More visible separation
-    border: '#334155',  // Brighter border for better column separation
-    borderLight: '#2D3139',
+    // Borders — Chronos V2: Subtle glass borders
+    border: 'rgba(255, 255, 255, 0.08)',
+    borderLight: 'rgba(255, 255, 255, 0.05)',
 
-    // Text - v0.17.71: Enhanced hierarchy
-    textPrimary: '#FFFFFF',  // Pure white for maximum brightness (Phases)
-    textSecondary: '#CBD5E1',  // Slate 300 - for child tasks
-    textTertiary: '#64748B',  // Slate 500 - for metadata
+    // Text — Chronos V2: High contrast hierarchy
+    textPrimary: '#FFFFFF',
+    textSecondary: '#CCCCCC',
+    textTertiary: '#888888',
 
-    // Accent & Interactive - Electric Blue brand color
-    accent: '#3B82F6',
-    accentHover: '#60A5FA',
-    accentLight: 'rgba(59, 130, 246, 0.12)',
+    // Accent & Interactive — Chronos Blue
+    accent: '#2E94FF',
+    accentHover: '#5AADFF',
+    accentLight: 'rgba(46, 148, 255, 0.15)',
 
-    // Task Elements - Electric Blue brand color
-    taskBarPrimary: '#3B82F6',
-    taskBarProgress: '#2563EB',
+    // Task Elements — Execution bar blue
+    taskBarPrimary: '#007AFF',
+    taskBarProgress: '#007AFF',
     taskBarHandle: '#FFFFFF',
 
-    // Dependencies & Critical Path
-    // v0.17.361: Solid colors for better visibility
-    dependency: '#9CA3AF',
-    dependencyHover: '#60A5FA',  // v0.17.450: Bright blue hover for better visibility
-    criticalPath: '#EF4444',
-    criticalPathLight: 'rgba(239, 68, 68, 0.12)',
+    // Dependencies & Critical Path — Neon
+    dependency: '#444444',
+    dependencyHover: '#FFFFFF',
+    criticalPath: '#FF453A',
+    criticalPathLight: 'rgba(255, 69, 58, 0.2)',
 
-    // Special Elements - v0.17.180: Exact ClickUp "Today" line color
-    today: '#D21E24',  // Exact ClickUp red
-    todayLight: 'rgba(210, 30, 36, 0.12)',
-    milestone: '#F59E0B',
-    milestoneLight: 'rgba(245, 158, 11, 0.1)',
+    // Special Elements — Neon red today marker
+    today: '#FF2E2E',
+    todayLight: 'rgba(255, 46, 46, 0.1)',
+    milestone: '#FFFFFF',
+    milestoneLight: 'rgba(255, 255, 255, 0.1)',
 
     // Status Colors
-    statusTodo: '#64748B',  // Slate 500
-    statusInProgress: '#3B82F6',
+    statusTodo: '#666666',
+    statusInProgress: '#2E94FF',
     statusCompleted: '#10B981',
 
     // Hover & Focus States
-    hoverBg: 'rgba(255, 255, 255, 0.06)',
-    focusRing: '#3B82F6',
+    hoverBg: 'rgba(255, 255, 255, 0.04)',
+    focusRing: '#2E94FF',
+
+    // Chronos V2 additions
+    dotGrid: 'rgba(255, 255, 255, 0.05)',
+    glassHeader: 'rgba(10, 10, 10, 0.8)',
+    glassToolbar: 'rgba(0, 0, 0, 0.4)',
+    forecastHud: 'rgba(15, 15, 15, 0.9)',
+    neonRedGlow: '0 0 10px rgba(255, 46, 46, 0.4)',
+    executionBarBg: 'rgba(0, 122, 255, 0.3)',
   },
   
   light: {

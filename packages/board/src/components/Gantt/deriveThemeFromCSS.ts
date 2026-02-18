@@ -80,6 +80,14 @@ export function deriveThemeFromCSS(themeName: 'dark' | 'light' | 'neutral' = 'da
     // Hover & Focus States
     hoverBg: getVar('--theme-bg-hover', themes[themeName].hoverBg),
     focusRing: getVar('--theme-accent-primary', themes[themeName].focusRing),
+
+    // Chronos V2 tokens — pass through from static theme (not CSS-derived)
+    ...(themes[themeName].dotGrid && { dotGrid: themes[themeName].dotGrid }),
+    ...(themes[themeName].glassHeader && { glassHeader: themes[themeName].glassHeader }),
+    ...(themes[themeName].glassToolbar && { glassToolbar: themes[themeName].glassToolbar }),
+    ...(themes[themeName].forecastHud && { forecastHud: themes[themeName].forecastHud }),
+    ...(themes[themeName].neonRedGlow && { neonRedGlow: themes[themeName].neonRedGlow }),
+    ...(themes[themeName].executionBarBg && { executionBarBg: themes[themeName].executionBarBg }),
   };
 
   return derivedTheme;

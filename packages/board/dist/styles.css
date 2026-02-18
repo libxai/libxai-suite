@@ -8928,6 +8928,11 @@ body {
 }
 
 
+.h-\[52px\] {
+  height: 52px;
+}
+
+
 .h-full {
   height: 100%;
 }
@@ -9145,6 +9150,11 @@ body {
 
 .w-8 {
   width: 2rem;
+}
+
+
+.w-9 {
+  width: 2.25rem;
 }
 
 
@@ -9611,6 +9621,11 @@ body {
 
 .gap-4 {
   gap: 1rem;
+}
+
+
+.gap-6 {
+  gap: 1.5rem;
 }
 
 
@@ -11265,6 +11280,11 @@ body {
 
 .leading-snug {
   line-height: 1.375;
+}
+
+
+.tracking-\[0\.15em\] {
+  letter-spacing: 0.15em;
 }
 
 

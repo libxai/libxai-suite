@@ -148,6 +148,14 @@ export interface GanttTheme {
   // Hover & Focus States
   hoverBg: string;
   focusRing: string;
+
+  // Chronos V2 (optional — only set in dark theme)
+  dotGrid?: string;
+  glassHeader?: string;
+  glassToolbar?: string;
+  forecastHud?: string;
+  neonRedGlow?: string;
+  executionBarBg?: string;
 }
 
 /**

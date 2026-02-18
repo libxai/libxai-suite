@@ -217,15 +217,24 @@ export function TaskGrid({
     enableKeyboard: true,
   });
 
-  const flattenTasks = (tasks: Task[], level = 0): Array<{ task: Task; level: number }> => {
+  const flattenTasks = (tasks: Task[], level = 0, parentWbs = ''): Array<{ task: Task; level: number }> => {
     const result: Array<{ task: Task; level: number }> = [];
 
     // Sort by position to maintain creation order
     const sortedTasks = [...tasks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
-    for (const task of sortedTasks) {
+    for (let i = 0; i < sortedTasks.length; i++) {
+      const task = sortedTasks[i]!;
+      // Generate WBS code: "1.0", "1.1", "1.1.1", etc.
+      const seq = i + 1;
+      const wbsCode = parentWbs
+        ? `${parentWbs}.${seq}`         // Child: "1.1", "1.1.1"
+        : `${seq}.0`;                    // Root: "1.0", "2.0"
+      task.wbsCode = wbsCode;
       result.push({ task, level });
       if (task.subtasks && task.subtasks.length > 0 && task.isExpanded) {
-        result.push(...flattenTasks(task.subtasks, level + 1));
+        // Children use parent's seq (without .0) as prefix
+        const childPrefix = parentWbs ? `${parentWbs}.${seq}` : `${seq}`;
+        result.push(...flattenTasks(task.subtasks, level + 1, childPrefix));
       }
     }
 
@@ -545,29 +554,43 @@ export function TaskGrid({
                   className="flex-1"
                   style={{
                     // v0.17.72: Enhanced visual hierarchy - Root tasks (level 0) are always "phases"
-                    // Root tasks (no parentId): Pure primary color, heavier weight - even without children
-                    // Subtasks (has parentId): Secondary color, lighter weight
-                    // This ensures master tasks look prominent even before adding children
+                    display: 'inline-flex',
+                    alignItems: 'baseline',
+                    gap: '6px',
+                    overflow: 'hidden',
                     color: !task.parentId
-                      ? theme.textPrimary  // Root/Master: Brightest (#FFFFFF dark / #0F172A light)
-                      : theme.textSecondary,  // Subtasks: Muted (#CBD5E1 dark / #334155 light)
+                      ? theme.textPrimary
+                      : theme.textSecondary,
                     fontFamily: 'Inter, sans-serif',
                     fontSize: !task.parentId
-                      ? '14px'  // Root/Master: Slightly larger
-                      : '13px',  // Subtasks: Normal size
-                    // v0.17.72: Font weight based on hierarchy level, not children count
+                      ? '14px'
+                      : '13px',
                     fontWeight: task.isMilestone
-                      ? 600  // Milestones: Semibold (most important)
+                      ? 600
                       : !task.parentId
-                        ? 600  // Root/Master: Semibold - always "jump" to view
-                        : 400,  // Subtasks: Normal weight
+                        ? 600
+                        : 400,
                     letterSpacing: !task.parentId
-                      ? '-0.01em'  // Root/Master: Tighter tracking for headers
+                      ? '-0.01em'
                       : '0',
                   }}
-                  title={task.name} // v0.13.8: Show full name on hover tooltip
+                  title={task.name}
                 >
-                  {task.name}
+                  {task.wbsCode && (
+                    <span style={{
+                      color: theme.textTertiary,
+                      fontFamily: "'JetBrains Mono', monospace",
+                      fontSize: '11px',
+                      fontWeight: 500,
+                      opacity: 0.65,
+                      flexShrink: 0,
+                    }}>
+                      {task.wbsCode}
+                    </span>
+                  )}
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {task.name}
+                  </span>
                 </span>
 
                 {/* Hover Action Buttons */}

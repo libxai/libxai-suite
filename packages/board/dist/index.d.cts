@@ -111,6 +111,12 @@ interface GanttTheme {
     statusCompleted: string;
     hoverBg: string;
     focusRing: string;
+    dotGrid?: string;
+    glassHeader?: string;
+    glassToolbar?: string;
+    forecastHud?: string;
+    neonRedGlow?: string;
+    executionBarBg?: string;
 }
 /**
  * Templates for customizing Gantt rendering

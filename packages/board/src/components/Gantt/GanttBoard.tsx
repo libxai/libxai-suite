@@ -1707,6 +1707,11 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         backgroundColor: theme.bgPrimary,
         fontFamily: 'Inter, sans-serif',
         minHeight: 0, // Critical for flex children to shrink
+        // Chronos V2: Dot-grid background pattern
+        ...(theme.dotGrid && {
+          backgroundImage: `radial-gradient(circle, ${theme.dotGrid} 1px, transparent 1px)`,
+          backgroundSize: '24px 24px',
+        }),
         // v0.9.1: Prevent browser auto-scroll when disableScrollSync is enabled
         ...(config.disableScrollSync && {
           scrollBehavior: 'auto',

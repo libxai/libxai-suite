@@ -82,7 +82,11 @@ export function TaskBar({
   } = dragState;
 
   const height = 24; // v1.4.4: Reduced from 32 for slimmer bars
-  const borderRadius = 8;
+  // Chronos V2: Angular bars (4px) vs rounded (8px)
+  const isChronos = !!theme.executionBarBg;
+  const borderRadius = isChronos ? 4 : 8;
+  // Chronos: Only tasks with actual children are "summary" bars (outline only)
+  const isSummaryTask = !task.parentId && task.subtasks && task.subtasks.length > 0;
 
   // Detect task states for neutral theme visualization
   const isOverdue = task.endDate && task.endDate < new Date() && task.progress < 100;
@@ -693,11 +697,69 @@ export function TaskBar({
         />
       )}
 
-      {/* Main Task Bar - Background (light for contrast with progress) - v0.8.0: With custom class */}
-      {/* v0.8.1: Hide main bar when task has segments (split task) */}
-      {/* v0.11.0: Custom task colors with parent/subtask opacity */}
-      {/* v0.13.6: Overdue tasks (past due + not completed) also shown in red */}
-      {!task.segments && (
+      {/* Main Task Bar - Background */}
+      {!task.segments && isChronos && isSummaryTask && (
+        /* Chronos V2: Summary tasks (with children) — thin outline only (like reference design) */
+        <>
+          <rect
+            x={displayX}
+            y={y}
+            width={displayWidth}
+            height={height}
+            rx={borderRadius}
+            fill="none"
+            stroke="rgba(255,255,255,0.15)"
+            strokeWidth={1}
+            data-task-class={customClass}
+            onMouseDown={(e) => handleMouseDown(e as any)}
+            style={{
+              cursor: isDragging ? (isConnecting ? 'crosshair' : isResizing ? 'ew-resize' : 'grabbing') : 'grab',
+              pointerEvents: 'all',
+              opacity: isDragging && !isConnecting ? 0.3 : 1,
+            }}
+          />
+          {/* Summary bar: thin solid line at bottom to show span */}
+          <rect
+            x={displayX}
+            y={y + height - 3}
+            width={displayWidth}
+            height={3}
+            rx={1.5}
+            fill={taskColor}
+            opacity={0.6}
+            style={{ pointerEvents: 'none' }}
+          />
+        </>
+      )}
+
+      {!task.segments && isChronos && !isSummaryTask && (
+        /* Chronos V2: Execution bars — dark track + solid progress fill (two-tone) */
+        <motion.rect
+          x={displayX}
+          y={y}
+          width={displayWidth}
+          height={height}
+          rx={borderRadius}
+          fill={theme.executionBarBg || 'rgba(255,255,255,0.06)'}
+          stroke="rgba(255,255,255,0.1)"
+          strokeWidth={1}
+          data-task-class={customClass}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{
+            opacity: isDragging && !isConnecting ? 0.15 : 1,
+            scale: isHovered && !isDragging ? 1.01 : 1,
+          }}
+          transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+          onMouseDown={(e) => handleMouseDown(e as any)}
+          style={{
+            cursor: isDragging ? (isConnecting ? 'crosshair' : isResizing ? 'ew-resize' : 'grabbing') : 'grab',
+            pointerEvents: 'all',
+          }}
+        />
+      )}
+
+      {!task.segments && !isChronos && (
+        /* Non-Chronos themes: original solid bar */
         <motion.rect
           x={displayX}
           y={y}
@@ -711,39 +773,86 @@ export function TaskBar({
             opacity: isDragging && !isConnecting
               ? 0.15
               : task.parentId
-              ? 0.6 // v0.11.0: Subtasks more transparent (60%)
+              ? 0.6
               : isHovered
-              ? 0.9 // Parent tasks more opaque on hover
-              : 0.8, // Parent tasks base opacity (80%)
+              ? 0.9
+              : 0.8,
             scale: isHovered && !isDragging ? 1.02 : 1,
           }}
-          transition={{
-            duration: 0.2,
-            ease: [0.4, 0, 0.2, 1],
-          }}
+          transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
           onMouseDown={(e) => handleMouseDown(e as any)}
           style={{
             cursor: isDragging ? (isConnecting ? 'crosshair' : isResizing ? 'ew-resize' : 'grabbing') : 'grab',
-            pointerEvents: 'all'
+            pointerEvents: 'all',
           }}
         />
       )}
 
-      {/* Progress Fill - Solid color for instant visual scanning */}
-      {/* Eye processes shape/color faster than text */}
-      {/* v0.11.0: Use custom task color for progress fill */}
-      {/* v0.13.6: Overdue tasks also shown in red */}
-      {!task.segments && (
+      {/* Chronos V2: Critical task border + neon glow */}
+      {isChronos && (isOverdue || isAtRisk) && !task.segments && (
         <rect
           x={displayX}
           y={y}
-          width={displayWidth * (task.progress / 100)}
+          width={displayWidth}
           height={height}
           rx={borderRadius}
-          fill={taskColor}
-          opacity={1}
-          style={{ pointerEvents: 'none' }}
+          fill="none"
+          stroke={theme.criticalPath}
+          strokeWidth={2}
+          style={{ pointerEvents: 'none', filter: `drop-shadow(0 0 6px ${theme.criticalPathLight || 'rgba(255,46,46,0.4)'})` }}
         />
+      )}
+
+      {/* Progress Fill */}
+      {!task.segments && task.progress > 0 && (
+        isChronos && isSummaryTask ? (
+          /* Chronos summary: no progress fill (outline only) */
+          null
+        ) : (
+          <rect
+            x={displayX}
+            y={y}
+            width={Math.max(displayWidth * (task.progress / 100), borderRadius * 2)}
+            height={height}
+            rx={isChronos ? borderRadius : borderRadius}
+            fill={taskColor}
+            opacity={isChronos ? 1 : 1}
+            style={{ pointerEvents: 'none' }}
+          />
+        )
+      )}
+
+      {/* Chronos V2: Assignee avatar at end of progress bar */}
+      {isChronos && !task.segments && task.progress > 0 && task.progress < 100 && !isSummaryTask && !isDragging && (
+        (() => {
+          const progressEndX = displayX + displayWidth * (task.progress / 100);
+          const avatarR = 8;
+          const assignee = task.assignees?.[0];
+          return (
+            <g style={{ pointerEvents: 'none' }}>
+              <circle
+                cx={progressEndX}
+                cy={y + height / 2}
+                r={avatarR}
+                fill={assignee?.color || theme.accent}
+                stroke="#000"
+                strokeWidth={1.5}
+              />
+              <text
+                x={progressEndX}
+                y={y + height / 2}
+                textAnchor="middle"
+                dominantBaseline="central"
+                fill="#FFF"
+                fontSize="8"
+                fontWeight="600"
+                fontFamily="Inter, sans-serif"
+              >
+                {assignee?.initials || assignee?.name?.charAt(0)?.toUpperCase() || ''}
+              </text>
+            </g>
+          );
+        })()
       )}
 
       {/* v0.8.1: Render segments if task is split (has gaps) - Bryntum-style independent segments */}
@@ -885,22 +994,36 @@ export function TaskBar({
         );
       })()}
 
-      {/* Progress Percentage */}
-      {/* v0.8.1: Hide progress text for split tasks to avoid blocking segment clicks */}
-      {displayWidth > 100 && task.progress > 0 && task.progress < 100 && !isDragging && !task.segments && (
-        <text
-          x={displayX + displayWidth - 12}
-          y={y + height / 2}
-          dominantBaseline="middle"
-          textAnchor="end"
-          fill="rgba(255, 255, 255, 0.9)"
-          fontSize="11"
-          fontWeight="600"
-          fontFamily="Inter, sans-serif"
-          style={{ pointerEvents: 'none', userSelect: 'none' }}
-        >
-          {task.progress}%
-        </text>
+      {/* Progress Percentage — Chronos V2: outside bar to the right */}
+      {!isDragging && !task.segments && task.progress > 0 && task.progress < 100 && (
+        isChronos ? (
+          <text
+            x={displayX + displayWidth + 6}
+            y={y + height / 2}
+            dominantBaseline="middle"
+            fill="#FFFFFF"
+            fontSize="9"
+            fontWeight="500"
+            fontFamily="'JetBrains Mono', monospace"
+            style={{ pointerEvents: 'none', userSelect: 'none' }}
+          >
+            {task.progress}%
+          </text>
+        ) : displayWidth > 100 ? (
+          <text
+            x={displayX + displayWidth - 12}
+            y={y + height / 2}
+            dominantBaseline="middle"
+            textAnchor="end"
+            fill="rgba(255, 255, 255, 0.9)"
+            fontSize="11"
+            fontWeight="600"
+            fontFamily="Inter, sans-serif"
+            style={{ pointerEvents: 'none', userSelect: 'none' }}
+          >
+            {task.progress}%
+          </text>
+        ) : null
       )}
 
       {/* Status Indicator Badge */}
@@ -1097,17 +1220,17 @@ export function TaskBar({
       {/* Hover Glow Effect - v0.8.1: Disabled for split tasks (segments are independent) */}
       {(isHovered || isDragging) && !isConnecting && !task.segments && (
         <motion.rect
-          x={displayX - 2}
-          y={y - 2}
-          width={displayWidth + 4}
-          height={height + 4}
-          rx={borderRadius + 2}
+          x={displayX - 1}
+          y={y - 1}
+          width={displayWidth + 2}
+          height={height + 2}
+          rx={borderRadius + 1}
           fill="none"
-          stroke={isDragging ? theme.accent : theme.taskBarPrimary}
-          strokeWidth={2}
-          opacity={isDragging ? 0.6 : 0.4}
+          stroke={isDragging ? theme.accent : (isChronos ? 'rgba(255,255,255,0.2)' : theme.taskBarPrimary)}
+          strokeWidth={isChronos ? 1 : 2}
+          opacity={isDragging ? 0.6 : (isChronos ? 0.6 : 0.4)}
           initial={{ opacity: 0 }}
-          animate={{ opacity: isDragging ? 0.6 : 0.4 }}
+          animate={{ opacity: isDragging ? 0.6 : (isChronos ? 0.6 : 0.4) }}
           transition={{ duration: 0.2 }}
           style={{ pointerEvents: 'none' }}
         />

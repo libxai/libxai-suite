@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { ZoomIn, ZoomOut, Sun, Moon, Palette, Download, FileImage, FileSpreadsheet, FileText, FileJson, ChevronDown, FolderKanban, Plus, Rows3, Check, Filter, CheckCircle2, PlayCircle, Circle, EyeOff } from 'lucide-react';
+import { ZoomIn, ZoomOut, Sun, Moon, Palette, Download, FileImage, FileSpreadsheet, FileText, FileJson, ChevronDown, FolderKanban, Plus, Rows3, Check, Filter, CheckCircle2, PlayCircle, Circle, EyeOff, Search, Eye, Share2, Sparkles } from 'lucide-react';
 import { TimeScale, Theme, RowDensity, TaskFilterType } from './types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGanttI18n } from './GanttI18nContext'; // v0.15.0: i18n
@@ -732,6 +732,147 @@ function FilterDropdown({ theme, value, onChange, hideCompleted = false, onHideC
   );
 }
 
+/**
+ * Chronos V2: Time Capsule — pill-shaped time scale selector
+ */
+function TimeCapsule({ value, onChange }: { value: TimeScale; onChange: (s: TimeScale) => void }) {
+  const scales: Array<{ value: TimeScale; label: string }> = [
+    { value: 'day', label: 'D' },
+    { value: 'week', label: 'W' },
+    { value: 'month', label: 'M' },
+  ];
+
+  return (
+    <div
+      className="inline-flex items-center rounded-full p-0.5"
+      style={{
+        backgroundColor: '#000000',
+        border: '1px solid rgba(255,255,255,0.1)',
+      }}
+    >
+      {scales.map((s) => {
+        const isActive = value === s.value;
+        return (
+          <motion.button
+            key={s.value}
+            onClick={() => onChange(s.value)}
+            className="relative px-3 py-1 text-[11px] font-medium rounded-full transition-colors"
+            style={{
+              color: isActive ? '#FFFFFF' : '#666666',
+              fontFamily: "'JetBrains Mono', monospace",
+              backgroundColor: isActive ? 'rgba(255,255,255,0.1)' : 'transparent',
+            }}
+            whileHover={{ color: '#FFFFFF' }}
+            whileTap={{ scale: 0.95 }}
+          >
+            {s.label}
+          </motion.button>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * Chronos V2: Forecast HUD Panel — placeholder KPIs bar
+ */
+function ForecastHUD({ theme }: { theme: any }) {
+  return (
+    <div
+      className="h-12 px-4 flex items-center justify-between border-b"
+      style={{
+        backgroundColor: theme.forecastHud || 'rgba(15,15,15,0.9)',
+        borderColor: theme.borderLight,
+        backdropFilter: 'blur(12px)',
+      }}
+    >
+      {/* Left: Project Forecast label + Expected Finish */}
+      <div className="flex items-center gap-6">
+        <span
+          className="text-[9px] uppercase tracking-[0.15em]"
+          style={{
+            color: '#666666',
+            fontFamily: "'JetBrains Mono', monospace",
+            fontWeight: 500,
+          }}
+        >
+          PROJECT FORECAST
+        </span>
+
+        <div className="flex items-center gap-2">
+          <span
+            className="text-[13px] font-semibold"
+            style={{ color: '#FFFFFF', fontFamily: 'Inter, sans-serif' }}
+          >
+            Expected Finish: Nov 28
+          </span>
+          <span
+            className="px-1.5 py-0.5 rounded text-[10px] font-medium"
+            style={{
+              backgroundColor: 'rgba(255,46,46,0.15)',
+              color: '#FF453A',
+              fontFamily: "'JetBrains Mono', monospace",
+            }}
+          >
+            +12d Delay
+          </span>
+        </div>
+      </div>
+
+      {/* Right: Confidence + Cost */}
+      <div className="flex items-center gap-6">
+        <div className="flex items-center gap-2">
+          <span
+            className="text-[11px]"
+            style={{ color: '#888888', fontFamily: 'Inter, sans-serif' }}
+          >
+            Confidence:
+          </span>
+          <span
+            className="text-[13px] font-semibold"
+            style={{
+              color: '#F59E0B',
+              fontFamily: "'JetBrains Mono', monospace",
+            }}
+          >
+            62%
+          </span>
+        </div>
+
+        <div
+          className="w-px h-5"
+          style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}
+        />
+
+        <div className="flex items-center gap-2">
+          <span
+            className="text-[11px]"
+            style={{ color: '#888888', fontFamily: 'Inter, sans-serif' }}
+          >
+            Cost at Completion:
+          </span>
+          <span
+            className="text-[13px] font-bold"
+            style={{ color: '#FFFFFF', fontFamily: "'JetBrains Mono', monospace" }}
+          >
+            $1.42M
+          </span>
+          <span
+            className="px-1.5 py-0.5 rounded text-[10px] font-medium"
+            style={{
+              backgroundColor: 'rgba(255,46,46,0.15)',
+              color: '#FF453A',
+              fontFamily: "'JetBrains Mono', monospace",
+            }}
+          >
+            +15% Over
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function GanttToolbar({
   theme,
   timeScale,
@@ -759,6 +900,16 @@ export function GanttToolbar({
 }: GanttToolbarProps) {
   const t = useGanttI18n(); // v0.15.0: i18n
   const hasExport = onExportPNG || onExportPDF || onExportExcel || onExportCSV || onExportJSON || onExportMSProject;
+  const isChronos = !!theme.glassToolbar;
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Focus search input when opened
+  useEffect(() => {
+    if (searchOpen && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [searchOpen]);
 
   // v0.16.0: Use minimal tabs for time scale (Linear/Notion style)
   const timeScaleOptions = [
@@ -775,6 +926,197 @@ export function GanttToolbar({
     { value: 'neutral', label: 'Zen', icon: <Palette className="w-3.5 h-3.5" /> },
   ];
 
+  // ─── Chronos V2 Layout ────────────────────────────────────────────────
+  if (isChronos) {
+    return (
+      <div className="flex flex-col">
+        {/* Bar 1: Glass Toolbar (52px) */}
+        <div
+          className="h-[52px] px-4 flex items-center justify-between border-b"
+          style={{
+            backgroundColor: theme.glassToolbar,
+            borderColor: theme.borderLight,
+            backdropFilter: 'blur(12px)',
+          }}
+        >
+          {/* Left: Search Pill */}
+          <div className="flex items-center gap-3">
+            <motion.div
+              className="flex items-center rounded-full overflow-hidden"
+              style={{
+                backgroundColor: '#1A1A1A',
+                border: '1px solid rgba(255,255,255,0.08)',
+              }}
+              animate={{ width: searchOpen ? 220 : 36 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+            >
+              <motion.button
+                onClick={() => setSearchOpen(!searchOpen)}
+                className="flex items-center justify-center w-9 h-9 flex-shrink-0"
+                style={{ color: '#888888' }}
+                whileHover={{ color: '#FFFFFF' }}
+              >
+                <Search className="w-4 h-4" />
+              </motion.button>
+              {searchOpen && (
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  placeholder="Search tasks..."
+                  className="bg-transparent border-none outline-none text-xs pr-3 w-full"
+                  style={{
+                    color: '#FFFFFF',
+                    fontFamily: 'Inter, sans-serif',
+                  }}
+                  onBlur={() => setSearchOpen(false)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape') setSearchOpen(false);
+                  }}
+                />
+              )}
+            </motion.div>
+
+            {/* Divider */}
+            <div className="w-px h-5" style={{ backgroundColor: 'rgba(255,255,255,0.08)' }} />
+
+            {/* Segmented Control: Execution | Oracle View */}
+            <div
+              className="inline-flex items-center rounded-full p-0.5"
+              style={{
+                backgroundColor: '#000000',
+                border: '1px solid rgba(255,255,255,0.1)',
+              }}
+            >
+              <motion.button
+                className="px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors"
+                style={{
+                  backgroundColor: 'rgba(255,255,255,0.1)',
+                  color: '#FFFFFF',
+                  fontFamily: 'Inter, sans-serif',
+                }}
+              >
+                Execution
+              </motion.button>
+              <motion.button
+                className="px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors"
+                style={{
+                  backgroundColor: 'transparent',
+                  color: '#666666',
+                  fontFamily: 'Inter, sans-serif',
+                }}
+                whileHover={{ color: '#AAAAAA' }}
+              >
+                Oracle View
+              </motion.button>
+            </div>
+          </div>
+
+          {/* Center: Create Task (if enabled) */}
+          {showCreateTaskButton && onCreateTask && (
+            <motion.button
+              onClick={onCreateTask}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs"
+              style={{
+                background: 'linear-gradient(135deg, #2E94FF 0%, #007AFF 100%)',
+                color: '#FFFFFF',
+                fontFamily: 'Inter, sans-serif',
+                fontWeight: 500,
+                boxShadow: '0 2px 8px rgba(46,148,255,0.3)',
+              }}
+              whileHover={{ scale: 1.02, boxShadow: '0 4px 12px rgba(46,148,255,0.4)' }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>{createTaskLabel || t.toolbar.createTask}</span>
+            </motion.button>
+          )}
+
+          {/* Right: Time Capsule + Icons + AI Button */}
+          <div className="flex items-center gap-3">
+            {/* Time Capsule */}
+            <TimeCapsule value={timeScale} onChange={onTimeScaleChange} />
+
+            {/* Divider */}
+            <div className="w-px h-5" style={{ backgroundColor: 'rgba(255,255,255,0.08)' }} />
+
+            {/* Density */}
+            <DensityDropdown theme={theme} value={rowDensity} onChange={onRowDensityChange} />
+
+            {/* Filter */}
+            {onTaskFilterChange && (
+              <FilterDropdown
+                theme={theme}
+                value={taskFilter}
+                onChange={onTaskFilterChange}
+                hideCompleted={hideCompleted}
+                onHideCompletedChange={onHideCompletedChange}
+              />
+            )}
+
+            {/* Divider */}
+            <div className="w-px h-5" style={{ backgroundColor: 'rgba(255,255,255,0.08)' }} />
+
+            {/* Visibility icon */}
+            <motion.button
+              className="flex items-center justify-center w-8 h-8 rounded-lg"
+              style={{ color: '#888888', backgroundColor: 'transparent' }}
+              whileHover={{ color: '#FFFFFF', backgroundColor: 'rgba(255,255,255,0.06)' }}
+              title="Visibility"
+            >
+              <Eye className="w-4 h-4" />
+            </motion.button>
+
+            {/* Share icon */}
+            <motion.button
+              className="flex items-center justify-center w-8 h-8 rounded-lg"
+              style={{ color: '#888888', backgroundColor: 'transparent' }}
+              whileHover={{ color: '#FFFFFF', backgroundColor: 'rgba(255,255,255,0.06)' }}
+              title="Share"
+            >
+              <Share2 className="w-4 h-4" />
+            </motion.button>
+
+            {/* Export */}
+            {hasExport && (
+              <ExportDropdown
+                theme={theme}
+                onExportPNG={onExportPNG}
+                onExportPDF={onExportPDF}
+                onExportExcel={onExportExcel}
+                onExportCSV={onExportCSV}
+                onExportJSON={onExportJSON}
+                onExportMSProject={onExportMSProject}
+              />
+            )}
+
+            {/* AI Simulate Scenario Button */}
+            <motion.button
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-medium"
+              style={{
+                backgroundColor: 'transparent',
+                border: '1px solid rgba(168,85,247,0.4)',
+                color: '#A855F7',
+                fontFamily: 'Inter, sans-serif',
+                background: 'linear-gradient(135deg, rgba(168,85,247,0.1) 0%, rgba(139,92,246,0.05) 100%)',
+              }}
+              whileHover={{
+                borderColor: 'rgba(168,85,247,0.7)',
+                boxShadow: '0 0 12px rgba(168,85,247,0.2)',
+              }}
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Simulate Scenario</span>
+            </motion.button>
+          </div>
+        </div>
+
+        {/* Bar 2: Forecast HUD Panel (48px) */}
+        <ForecastHUD theme={theme} />
+      </div>
+    );
+  }
+
+  // ─── Standard Layout (light/neutral themes) ───────────────────────────
   return (
     <div
       className="h-12 px-4 flex items-center justify-between border-b"
