@@ -320,6 +320,10 @@ export interface ListViewConfig {
     /** Specific columns to blur (defaults to ['soldEffortMinutes', 'quotedTime'] if not specified) */
     columns?: Array<'soldEffortMinutes' | 'quotedTime' | 'quotedTimeMinutes'>;
   };
+
+  // v2.2.1: Show "Ofertado: Xh" line in HoursBarCell for users who can view but not edit financials
+  /** When true, shows the sold effort line in HoursBarCell even without onSoldEffortUpdate callback */
+  showSoldEffort?: boolean;
 }
 
 /**
@@ -448,12 +452,18 @@ export interface ListViewCallbacks {
   onCreateCustomField?: (field: CustomFieldDefinition) => Promise<void>;
 
   // v1.3.0: Time logging callback for timeLoggedMinutes column (inline edit)
-  /** Handler for inline time logging - receives task and minutes to log */
-  onLogTime?: (task: Task, minutes: number | null) => void;
+  /** Handler for inline time logging - receives task, minutes, and optional note */
+  onLogTime?: (task: Task, minutes: number | null, note?: string) => void;
 
   // v2.0.0: Chronos Time Manager callback
   /** Handler for opening time log modal from HoursBar cell */
   onOpenTimeLog?: (task: Task) => void;
+
+  // v2.2.0: Inline estimate & quoted effort editing from HoursBar 3-option menu
+  /** Handler for updating task effort estimate (minutes) */
+  onEstimateUpdate?: (task: Task, minutes: number | null) => void;
+  /** Handler for updating task sold/quoted effort (minutes) */
+  onSoldEffortUpdate?: (task: Task, minutes: number | null) => void;
 
   // v2.1.0: RBAC context menu actions
   /** Handler for reporting a blocker on a task */

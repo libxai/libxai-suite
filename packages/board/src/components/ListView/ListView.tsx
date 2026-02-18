@@ -697,6 +697,10 @@ export function ListView({
             task={task}
             isDark={isDark}
             locale={locale}
+            onLogTime={callbacks.onLogTime}
+            onEstimateUpdate={callbacks.onEstimateUpdate}
+            onSoldEffortUpdate={callbacks.onSoldEffortUpdate}
+            showSoldEffort={config.showSoldEffort}
             onOpenTimeLog={callbacks.onOpenTimeLog}
           />
         );

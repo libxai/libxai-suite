@@ -2389,28 +2389,16 @@ interface TimePopoverProps {
 declare function TimePopover({ taskId: _taskId, summary, entries, isTimerRunning, timerElapsedSeconds, onLogTime, onUpdateEstimate, onStartTimer, onStopTimer, onDiscardTimer, onClose, className, }: TimePopoverProps): react_jsx_runtime.JSX.Element;
 
 /**
- * TimeInputPopover - Compact popover for entering time values
- * v1.3.0: Extracted from TaskDetailModal for reuse in ListView
- *
- * Used for:
- * - Logging time from list view column
- * - Setting estimates
- * - Setting quoted time
+ * TimeInputPopover - Chronos V2 micro-popover for time entry
+ * Glass morphism design matching ListView Chronos style
  */
 interface TimeInputPopoverProps {
-    /** Mode determines the title and behavior */
     mode: 'estimate' | 'quoted' | 'log';
-    /** Locale for translations */
     locale: 'en' | 'es';
-    /** Dark mode */
     isDark: boolean;
-    /** Current value in minutes (for estimate/quoted modes) */
     currentValue?: number | null;
-    /** Called when user saves the value */
     onSave: (minutes: number | null, note?: string) => Promise<void>;
-    /** Called when popover should close */
     onClose: () => void;
-    /** Additional class names */
     className?: string;
 }
 declare function TimeInputPopover({ mode, locale, isDark, currentValue, onSave, onClose, className, }: TimeInputPopoverProps): react_jsx_runtime.JSX.Element;
@@ -3766,6 +3754,8 @@ interface ListViewConfig {
         /** Specific columns to blur (defaults to ['soldEffortMinutes', 'quotedTime'] if not specified) */
         columns?: Array<'soldEffortMinutes' | 'quotedTime' | 'quotedTimeMinutes'>;
     };
+    /** When true, shows the sold effort line in HoursBarCell even without onSoldEffortUpdate callback */
+    showSoldEffort?: boolean;
 }
 /**
  * ListView translations
@@ -3870,10 +3860,14 @@ interface ListViewCallbacks {
     onTaskDuplicate?: (task: Task) => void;
     /** Create custom field */
     onCreateCustomField?: (field: CustomFieldDefinition) => Promise<void>;
-    /** Handler for inline time logging - receives task and minutes to log */
-    onLogTime?: (task: Task, minutes: number | null) => void;
+    /** Handler for inline time logging - receives task, minutes, and optional note */
+    onLogTime?: (task: Task, minutes: number | null, note?: string) => void;
     /** Handler for opening time log modal from HoursBar cell */
     onOpenTimeLog?: (task: Task) => void;
+    /** Handler for updating task effort estimate (minutes) */
+    onEstimateUpdate?: (task: Task, minutes: number | null) => void;
+    /** Handler for updating task sold/quoted effort (minutes) */
+    onSoldEffortUpdate?: (task: Task, minutes: number | null) => void;
     /** Handler for reporting a blocker on a task */
     onReportBlocker?: (task: Task) => void;
     /** Handler for copying task link to clipboard */
