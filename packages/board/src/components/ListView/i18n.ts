@@ -12,7 +12,7 @@ export type ListViewSupportedLocale = 'en' | 'es';
  */
 export const en: ListViewTranslations = {
   columns: {
-    name: 'Task Name',
+    name: 'Task ID / Name',
     startDate: 'Start Date',
     endDate: 'End Date',
     progress: 'Progress',
@@ -28,7 +28,7 @@ export const en: ListViewTranslations = {
     tags: 'Tags',
     // v2.0.0: Chronos columns
     scheduleVariance: 'Sched / Var',
-    hoursBar: 'Hours',
+    hoursBar: 'Hours (Spent / Allocated)',
     teamLoad: 'Team Load',
     blockers: 'Blockers',
   },
@@ -92,7 +92,7 @@ export const en: ListViewTranslations = {
  */
 export const es: ListViewTranslations = {
   columns: {
-    name: 'Nombre de Tarea',
+    name: 'ID Tarea / Nombre',
     startDate: 'Fecha Inicio',
     endDate: 'Fecha Fin',
     progress: 'Progreso',
@@ -108,7 +108,7 @@ export const es: ListViewTranslations = {
     tags: 'Etiquetas',
     // v2.0.0: Chronos columns
     scheduleVariance: 'Prog / Var',
-    hoursBar: 'Horas',
+    hoursBar: 'Horas (Usado / Asignado)',
     teamLoad: 'Carga Equipo',
     blockers: 'Bloqueantes',
   },

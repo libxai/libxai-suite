@@ -62,6 +62,8 @@ export function KanbanBoard({
   // v2.0.0: Kanban RBAC
   sidePanel,
   renderColumnMetrics,
+  // v2.1.0: Suppress internal TaskDetailModal
+  suppressDetailModal = false,
 }: KanbanBoardProps & { children?: React.ReactNode }) {
   const [dragState, setDragState] = useDragState()
 
@@ -317,11 +319,13 @@ export function KanbanBoard({
   // v0.17.254: Also call onTaskOpen to load comments
   const handleCardClick = useCallback(
     (card: typeof board.cards[0]) => {
-      setSelectedCard(card)
+      if (!suppressDetailModal) {
+        setSelectedCard(card)
+      }
       onCardClick?.(card)
       onTaskOpen?.(card.id)
     },
-    [onCardClick, onTaskOpen]
+    [onCardClick, onTaskOpen, suppressDetailModal]
   )
 
   // Handle card update from modal
@@ -427,7 +431,8 @@ export function KanbanBoard({
 
       {/* Task Detail Modal - same as Calendar */}
       {/* v0.17.254: Added comments support */}
-      <TaskDetailModal
+      {/* v2.1.0: Suppress when consumer provides own drawer */}
+      {!suppressDetailModal && <TaskDetailModal
         task={selectedCard}
         isOpen={!!selectedCard}
         onClose={() => setSelectedCard(null)}
@@ -460,7 +465,7 @@ export function KanbanBoard({
         onTimerDiscard={onDiscardTimer}
         // v1.4.11: Governance v2.0 - Financial blur
         blurFinancials={blurFinancials}
-      />
+      />}
     </KanbanThemeProvider>
   )
 }

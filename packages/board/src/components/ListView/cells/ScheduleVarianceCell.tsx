@@ -42,7 +42,7 @@ export function ScheduleVarianceCell({
 
     if (scheduleVariance === 0) {
       return (
-        <span className="ml-1.5 px-1.5 py-0.5 rounded text-[9px] font-mono uppercase tracking-wide bg-[#007BFF]/15 text-[#007BFF]">
+        <span className="font-mono" style={{ fontSize: '10px', color: '#007BFF' }}>
           {isEs ? 'En Tiempo' : 'On Track'}
         </span>
       );
@@ -50,21 +50,21 @@ export function ScheduleVarianceCell({
 
     if (scheduleVariance > 0) {
       return (
-        <span className="ml-1.5 px-1.5 py-0.5 rounded text-[9px] font-mono uppercase tracking-wide bg-[#32D74B]/15 text-[#32D74B]">
+        <span className="font-mono" style={{ fontSize: '10px', color: '#32D74B' }}>
           +{scheduleVariance}d {isEs ? 'Adelante' : 'Early'}
         </span>
       );
     }
 
     return (
-      <span className="ml-1.5 px-1.5 py-0.5 rounded text-[9px] font-mono uppercase tracking-wide bg-[#FF453A]/15 text-[#FF453A]">
+      <span className="font-mono" style={{ fontSize: '10px', color: '#FF453A' }}>
         {scheduleVariance}d {isEs ? 'Atraso' : 'Delay'}
       </span>
     );
   };
 
   return (
-    <div className="flex items-center">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
       <span className={cn('text-[11px] font-mono', isDark ? 'text-white/60' : 'text-gray-500')}>
         {startDate ? formatShortDate(startDate) : '—'}
         <span className={isDark ? 'text-white/20 mx-1' : 'text-gray-300 mx-1'}>vs</span>

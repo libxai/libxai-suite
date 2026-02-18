@@ -17,6 +17,9 @@ import {
   ArrowUp,
   ArrowDown,
   ChevronRight,
+  Clock,
+  AlertTriangle,
+  Link2,
 } from 'lucide-react';
 import { cn } from '../../utils';
 import type { Task } from '../Gantt/types';
@@ -65,6 +68,10 @@ interface TableContextMenuProps {
   onColumnSort?: (columnId: string, direction: 'asc' | 'desc') => void;
   // Users for assignment
   availableUsers?: AvailableUser[];
+  // v2.1.0: RBAC context menu actions
+  onOpenTimeLog?: (task: Task) => void;
+  onReportBlocker?: (task: Task) => void;
+  onCopyTaskLink?: (task: Task) => void;
 }
 
 interface MenuItem {
@@ -89,6 +96,9 @@ export function TableContextMenu({
   onColumnHide,
   onColumnSort,
   availableUsers = [],
+  onOpenTimeLog,
+  onReportBlocker,
+  onCopyTaskLink,
 }: TableContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const t = locale === 'es' ? translations.es : translations.en;
@@ -252,6 +262,45 @@ export function TableContextMenu({
           })),
         });
       }
+    }
+
+    // v2.1.0: Log Time
+    if (onOpenTimeLog) {
+      items.push({
+        id: 'log-time',
+        label: t.logTime,
+        icon: <Clock className="w-4 h-4" />,
+        onClick: () => {
+          onOpenTimeLog(state.task!);
+          onClose();
+        },
+      });
+    }
+
+    // v2.1.0: Report Blocker
+    if (onReportBlocker) {
+      items.push({
+        id: 'report-blocker',
+        label: t.reportBlocker,
+        icon: <AlertTriangle className="w-4 h-4" />,
+        onClick: () => {
+          onReportBlocker(state.task!);
+          onClose();
+        },
+      });
+    }
+
+    // v2.1.0: Copy Link
+    if (onCopyTaskLink) {
+      items.push({
+        id: 'copy-link',
+        label: t.copyLink,
+        icon: <Link2 className="w-4 h-4" />,
+        onClick: () => {
+          onCopyTaskLink(state.task!);
+          onClose();
+        },
+      });
     }
 
     items.push({ id: 'sep2', label: '', icon: null, separator: true });
@@ -472,6 +521,9 @@ const translations = {
     sortAsc: 'Sort A → Z',
     sortDesc: 'Sort Z → A',
     hideColumn: 'Hide column',
+    logTime: 'Log Time',
+    reportBlocker: 'Report Blocker',
+    copyLink: 'Copy Link',
   },
   es: {
     edit: 'Editar',
@@ -490,5 +542,8 @@ const translations = {
     sortAsc: 'Ordenar A → Z',
     sortDesc: 'Ordenar Z → A',
     hideColumn: 'Ocultar columna',
+    logTime: 'Registrar Tiempo',
+    reportBlocker: 'Reportar Bloqueante',
+    copyLink: 'Copiar Enlace',
   },
 };

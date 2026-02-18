@@ -527,6 +527,9 @@ export interface KanbanBoardProps {
   sidePanel?: React.ReactNode
   /** Custom renderer for column header metrics (below title) */
   renderColumnMetrics?: (column: Column, cards: Card[]) => React.ReactNode
+
+  /** v2.1.0: Suppress internal TaskDetailModal (consumer provides own drawer) */
+  suppressDetailModal?: boolean
 }
 
 // ============================================================================

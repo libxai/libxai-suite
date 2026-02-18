@@ -281,6 +281,7 @@ export function CalendarBoard({
   onStopTimer,
   onDiscardTimer,
   blurFinancials = false,
+  suppressDetailModal = false,
 }: CalendarBoardProps) {
   const {
     theme: themeName = 'dark',
@@ -299,6 +300,14 @@ export function CalendarBoard({
   const [expandedCells, setExpandedCells] = useState<Record<number, number>>({});
   const DEFAULT_VISIBLE_TASKS = 3;
   const TASKS_INCREMENT = 3;
+
+  // v2.1.0: Wrapper for task click — respects suppressDetailModal
+  const handleOpenTask = useCallback((task: Task) => {
+    if (!suppressDetailModal) {
+      setSelectedTask(task);
+    }
+    onTaskOpen?.(task.id);
+  }, [suppressDetailModal, onTaskOpen]);
 
   // Quick create state
   const [quickCreateCell, setQuickCreateCell] = useState<number | null>(null);
@@ -840,7 +849,7 @@ export function CalendarBoard({
                           blurFinancials={blurFinancials}
                           t={t}
                           onClick={() => {
-                            setSelectedTask(segment.task);
+                            handleOpenTask(segment.task);
                             callbacks.onEventClick?.({
                               id: segment.task.id,
                               title: segment.task.name,
@@ -848,7 +857,6 @@ export function CalendarBoard({
                               end: segment.task.endDate!,
                               task: segment.task,
                             });
-                            onTaskOpen?.(segment.task.id);
                           }}
                         />
                       ))}
@@ -871,8 +879,7 @@ export function CalendarBoard({
                           title={m.title}
                           onClick={(e) => {
                             e.stopPropagation();
-                            setSelectedTask(m.task);
-                            onTaskOpen?.(m.task.id);
+                            handleOpenTask(m.task);
                           }}
                         />
                       ))}
@@ -930,9 +937,8 @@ export function CalendarBoard({
                         <motion.button
                           key={event.id}
                           onClick={() => {
-                            setSelectedTask(event.task);
+                            handleOpenTask(event.task);
                             callbacks.onEventClick?.(event);
-                            onTaskOpen?.(event.task.id);
                           }}
                           whileHover={{ scale: 1.01 }}
                           className={cn(
@@ -1554,8 +1560,7 @@ export function CalendarBoard({
                 <button
                   key={task.id}
                   onClick={() => {
-                    setSelectedTask(task);
-                    onTaskOpen?.(task.id);
+                    handleOpenTask(task);
                   }}
                   className={cn(
                     "w-full text-left rounded-md p-3 transition-all group/card",
@@ -1778,8 +1783,9 @@ export function CalendarBoard({
 
       {/* ================================================================== */}
       {/* TASK DETAIL MODAL                                                   */}
+      {/* v2.1.0: Suppress when consumer provides own drawer                  */}
       {/* ================================================================== */}
-      <TaskDetailModal
+      {!suppressDetailModal && <TaskDetailModal
         task={selectedTask}
         isOpen={!!selectedTask}
         onClose={() => setSelectedTask(null)}
@@ -1823,7 +1829,7 @@ export function CalendarBoard({
         onTimerStop={onStopTimer}
         onTimerDiscard={onDiscardTimer}
         blurFinancials={blurFinancials}
-      />
+      />}
 
       {/* ================================================================== */}
       {/* DAY TASKS POPOVER — Chronos V2.0 Glass                             */}
@@ -1873,8 +1879,7 @@ export function CalendarBoard({
                     key={event.id}
                     onClick={() => {
                       setSelectedDay(null);
-                      setSelectedTask(event.task);
-                      onTaskOpen?.(event.task.id);
+                      handleOpenTask(event.task);
                     }}
                     className={cn(
                       "w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-colors",

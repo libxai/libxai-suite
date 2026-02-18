@@ -5,6 +5,7 @@
  * v0.18.0: Added dynamic columns, custom fields, context menu support
  */
 
+import type { ReactNode } from 'react';
 import type { Task } from '../Gantt/types';
 import type { User } from '../../types';
 
@@ -453,6 +454,12 @@ export interface ListViewCallbacks {
   // v2.0.0: Chronos Time Manager callback
   /** Handler for opening time log modal from HoursBar cell */
   onOpenTimeLog?: (task: Task) => void;
+
+  // v2.1.0: RBAC context menu actions
+  /** Handler for reporting a blocker on a task */
+  onReportBlocker?: (task: Task) => void;
+  /** Handler for copying task link to clipboard */
+  onCopyTaskLink?: (task: Task) => void;
 }
 
 /**
@@ -507,6 +514,10 @@ export interface ListViewProps {
   availableUsers?: AvailableUser[];
   /** Custom fields defined for this project */
   customFields?: CustomFieldDefinition[];
+
+  // v2.1.0: Toolbar customization
+  /** Render custom content on the right side of toolbar (before create button) */
+  toolbarRightContent?: ReactNode;
 }
 
 /**

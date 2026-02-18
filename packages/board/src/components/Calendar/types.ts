@@ -372,4 +372,7 @@ export interface CalendarBoardProps {
 
   /** Blur financial data (tiempo ofertado) for unauthorized users */
   blurFinancials?: boolean;
+
+  /** v2.1.0: Suppress internal TaskDetailModal (consumer provides own drawer) */
+  suppressDetailModal?: boolean;
 }
