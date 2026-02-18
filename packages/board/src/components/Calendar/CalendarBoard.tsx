@@ -146,16 +146,6 @@ function MultiDayBar({
   const isCompleted = task.progress === 100 || task.status === 'completed';
   const isCritical = task.isCriticalPath;
 
-  const priorityColor = (() => {
-    switch (task.priority) {
-      case 'urgent': return '#EF4444';
-      case 'high': return '#F97316';
-      case 'medium': return '#EAB308';
-      case 'low': return '#22C55E';
-      default: return 'transparent';
-    }
-  })();
-
   const roundedClass = isStart && isEnd
     ? 'rounded'
     : isStart
@@ -183,14 +173,14 @@ function MultiDayBar({
         roundedClass,
         isCompleted
           ? (isDark
-              ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"
+              ? "text-emerald-400"
               : "bg-emerald-500/10 text-emerald-600 border border-emerald-200")
           : isCritical
             ? (isDark
-                ? "bg-red-500/[0.06] border border-red-500/30 text-red-200 hover:border-red-500/50"
+                ? "text-white/90"
                 : "bg-red-50 border border-red-200 text-red-700 hover:border-red-300")
             : (isDark
-                ? "bg-[#1A1A1A] border border-white/10 text-white/70 hover:border-[#007FFF]/50"
+                ? "text-white/90"
                 : "bg-gray-50 border border-gray-200 text-gray-700 hover:border-blue-300"),
       )}
       style={{
@@ -199,8 +189,27 @@ function MultiDayBar({
         width: `calc(${spanCols * 100}% - 2px)`,
         height: `${BAR_INNER_HEIGHT}px`,
         zIndex: 10,
-        borderLeftWidth: isStart ? '3px' : '1px',
-        borderLeftColor: isStart ? (isCritical ? '#EF4444' : priorityColor) : undefined,
+        ...(isDark ? (
+          isCompleted
+            ? {
+                background: 'rgba(16, 185, 129, 0.28)',
+                border: '1px solid rgba(16, 185, 129, 0.50)',
+                boxShadow: '0 0 14px rgba(16, 185, 129, 0.2), inset 0 0 14px rgba(16, 185, 129, 0.1)',
+              }
+            : isCritical
+              ? {
+                  background: 'rgba(239, 68, 68, 0.35)',
+                  border: '1px solid rgba(239, 68, 68, 0.65)',
+                  boxShadow: '0 0 18px rgba(239, 68, 68, 0.3), inset 0 0 18px rgba(239, 68, 68, 0.15)',
+                }
+              : {
+                  background: 'rgba(18, 100, 255, 0.38)',
+                  border: '1px solid rgba(18, 100, 255, 0.65)',
+                  boxShadow: '0 0 18px rgba(18, 100, 255, 0.28), inset 0 0 18px rgba(18, 100, 255, 0.14)',
+                }
+        ) : {}),
+        borderLeftWidth: isStart ? '3px' : undefined,
+        borderLeftColor: isStart ? (isCritical ? '#EF4444' : (isCompleted ? '#10B981' : '#1264FF')) : undefined,
       }}
     >
       {/* v2.0.0: Critical prefix */}
@@ -241,7 +250,7 @@ function MultiDayBar({
       {/* Progress bar at bottom */}
       {task.progress > 0 && task.progress < 100 && (
         <div
-          className="absolute bottom-0 left-0 h-[2px] bg-[#007FFF]"
+          className="absolute bottom-0 left-0 h-[2px] bg-[#1264FF]"
           style={{ width: `${task.progress}%` }}
         />
       )}
@@ -699,38 +708,38 @@ export function CalendarBoard({
       {/* HEADER — Chronos V2.0: Glass bar with month navigation              */}
       {/* ================================================================== */}
       <div className={cn(
-        "flex-shrink-0 h-14 flex items-center justify-between px-6 z-20",
+        "flex-shrink-0 h-10 flex items-center justify-between px-4 z-20",
         isDark ? "bg-[#050505] border-b border-[#222]" : "bg-white border-b border-gray-200"
       )}>
         {/* Left: View selector + Month navigation */}
-        <div className="flex items-center gap-4 shrink-0">
+        <div className="flex items-center gap-3 shrink-0">
           {/* View selector pill */}
           <div className={cn(
-            "flex items-center gap-2 pl-3 pr-2 py-1.5 rounded-lg text-sm transition-all",
+            "flex items-center gap-1.5 pl-2.5 pr-2 py-1 rounded-md text-xs transition-all",
             isDark ? "bg-[#111] border border-white/10" : "bg-gray-100 border border-gray-200"
           )}>
-            <Calendar className={cn("w-[18px] h-[18px]", isDark ? "text-[#007FFF]" : "text-blue-500")} />
+            <Calendar className={cn("w-3.5 h-3.5", isDark ? "text-[#007FFF]" : "text-blue-500")} />
             <span className={cn("font-medium", isDark ? "text-white" : "text-gray-900")}>
               {locale === 'es' ? 'Calendario' : 'Calendar'}
             </span>
           </div>
 
           {/* Separator */}
-          <div className={cn("h-6 w-px", isDark ? "bg-white/10" : "bg-gray-200")} />
+          <div className={cn("h-4 w-px", isDark ? "bg-white/10" : "bg-gray-200")} />
 
           {/* Month navigation */}
-          <div className="flex items-center gap-2 select-none">
+          <div className="flex items-center gap-1.5 select-none">
             <button
               onClick={goToPreviousMonth}
               className={cn(
-                "w-7 h-7 flex items-center justify-center rounded transition-colors",
+                "w-6 h-6 flex items-center justify-center rounded transition-colors",
                 isDark ? "text-white/50 hover:text-white hover:bg-white/5" : "text-gray-500 hover:text-gray-900 hover:bg-gray-100"
               )}
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-3.5 h-3.5" />
             </button>
             <span className={cn(
-              "text-lg font-bold tracking-tight min-w-[180px] text-center",
+              "text-sm font-semibold tracking-tight min-w-[150px] text-center",
               isDark ? "text-white" : "text-gray-900"
             )}>
               {capitalizedMonthName}
@@ -738,11 +747,11 @@ export function CalendarBoard({
             <button
               onClick={goToNextMonth}
               className={cn(
-                "w-7 h-7 flex items-center justify-center rounded transition-colors",
+                "w-6 h-6 flex items-center justify-center rounded transition-colors",
                 isDark ? "text-white/50 hover:text-white hover:bg-white/5" : "text-gray-500 hover:text-gray-900 hover:bg-gray-100"
               )}
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
@@ -752,7 +761,7 @@ export function CalendarBoard({
           <button
             onClick={goToToday}
             className={cn(
-              "px-3 py-1.5 text-sm rounded-lg transition-all font-medium",
+              "px-2.5 py-1 text-xs rounded-md transition-all font-medium",
               isDark
                 ? "bg-white/5 border border-white/10 text-white/70 hover:bg-white/10 hover:text-white"
                 : "bg-gray-100 border border-gray-200 text-gray-700 hover:bg-gray-200"
@@ -774,7 +783,7 @@ export function CalendarBoard({
           <div
             key={day}
             className={cn(
-              "py-3 text-center text-[10px] font-bold uppercase tracking-widest",
+              "py-2 text-center text-[10px] font-bold uppercase tracking-widest",
               isDark ? "text-white/60 font-mono" : "text-gray-500"
             )}
           >
@@ -945,19 +954,40 @@ export function CalendarBoard({
                             "w-full flex items-center gap-1.5 px-1.5 py-1 rounded text-[11px] transition-all text-left",
                             event.task.progress === 100 || event.task.status === 'completed'
                               ? (isDark
-                                  ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"
+                                  ? "text-emerald-400"
                                   : "bg-emerald-500/10 text-emerald-600")
                               : (isDark
-                                  ? "bg-[#1A1A1A] border border-white/10 text-white/70 hover:border-[#007FFF]/50"
+                                  ? "text-white/90"
                                   : "bg-gray-50 border border-gray-200 text-gray-700 hover:border-blue-300")
                           )}
+                          style={isDark ? (
+                            event.task.progress === 100 || event.task.status === 'completed'
+                              ? {
+                                  background: 'rgba(16, 185, 129, 0.28)',
+                                  border: '1px solid rgba(16, 185, 129, 0.50)',
+                                  boxShadow: '0 0 14px rgba(16, 185, 129, 0.2), inset 0 0 14px rgba(16, 185, 129, 0.1)',
+                                }
+                              : event.task.isCriticalPath
+                                ? {
+                                    background: 'rgba(239, 68, 68, 0.35)',
+                                    border: '1px solid rgba(239, 68, 68, 0.65)',
+                                    boxShadow: '0 0 18px rgba(239, 68, 68, 0.3), inset 0 0 18px rgba(239, 68, 68, 0.15)',
+                                  }
+                                : {
+                                    background: 'rgba(18, 100, 255, 0.38)',
+                                    border: '1px solid rgba(18, 100, 255, 0.65)',
+                                    boxShadow: '0 0 18px rgba(18, 100, 255, 0.28), inset 0 0 18px rgba(18, 100, 255, 0.14)',
+                                  }
+                          ) : undefined}
                         >
                           {/* v2.0.0: Type icon — diamond for milestones, circle for regular */}
                           <span className={cn(
                             "flex-shrink-0 text-[9px]",
                             event.task.isMilestone
                               ? (isDark ? "text-amber-400" : "text-amber-600")
-                              : (isDark ? "text-white/30" : "text-gray-400")
+                              : event.task.isCriticalPath
+                                ? "text-red-400"
+                                : (isDark ? "text-[#1264FF]" : "text-gray-400")
                           )}>
                             {event.task.isMilestone ? '◆' : '●'}
                           </span>
