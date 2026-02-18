@@ -1149,7 +1149,7 @@ export function TaskGrid({
       <div
         className="sticky top-0 z-10 flex items-center"
         style={{
-          backgroundColor: theme.bgGrid,
+          backgroundColor: theme.glassHeader || theme.bgSecondary,
           height: `${HEADER_HEIGHT}px`,
           paddingLeft: '3px',
           borderBottom: `1px solid ${theme.border}`,
@@ -1263,7 +1263,7 @@ export function TaskGrid({
             position: 'sticky',
             right: 0,
             height: '100%',
-            backgroundColor: theme.bgGrid,
+            backgroundColor: theme.glassHeader || theme.bgSecondary,
             zIndex: 5,
           }}
         >

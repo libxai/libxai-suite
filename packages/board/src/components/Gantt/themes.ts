@@ -50,7 +50,7 @@ export const themes: Record<string, GanttTheme> = {
 
     // Chronos V2 additions
     dotGrid: 'rgba(255, 255, 255, 0.05)',
-    glassHeader: 'rgba(10, 10, 10, 0.8)',
+    glassHeader: '#0A0A0A',
     glassToolbar: 'rgba(0, 0, 0, 0.4)',
     forecastHud: 'rgba(15, 15, 15, 0.9)',
     neonRedGlow: '0 0 10px rgba(255, 46, 46, 0.4)',

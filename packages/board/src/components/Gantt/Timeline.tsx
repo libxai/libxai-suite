@@ -394,9 +394,7 @@ export function Timeline({
           position: 'sticky',
           top: 0,
           zIndex: 10,
-          backgroundColor: theme.glassHeader || theme.bgGrid,
-          backdropFilter: theme.glassHeader ? 'blur(12px)' : undefined,
-          WebkitBackdropFilter: theme.glassHeader ? 'blur(12px)' : undefined,
+          backgroundColor: theme.glassHeader || theme.bgSecondary,
           flexShrink: 0,
           height: `${HEADER_HEIGHT}px`,
           borderBottom: `1px solid ${theme.borderLight}`,
@@ -408,13 +406,13 @@ export function Timeline({
           height={HEADER_HEIGHT - 1} // -1 for border
           style={{ display: 'block' }}
         >
-          {/* Header Background — Chronos V2: transparent when glass, fallback to bgGrid */}
+          {/* Header Background — opaque to prevent task bars bleeding through */}
           <rect
             x={0}
             y={0}
             width={Math.max(timelineWidth, 1000)}
             height={HEADER_HEIGHT}
-            fill={theme.glassHeader ? 'transparent' : theme.bgGrid}
+            fill={theme.glassHeader || theme.bgSecondary}
           />
 
           {/* Header Grid Lines and Text */}
