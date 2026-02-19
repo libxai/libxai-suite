@@ -133,12 +133,14 @@ function MultiDayBar({
   isDark,
   onClick,
   blurFinancials,
+  isSelected,
   t,
 }: {
   segment: BarSegment;
   isDark: boolean;
   onClick: () => void;
   blurFinancials?: boolean;
+  isSelected?: boolean;
   t: CalendarTranslations;
 }) {
   const { task, spanCols, lane, isStart, isEnd } = segment;
@@ -210,6 +212,13 @@ function MultiDayBar({
         ) : {}),
         borderLeftWidth: isStart ? '3px' : undefined,
         borderLeftColor: isStart ? (isCritical ? '#EF4444' : (isCompleted ? '#10B981' : '#1264FF')) : undefined,
+        // v2.3.0: Selection highlight — ring glow on all segments
+        ...(isSelected ? {
+          boxShadow: isDark
+            ? '0 0 0 1.5px rgba(0, 229, 255, 0.7), 0 0 12px rgba(0, 229, 255, 0.3)'
+            : '0 0 0 1.5px rgba(59, 130, 246, 0.7), 0 0 12px rgba(59, 130, 246, 0.2)',
+          zIndex: 20,
+        } : {}),
       }}
     >
       {/* v2.0.0: Critical prefix */}
@@ -305,13 +314,16 @@ export function CalendarBoard({
   // State
   const [currentDate, setCurrentDate] = useState(initialDate || new Date());
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [selectedDay, setSelectedDay] = useState<CalendarDay | null>(null);
   const [expandedCells, setExpandedCells] = useState<Record<number, number>>({});
   const DEFAULT_VISIBLE_TASKS = 3;
   const TASKS_INCREMENT = 3;
 
   // v2.1.0: Wrapper for task click — respects suppressDetailModal
+  // v2.3.0: Also sets selectedTaskId for visual highlight across all segments
   const handleOpenTask = useCallback((task: Task) => {
+    setSelectedTaskId(task.id);
     if (!suppressDetailModal) {
       setSelectedTask(task);
     }
@@ -796,10 +808,14 @@ export function CalendarBoard({
       {/* CALENDAR GRID — Chronos V2.0: Border-separated cells               */}
       {/* ================================================================== */}
       <div className="flex-1 overflow-y-auto">
-        <div className={cn(
-          "grid grid-cols-7 min-h-[800px]",
-          isDark ? "bg-[#050505]" : "bg-white"
-        )} style={{ gridAutoRows: 'minmax(140px, auto)' }}>
+        <div
+          className={cn(
+            "grid grid-cols-7 min-h-[800px]",
+            isDark ? "bg-[#050505]" : "bg-white"
+          )}
+          style={{ gridAutoRows: 'minmax(140px, auto)' }}
+          onClick={() => setSelectedTaskId(null)}
+        >
           {calendarDays.map((day, index) => {
             const isLastCol = index % 7 === 6;
             const isLastRow = index >= 35;
@@ -856,6 +872,7 @@ export function CalendarBoard({
                           segment={segment}
                           isDark={isDark}
                           blurFinancials={blurFinancials}
+                          isSelected={selectedTaskId === segment.taskId}
                           t={t}
                           onClick={() => {
                             handleOpenTask(segment.task);

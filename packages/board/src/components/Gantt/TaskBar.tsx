@@ -59,6 +59,9 @@ export function TaskBar({
   const dragState = useDragState(x, width);
   const svgRef = useRef<SVGGElement>(null);
 
+  // v2.3.0: Track real mouse movement to distinguish click vs drag
+  const hasDraggedRef = useRef(false);
+
   // v0.17.379: Auto-scroll when dragging near edges
   const autoScrollIntervalRef = useRef<number | null>(null);
   const lastMouseEventRef = useRef<MouseEvent | null>(null);
@@ -278,6 +281,7 @@ export function TaskBar({
       }
     }
 
+    hasDraggedRef.current = false; // v2.3.0: Reset on new interaction
     setDragMode(actualMode);
     setIsHovered(false); // Hide all tooltips when dragging starts
     setActiveZone(null); // Clear active zone
@@ -331,6 +335,9 @@ export function TaskBar({
   // Handle mouse move for dragging
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (dragMode === 'none') return;
+
+    // v2.3.0: Mark that real movement occurred (distinguishes click from drag)
+    hasDraggedRef.current = true;
 
     // v0.17.379: Store last mouse event for auto-scroll interval
     lastMouseEventRef.current = e;
@@ -556,9 +563,16 @@ export function TaskBar({
     <g
       ref={svgRef}
       data-task-bar="true"
-      onClick={() => !isDragging && onClick?.(task)}
+      onClick={() => {
+        // v2.3.0: Only fire click if no real drag movement occurred
+        if (!isDragging && !hasDraggedRef.current) {
+          onClick?.(task);
+        }
+        // Reset after click event is processed
+        hasDraggedRef.current = false;
+      }}
       onDoubleClick={(e) => {
-        if (!isDragging) {
+        if (!isDragging && !hasDraggedRef.current) {
           e.stopPropagation();
           onDoubleClick?.(task);
         }
@@ -739,7 +753,7 @@ export function TaskBar({
           height={height}
           rx={borderRadius}
           fill={theme.executionBarBg || 'rgba(255,255,255,0.06)'}
-          stroke="rgba(255,255,255,0.1)"
+          stroke={isChronos && theme.border ? theme.border : 'rgba(255,255,255,0.1)'}
           strokeWidth={1}
           data-task-class={customClass}
           initial={{ opacity: 0, scale: 0.95 }}

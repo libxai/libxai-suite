@@ -105,8 +105,16 @@ export const themes: Record<string, GanttTheme> = {
     // Hover & Focus States
     hoverBg: 'rgba(0, 0, 0, 0.04)',
     focusRing: '#2563EB',
+
+    // Chronos V2 additions (light-mode equivalents)
+    dotGrid: 'rgba(0, 0, 0, 0.04)',
+    glassHeader: '#F8FAFC',
+    glassToolbar: 'rgba(255, 255, 255, 0.85)',
+    forecastHud: 'rgba(248, 250, 252, 0.95)',
+    neonRedGlow: '0 0 10px rgba(220, 38, 38, 0.3)',
+    executionBarBg: 'rgba(37, 99, 235, 0.15)',
   },
-  
+
   neutral: {
     // Backgrounds
     // v0.17.71: Improved contrast and visual breathing
@@ -155,5 +163,13 @@ export const themes: Record<string, GanttTheme> = {
     // Hover & Focus States
     hoverBg: 'rgba(0, 0, 0, 0.035)',
     focusRing: '#292524',
+
+    // Chronos V2 additions (neutral-mode equivalents)
+    dotGrid: 'rgba(0, 0, 0, 0.03)',
+    glassHeader: '#F5F5F4',
+    glassToolbar: 'rgba(250, 250, 249, 0.85)',
+    forecastHud: 'rgba(245, 245, 244, 0.95)',
+    neonRedGlow: '0 0 10px rgba(68, 64, 60, 0.3)',
+    executionBarBg: 'rgba(41, 37, 36, 0.15)',
   },
 };

@@ -735,7 +735,8 @@ function FilterDropdown({ theme, value, onChange, hideCompleted = false, onHideC
 /**
  * Chronos V2: Time Capsule — pill-shaped time scale selector
  */
-function TimeCapsule({ value, onChange }: { value: TimeScale; onChange: (s: TimeScale) => void }) {
+function TimeCapsule({ value, onChange, theme }: { value: TimeScale; onChange: (s: TimeScale) => void; theme: any }) {
+  const isDark = theme.bgPrimary === '#050505' || theme.textPrimary === '#FFFFFF';
   const scales: Array<{ value: TimeScale; label: string }> = [
     { value: 'day', label: 'D' },
     { value: 'week', label: 'W' },
@@ -746,8 +747,8 @@ function TimeCapsule({ value, onChange }: { value: TimeScale; onChange: (s: Time
     <div
       className="inline-flex items-center rounded-full p-0.5"
       style={{
-        backgroundColor: '#000000',
-        border: '1px solid rgba(255,255,255,0.1)',
+        backgroundColor: isDark ? '#000000' : theme.bgSecondary,
+        border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : theme.border}`,
       }}
     >
       {scales.map((s) => {
@@ -758,11 +759,11 @@ function TimeCapsule({ value, onChange }: { value: TimeScale; onChange: (s: Time
             onClick={() => onChange(s.value)}
             className="relative px-3 py-1 text-[11px] font-medium rounded-full transition-colors"
             style={{
-              color: isActive ? '#FFFFFF' : '#666666',
+              color: isActive ? (isDark ? '#FFFFFF' : theme.textPrimary) : theme.textTertiary,
               fontFamily: "'JetBrains Mono', monospace",
-              backgroundColor: isActive ? 'rgba(255,255,255,0.1)' : 'transparent',
+              backgroundColor: isActive ? (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)') : 'transparent',
             }}
-            whileHover={{ color: '#FFFFFF' }}
+            whileHover={{ color: isDark ? '#FFFFFF' : theme.textPrimary }}
             whileTap={{ scale: 0.95 }}
           >
             {s.label}
@@ -777,11 +778,12 @@ function TimeCapsule({ value, onChange }: { value: TimeScale; onChange: (s: Time
  * Chronos V2: Forecast HUD Panel — placeholder KPIs bar
  */
 function ForecastHUD({ theme }: { theme: any }) {
+  const isDark = theme.bgPrimary === '#050505' || theme.textPrimary === '#FFFFFF';
   return (
     <div
       className="h-12 px-4 flex items-center justify-between border-b"
       style={{
-        backgroundColor: theme.forecastHud || 'rgba(15,15,15,0.9)',
+        backgroundColor: theme.forecastHud || (isDark ? 'rgba(15,15,15,0.9)' : 'rgba(248,250,252,0.95)'),
         borderColor: theme.borderLight,
         backdropFilter: 'blur(12px)',
       }}
@@ -791,7 +793,7 @@ function ForecastHUD({ theme }: { theme: any }) {
         <span
           className="text-[9px] uppercase tracking-[0.15em]"
           style={{
-            color: '#666666',
+            color: theme.textTertiary,
             fontFamily: "'JetBrains Mono', monospace",
             fontWeight: 500,
           }}
@@ -802,15 +804,15 @@ function ForecastHUD({ theme }: { theme: any }) {
         <div className="flex items-center gap-2">
           <span
             className="text-[13px] font-semibold"
-            style={{ color: '#FFFFFF', fontFamily: 'Inter, sans-serif' }}
+            style={{ color: theme.textPrimary, fontFamily: 'Inter, sans-serif' }}
           >
             Expected Finish: Nov 28
           </span>
           <span
             className="px-1.5 py-0.5 rounded text-[10px] font-medium"
             style={{
-              backgroundColor: 'rgba(255,46,46,0.15)',
-              color: '#FF453A',
+              backgroundColor: isDark ? 'rgba(255,46,46,0.15)' : 'rgba(220,38,38,0.1)',
+              color: isDark ? '#FF453A' : '#DC2626',
               fontFamily: "'JetBrains Mono', monospace",
             }}
           >
@@ -824,7 +826,7 @@ function ForecastHUD({ theme }: { theme: any }) {
         <div className="flex items-center gap-2">
           <span
             className="text-[11px]"
-            style={{ color: '#888888', fontFamily: 'Inter, sans-serif' }}
+            style={{ color: theme.textTertiary, fontFamily: 'Inter, sans-serif' }}
           >
             Confidence:
           </span>
@@ -841,27 +843,27 @@ function ForecastHUD({ theme }: { theme: any }) {
 
         <div
           className="w-px h-5"
-          style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}
+          style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : theme.borderLight }}
         />
 
         <div className="flex items-center gap-2">
           <span
             className="text-[11px]"
-            style={{ color: '#888888', fontFamily: 'Inter, sans-serif' }}
+            style={{ color: theme.textTertiary, fontFamily: 'Inter, sans-serif' }}
           >
             Cost at Completion:
           </span>
           <span
             className="text-[13px] font-bold"
-            style={{ color: '#FFFFFF', fontFamily: "'JetBrains Mono', monospace" }}
+            style={{ color: theme.textPrimary, fontFamily: "'JetBrains Mono', monospace" }}
           >
             $1.42M
           </span>
           <span
             className="px-1.5 py-0.5 rounded text-[10px] font-medium"
             style={{
-              backgroundColor: 'rgba(255,46,46,0.15)',
-              color: '#FF453A',
+              backgroundColor: isDark ? 'rgba(255,46,46,0.15)' : 'rgba(220,38,38,0.1)',
+              color: isDark ? '#FF453A' : '#DC2626',
               fontFamily: "'JetBrains Mono', monospace",
             }}
           >
@@ -926,8 +928,13 @@ export function GanttToolbar({
     { value: 'neutral', label: 'Zen', icon: <Palette className="w-3.5 h-3.5" /> },
   ];
 
-  // ─── Chronos V2 Layout ────────────────────────────────────────────────
+  // ─── Chronos V2 Layout (all themes) ──────────────────────────────────
+  const isDark = theme.bgPrimary === '#050505' || theme.textPrimary === '#FFFFFF';
+
   if (isChronos) {
+    const dividerColor = isDark ? 'rgba(255,255,255,0.08)' : theme.borderLight;
+    const iconHoverBg = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)';
+
     return (
       <div className="flex flex-col">
         {/* Bar 1: Glass Toolbar (52px) */}
@@ -944,8 +951,8 @@ export function GanttToolbar({
             <motion.div
               className="flex items-center rounded-full overflow-hidden"
               style={{
-                backgroundColor: '#1A1A1A',
-                border: '1px solid rgba(255,255,255,0.08)',
+                backgroundColor: isDark ? '#1A1A1A' : theme.bgSecondary,
+                border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : theme.border}`,
               }}
               animate={{ width: searchOpen ? 220 : 36 }}
               transition={{ type: 'spring', stiffness: 400, damping: 30 }}
@@ -953,8 +960,8 @@ export function GanttToolbar({
               <motion.button
                 onClick={() => setSearchOpen(!searchOpen)}
                 className="flex items-center justify-center w-9 h-9 flex-shrink-0"
-                style={{ color: '#888888' }}
-                whileHover={{ color: '#FFFFFF' }}
+                style={{ color: theme.textTertiary }}
+                whileHover={{ color: theme.textPrimary }}
               >
                 <Search className="w-4 h-4" />
               </motion.button>
@@ -965,7 +972,7 @@ export function GanttToolbar({
                   placeholder="Search tasks..."
                   className="bg-transparent border-none outline-none text-xs pr-3 w-full"
                   style={{
-                    color: '#FFFFFF',
+                    color: theme.textPrimary,
                     fontFamily: 'Inter, sans-serif',
                   }}
                   onBlur={() => setSearchOpen(false)}
@@ -977,21 +984,21 @@ export function GanttToolbar({
             </motion.div>
 
             {/* Divider */}
-            <div className="w-px h-5" style={{ backgroundColor: 'rgba(255,255,255,0.08)' }} />
+            <div className="w-px h-5" style={{ backgroundColor: dividerColor }} />
 
             {/* Segmented Control: Execution | Oracle View */}
             <div
               className="inline-flex items-center rounded-full p-0.5"
               style={{
-                backgroundColor: '#000000',
-                border: '1px solid rgba(255,255,255,0.1)',
+                backgroundColor: isDark ? '#000000' : theme.bgSecondary,
+                border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : theme.border}`,
               }}
             >
               <motion.button
                 className="px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors"
                 style={{
-                  backgroundColor: 'rgba(255,255,255,0.1)',
-                  color: '#FFFFFF',
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
+                  color: theme.textPrimary,
                   fontFamily: 'Inter, sans-serif',
                 }}
               >
@@ -1001,10 +1008,10 @@ export function GanttToolbar({
                 className="px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors"
                 style={{
                   backgroundColor: 'transparent',
-                  color: '#666666',
+                  color: theme.textTertiary,
                   fontFamily: 'Inter, sans-serif',
                 }}
-                whileHover={{ color: '#AAAAAA' }}
+                whileHover={{ color: theme.textSecondary }}
               >
                 Oracle View
               </motion.button>
@@ -1017,13 +1024,13 @@ export function GanttToolbar({
               onClick={onCreateTask}
               className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs"
               style={{
-                background: 'linear-gradient(135deg, #2E94FF 0%, #007AFF 100%)',
+                background: `linear-gradient(135deg, ${theme.accent} 0%, ${theme.accentHover} 100%)`,
                 color: '#FFFFFF',
                 fontFamily: 'Inter, sans-serif',
                 fontWeight: 500,
-                boxShadow: '0 2px 8px rgba(46,148,255,0.3)',
+                boxShadow: `0 2px 8px ${isDark ? 'rgba(46,148,255,0.3)' : 'rgba(37,99,235,0.3)'}`,
               }}
-              whileHover={{ scale: 1.02, boxShadow: '0 4px 12px rgba(46,148,255,0.4)' }}
+              whileHover={{ scale: 1.02, boxShadow: `0 4px 12px ${isDark ? 'rgba(46,148,255,0.4)' : 'rgba(37,99,235,0.4)'}` }}
               whileTap={{ scale: 0.98 }}
             >
               <Plus className="w-3.5 h-3.5" />
@@ -1034,10 +1041,10 @@ export function GanttToolbar({
           {/* Right: Time Capsule + Icons + AI Button */}
           <div className="flex items-center gap-3">
             {/* Time Capsule */}
-            <TimeCapsule value={timeScale} onChange={onTimeScaleChange} />
+            <TimeCapsule value={timeScale} onChange={onTimeScaleChange} theme={theme} />
 
             {/* Divider */}
-            <div className="w-px h-5" style={{ backgroundColor: 'rgba(255,255,255,0.08)' }} />
+            <div className="w-px h-5" style={{ backgroundColor: dividerColor }} />
 
             {/* Density */}
             <DensityDropdown theme={theme} value={rowDensity} onChange={onRowDensityChange} />
@@ -1054,13 +1061,13 @@ export function GanttToolbar({
             )}
 
             {/* Divider */}
-            <div className="w-px h-5" style={{ backgroundColor: 'rgba(255,255,255,0.08)' }} />
+            <div className="w-px h-5" style={{ backgroundColor: dividerColor }} />
 
             {/* Visibility icon */}
             <motion.button
               className="flex items-center justify-center w-8 h-8 rounded-lg"
-              style={{ color: '#888888', backgroundColor: 'transparent' }}
-              whileHover={{ color: '#FFFFFF', backgroundColor: 'rgba(255,255,255,0.06)' }}
+              style={{ color: theme.textTertiary, backgroundColor: 'transparent' }}
+              whileHover={{ color: theme.textPrimary, backgroundColor: iconHoverBg }}
               title="Visibility"
             >
               <Eye className="w-4 h-4" />
@@ -1069,8 +1076,8 @@ export function GanttToolbar({
             {/* Share icon */}
             <motion.button
               className="flex items-center justify-center w-8 h-8 rounded-lg"
-              style={{ color: '#888888', backgroundColor: 'transparent' }}
-              whileHover={{ color: '#FFFFFF', backgroundColor: 'rgba(255,255,255,0.06)' }}
+              style={{ color: theme.textTertiary, backgroundColor: 'transparent' }}
+              whileHover={{ color: theme.textPrimary, backgroundColor: iconHoverBg }}
               title="Share"
             >
               <Share2 className="w-4 h-4" />
