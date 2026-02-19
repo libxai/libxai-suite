@@ -120,6 +120,14 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   const [rowDensity, setRowDensity] = useState<RowDensity>(initialRowDensity);
   const [zoom, setZoom] = useState(1);
 
+  // v1.5.0: Notify consumer of timeScale/zoom changes
+  useEffect(() => { config.onTimeScaleChange?.(timeScale); }, [timeScale]);
+  useEffect(() => { config.onZoomChange?.(zoom); }, [zoom]);
+
+  // v1.5.1: Ref to avoid stale closure in useEffect below
+  const onDateRangeChangeRef = useRef(config.onDateRangeChange);
+  onDateRangeChangeRef.current = config.onDateRangeChange;
+
   // v0.18.0: Filter persistence helpers
   const getFilterStorageKey = useCallback(() => {
     if (!persistFilter) return null;
@@ -1363,6 +1371,11 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
 
     return { startDate: minDate, endDate: maxDate };
   }, [localTasks, timeScale]);
+
+  // v1.5.1: Notify consumer of computed date range
+  useEffect(() => {
+    onDateRangeChangeRef.current?.(startDate, endDate);
+  }, [startDate, endDate]);
 
   // Handlers (future implementation - currently unused but kept for future features)
   // TODO: Implement zoom controls in toolbar

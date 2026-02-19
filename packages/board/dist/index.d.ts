@@ -433,6 +433,9 @@ interface GanttConfig {
      */
     autoExpandSubtasks?: boolean;
     onThemeChange?: (theme: Theme$1) => void;
+    onTimeScaleChange?: (timeScale: TimeScale) => void;
+    onZoomChange?: (zoom: number) => void;
+    onDateRangeChange?: (startDate: Date, endDate: Date) => void;
     onTaskClick?: (task: Task) => void;
     onTaskDblClick?: (task: Task) => void;
     onTaskContextMenu?: (task: Task, event: React.MouseEvent) => void;

@@ -504,6 +504,9 @@ export interface GanttConfig {
 
   // ==================== UI Events ====================
   onThemeChange?: (theme: Theme) => void; // v0.9.0: Theme change event
+  onTimeScaleChange?: (timeScale: TimeScale) => void; // v1.5.0: TimeScale change event
+  onZoomChange?: (zoom: number) => void; // v1.5.0: Zoom change event
+  onDateRangeChange?: (startDate: Date, endDate: Date) => void; // v1.5.1: Expose computed date range
 
   // ==================== Basic Events ====================
   onTaskClick?: (task: Task) => void;
