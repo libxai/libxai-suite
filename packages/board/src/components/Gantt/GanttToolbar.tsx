@@ -34,6 +34,8 @@ interface GanttToolbarProps {
   // v0.18.0: Hide completed toggle
   hideCompleted?: boolean;
   onHideCompletedChange?: (hide: boolean) => void;
+  // Custom toolbar right content
+  toolbarRightContent?: React.ReactNode;
   // Export handlers
   onExportPNG?: () => Promise<void>;
   onExportPDF?: () => Promise<void>;
@@ -893,6 +895,7 @@ export function GanttToolbar({
   onTaskFilterChange,
   hideCompleted = false, // v0.18.0: Hide completed toggle
   onHideCompletedChange,
+  toolbarRightContent,
   onExportPNG,
   onExportPDF,
   onExportExcel,
@@ -1058,6 +1061,14 @@ export function GanttToolbar({
                 hideCompleted={hideCompleted}
                 onHideCompletedChange={onHideCompletedChange}
               />
+            )}
+
+            {/* Custom right content (e.g. Hrs/$ lens toggle) */}
+            {toolbarRightContent && (
+              <>
+                <div className="w-px h-5" style={{ backgroundColor: dividerColor }} />
+                {toolbarRightContent}
+              </>
             )}
 
             {/* Divider */}
@@ -1228,8 +1239,15 @@ export function GanttToolbar({
         )}
       </div>
 
-      {/* Right Section - Create Task + Export + Theme Selector */}
+      {/* Right Section - Custom content + Create Task + Export + Theme Selector */}
       <div className="flex items-center gap-3">
+        {/* Custom right content (e.g. Hrs/$ lens toggle) */}
+        {toolbarRightContent && (
+          <>
+            {toolbarRightContent}
+            <div className="w-px h-5" style={{ backgroundColor: theme.borderLight }} />
+          </>
+        )}
         {/* v0.14.3: Create Task Button */}
         {showCreateTaskButton && onCreateTask && (
           <>

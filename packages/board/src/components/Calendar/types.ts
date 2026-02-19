@@ -2,6 +2,7 @@
  * CalendarBoard Component Types
  * @version 0.17.241
  */
+import type { ReactNode } from 'react';
 
 import type { Task, TaskTag } from '../Gantt/types';
 import type { User, Attachment, TimeEntry, TimeTrackingSummary, TimerState, TimeLogInput } from '../../types';
@@ -129,6 +130,8 @@ export interface CalendarConfig {
   showTooltip?: boolean;
   /** Show right sidebar with unscheduled/backlog tasks (default: true) */
   showBacklog?: boolean;
+  /** Render custom content on the right side of header (e.g. lens toggle) */
+  toolbarRightContent?: ReactNode;
 }
 
 /**

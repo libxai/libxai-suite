@@ -1,9 +1,9 @@
 import * as _libxai_core from '@libxai/core';
 import { Dependency, BaseViewAdapter, ViewBoardData, ExportFormat as ExportFormat$1, ViewOptions, BoardData, ColumnData, CardData, BoardState, BoardStore, Board as Board$1, Column as Column$2, Card as Card$2, Priority as Priority$1, CardStatus as CardStatus$1, DragState, SelectionState } from '@libxai/core';
 export { AutoScheduleOptions, BaseEntity, Baseline, BaselineCardSnapshot, BoardData, Board as BoardModel, BoardState, BoardStore, CardData, Card as CardModel, ColumnData, Column as ColumnModel, CriticalPath, Dependency, DependencyEngine, DependencyType, DependencyValidation, GanttConfig, GanttState, Milestone, ResourceAllocation, ResourceUtilization, ScheduledTask, Store, StoreEvent, TaskConstraint, TaskConstraintType, UserData } from '@libxai/core';
-import * as react_jsx_runtime from 'react/jsx-runtime';
 import * as React$1 from 'react';
-import React__default, { Component, ReactNode, ErrorInfo } from 'react';
+import React__default, { ReactNode, Component, ErrorInfo } from 'react';
+import * as react_jsx_runtime from 'react/jsx-runtime';
 import { ClassValue } from 'clsx';
 import * as _tanstack_virtual_core from '@tanstack/virtual-core';
 
@@ -371,6 +371,8 @@ interface GanttConfig {
     onCreateTask?: () => void;
     taskFilter?: TaskFilterType;
     onTaskFilterChange?: (filter: TaskFilterType) => void;
+    /** Render custom content on the right side of toolbar (e.g. lens toggle) */
+    toolbarRightContent?: ReactNode;
     templates?: GanttTemplates;
     permissions?: GanttPermissions;
     disableScrollSync?: boolean;
@@ -1523,8 +1525,10 @@ interface KanbanToolbarProps {
     onExportJSON?: () => void;
     onExportExcel?: () => Promise<void>;
     translations?: Partial<KanbanToolbarI18n>;
+    /** Render custom content on the right side of toolbar (e.g. lens toggle) */
+    toolbarRightContent?: React.ReactNode;
 }
-declare function KanbanToolbar({ columns, onCreateTask, createTaskLabel, theme, locale, useColumnSelector, onExportCSV, onExportJSON, onExportExcel, translations, }: KanbanToolbarProps): react_jsx_runtime.JSX.Element;
+declare function KanbanToolbar({ columns, onCreateTask, createTaskLabel, theme, locale, useColumnSelector, onExportCSV, onExportJSON, onExportExcel, translations, toolbarRightContent, }: KanbanToolbarProps): react_jsx_runtime.JSX.Element;
 
 /**
  * AddColumnButton Component
@@ -2651,6 +2655,7 @@ interface GanttToolbarProps {
     onTaskFilterChange?: (filter: TaskFilterType) => void;
     hideCompleted?: boolean;
     onHideCompletedChange?: (hide: boolean) => void;
+    toolbarRightContent?: React.ReactNode;
     onExportPNG?: () => Promise<void>;
     onExportPDF?: () => Promise<void>;
     onExportExcel?: () => Promise<void>;
@@ -2662,7 +2667,7 @@ declare function GanttToolbar({ theme, timeScale, onTimeScaleChange, zoom, onZoo
 showCreateTaskButton, createTaskLabel, // v0.15.0: Will use translations if not provided
 onCreateTask, taskFilter, // v0.17.300: Task filter
 onTaskFilterChange, hideCompleted, // v0.18.0: Hide completed toggle
-onHideCompletedChange, onExportPNG, onExportPDF, onExportExcel, onExportCSV, onExportJSON, onExportMSProject, }: GanttToolbarProps): react_jsx_runtime.JSX.Element;
+onHideCompletedChange, toolbarRightContent, onExportPNG, onExportPDF, onExportExcel, onExportCSV, onExportJSON, onExportMSProject, }: GanttToolbarProps): react_jsx_runtime.JSX.Element;
 
 interface TaskGridProps {
     tasks: Task[];
@@ -4145,6 +4150,8 @@ interface CalendarConfig {
     showTooltip?: boolean;
     /** Show right sidebar with unscheduled/backlog tasks (default: true) */
     showBacklog?: boolean;
+    /** Render custom content on the right side of header (e.g. lens toggle) */
+    toolbarRightContent?: ReactNode;
 }
 /**
  * CalendarBoard translations

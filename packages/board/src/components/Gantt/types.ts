@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 export interface TaskSegment {
   startDate: Date;
   endDate: Date;
@@ -426,6 +428,9 @@ export interface GanttConfig {
   // v0.17.300: Task filter in toolbar
   taskFilter?: TaskFilterType;
   onTaskFilterChange?: (filter: TaskFilterType) => void;
+
+  /** Render custom content on the right side of toolbar (e.g. lens toggle) */
+  toolbarRightContent?: ReactNode;
 
   // v0.8.0: Customizable templates (similar to DHTMLX gantt.templates.*)
   templates?: GanttTemplates;

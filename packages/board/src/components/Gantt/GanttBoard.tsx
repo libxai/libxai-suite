@@ -82,6 +82,8 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     // v0.17.300: Task filter
     taskFilter: externalTaskFilter,
     onTaskFilterChange: externalOnTaskFilterChange,
+    // Custom toolbar content
+    toolbarRightContent,
     // UI events
     onThemeChange, // v0.9.0
     // Basic events
@@ -1760,6 +1762,8 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         // v0.18.0: Hide completed toggle
         hideCompleted={hideCompleted}
         onHideCompletedChange={setHideCompleted}
+        // Custom toolbar content
+        toolbarRightContent={toolbarRightContent}
         // v0.12.0: Export handlers
         onExportPNG={showExportButton ? handleExportPNG : undefined}
         onExportPDF={showExportButton ? handleExportPDF : undefined}

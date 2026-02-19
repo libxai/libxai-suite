@@ -97,6 +97,8 @@ export interface KanbanToolbarProps {
   onExportExcel?: () => Promise<void>;
   // Custom translations
   translations?: Partial<KanbanToolbarI18n>;
+  /** Render custom content on the right side of toolbar (e.g. lens toggle) */
+  toolbarRightContent?: React.ReactNode;
 }
 
 // Column Selector Dropdown
@@ -439,6 +441,7 @@ export function KanbanToolbar({
   onExportJSON,
   onExportExcel,
   translations,
+  toolbarRightContent,
 }: KanbanToolbarProps) {
   const themeStyles = theme === 'dark' ? darkTheme : lightTheme;
   const t: KanbanToolbarI18n = {
@@ -458,8 +461,14 @@ export function KanbanToolbar({
         borderColor: themeStyles.border,
       }}
     >
-      {/* Right Section - Create Task + Export */}
+      {/* Right Section - Custom content + Create Task + Export */}
       <div className="flex items-center gap-3">
+        {toolbarRightContent && (
+          <>
+            {toolbarRightContent}
+            <div className="w-px h-5" style={{ backgroundColor: themeStyles.borderLight }} />
+          </>
+        )}
         {hasExport && (
           <>
             <ExportDropdown

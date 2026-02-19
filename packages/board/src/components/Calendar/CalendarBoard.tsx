@@ -759,8 +759,14 @@ export function CalendarBoard({
           </div>
         </div>
 
-        {/* Right: Today button */}
+        {/* Right: Custom content + Today button */}
         <div className="flex items-center gap-3 shrink-0">
+          {config.toolbarRightContent && (
+            <>
+              {config.toolbarRightContent}
+              <div className={cn("h-4 w-px", isDark ? "bg-white/10" : "bg-gray-200")} />
+            </>
+          )}
           <button
             onClick={goToToday}
             className={cn(
