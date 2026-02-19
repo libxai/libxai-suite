@@ -140,6 +140,8 @@ export interface TaskFormModalProps {
   attachments?: Attachment[]
   onUploadAttachments?: (taskId: string, files: File[]) => Promise<void> | void
   onDeleteAttachment?: (attachmentId: string) => void
+  /** v2.2.0: Pre-select status when creating from a specific column */
+  defaultStatus?: string
 }
 
 // Priority configuration
@@ -166,6 +168,7 @@ export function TaskFormModal({
   attachments = [],
   onUploadAttachments,
   onDeleteAttachment,
+  defaultStatus,
 }: TaskFormModalProps) {
   const allStatuses: CustomStatus[] = [
     ...DEFAULT_STATUSES,
@@ -237,7 +240,7 @@ export function TaskFormModal({
         name: '',
         description: '',
         progress: 0,
-        status: 'todo',
+        status: defaultStatus || 'todo',
         priority: 'medium',
         isMilestone: false,
         color: '#6366F1',
@@ -249,7 +252,7 @@ export function TaskFormModal({
       setShowAdvanced(false)
       setPendingFiles([]) // v0.17.166: Clear pending files on reset
     }
-  }, [task, isOpen])
+  }, [task, isOpen, defaultStatus])
 
   // Close dropdowns on click outside
   useEffect(() => {
@@ -322,10 +325,11 @@ export function TaskFormModal({
   const currentPriority = PRIORITIES.find(p => p.id === formData.priority) ?? PRIORITIES[1]!
   const currentColor = TASK_COLORS.find(c => c.value === formData.color) ?? TASK_COLORS[0]!
 
-  // Pill button base style
+  // Pill button base style — glass surface for dark, solid for light
+  const isDarkTheme = theme === 'dark'
   const pillStyle = {
-    backgroundColor: themeColors.bgSecondary,
-    border: `1px solid ${themeColors.borderLight}`,
+    backgroundColor: isDarkTheme ? 'rgba(255, 255, 255, 0.04)' : themeColors.bgSecondary,
+    border: `1px solid ${isDarkTheme ? 'rgba(255, 255, 255, 0.08)' : themeColors.borderLight}`,
     color: themeColors.textPrimary,
   }
 
@@ -338,7 +342,12 @@ export function TaskFormModal({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 z-50"
+            className="fixed inset-0 z-50"
+            style={{
+              backgroundColor: isDarkTheme ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.3)',
+              backdropFilter: 'blur(4px)',
+              WebkitBackdropFilter: 'blur(4px)',
+            }}
             onClick={onClose}
           />
 
@@ -351,22 +360,28 @@ export function TaskFormModal({
             className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none"
           >
             <div
-              className="w-full max-w-xl rounded-xl shadow-2xl pointer-events-auto overflow-hidden"
+              className="w-full max-w-xl rounded-xl pointer-events-auto overflow-hidden"
               data-theme={theme}
               style={{
-                backgroundColor: themeColors.bgPrimary,
+                backgroundColor: isDarkTheme ? 'rgba(10, 10, 10, 0.97)' : themeColors.bgPrimary,
+                backdropFilter: isDarkTheme ? 'blur(16px)' : undefined,
+                WebkitBackdropFilter: isDarkTheme ? 'blur(16px)' : undefined,
                 border: `1px solid ${themeColors.border}`,
+                boxShadow: isDarkTheme ? '0 8px 32px rgba(0, 0, 0, 0.6)' : '0 8px 32px rgba(0, 0, 0, 0.12)',
               }}
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header - Minimal */}
-              <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: `1px solid ${themeColors.border}` }}>
+              <div
+                className="flex items-center justify-between px-5 py-3"
+                style={{ borderBottom: `1px solid ${themeColors.border}`, fontFamily: 'Inter, sans-serif' }}
+              >
                 <div className="flex items-center gap-3">
                   <div
                     className="w-3 h-3 rounded-full"
                     style={{ backgroundColor: currentStatus.color || themeColors.accent }}
                   />
-                  <span className="text-sm font-medium" style={{ color: themeColors.textSecondary }}>
+                  <span style={{ fontSize: 13, fontWeight: 500, color: themeColors.textSecondary }}>
                     {mode === 'create' ? 'Nueva tarea' : 'Editar tarea'}
                   </span>
                 </div>
@@ -389,7 +404,7 @@ export function TaskFormModal({
               </div>
 
               {/* Form Content */}
-              <form onSubmit={handleSubmit} className="max-h-[calc(100vh-200px)] overflow-y-auto">
+              <form onSubmit={handleSubmit} className="max-h-[calc(100vh-200px)] overflow-y-auto" style={{ fontFamily: 'Inter, sans-serif' }}>
                 <div className="p-5 space-y-4">
                   {/* Task Name - Large & Prominent */}
                   <div>
@@ -397,8 +412,14 @@ export function TaskFormModal({
                       type="text"
                       value={formData.name}
                       onChange={(e) => handleChange('name', e.target.value)}
-                      className="w-full text-lg font-medium bg-transparent border-none focus:outline-none focus:ring-0 placeholder:opacity-50"
-                      style={{ color: themeColors.textPrimary }}
+                      className="w-full bg-transparent border-none focus:outline-none focus:ring-0"
+                      style={{
+                        color: themeColors.textPrimary,
+                        fontSize: 22,
+                        fontWeight: 700,
+                        fontFamily: 'Inter, sans-serif',
+                        opacity: formData.name ? 1 : undefined,
+                      }}
                       placeholder="Nombre de la tarea"
                       disabled={isLoading}
                       autoFocus
@@ -416,8 +437,12 @@ export function TaskFormModal({
                     <textarea
                       value={formData.description || ''}
                       onChange={(e) => handleChange('description', e.target.value)}
-                      className="w-full text-sm bg-transparent border-none focus:outline-none focus:ring-0 resize-none placeholder:opacity-40"
-                      style={{ color: themeColors.textSecondary }}
+                      className="w-full bg-transparent border-none focus:outline-none focus:ring-0 resize-none"
+                      style={{
+                        color: themeColors.textSecondary,
+                        fontSize: 13,
+                        fontFamily: 'Inter, sans-serif',
+                      }}
                       placeholder="Agregar descripción..."
                       rows={2}
                       disabled={isLoading}
@@ -453,8 +478,13 @@ export function TaskFormModal({
                             initial={{ opacity: 0, y: -5 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -5 }}
-                            className="absolute left-0 top-full mt-1 z-50 min-w-[140px] rounded-lg shadow-xl overflow-hidden"
-                            style={{ backgroundColor: themeColors.bgPrimary, border: `1px solid ${themeColors.border}` }}
+                            className="absolute left-0 top-full mt-1 z-50 min-w-[140px] rounded-lg overflow-hidden"
+                            style={{
+                              backgroundColor: isDarkTheme ? 'rgba(17, 17, 17, 0.98)' : themeColors.bgPrimary,
+                              backdropFilter: isDarkTheme ? 'blur(16px)' : undefined,
+                              border: `1px solid ${isDarkTheme ? 'rgba(255, 255, 255, 0.10)' : themeColors.border}`,
+                              boxShadow: isDarkTheme ? '0 8px 24px rgba(0, 0, 0, 0.5)' : '0 8px 24px rgba(0, 0, 0, 0.12)',
+                            }}
                           >
                             {allStatuses.map((status) => (
                               <button
@@ -496,8 +526,13 @@ export function TaskFormModal({
                             initial={{ opacity: 0, y: -5 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -5 }}
-                            className="absolute left-0 top-full mt-1 z-50 min-w-[130px] rounded-lg shadow-xl overflow-hidden"
-                            style={{ backgroundColor: themeColors.bgPrimary, border: `1px solid ${themeColors.border}` }}
+                            className="absolute left-0 top-full mt-1 z-50 min-w-[130px] rounded-lg overflow-hidden"
+                            style={{
+                              backgroundColor: isDarkTheme ? 'rgba(17, 17, 17, 0.98)' : themeColors.bgPrimary,
+                              backdropFilter: isDarkTheme ? 'blur(16px)' : undefined,
+                              border: `1px solid ${isDarkTheme ? 'rgba(255, 255, 255, 0.10)' : themeColors.border}`,
+                              boxShadow: isDarkTheme ? '0 8px 24px rgba(0, 0, 0, 0.5)' : '0 8px 24px rgba(0, 0, 0, 0.12)',
+                            }}
                           >
                             {PRIORITIES.map((priority) => (
                               <button
@@ -561,8 +596,13 @@ export function TaskFormModal({
                               initial={{ opacity: 0, y: -5 }}
                               animate={{ opacity: 1, y: 0 }}
                               exit={{ opacity: 0, y: -5 }}
-                              className="absolute left-0 top-full mt-1 z-50 min-w-[180px] max-h-[200px] overflow-y-auto rounded-lg shadow-xl"
-                              style={{ backgroundColor: themeColors.bgPrimary, border: `1px solid ${themeColors.border}` }}
+                              className="absolute left-0 top-full mt-1 z-50 min-w-[180px] max-h-[200px] overflow-y-auto rounded-lg"
+                              style={{
+                                backgroundColor: isDarkTheme ? 'rgba(17, 17, 17, 0.98)' : themeColors.bgPrimary,
+                                backdropFilter: isDarkTheme ? 'blur(16px)' : undefined,
+                                border: `1px solid ${isDarkTheme ? 'rgba(255, 255, 255, 0.10)' : themeColors.border}`,
+                                boxShadow: isDarkTheme ? '0 8px 24px rgba(0, 0, 0, 0.5)' : '0 8px 24px rgba(0, 0, 0, 0.12)',
+                              }}
                             >
                               {availableUsers.map((user) => {
                                 const isSelected = formData.assignees?.some(a => a.name === user.name)
@@ -653,9 +693,10 @@ export function TaskFormModal({
                                 top: `${colorPickerPosition.top}px`,
                                 left: `${colorPickerPosition.left}px`,
                                 zIndex: 99999,
-                                backgroundColor: themeColors.bgPrimary,
-                                border: `1px solid ${themeColors.border}`,
-                                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)'
+                                backgroundColor: isDarkTheme ? 'rgba(17, 17, 17, 0.98)' : themeColors.bgPrimary,
+                                backdropFilter: isDarkTheme ? 'blur(16px)' : undefined,
+                                border: `1px solid ${isDarkTheme ? 'rgba(255, 255, 255, 0.10)' : themeColors.border}`,
+                                boxShadow: isDarkTheme ? '0 8px 24px rgba(0, 0, 0, 0.5)' : '0 4px 20px rgba(0, 0, 0, 0.25)',
                               }}
                               onClick={(e) => e.stopPropagation()}
                             >
@@ -808,13 +849,15 @@ export function TaskFormModal({
                                 top: `${datePickerPosition.top}px`,
                                 left: `${datePickerPosition.left}px`,
                                 zIndex: 99999,
-                                backgroundColor: themeColors.bgPrimary,
-                                border: `1px solid ${themeColors.border}`,
+                                backgroundColor: isDarkTheme ? 'rgba(17, 17, 17, 0.98)' : themeColors.bgPrimary,
+                                backdropFilter: isDarkTheme ? 'blur(16px)' : undefined,
+                                border: `1px solid ${isDarkTheme ? 'rgba(255, 255, 255, 0.10)' : themeColors.border}`,
+                                boxShadow: isDarkTheme ? '0 8px 24px rgba(0, 0, 0, 0.5)' : '0 8px 24px rgba(0, 0, 0, 0.12)',
                               }}
                               onClick={(e) => e.stopPropagation()}
                             >
                               {/* Quick Options */}
-                              <div className="w-40 py-2" style={{ borderRight: `1px solid ${themeColors.border}` }}>
+                              <div className="w-40 py-2" style={{ borderRight: `1px solid ${isDarkTheme ? 'rgba(255, 255, 255, 0.10)' : themeColors.border}` }}>
                                 {(() => {
                                   const today = new Date()
                                   const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1)
@@ -868,9 +911,25 @@ export function TaskFormModal({
                               {/* Calendar */}
                               <div className="p-3">
                                 <div className="flex items-center justify-between mb-3">
-                                  <button type="button" onClick={() => setDatePickerMonth(new Date(datePickerMonth.getFullYear(), datePickerMonth.getMonth() - 1))} className="p-1 rounded hover:bg-white/10"><ChevronLeft className="w-4 h-4" style={{ color: themeColors.textSecondary }} /></button>
-                                  <span className="text-sm font-medium" style={{ color: themeColors.textPrimary }}>{datePickerMonth.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}</span>
-                                  <button type="button" onClick={() => setDatePickerMonth(new Date(datePickerMonth.getFullYear(), datePickerMonth.getMonth() + 1))} className="p-1 rounded hover:bg-white/10"><ChevronRight className="w-4 h-4" style={{ color: themeColors.textSecondary }} /></button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setDatePickerMonth(new Date(datePickerMonth.getFullYear(), datePickerMonth.getMonth() - 1))}
+                                    className="p-1 rounded"
+                                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = themeColors.hoverBg)}
+                                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                                  >
+                                    <ChevronLeft className="w-4 h-4" style={{ color: themeColors.textSecondary }} />
+                                  </button>
+                                  <span className="text-sm font-medium" style={{ color: themeColors.textPrimary, fontFamily: 'JetBrains Mono, monospace' }}>{datePickerMonth.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => setDatePickerMonth(new Date(datePickerMonth.getFullYear(), datePickerMonth.getMonth() + 1))}
+                                    className="p-1 rounded"
+                                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = themeColors.hoverBg)}
+                                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                                  >
+                                    <ChevronRight className="w-4 h-4" style={{ color: themeColors.textSecondary }} />
+                                  </button>
                                 </div>
                                 <div className="grid grid-cols-7 gap-1 mb-1">
                                   {['D', 'L', 'M', 'M', 'J', 'V', 'S'].map((d, i) => (
@@ -903,8 +962,8 @@ export function TaskFormModal({
                                           className="w-7 h-7 rounded-full flex items-center justify-center text-xs transition-colors"
                                           style={{
                                             color: !d.isCurrentMonth ? themeColors.textTertiary : isStart || isEnd ? '#FFF' : themeColors.textPrimary,
-                                            backgroundColor: isStart ? '#3B82F6' : isEnd ? '#7C3AED' : isInRange ? 'rgba(124, 58, 237, 0.2)' : 'transparent',
-                                            boxShadow: isToday && !isStart && !isEnd ? 'inset 0 0 0 1px #3B82F6' : 'none',
+                                            backgroundColor: isStart ? themeColors.accent : isEnd ? '#7C3AED' : isInRange ? 'rgba(124, 58, 237, 0.2)' : 'transparent',
+                                            boxShadow: isToday && !isStart && !isEnd ? `inset 0 0 0 1px ${themeColors.accent}` : 'none',
                                           }}
                                           onClick={() => {
                                             if (showDatePicker === 'start') {
@@ -956,6 +1015,7 @@ export function TaskFormModal({
                         style={{
                           backgroundColor: `${formData.progress < 30 ? '#EF4444' : formData.progress < 70 ? '#F59E0B' : '#10B981'}20`,
                           color: formData.progress < 30 ? '#EF4444' : formData.progress < 70 ? '#F59E0B' : '#10B981',
+                          fontFamily: 'JetBrains Mono, monospace',
                         }}
                       >
                         {formData.progress}%
@@ -1085,7 +1145,11 @@ export function TaskFormModal({
                             )}
 
                             {/* Milestone */}
-                            <label className="flex items-center gap-3 cursor-pointer p-2 rounded-lg transition-colors hover:bg-white/5">
+                            <label
+                              className="flex items-center gap-3 cursor-pointer p-2 rounded-lg transition-colors"
+                              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = themeColors.hoverBg)}
+                              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                            >
                               <input
                                 type="checkbox"
                                 checked={formData.isMilestone}
@@ -1171,10 +1235,12 @@ export function TaskFormModal({
                                         initial={{ opacity: 0, y: -5 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         exit={{ opacity: 0, y: -5 }}
-                                        className="absolute left-0 top-full mt-1 z-50 rounded-lg shadow-xl overflow-hidden min-w-[280px] max-h-[280px]"
+                                        className="absolute left-0 top-full mt-1 z-50 rounded-lg overflow-hidden min-w-[280px] max-h-[280px]"
                                         style={{
-                                          backgroundColor: themeColors.bgPrimary,
-                                          border: `1px solid ${themeColors.border}`,
+                                          backgroundColor: isDarkTheme ? 'rgba(17, 17, 17, 0.98)' : themeColors.bgPrimary,
+                                          backdropFilter: isDarkTheme ? 'blur(16px)' : undefined,
+                                          border: `1px solid ${isDarkTheme ? 'rgba(255, 255, 255, 0.10)' : themeColors.border}`,
+                                          boxShadow: isDarkTheme ? '0 8px 24px rgba(0, 0, 0, 0.5)' : '0 8px 24px rgba(0, 0, 0, 0.12)',
                                         }}
                                       >
                                         {/* Search input */}
@@ -1277,12 +1343,12 @@ export function TaskFormModal({
                 </div>
 
                 {/* Footer - Simplified */}
-                <div className="flex items-center justify-end gap-2 px-5 py-3" style={{ borderTop: `1px solid ${themeColors.border}` }}>
+                <div className="flex items-center justify-end gap-2 px-5 py-3" style={{ borderTop: `1px solid ${themeColors.border}`, fontFamily: 'Inter, sans-serif' }}>
                   <button
                     type="button"
                     onClick={onClose}
-                    className="px-4 py-2 text-sm rounded-lg transition-colors"
-                    style={{ color: themeColors.textSecondary }}
+                    className="px-4 py-2 rounded-lg transition-colors"
+                    style={{ color: themeColors.textSecondary, fontSize: 13 }}
                     onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = themeColors.hoverBg)}
                     onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                     disabled={isLoading}
@@ -1292,8 +1358,8 @@ export function TaskFormModal({
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="px-4 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
-                    style={{ backgroundColor: themeColors.accent, color: '#FFF' }}
+                    className="px-4 py-2 font-medium rounded-lg transition-colors flex items-center gap-2"
+                    style={{ backgroundColor: themeColors.accent, color: '#FFF', fontSize: 13 }}
                     onMouseEnter={(e) => !isLoading && (e.currentTarget.style.opacity = '0.9')}
                     onMouseLeave={(e) => !isLoading && (e.currentTarget.style.opacity = '1')}
                   >

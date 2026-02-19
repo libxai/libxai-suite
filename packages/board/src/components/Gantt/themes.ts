@@ -12,15 +12,15 @@ export const themes: Record<string, GanttTheme> = {
     border: 'rgba(255, 255, 255, 0.08)',
     borderLight: 'rgba(255, 255, 255, 0.05)',
 
-    // Text — Chronos V2: High contrast hierarchy
-    textPrimary: '#FFFFFF',
-    textSecondary: '#CCCCCC',
-    textTertiary: '#888888',
+    // Text — Chronos V2: Unified with drawer tokens
+    textPrimary: 'rgba(255, 255, 255, 0.92)',
+    textSecondary: 'rgba(255, 255, 255, 0.60)',
+    textTertiary: 'rgba(255, 255, 255, 0.35)',
 
     // Accent & Interactive — Chronos Blue
-    accent: '#2E94FF',
-    accentHover: '#5AADFF',
-    accentLight: 'rgba(46, 148, 255, 0.15)',
+    accent: '#007FFF',
+    accentHover: '#339FFF',
+    accentLight: 'rgba(0, 127, 255, 0.15)',
 
     // Task Elements — Execution bar blue
     taskBarPrimary: '#007AFF',
@@ -41,12 +41,12 @@ export const themes: Record<string, GanttTheme> = {
 
     // Status Colors
     statusTodo: '#666666',
-    statusInProgress: '#2E94FF',
+    statusInProgress: '#007FFF',
     statusCompleted: '#10B981',
 
     // Hover & Focus States
     hoverBg: 'rgba(255, 255, 255, 0.04)',
-    focusRing: '#2E94FF',
+    focusRing: '#007FFF',
 
     // Chronos V2 additions
     dotGrid: 'rgba(255, 255, 255, 0.05)',
