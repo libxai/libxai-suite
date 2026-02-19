@@ -138,8 +138,8 @@
   --asakaa-gantt-milestone-rotation: 45;
 
   /* Dark theme colors (default) */
-  --asakaa-color-background-primary: #0F1117;
-  --asakaa-color-background-secondary: #1A1D25;
+  --asakaa-color-background-primary: #050505;
+  --asakaa-color-background-secondary: #0A0A0A;
   --asakaa-color-background-tertiary: #252A35;
   --asakaa-color-background-card: #1A1D25;
   --asakaa-color-background-hover: #252A35;
@@ -149,7 +149,7 @@
   --asakaa-color-text-secondary: #9CA3AF;
   --asakaa-color-text-tertiary: #6B7280;
   --asakaa-color-text-disabled: #4B5563;
-  --asakaa-color-text-inverse: #0F1117;
+  --asakaa-color-text-inverse: #050505;
   --asakaa-color-border-default: #404040;
   --asakaa-color-border-hover: #505050;
   --asakaa-color-border-focus: #3B82F6;

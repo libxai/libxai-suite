@@ -348,12 +348,12 @@ export function ProfitabilityReport({
   onTaskClick,
 }: ProfitabilityReportProps) {
   const isDark = theme === 'dark';
-  const bgColor = isDark ? 'bg-[#0F1117]' : 'bg-gray-50';
-  const cardBg = isDark ? 'bg-[#1A1D25]' : 'bg-white';
-  const borderColor = isDark ? 'border-white/5' : 'border-gray-200';
-  const textPrimary = isDark ? 'text-[#E5E7EB]' : 'text-gray-900';
-  const textMuted = isDark ? 'text-[#9CA3AF]' : 'text-gray-500';
-  const tableHeaderBg = isDark ? 'bg-[#0F1117]/50' : 'bg-gray-50';
+  const bgColor = isDark ? 'bg-[#050505]' : 'bg-gray-50';
+  const cardBg = isDark ? 'bg-[#0A0A0A]' : 'bg-white';
+  const borderColor = isDark ? 'border-white/[0.08]' : 'border-gray-200';
+  const textPrimary = isDark ? 'text-white/[0.92]' : 'text-gray-900';
+  const textMuted = isDark ? 'text-white/[0.60]' : 'text-gray-500';
+  const tableHeaderBg = isDark ? 'bg-[#050505]/50' : 'bg-gray-50';
 
   // Sort tasks by variance (most profitable first)
   const sortedTasks = useMemo(() => {

@@ -69,7 +69,7 @@ export function CheckboxCell({
           isPending && 'ring-2 ring-offset-1',
           isPending && displayValue && 'ring-green-500/50',
           isPending && !displayValue && 'ring-red-500/50',
-          isPending && (isDark ? 'ring-offset-[#0F1117]' : 'ring-offset-white')
+          isPending && (isDark ? 'ring-offset-[#050505]' : 'ring-offset-white')
         )}
       >
         {/* Progress ring for pending state */}

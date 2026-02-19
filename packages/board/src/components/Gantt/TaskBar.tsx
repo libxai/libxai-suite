@@ -33,6 +33,8 @@ interface TaskBarProps {
   onDragMove?: (taskId: string, daysDelta: number, isDragging: boolean) => void;
   // v0.17.76: Callback for tooltip hover state - enables rendering tooltips in a top layer
   onHoverChange?: (tooltipData: TaskTooltipData | null) => void;
+  // v3.0.0: Show baseline ghost bar behind actual bar
+  showBaseline?: boolean;
 }
 
 type DragMode = 'none' | 'move' | 'resize-start' | 'resize-end' | 'connect';
@@ -54,6 +56,7 @@ export function TaskBar({
   allTaskPositions = [],
   onDragMove, // v0.13.0
   onHoverChange, // v0.17.76
+  showBaseline, // v3.0.0
 }: TaskBarProps) {
   // v0.8.1: Centralized drag state management for better modularity
   const dragState = useDragState(x, width);
@@ -710,6 +713,87 @@ export function TaskBar({
           style={{ pointerEvents: 'none' }}
         />
       )}
+
+      {/* v3.0.0: Baseline ghost bar — rendered BEHIND actual bar (Oracle view) */}
+      {showBaseline && task.baselineStartDate && task.baselineEndDate && !isDragging && (() => {
+        const blStartMs = task.baselineStartDate!.getTime();
+        const blEndMs = task.baselineEndDate!.getTime();
+        const rangeStartMs = startDate.getTime();
+        const msPerDay = 86400000;
+
+        const blStartDays = (blStartMs - rangeStartMs) / msPerDay;
+        const blDurationDays = (blEndMs - blStartMs) / msPerDay;
+        const blX = blStartDays * dayWidth;
+        const blWidth = Math.max(blDurationDays * dayWidth, dayWidth);
+
+        // Actual bar end position
+        const actualEndX = displayX + displayWidth;
+        const blEndX = blX + blWidth;
+
+        // Delay calculation
+        const actualEndMs = task.endDate?.getTime() ?? 0;
+        const delayDays = Math.ceil((actualEndMs - blEndMs) / msPerDay);
+        const hasDelay = delayDays > 0;
+        const isAhead = delayDays < -0;
+
+        return (
+          <g style={{ pointerEvents: 'none' }}>
+            {/* Baseline ghost bar — dashed outline */}
+            <rect
+              x={blX}
+              y={y - 2}
+              width={blWidth}
+              height={height + 4}
+              rx={borderRadius + 1}
+              fill="none"
+              stroke={theme.textTertiary}
+              strokeWidth={1.5}
+              strokeDasharray="4 3"
+              opacity={0.5}
+            />
+            {/* Delay overshoot — red zone where actual exceeds baseline */}
+            {hasDelay && actualEndX > blEndX && (
+              <rect
+                x={blEndX}
+                y={y}
+                width={actualEndX - blEndX}
+                height={height}
+                rx={0}
+                fill="#DC2626"
+                opacity={0.2}
+              />
+            )}
+            {/* Delay label: "+Nd" */}
+            {hasDelay && (
+              <text
+                x={Math.max(actualEndX, blEndX) + 6}
+                y={y + height / 2 + 1}
+                fill="#DC2626"
+                fontSize="10"
+                fontWeight="700"
+                fontFamily="'JetBrains Mono', monospace"
+                dominantBaseline="middle"
+              >
+                +{delayDays}d
+              </text>
+            )}
+            {/* Ahead of schedule label */}
+            {isAhead && (
+              <text
+                x={actualEndX + 6}
+                y={y + height / 2 + 1}
+                fill="#22C55E"
+                fontSize="10"
+                fontWeight="700"
+                fontFamily="'JetBrains Mono', monospace"
+                dominantBaseline="middle"
+              >
+                {delayDays}d
+              </text>
+            )}
+          </g>
+        );
+      })()}
 
       {/* Main Task Bar - Background */}
       {!task.segments && isChronos && isSummaryTask && (

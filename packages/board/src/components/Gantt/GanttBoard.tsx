@@ -84,6 +84,10 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     onTaskFilterChange: externalOnTaskFilterChange,
     // Custom toolbar content
     toolbarRightContent,
+    // v3.0.0: Baseline & WBS
+    showBaseline: configShowBaseline,
+    viewMode: configViewMode,
+    onViewModeChange: configOnViewModeChange,
     // UI events
     onThemeChange, // v0.9.0
     // Basic events
@@ -121,6 +125,20 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   const [timeScale, setTimeScale] = useState<TimeScale>(initialTimeScale);
   const [rowDensity, setRowDensity] = useState<RowDensity>(initialRowDensity);
   const [zoom, setZoom] = useState(1);
+
+  // v3.0.0: WBS Level selector state
+  const [wbsLevel, setWbsLevel] = useState<number | 'all'>('all');
+
+  // v3.0.0: Execution/Oracle view mode (controlled or internal)
+  const [internalViewMode, setInternalViewMode] = useState<'execution' | 'oracle'>(configViewMode || 'execution');
+  const viewMode = configViewMode ?? internalViewMode;
+  const handleViewModeChange = useCallback((mode: 'execution' | 'oracle') => {
+    setInternalViewMode(mode);
+    configOnViewModeChange?.(mode);
+  }, [configOnViewModeChange]);
+
+  // v3.0.0: Derive showBaseline from config or viewMode
+  const showBaseline = configShowBaseline ?? (viewMode === 'oracle');
 
   // v1.5.0: Notify consumer of timeScale/zoom changes
   useEffect(() => { config.onTimeScaleChange?.(timeScale); }, [timeScale]);
@@ -258,6 +276,20 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     clearHistory,
   } = useUndoRedo<Task[]>(tasks, 50);
 
+  // v3.0.0: Compute max WBS depth from task tree
+  const maxWbsDepth = useMemo(() => {
+    const getMaxDepth = (tasks: Task[], depth = 0): number => {
+      let max = depth;
+      for (const task of tasks) {
+        if (task.subtasks?.length) {
+          max = Math.max(max, getMaxDepth(task.subtasks, depth + 1));
+        }
+      }
+      return max;
+    };
+    return getMaxDepth(localTasks) + 1; // +1 because level 1 = depth 0
+  }, [localTasks]);
+
   // v0.17.163: Track expanded states separately to preserve them across task reloads
   // This ref stores the isExpanded state for each task ID, updated whenever tasks are toggled
   // v0.17.181: Initialize from localStorage if persistExpandedState is enabled
@@ -314,6 +346,33 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   // v0.18.13: Also suppress onTasksChange for internal hierarchy ops (reparent/move/indent/outdent).
   // These operations have their own dedicated callbacks; onTasksChange is for date/property edits only.
   const skipOnTasksChangeRef = useRef(false);
+
+  // v3.0.0: WBS Level change handler — collapses tree to specified depth
+  // Placed after expandedStatesRef, saveExpandedStatesToStorage, skipSyncCountRef to avoid TDZ
+  const handleWbsLevelChange = useCallback((level: number | 'all') => {
+    setWbsLevel(level);
+    // Skip next useEffect([tasks]) sync so it doesn't re-apply old expandedStatesRef
+    skipSyncCountRef.current += 1;
+    setLocalTasks((prev: Task[]) => {
+      const apply = (tasks: Task[], depth = 0): Task[] =>
+        tasks.map((t: Task) => {
+          const expanded = level === 'all' || depth < (level as number) - 1;
+          // Update expandedStatesRef so useEffect([tasks]) sync doesn't override
+          if (t.subtasks?.length) {
+            expandedStatesRef.current.set(t.id, expanded);
+          }
+          return {
+            ...t,
+            isExpanded: expanded,
+            subtasks: t.subtasks ? apply(t.subtasks, depth + 1) : undefined,
+          };
+        });
+      const result = apply(prev);
+      // Persist to localStorage
+      saveExpandedStatesToStorage();
+      return result;
+    });
+  }, [setLocalTasks, saveExpandedStatesToStorage]);
 
   // Sync parent tasks prop changes to local state (e.g., after external DB operations)
   // v0.17.163: Preserve isExpanded state using ref to prevent subtasks from auto-expanding
@@ -828,6 +887,11 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         };
         return collapseAll(prev);
       });
+    },
+
+    // v3.0.0: Collapse to a specific WBS level
+    collapseToLevel: (level: number | 'all') => {
+      handleWbsLevelChange(level);
     },
 
     // ==================== Undo/Redo ====================
@@ -1739,7 +1803,8 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         }),
       }}
     >
-      {/* Toolbar */}
+      {/* Toolbar — z-index ensures dropdowns render above the overflow:clip grid below */}
+      <div style={{ position: 'relative', zIndex: 100 }}>
       <GanttToolbar
         theme={theme}
         timeScale={timeScale}
@@ -1764,6 +1829,13 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         onHideCompletedChange={setHideCompleted}
         // Custom toolbar content
         toolbarRightContent={toolbarRightContent}
+        // v3.0.0: WBS Level selector
+        wbsLevel={wbsLevel}
+        onWbsLevelChange={handleWbsLevelChange}
+        maxWbsDepth={maxWbsDepth}
+        // v3.0.0: Execution/Oracle view mode
+        viewMode={viewMode}
+        onViewModeChange={handleViewModeChange}
         // v0.12.0: Export handlers
         onExportPNG={showExportButton ? handleExportPNG : undefined}
         onExportPDF={showExportButton ? handleExportPDF : undefined}
@@ -1772,6 +1844,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         onExportJSON={showExportButton ? handleExportJSON : undefined}
         onExportMSProject={showExportButton ? handleExportMSProject : undefined}
       />
+      </div>
 
       {/* Main Content - v0.13.9: TaskGrid has no scroll, Timeline has the unified vertical scroll */}
       {/* v0.17.31: Changed to clip to allow tooltips to render above header */}
@@ -1779,6 +1852,8 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         ref={gridScrollRef}
         className="flex-1 flex min-h-0"
         style={{
+          position: 'relative',
+          zIndex: 1, // Below toolbar (z-index: 100) so dropdowns render on top
           overflow: 'clip',
           overflowClipMargin: '100px', // Allow tooltip to overflow above
         }}
@@ -1873,6 +1948,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
             onTaskDateChange={handleTaskDateChange}
             onDependencyCreate={handleDependencyCreate}
             onDependencyDelete={handleDependencyDelete}
+            showBaseline={showBaseline}
           />
         </div>
       </div>

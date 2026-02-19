@@ -288,7 +288,7 @@ export function TaskDetailModal({
     borderLight: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
     border: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
     bgPrimary: isDark ? '#1A1D25' : '#FFFFFF',
-    bgSecondary: isDark ? '#0F1117' : '#F9FAFB',
+    bgSecondary: isDark ? '#0A0A0A' : '#F9FAFB',
     hoverBg: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
   };
 
@@ -2194,7 +2194,7 @@ export function TaskDetailModal({
             {/* Activity Panel - Right Sidebar */}
             <div className={cn(
               "w-96 border-l flex flex-col",
-              isDark ? "border-white/10 bg-[#0F1117]" : "border-gray-200 bg-gray-50"
+              isDark ? "border-white/[0.08] bg-[#0A0A0A]" : "border-gray-200 bg-gray-50"
             )}>
               {/* Activity Header */}
               <div className={cn(

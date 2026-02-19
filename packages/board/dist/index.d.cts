@@ -60,6 +60,9 @@ interface Task {
     effortMinutes?: number;
     timeLoggedMinutes?: number;
     soldEffortMinutes?: number;
+    baselineStartDate?: Date;
+    baselineEndDate?: Date;
+    baselineProgress?: number;
 }
 type TimeScale = 'day' | 'week' | 'month';
 type Theme$1 = 'dark' | 'light' | 'neutral';
@@ -434,6 +437,19 @@ interface GanttConfig {
      * @default false
      */
     autoExpandSubtasks?: boolean;
+    /**
+     * v3.0.0: Show baseline ghost bars behind actual bars (Oracle view)
+     * When true, tasks with baselineStartDate/baselineEndDate show a dashed outline behind the actual bar
+     * @default false
+     */
+    showBaseline?: boolean;
+    /**
+     * v3.0.0: Gantt view mode — Execution (actual) vs Oracle (baseline comparison)
+     * Controls the Execution/Oracle toggle in the Chronos toolbar
+     * @default 'execution'
+     */
+    viewMode?: 'execution' | 'oracle';
+    onViewModeChange?: (mode: 'execution' | 'oracle') => void;
     onThemeChange?: (theme: Theme$1) => void;
     onTimeScaleChange?: (timeScale: TimeScale) => void;
     onZoomChange?: (zoom: number) => void;
@@ -2564,6 +2580,13 @@ interface GanttBoardRef {
      */
     collapseAll: () => void;
     /**
+     * v3.0.0: Collapse tasks to a specific WBS level
+     * Level 1 = only root tasks visible
+     * Level 2 = root + first-level children
+     * 'all' = expand everything
+     */
+    collapseToLevel: (level: number | 'all') => void;
+    /**
      * Undo last change
      * Similar to: gantt.undo()
      */
@@ -2656,6 +2679,11 @@ interface GanttToolbarProps {
     hideCompleted?: boolean;
     onHideCompletedChange?: (hide: boolean) => void;
     toolbarRightContent?: React.ReactNode;
+    wbsLevel?: number | 'all';
+    onWbsLevelChange?: (level: number | 'all') => void;
+    maxWbsDepth?: number;
+    viewMode?: 'execution' | 'oracle';
+    onViewModeChange?: (mode: 'execution' | 'oracle') => void;
     onExportPNG?: () => Promise<void>;
     onExportPDF?: () => Promise<void>;
     onExportExcel?: () => Promise<void>;
@@ -2667,7 +2695,7 @@ declare function GanttToolbar({ theme, timeScale, onTimeScaleChange, zoom, onZoo
 showCreateTaskButton, createTaskLabel, // v0.15.0: Will use translations if not provided
 onCreateTask, taskFilter, // v0.17.300: Task filter
 onTaskFilterChange, hideCompleted, // v0.18.0: Hide completed toggle
-onHideCompletedChange, toolbarRightContent, onExportPNG, onExportPDF, onExportExcel, onExportCSV, onExportJSON, onExportMSProject, }: GanttToolbarProps): react_jsx_runtime.JSX.Element;
+onHideCompletedChange, toolbarRightContent, wbsLevel, onWbsLevelChange, maxWbsDepth, viewMode, onViewModeChange, onExportPNG, onExportPDF, onExportExcel, onExportCSV, onExportJSON, onExportMSProject, }: GanttToolbarProps): react_jsx_runtime.JSX.Element;
 
 interface TaskGridProps {
     tasks: Task[];
@@ -2726,6 +2754,8 @@ interface TimelineProps {
     onTaskDateChange?: (task: Task, newStart: Date, newEnd: Date) => void;
     onDependencyCreate?: (fromTask: Task, toTaskId: string) => void;
     onDependencyDelete?: (taskId: string, dependencyId: string) => void;
+    /** v3.0.0: Show baseline ghost bars behind actual bars (Oracle view) */
+    showBaseline?: boolean;
 }
 interface TaskPosition {
     id: string;
@@ -2738,7 +2768,7 @@ declare function Timeline({ tasks, theme, rowHeight: ROW_HEIGHT, timeScale, star
 templates, dependencyLineStyle, // v0.17.310
 onTaskClick, onTaskDblClick, // v0.8.0
 onTaskContextMenu, // v0.8.0
-onTaskDateChange, onDependencyCreate, onDependencyDelete, }: TimelineProps): react_jsx_runtime.JSX.Element;
+onTaskDateChange, onDependencyCreate, onDependencyDelete, showBaseline, }: TimelineProps): react_jsx_runtime.JSX.Element;
 
 interface TaskTooltipData {
     task: Task;
@@ -2765,11 +2795,13 @@ interface TaskBarProps {
     allTaskPositions?: TaskPosition[];
     onDragMove?: (taskId: string, daysDelta: number, isDragging: boolean) => void;
     onHoverChange?: (tooltipData: TaskTooltipData | null) => void;
+    showBaseline?: boolean;
 }
 declare function TaskBar({ task, x, y, width, theme, dayWidth, startDate, templates, onClick, onDoubleClick, // v0.8.0
 onContextMenu, // v0.8.0
 onDateChange, onDependencyCreate, allTaskPositions, onDragMove, // v0.13.0
-onHoverChange, }: TaskBarProps): react_jsx_runtime.JSX.Element;
+onHoverChange, // v0.17.76
+showBaseline, }: TaskBarProps): react_jsx_runtime.JSX.Element;
 
 interface DependencyLineProps {
     x1: number;
@@ -3401,6 +3433,8 @@ interface GanttTranslations {
         clearFilter: string;
         hideCompleted: string;
         toDo: string;
+        wbsLevel: string;
+        wbsAllLevels: string;
     };
     contextMenu: {
         editTask: string;

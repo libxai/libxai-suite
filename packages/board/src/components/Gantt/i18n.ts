@@ -57,6 +57,9 @@ export interface GanttTranslations {
     // v0.18.0: Hide completed toggle
     hideCompleted: string;
     toDo: string;
+    // v3.0.0: WBS Level selector
+    wbsLevel: string;
+    wbsAllLevels: string;
   };
 
   // v0.16.0: Context menu labels (right-click menu)
@@ -211,6 +214,9 @@ export const en: GanttTranslations = {
     // v0.18.0: Hide completed toggle
     hideCompleted: 'Hide Completed Tasks',
     toDo: 'To Do / Pending',
+    // v3.0.0: WBS Level selector
+    wbsLevel: 'Level',
+    wbsAllLevels: 'All',
   },
 
   // v0.16.0: Context menu labels (right-click menu)
@@ -359,6 +365,9 @@ export const es: GanttTranslations = {
     // v0.18.0: Hide completed toggle
     hideCompleted: 'Ocultar Tareas Completadas',
     toDo: 'Por Hacer / Pendiente',
+    // v3.0.0: WBS Level selector
+    wbsLevel: 'Nivel',
+    wbsAllLevels: 'Todos',
   },
 
   // v0.16.0: Context menu labels (right-click menu)

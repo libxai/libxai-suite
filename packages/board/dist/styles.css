@@ -10279,6 +10279,11 @@ body {
 }
 
 
+.bg-\[\#050505\]\/50 {
+  background-color: rgb(5 5 5 / 0.5);
+}
+
+
 .bg-\[\#080808\] {
   --tw-bg-opacity: 1;
   background-color: rgb(8 8 8 / var(--tw-bg-opacity, 1));
@@ -10299,17 +10304,6 @@ body {
 .bg-\[\#0D0D0D\] {
   --tw-bg-opacity: 1;
   background-color: rgb(13 13 13 / var(--tw-bg-opacity, 1));
-}
-
-
-.bg-\[\#0F1117\] {
-  --tw-bg-opacity: 1;
-  background-color: rgb(15 17 23 / var(--tw-bg-opacity, 1));
-}
-
-
-.bg-\[\#0F1117\]\/50 {
-  background-color: rgb(15 17 23 / 0.5);
 }
 
 
@@ -11610,6 +11604,16 @@ body {
 }
 
 
+.text-white\/\[0\.60\] {
+  color: rgb(255 255 255 / 0.60);
+}
+
+
+.text-white\/\[0\.92\] {
+  color: rgb(255 255 255 / 0.92);
+}
+
+
 .text-yellow-400 {
   --tw-text-opacity: 1;
   color: rgb(250 204 21 / var(--tw-text-opacity, 1));
@@ -11885,8 +11889,8 @@ body {
 }
 
 
-.ring-offset-\[\#0F1117\] {
-  --tw-ring-offset-color: #0F1117;
+.ring-offset-\[\#050505\] {
+  --tw-ring-offset-color: #050505;
 }
 
 
@@ -12163,8 +12167,8 @@ body {
 
   /* ========== COLOR SYSTEM ========== */
   /* v0.5.0: Theme-aware colors - fallback to dark theme if ThemeProvider not used */
-  --color-bg-primary: var(--theme-bg-primary, #0F1117);
-  --color-bg-secondary: var(--theme-bg-secondary, #1A1D25);
+  --color-bg-primary: var(--theme-bg-primary, #050505);
+  --color-bg-secondary: var(--theme-bg-secondary, #0A0A0A);
   --color-bg-tertiary: var(--theme-bg-tertiary, #252A35);
 
   --color-text-primary: var(--theme-text-primary, #F8FAFC);

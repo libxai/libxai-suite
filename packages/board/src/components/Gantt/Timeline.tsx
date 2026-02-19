@@ -24,6 +24,8 @@ interface TimelineProps {
   onTaskDateChange?: (task: Task, newStart: Date, newEnd: Date) => void;
   onDependencyCreate?: (fromTask: Task, toTaskId: string) => void;
   onDependencyDelete?: (taskId: string, dependencyId: string) => void;
+  /** v3.0.0: Show baseline ghost bars behind actual bars (Oracle view) */
+  showBaseline?: boolean;
 }
 
 export interface TaskPosition {
@@ -51,6 +53,7 @@ export function Timeline({
   onTaskDateChange,
   onDependencyCreate,
   onDependencyDelete,
+  showBaseline,
 }: TimelineProps) {
   const HEADER_HEIGHT = 48; // Must match TaskGrid's HEADER_HEIGHT for alignment
 
@@ -811,6 +814,7 @@ export function Timeline({
               allTaskPositions={taskPositions}
               onDragMove={handleTaskDragMove} // v0.13.0
               onHoverChange={handleTooltipChange} // v0.17.76: Top-layer tooltip
+              showBaseline={showBaseline} // v3.0.0: Baseline overlay
             />
           );
         })}

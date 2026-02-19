@@ -1,8 +1,33 @@
 import { useState, useRef, useEffect } from 'react';
-import { ZoomIn, ZoomOut, Sun, Moon, Palette, Download, FileImage, FileSpreadsheet, FileText, FileJson, ChevronDown, FolderKanban, Plus, Rows3, Check, Filter, CheckCircle2, PlayCircle, Circle, EyeOff, Search, Eye, Share2, Sparkles } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { ZoomIn, ZoomOut, Sun, Moon, Palette, Download, FileImage, FileSpreadsheet, FileText, FileJson, ChevronDown, FolderKanban, Plus, Rows3, Check, Filter, CheckCircle2, PlayCircle, Circle, EyeOff, Search, Eye, Share2, Sparkles, Layers } from 'lucide-react';
 import { TimeScale, Theme, RowDensity, TaskFilterType } from './types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGanttI18n } from './GanttI18nContext'; // v0.15.0: i18n
+
+/**
+ * v3.0.1: Hook to position dropdown menus via portal at document.body.
+ * Escapes overflow:clip and stacking context issues.
+ */
+function useDropdownPortal(triggerRef: React.RefObject<HTMLElement | null>, isOpen: boolean, align: 'left' | 'right' = 'left') {
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+
+  useEffect(() => {
+    if (!isOpen || !triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    const top = rect.bottom + 4;
+    let left: number;
+    if (align === 'right') {
+      // Right-align: dropdown's right edge = trigger's right edge
+      left = rect.right;
+    } else {
+      left = rect.left;
+    }
+    setPos({ top, left });
+  }, [isOpen, align, triggerRef]);
+
+  return pos;
+}
 
 // Export options configuration
 export interface ExportOption {
@@ -36,6 +61,13 @@ interface GanttToolbarProps {
   onHideCompletedChange?: (hide: boolean) => void;
   // Custom toolbar right content
   toolbarRightContent?: React.ReactNode;
+  // v3.0.0: WBS Level selector
+  wbsLevel?: number | 'all';
+  onWbsLevelChange?: (level: number | 'all') => void;
+  maxWbsDepth?: number;
+  // v3.0.0: Execution/Oracle view mode toggle
+  viewMode?: 'execution' | 'oracle';
+  onViewModeChange?: (mode: 'execution' | 'oracle') => void;
   // Export handlers
   onExportPNG?: () => Promise<void>;
   onExportPDF?: () => Promise<void>;
@@ -59,20 +91,24 @@ interface ExportDropdownProps {
 function ExportDropdown({ theme, onExportPNG, onExportPDF, onExportExcel, onExportCSV, onExportJSON, onExportMSProject }: ExportDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isExporting, setIsExporting] = useState<string | null>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const t = useGanttI18n(); // v0.15.0: i18n
+  const portalPos = useDropdownPortal(triggerRef, isOpen, 'right');
 
   // Close dropdown when clicking outside
   useEffect(() => {
+    if (!isOpen) return;
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (
+        triggerRef.current && !triggerRef.current.contains(target) &&
+        dropdownRef.current && !dropdownRef.current.contains(target)
+      ) {
         setIsOpen(false);
       }
     };
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
+    document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
 
@@ -140,8 +176,9 @@ function ExportDropdown({ theme, onExportPNG, onExportPDF, onExportExcel, onExpo
   };
 
   return (
-    <div ref={dropdownRef} className="relative">
+    <>
       <motion.button
+        ref={triggerRef}
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-all"
         style={{
@@ -166,15 +203,20 @@ function ExportDropdown({ theme, onExportPNG, onExportPDF, onExportExcel, onExpo
         />
       </motion.button>
 
+      {createPortal(
       <AnimatePresence>
         {isOpen && (
           <motion.div
+            ref={dropdownRef}
             initial={{ opacity: 0, y: -8, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.95 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="absolute right-0 mt-2 w-48 rounded-lg overflow-hidden z-50"
+            className="fixed w-48 rounded-lg overflow-hidden"
             style={{
+              top: portalPos.top,
+              left: portalPos.left - 192, // w-48 = 12rem = 192px, right-aligned
+              zIndex: 99999,
               backgroundColor: theme.bgSecondary,
               border: `1px solid ${theme.border}`,
               boxShadow: '0 10px 40px rgba(0, 0, 0, 0.25)',
@@ -235,8 +277,10 @@ function ExportDropdown({ theme, onExportPNG, onExportPDF, onExportExcel, onExpo
             </div>
           </motion.div>
         )}
-      </AnimatePresence>
-    </div>
+      </AnimatePresence>,
+      document.body
+      )}
+    </>
   );
 }
 
@@ -366,20 +410,24 @@ interface DensityDropdownProps {
 
 function DensityDropdown({ theme, value, onChange }: DensityDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const t = useGanttI18n();
+  const portalPos = useDropdownPortal(triggerRef, isOpen, 'left');
 
   // Close dropdown when clicking outside
   useEffect(() => {
+    if (!isOpen) return;
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (
+        triggerRef.current && !triggerRef.current.contains(target) &&
+        dropdownRef.current && !dropdownRef.current.contains(target)
+      ) {
         setIsOpen(false);
       }
     };
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
+    document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
 
@@ -392,8 +440,9 @@ function DensityDropdown({ theme, value, onChange }: DensityDropdownProps) {
   const currentLabel = densityOptions.find(opt => opt.value === value)?.label || 'Normal';
 
   return (
-    <div ref={dropdownRef} className="relative">
+    <>
       <motion.button
+        ref={triggerRef}
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center justify-center p-2 rounded-lg transition-all"
         style={{
@@ -411,15 +460,20 @@ function DensityDropdown({ theme, value, onChange }: DensityDropdownProps) {
         <Rows3 className="w-4 h-4" />
       </motion.button>
 
+      {createPortal(
       <AnimatePresence>
         {isOpen && (
           <motion.div
+            ref={dropdownRef}
             initial={{ opacity: 0, y: -8, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.95 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="absolute left-0 mt-2 w-36 rounded-lg overflow-hidden z-50"
+            className="fixed w-36 rounded-lg overflow-hidden"
             style={{
+              top: portalPos.top,
+              left: portalPos.left,
+              zIndex: 99999,
               backgroundColor: theme.bgSecondary,
               border: `1px solid ${theme.border}`,
               boxShadow: '0 10px 40px rgba(0, 0, 0, 0.25)',
@@ -466,8 +520,147 @@ function DensityDropdown({ theme, value, onChange }: DensityDropdownProps) {
             </div>
           </motion.div>
         )}
-      </AnimatePresence>
-    </div>
+      </AnimatePresence>,
+      document.body
+      )}
+    </>
+  );
+}
+
+/**
+ * v3.0.0: WBS Level Dropdown Component
+ * Allows collapsing the task tree to a specific depth level
+ */
+interface WbsLevelDropdownProps {
+  theme: any;
+  value: number | 'all';
+  onChange: (level: number | 'all') => void;
+  maxDepth: number;
+}
+
+function WbsLevelDropdown({ theme, value, onChange, maxDepth }: WbsLevelDropdownProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const t = useGanttI18n();
+  const portalPos = useDropdownPortal(triggerRef, isOpen, 'left');
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (
+        triggerRef.current && !triggerRef.current.contains(target) &&
+        dropdownRef.current && !dropdownRef.current.contains(target)
+      ) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
+
+  const options: Array<{ value: number | 'all'; label: string }> = [
+    { value: 'all', label: t.toolbar.wbsAllLevels || 'All' },
+    ...Array.from({ length: Math.min(maxDepth, 5) }, (_, i) => ({
+      value: i + 1,
+      label: `L${i + 1}`,
+    })),
+  ];
+
+  const currentLabel = value === 'all' ? (t.toolbar.wbsAllLevels || 'All') : `L${value}`;
+
+  return (
+    <>
+      <motion.button
+        ref={triggerRef}
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg transition-all"
+        style={{
+          backgroundColor: isOpen ? theme.accentLight : theme.bgSecondary,
+          border: `1px solid ${isOpen ? theme.accent : theme.borderLight}`,
+          color: isOpen ? theme.accent : theme.textSecondary,
+        }}
+        whileHover={{
+          backgroundColor: theme.hoverBg,
+          scale: 1.02,
+        }}
+        whileTap={{ scale: 0.98 }}
+        title={`${t.toolbar.wbsLevel || 'Level'}: ${currentLabel}`}
+      >
+        <Layers className="w-3.5 h-3.5" />
+        <span
+          className="text-[10px] font-semibold"
+          style={{ fontFamily: "'JetBrains Mono', monospace" }}
+        >
+          {currentLabel}
+        </span>
+      </motion.button>
+
+      {createPortal(
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            ref={dropdownRef}
+            initial={{ opacity: 0, y: -8, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -8, scale: 0.95 }}
+            transition={{ duration: 0.15, ease: 'easeOut' }}
+            className="fixed w-28 rounded-lg overflow-hidden"
+            style={{
+              top: portalPos.top,
+              left: portalPos.left,
+              zIndex: 99999,
+              backgroundColor: theme.bgSecondary,
+              border: `1px solid ${theme.border}`,
+              boxShadow: '0 10px 40px rgba(0, 0, 0, 0.25)',
+            }}
+          >
+            <div className="py-1">
+              {options.map((option, index) => {
+                const isActive = value === option.value;
+                return (
+                  <motion.button
+                    key={String(option.value)}
+                    onClick={() => {
+                      onChange(option.value);
+                      setIsOpen(false);
+                    }}
+                    className="w-full flex items-center justify-between px-3 py-2 text-left transition-all"
+                    style={{
+                      backgroundColor: isActive ? theme.accentLight : 'transparent',
+                      borderBottom: index < options.length - 1 ? `1px solid ${theme.borderLight}` : 'none',
+                    }}
+                    whileHover={{
+                      backgroundColor: isActive ? theme.accentLight : theme.hoverBg,
+                    }}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.03 }}
+                  >
+                    <span
+                      className="text-xs"
+                      style={{
+                        color: isActive ? theme.accent : theme.textPrimary,
+                        fontFamily: "'JetBrains Mono', monospace",
+                        fontWeight: isActive ? 600 : 500,
+                      }}
+                    >
+                      {option.label}
+                    </span>
+                    {isActive && (
+                      <Check className="w-3.5 h-3.5" style={{ color: theme.accent }} />
+                    )}
+                  </motion.button>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>,
+      document.body
+      )}
+    </>
   );
 }
 
@@ -485,8 +678,10 @@ interface FilterDropdownProps {
 
 function FilterDropdown({ theme, value, onChange, hideCompleted = false, onHideCompletedChange }: FilterDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const t = useGanttI18n();
+  const portalPos = useDropdownPortal(triggerRef, isOpen, 'left');
 
   // Close dropdown when clicking outside (with delay to prevent immediate close)
   useEffect(() => {
@@ -494,7 +689,11 @@ function FilterDropdown({ theme, value, onChange, hideCompleted = false, onHideC
 
     const timeoutId = setTimeout(() => {
       const handleClickOutside = (e: MouseEvent) => {
-        if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        const target = e.target as Node;
+        if (
+          triggerRef.current && !triggerRef.current.contains(target) &&
+          dropdownRef.current && !dropdownRef.current.contains(target)
+        ) {
           setIsOpen(false);
         }
       };
@@ -549,12 +748,13 @@ function FilterDropdown({ theme, value, onChange, hideCompleted = false, onHideC
   ];
 
   const hasActiveFilter = value !== 'all' || hideCompleted;
-  const isDark = theme.bgPrimary === '#0F1117' || theme.bgPrimary === '#0a0a0a' || theme.textPrimary === '#FFFFFF';
+  const isDark = theme.bgPrimary === '#0F1117' || theme.bgPrimary === '#0a0a0a' || theme.bgPrimary === '#050505' || theme.textPrimary === '#FFFFFF';
 
   return (
-    <div ref={dropdownRef} className="relative">
+    <>
       {/* Filter Button */}
       <motion.button
+        ref={triggerRef}
         onClick={(e) => {
           e.stopPropagation();
           setIsOpen(prev => !prev);
@@ -590,17 +790,22 @@ function FilterDropdown({ theme, value, onChange, hideCompleted = false, onHideC
       </motion.button>
 
       {/* Dropdown */}
+      {createPortal(
       <AnimatePresence>
         {isOpen && (
           <motion.div
+            ref={dropdownRef}
             initial={{ opacity: 0, y: -8, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.95 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="absolute left-0 mt-2 w-72 rounded-lg overflow-hidden z-50"
+            className="fixed w-72 rounded-lg overflow-hidden"
             style={{
-              backgroundColor: isDark ? '#0F1117' : '#FFFFFF',
-              border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgb(229 231 235)'}`,
+              top: portalPos.top,
+              left: portalPos.left,
+              zIndex: 99999,
+              backgroundColor: isDark ? '#050505' : '#FFFFFF',
+              border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgb(229 231 235)'}`,
               boxShadow: '0 10px 40px rgba(0, 0, 0, 0.25)',
             }}
           >
@@ -729,8 +934,10 @@ function FilterDropdown({ theme, value, onChange, hideCompleted = false, onHideC
             )}
           </motion.div>
         )}
-      </AnimatePresence>
-    </div>
+      </AnimatePresence>,
+      document.body
+      )}
+    </>
   );
 }
 
@@ -896,6 +1103,13 @@ export function GanttToolbar({
   hideCompleted = false, // v0.18.0: Hide completed toggle
   onHideCompletedChange,
   toolbarRightContent,
+  // v3.0.0: WBS Level selector
+  wbsLevel,
+  onWbsLevelChange,
+  maxWbsDepth = 4,
+  // v3.0.0: Execution/Oracle view mode
+  viewMode = 'execution',
+  onViewModeChange,
   onExportPNG,
   onExportPDF,
   onExportExcel,
@@ -994,27 +1208,36 @@ export function GanttToolbar({
               className="inline-flex items-center rounded-full p-0.5"
               style={{
                 backgroundColor: isDark ? '#000000' : theme.bgSecondary,
-                border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : theme.border}`,
+                border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : theme.border}`,
               }}
             >
               <motion.button
+                onClick={() => onViewModeChange?.('execution')}
                 className="px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors"
                 style={{
-                  backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
-                  color: theme.textPrimary,
+                  backgroundColor: viewMode === 'execution'
+                    ? (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)')
+                    : 'transparent',
+                  color: viewMode === 'execution' ? theme.textPrimary : theme.textTertiary,
                   fontFamily: 'Inter, sans-serif',
                 }}
+                whileHover={viewMode !== 'execution' ? { color: theme.textSecondary } : {}}
               >
                 Execution
               </motion.button>
               <motion.button
+                onClick={() => onViewModeChange?.('oracle')}
                 className="px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors"
                 style={{
-                  backgroundColor: 'transparent',
-                  color: theme.textTertiary,
+                  backgroundColor: viewMode === 'oracle'
+                    ? (isDark ? 'rgba(0,127,255,0.15)' : 'rgba(37,99,235,0.08)')
+                    : 'transparent',
+                  color: viewMode === 'oracle'
+                    ? (isDark ? '#007FFF' : '#2563EB')
+                    : theme.textTertiary,
                   fontFamily: 'Inter, sans-serif',
                 }}
-                whileHover={{ color: theme.textSecondary }}
+                whileHover={viewMode !== 'oracle' ? { color: theme.textSecondary } : {}}
               >
                 Oracle View
               </motion.button>
@@ -1051,6 +1274,16 @@ export function GanttToolbar({
 
             {/* Density */}
             <DensityDropdown theme={theme} value={rowDensity} onChange={onRowDensityChange} />
+
+            {/* v3.0.0: WBS Level Selector */}
+            {onWbsLevelChange && (
+              <WbsLevelDropdown
+                theme={theme}
+                value={wbsLevel ?? 'all'}
+                onChange={onWbsLevelChange}
+                maxDepth={maxWbsDepth}
+              />
+            )}
 
             {/* Filter */}
             {onTaskFilterChange && (
@@ -1217,6 +1450,16 @@ export function GanttToolbar({
           value={rowDensity}
           onChange={onRowDensityChange}
         />
+
+        {/* v3.0.0: WBS Level Selector */}
+        {onWbsLevelChange && (
+          <WbsLevelDropdown
+            theme={theme}
+            value={wbsLevel ?? 'all'}
+            onChange={onWbsLevelChange}
+            maxDepth={maxWbsDepth}
+          />
+        )}
 
         {/* v0.17.320: Professional Filter Dropdown */}
         {onTaskFilterChange && (

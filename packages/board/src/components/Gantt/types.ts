@@ -74,6 +74,11 @@ export interface Task {
   effortMinutes?: number;       // Technical effort estimate
   timeLoggedMinutes?: number;   // Auto-calculated logged time
   soldEffortMinutes?: number;   // Client-facing quoted effort
+
+  // v3.0.0: Baseline comparison (Oracle view)
+  baselineStartDate?: Date;     // Planned start from selected baseline snapshot
+  baselineEndDate?: Date;       // Planned end from selected baseline snapshot
+  baselineProgress?: number;    // Planned progress from baseline snapshot
 }
 
 export type TimeScale = 'day' | 'week' | 'month';
@@ -506,6 +511,21 @@ export interface GanttConfig {
    * @default false
    */
   autoExpandSubtasks?: boolean;
+
+  /**
+   * v3.0.0: Show baseline ghost bars behind actual bars (Oracle view)
+   * When true, tasks with baselineStartDate/baselineEndDate show a dashed outline behind the actual bar
+   * @default false
+   */
+  showBaseline?: boolean;
+
+  /**
+   * v3.0.0: Gantt view mode — Execution (actual) vs Oracle (baseline comparison)
+   * Controls the Execution/Oracle toggle in the Chronos toolbar
+   * @default 'execution'
+   */
+  viewMode?: 'execution' | 'oracle';
+  onViewModeChange?: (mode: 'execution' | 'oracle') => void;
 
   // ==================== UI Events ====================
   onThemeChange?: (theme: Theme) => void; // v0.9.0: Theme change event
