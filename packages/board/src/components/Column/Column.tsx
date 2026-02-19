@@ -292,6 +292,7 @@ export const Column = memo<ColumnProps>(
             </SortableContext>
           </div>
         )}
+
       </div>
     )
   }

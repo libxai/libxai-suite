@@ -386,26 +386,30 @@ export function KanbanBoard({
                 // v0.17.55: Check if column is deletable (not a default column)
                 const isDeletable = !DEFAULT_COLUMN_IDS.includes(column.id)
 
+                const columnFooter = renderProps?.renderColumnFooter?.(column)
+
                 return (
-                  <Column
-                    key={column.id}
-                    column={column}
-                    cards={cards}
-                    renderCard={renderProps?.renderCard}
-                    renderColumn={renderProps?.renderColumn}
-                    renderHeader={renderProps?.renderColumnHeader}
-                    renderEmptyState={renderProps?.renderEmptyState}
-                    renderMetrics={renderColumnMetrics ? (col, crds) => renderColumnMetrics(col, crds) : undefined}
-                    onCardClick={handleCardClick}
-                    onCardUpdate={handleCardUpdate}
-                    onColumnRename={handleColumnRename}
-                    onColumnDelete={handleColumnDelete}
-                    isDeletable={isDeletable}
-                    availableUsers={availableUsers}
-                    allCards={board.cards}
-                    enableVirtualization={config?.enableVirtualization}
-                    cardHeight={config?.cardHeight}
-                  />
+                  <div key={column.id} className="asakaa-column-wrapper">
+                    <Column
+                      column={column}
+                      cards={cards}
+                      renderCard={renderProps?.renderCard}
+                      renderColumn={renderProps?.renderColumn}
+                      renderHeader={renderProps?.renderColumnHeader}
+                      renderEmptyState={renderProps?.renderEmptyState}
+                      renderMetrics={renderColumnMetrics ? (col, crds) => renderColumnMetrics(col, crds) : undefined}
+                      onCardClick={handleCardClick}
+                      onCardUpdate={handleCardUpdate}
+                      onColumnRename={handleColumnRename}
+                      onColumnDelete={handleColumnDelete}
+                      isDeletable={isDeletable}
+                      availableUsers={availableUsers}
+                      allCards={board.cards}
+                      enableVirtualization={config?.enableVirtualization}
+                      cardHeight={config?.cardHeight}
+                    />
+                    {columnFooter}
+                  </div>
                 )
               })}
             {children}

@@ -15,8 +15,6 @@ import {
   X,
   Flag,
   Plus,
-  CalendarDays,
-  User,
   Calendar,
 } from 'lucide-react';
 import type { Task } from '../Gantt/types';
@@ -25,6 +23,7 @@ import { mergeCalendarTranslations } from './i18n';
 import type { CalendarTranslations } from './types';
 import { cn } from '../../utils';
 import { TaskDetailModal } from '../TaskDetailModal';
+import { QuickTaskCreate } from '../Board/QuickTaskCreate';
 
 /**
  * Flatten hierarchical tasks to flat list
@@ -330,16 +329,8 @@ export function CalendarBoard({
     onTaskOpen?.(task.id);
   }, [suppressDetailModal, onTaskOpen]);
 
-  // Quick create state
+  // Quick create state (cell index tracks which cell's popover is open)
   const [quickCreateCell, setQuickCreateCell] = useState<number | null>(null);
-  const [quickCreateName, setQuickCreateName] = useState('');
-  const [quickCreatePriority, setQuickCreatePriority] = useState<Task['priority']>(undefined);
-  const [quickCreateAssignee, setQuickCreateAssignee] = useState<string | null>(null);
-  const [showQuickPriorityDropdown, setShowQuickPriorityDropdown] = useState(false);
-  const [showQuickAssigneeDropdown, setShowQuickAssigneeDropdown] = useState(false);
-  const [quickCreateDate, setQuickCreateDate] = useState<Date | null>(null);
-  const [showQuickDatePicker, setShowQuickDatePicker] = useState(false);
-  const [quickDatePickerMonth, setQuickDatePickerMonth] = useState(new Date());
 
   // Navigate months
   const goToPreviousMonth = useCallback(() => {
@@ -1065,19 +1056,7 @@ export function CalendarBoard({
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              if (quickCreateCell === index) {
-                                setQuickCreateCell(null);
-                              } else {
-                                setQuickCreateCell(index);
-                                setQuickCreateName('');
-                                setQuickCreatePriority(undefined);
-                                setQuickCreateAssignee(null);
-                                setQuickCreateDate(null);
-                                setShowQuickPriorityDropdown(false);
-                                setShowQuickAssigneeDropdown(false);
-                                setShowQuickDatePicker(false);
-                                setQuickDatePickerMonth(day.date);
-                              }
+                              setQuickCreateCell(quickCreateCell === index ? null : index);
                             }}
                             className={cn(
                               "w-5 h-5 rounded flex items-center justify-center transition-all",
@@ -1093,23 +1072,14 @@ export function CalendarBoard({
                           </button>
 
                           {/* ============================================== */}
-                          {/* QUICK CREATE POPOVER — Chronos V2.0 Glass      */}
+                          {/* QUICK CREATE POPOVER — Shared QuickTaskCreate   */}
                           {/* ============================================== */}
                           <AnimatePresence>
                             {quickCreateCell === index && (
                               <>
                                 <div
                                   className="fixed inset-0 z-40"
-                                  onClick={() => {
-                                    setQuickCreateCell(null);
-                                    setQuickCreateName('');
-                                    setQuickCreatePriority(undefined);
-                                    setQuickCreateAssignee(null);
-                                    setQuickCreateDate(null);
-                                    setShowQuickPriorityDropdown(false);
-                                    setShowQuickAssigneeDropdown(false);
-                                    setShowQuickDatePicker(false);
-                                  }}
+                                  onClick={() => setQuickCreateCell(null)}
                                 />
                                 <motion.div
                                   initial={{ opacity: 0, y: isNearBottom ? -5 : 5, scale: 0.95 }}
@@ -1124,405 +1094,25 @@ export function CalendarBoard({
                                       ? "bg-[#0A0A0A]/95 backdrop-blur-xl border border-white/[0.08] shadow-[0_8px_32px_rgba(0,0,0,0.6)]"
                                       : "bg-white border border-gray-200 shadow-xl"
                                   )}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setShowQuickPriorityDropdown(false);
-                                    setShowQuickAssigneeDropdown(false);
-                                    setShowQuickDatePicker(false);
-                                  }}
                                 >
-                                  <div className="p-2.5">
-                                    <input
-                                      type="text"
-                                      value={quickCreateName}
-                                      onChange={(e) => setQuickCreateName(e.target.value)}
-                                      placeholder={locale === 'es' ? 'Nombre de la tarea...' : 'Task name...'}
-                                      className={cn(
-                                        "w-full bg-transparent text-sm outline-none font-mono",
-                                        isDark ? "text-white/90 placeholder:text-white/20" : "text-gray-900 placeholder:text-gray-400"
-                                      )}
-                                      autoFocus
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter' && quickCreateName.trim()) {
-                                          const selectedUser = config.availableUsers?.find(u => u.id === quickCreateAssignee);
-                                          const taskDate = quickCreateDate || day.date;
-                                          callbacks.onTaskCreate?.({
-                                            name: quickCreateName.trim(),
-                                            startDate: taskDate,
-                                            endDate: taskDate,
-                                            priority: quickCreatePriority,
-                                            assignees: selectedUser ? [selectedUser] : undefined,
-                                          });
-                                          setQuickCreateName('');
-                                          setQuickCreatePriority(undefined);
-                                          setQuickCreateAssignee(null);
-                                          setQuickCreateDate(null);
-                                          setQuickCreateCell(null);
-                                        }
-                                        if (e.key === 'Escape') {
-                                          setQuickCreateCell(null);
-                                          setQuickCreateName('');
-                                          setQuickCreatePriority(undefined);
-                                          setQuickCreateAssignee(null);
-                                          setQuickCreateDate(null);
-                                        }
-                                      }}
-                                    />
-                                  </div>
-                                  <div className={cn(
-                                    "px-2.5 py-2 flex items-center justify-between border-t",
-                                    isDark ? "border-white/[0.08]" : "border-gray-100"
-                                  )}>
-                                    <div className="flex items-center gap-1">
-                                      {/* Priority dropdown */}
-                                      <div className="relative">
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setShowQuickPriorityDropdown(!showQuickPriorityDropdown);
-                                            setShowQuickAssigneeDropdown(false);
-                                          }}
-                                          className={cn(
-                                            "p-1 rounded transition-colors",
-                                            quickCreatePriority
-                                              ? quickCreatePriority === 'urgent' || quickCreatePriority === 'high'
-                                                ? "text-red-400 bg-red-500/20"
-                                                : quickCreatePriority === 'medium'
-                                                  ? "text-yellow-400 bg-yellow-500/20"
-                                                  : "text-green-400 bg-green-500/20"
-                                              : isDark ? "hover:bg-white/10 text-white/30" : "hover:bg-gray-100 text-gray-400"
-                                          )}
-                                        >
-                                          <Flag className="w-3.5 h-3.5" />
-                                        </button>
-                                        <AnimatePresence>
-                                          {showQuickPriorityDropdown && (
-                                            <motion.div
-                                              initial={{ opacity: 0, y: -5 }}
-                                              animate={{ opacity: 1, y: 0 }}
-                                              exit={{ opacity: 0, y: -5 }}
-                                              className={cn(
-                                                "absolute left-0 bottom-full mb-1 z-[60] rounded-lg shadow-xl overflow-hidden min-w-[120px]",
-                                                isDark ? "bg-[#111] border border-white/10" : "bg-white border border-gray-200"
-                                              )}
-                                              onClick={(e) => e.stopPropagation()}
-                                            >
-                                              {[
-                                                { id: 'urgent', label: locale === 'es' ? 'Urgente' : 'Urgent', color: 'bg-red-500' },
-                                                { id: 'high', label: locale === 'es' ? 'Alta' : 'High', color: 'bg-orange-500' },
-                                                { id: 'medium', label: locale === 'es' ? 'Media' : 'Medium', color: 'bg-yellow-500' },
-                                                { id: 'low', label: locale === 'es' ? 'Baja' : 'Low', color: 'bg-green-500' },
-                                                { id: undefined, label: locale === 'es' ? 'Sin prioridad' : 'No priority', color: 'bg-gray-400' },
-                                              ].map((priority) => (
-                                                <button
-                                                  key={priority.id || 'none'}
-                                                  onClick={() => {
-                                                    setQuickCreatePriority(priority.id as Task['priority']);
-                                                    setShowQuickPriorityDropdown(false);
-                                                  }}
-                                                  className={cn(
-                                                    "w-full flex items-center gap-2 px-3 py-1.5 text-xs transition-colors text-left",
-                                                    isDark ? "hover:bg-white/5" : "hover:bg-gray-50",
-                                                    quickCreatePriority === priority.id && (isDark ? "bg-white/5" : "bg-gray-50")
-                                                  )}
-                                                >
-                                                  <span className={cn("w-2 h-2 rounded-full", priority.color)} />
-                                                  <span className={isDark ? "text-white" : "text-gray-900"}>{priority.label}</span>
-                                                </button>
-                                              ))}
-                                            </motion.div>
-                                          )}
-                                        </AnimatePresence>
-                                      </div>
-
-                                      {/* Date picker */}
-                                      <div className="relative">
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setShowQuickDatePicker(!showQuickDatePicker);
-                                            setShowQuickPriorityDropdown(false);
-                                            setShowQuickAssigneeDropdown(false);
-                                            setQuickDatePickerMonth(quickCreateDate || day.date);
-                                          }}
-                                          className={cn(
-                                            "flex items-center gap-1 text-xs px-1.5 py-0.5 rounded transition-colors font-mono",
-                                            quickCreateDate
-                                              ? isDark ? "bg-[#007FFF]/20 text-[#007FFF]" : "bg-blue-500/20 text-blue-600"
-                                              : isDark ? "bg-white/5 text-white/30 hover:bg-white/10" : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-                                          )}
-                                        >
-                                          <CalendarDays className="w-3 h-3" />
-                                          {(quickCreateDate || day.date).toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', { day: 'numeric', month: 'short' })}
-                                        </button>
-                                        <AnimatePresence>
-                                          {showQuickDatePicker && (
-                                            <motion.div
-                                              initial={{ opacity: 0, y: -5 }}
-                                              animate={{ opacity: 1, y: 0 }}
-                                              exit={{ opacity: 0, y: -5 }}
-                                              className={cn(
-                                                "absolute left-0 bottom-full mb-1 z-[60] rounded-xl shadow-2xl overflow-hidden flex",
-                                                isDark ? "bg-[#111] border border-white/10" : "bg-white border border-gray-200"
-                                              )}
-                                              onClick={(e) => e.stopPropagation()}
-                                            >
-                                              {/* Quick Options */}
-                                              <div className={cn("w-40 py-2 border-r", isDark ? "border-white/10" : "border-gray-200")}>
-                                                {(() => {
-                                                  const today = new Date();
-                                                  const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
-                                                  const nextSaturday = new Date(today); nextSaturday.setDate(today.getDate() + ((6 - today.getDay() + 7) % 7 || 7));
-                                                  const nextMonday = new Date(today); nextMonday.setDate(today.getDate() + ((1 - today.getDay() + 7) % 7 || 7));
-                                                  const twoWeeks = new Date(today); twoWeeks.setDate(today.getDate() + 14);
-                                                  const fourWeeks = new Date(today); fourWeeks.setDate(today.getDate() + 28);
-
-                                                  const quickOptions = [
-                                                    { label: locale === 'es' ? 'Hoy' : 'Today', date: today, display: today.toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', { weekday: 'short' }).slice(0, 3) + '.' },
-                                                    { label: locale === 'es' ? 'Mañana' : 'Tomorrow', date: tomorrow, display: tomorrow.toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', { weekday: 'short' }).slice(0, 3) + '.' },
-                                                    { label: locale === 'es' ? 'Este fin de semana' : 'This weekend', date: nextSaturday, display: locale === 'es' ? 'sáb.' : 'sat.' },
-                                                    { label: locale === 'es' ? 'Próxima semana' : 'Next week', date: nextMonday, display: locale === 'es' ? 'lun.' : 'mon.' },
-                                                    { label: locale === 'es' ? '2 semanas' : '2 weeks', date: twoWeeks, display: twoWeeks.toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', { day: 'numeric', month: 'short' }) },
-                                                    { label: locale === 'es' ? '4 semanas' : '4 weeks', date: fourWeeks, display: fourWeeks.toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', { day: 'numeric', month: 'short' }) },
-                                                  ];
-
-                                                  return quickOptions.map((option, i) => (
-                                                    <button
-                                                      key={i}
-                                                      className={cn(
-                                                        "w-full flex items-center justify-between px-3 py-1.5 text-xs transition-colors",
-                                                        isDark ? "hover:bg-white/5 text-white" : "hover:bg-gray-50 text-gray-900"
-                                                      )}
-                                                      onClick={() => {
-                                                        setQuickCreateDate(option.date);
-                                                        setShowQuickDatePicker(false);
-                                                      }}
-                                                    >
-                                                      <span>{option.label}</span>
-                                                      <span className={cn("text-[10px] font-mono", isDark ? "text-white/30" : "text-gray-400")}>
-                                                        {option.display}
-                                                      </span>
-                                                    </button>
-                                                  ));
-                                                })()}
-                                              </div>
-
-                                              {/* Mini calendar */}
-                                              <div className="p-3">
-                                                <div className="flex items-center justify-between mb-3">
-                                                  <span className={cn("text-xs font-medium font-mono", isDark ? "text-white" : "text-gray-900")}>
-                                                    {quickDatePickerMonth.toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', { month: 'long', year: 'numeric' })}
-                                                  </span>
-                                                  <div className="flex items-center gap-0.5">
-                                                    <button
-                                                      onClick={() => setQuickDatePickerMonth(new Date())}
-                                                      className={cn(
-                                                        "px-1.5 py-0.5 rounded text-[10px] transition-colors font-mono",
-                                                        isDark ? "hover:bg-white/10 text-white/40" : "hover:bg-gray-100 text-gray-500"
-                                                      )}
-                                                    >
-                                                      {locale === 'es' ? 'Hoy' : 'Today'}
-                                                    </button>
-                                                    <button
-                                                      onClick={() => setQuickDatePickerMonth(new Date(quickDatePickerMonth.getFullYear(), quickDatePickerMonth.getMonth() - 1))}
-                                                      className={cn("p-0.5 rounded", isDark ? "hover:bg-white/10" : "hover:bg-gray-100")}
-                                                    >
-                                                      <ChevronLeft className="w-3.5 h-3.5" />
-                                                    </button>
-                                                    <button
-                                                      onClick={() => setQuickDatePickerMonth(new Date(quickDatePickerMonth.getFullYear(), quickDatePickerMonth.getMonth() + 1))}
-                                                      className={cn("p-0.5 rounded", isDark ? "hover:bg-white/10" : "hover:bg-gray-100")}
-                                                    >
-                                                      <ChevronRight className="w-3.5 h-3.5" />
-                                                    </button>
-                                                  </div>
-                                                </div>
-
-                                                <div className="grid grid-cols-7 gap-0.5 mb-1">
-                                                  {(locale === 'es'
-                                                    ? ['do', 'lu', 'ma', 'mi', 'ju', 'vi', 'sá']
-                                                    : ['su', 'mo', 'tu', 'we', 'th', 'fr', 'sa']
-                                                  ).map((d) => (
-                                                    <div key={d} className={cn("w-6 h-6 flex items-center justify-center text-[10px] font-mono", isDark ? "text-white/30" : "text-gray-400")}>
-                                                      {d}
-                                                    </div>
-                                                  ))}
-                                                </div>
-
-                                                <div className="grid grid-cols-7 gap-0.5">
-                                                  {(() => {
-                                                    const year = quickDatePickerMonth.getFullYear();
-                                                    const month = quickDatePickerMonth.getMonth();
-                                                    const firstDay = new Date(year, month, 1).getDay();
-                                                    const daysInMonth = new Date(year, month + 1, 0).getDate();
-                                                    const daysInPrevMonth = new Date(year, month, 0).getDate();
-                                                    const todayDate = new Date();
-                                                    const calDays: Array<{ dayNum: number; isCurrentMonth: boolean; date: Date }> = [];
-
-                                                    for (let i = firstDay - 1; i >= 0; i--) {
-                                                      calDays.push({ dayNum: daysInPrevMonth - i, isCurrentMonth: false, date: new Date(year, month - 1, daysInPrevMonth - i) });
-                                                    }
-                                                    for (let i = 1; i <= daysInMonth; i++) {
-                                                      calDays.push({ dayNum: i, isCurrentMonth: true, date: new Date(year, month, i) });
-                                                    }
-                                                    const remaining = 42 - calDays.length;
-                                                    for (let i = 1; i <= remaining; i++) {
-                                                      calDays.push({ dayNum: i, isCurrentMonth: false, date: new Date(year, month + 1, i) });
-                                                    }
-
-                                                    return calDays.map((d, i) => {
-                                                      const isToday = d.date.toDateString() === todayDate.toDateString();
-                                                      const isSelected = (quickCreateDate || day.date).toDateString() === d.date.toDateString();
-
-                                                      return (
-                                                        <button
-                                                          key={i}
-                                                          className={cn(
-                                                            "w-6 h-6 rounded-full flex items-center justify-center text-[10px] transition-colors font-mono",
-                                                            !d.isCurrentMonth && (isDark ? "text-white/20" : "text-gray-300"),
-                                                            d.isCurrentMonth && (isDark ? "text-white" : "text-gray-900"),
-                                                            isToday && "ring-1 ring-[#007FFF]",
-                                                            isSelected && "bg-[#007FFF] text-white",
-                                                            !isSelected && (isDark ? "hover:bg-white/10" : "hover:bg-gray-100")
-                                                          )}
-                                                          onClick={() => {
-                                                            setQuickCreateDate(d.date);
-                                                            setShowQuickDatePicker(false);
-                                                          }}
-                                                        >
-                                                          {d.dayNum}
-                                                        </button>
-                                                      );
-                                                    });
-                                                  })()}
-                                                </div>
-                                              </div>
-                                            </motion.div>
-                                          )}
-                                        </AnimatePresence>
-                                      </div>
-
-                                      {/* Assignee dropdown */}
-                                      <div className="relative">
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setShowQuickAssigneeDropdown(!showQuickAssigneeDropdown);
-                                            setShowQuickPriorityDropdown(false);
-                                          }}
-                                          className={cn(
-                                            "p-1 rounded transition-colors",
-                                            quickCreateAssignee
-                                              ? "text-[#007FFF] bg-[#007FFF]/20"
-                                              : isDark ? "hover:bg-white/10 text-white/30" : "hover:bg-gray-100 text-gray-400"
-                                          )}
-                                        >
-                                          {quickCreateAssignee ? (
-                                            <div
-                                              className="w-4 h-4 rounded-full flex items-center justify-center text-white text-[8px] font-mono font-bold"
-                                              style={{ backgroundColor: config.availableUsers?.find(u => u.id === quickCreateAssignee)?.color || '#007FFF' }}
-                                            >
-                                              {config.availableUsers?.find(u => u.id === quickCreateAssignee)?.initials ||
-                                               config.availableUsers?.find(u => u.id === quickCreateAssignee)?.name?.slice(0, 2).toUpperCase()}
-                                            </div>
-                                          ) : (
-                                            <User className="w-3.5 h-3.5" />
-                                          )}
-                                        </button>
-                                        <AnimatePresence>
-                                          {showQuickAssigneeDropdown && (
-                                            <motion.div
-                                              initial={{ opacity: 0, y: -5 }}
-                                              animate={{ opacity: 1, y: 0 }}
-                                              exit={{ opacity: 0, y: -5 }}
-                                              className={cn(
-                                                "absolute left-0 bottom-full mb-1 z-[60] rounded-lg shadow-xl overflow-hidden min-w-[160px] max-h-[200px] overflow-y-auto",
-                                                isDark ? "bg-[#111] border border-white/10" : "bg-white border border-gray-200"
-                                              )}
-                                              onClick={(e) => e.stopPropagation()}
-                                            >
-                                              <button
-                                                onClick={() => {
-                                                  setQuickCreateAssignee(null);
-                                                  setShowQuickAssigneeDropdown(false);
-                                                }}
-                                                className={cn(
-                                                  "w-full flex items-center gap-2 px-3 py-1.5 text-xs transition-colors text-left",
-                                                  isDark ? "hover:bg-white/5" : "hover:bg-gray-50",
-                                                  !quickCreateAssignee && (isDark ? "bg-white/5" : "bg-gray-50")
-                                                )}
-                                              >
-                                                <div className={cn("w-5 h-5 rounded-full flex items-center justify-center", isDark ? "bg-white/10" : "bg-gray-200")}>
-                                                  <User className="w-3 h-3 text-gray-400" />
-                                                </div>
-                                                <span className={isDark ? "text-white/40" : "text-gray-500"}>
-                                                  {locale === 'es' ? 'Sin asignar' : 'Unassigned'}
-                                                </span>
-                                              </button>
-                                              {config.availableUsers?.map((user) => (
-                                                <button
-                                                  key={user.id}
-                                                  onClick={() => {
-                                                    setQuickCreateAssignee(user.id);
-                                                    setShowQuickAssigneeDropdown(false);
-                                                  }}
-                                                  className={cn(
-                                                    "w-full flex items-center gap-2 px-3 py-1.5 text-xs transition-colors text-left",
-                                                    isDark ? "hover:bg-white/5" : "hover:bg-gray-50",
-                                                    quickCreateAssignee === user.id && (isDark ? "bg-white/5" : "bg-gray-50")
-                                                  )}
-                                                >
-                                                  <div
-                                                    className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[9px] font-mono font-bold"
-                                                    style={{ backgroundColor: user.color || '#007FFF' }}
-                                                  >
-                                                    {user.initials || user.name?.slice(0, 2).toUpperCase()}
-                                                  </div>
-                                                  <span className={isDark ? "text-white" : "text-gray-900"}>{user.name}</span>
-                                                </button>
-                                              ))}
-                                              {(!config.availableUsers || config.availableUsers.length === 0) && (
-                                                <div className={cn("px-3 py-2 text-xs font-mono", isDark ? "text-white/30" : "text-gray-400")}>
-                                                  {locale === 'es' ? 'No hay usuarios disponibles' : 'No users available'}
-                                                </div>
-                                              )}
-                                            </motion.div>
-                                          )}
-                                        </AnimatePresence>
-                                      </div>
-                                    </div>
-
-                                    {/* Save button */}
-                                    <button
-                                      onClick={() => {
-                                        if (quickCreateName.trim()) {
-                                          const selectedUser = config.availableUsers?.find(u => u.id === quickCreateAssignee);
-                                          const taskDate = quickCreateDate || day.date;
-                                          callbacks.onTaskCreate?.({
-                                            name: quickCreateName.trim(),
-                                            startDate: taskDate,
-                                            endDate: taskDate,
-                                            priority: quickCreatePriority,
-                                            assignees: selectedUser ? [selectedUser] : undefined,
-                                          });
-                                          setQuickCreateName('');
-                                          setQuickCreatePriority(undefined);
-                                          setQuickCreateAssignee(null);
-                                          setQuickCreateDate(null);
-                                          setQuickCreateCell(null);
-                                        }
-                                      }}
-                                      disabled={!quickCreateName.trim()}
-                                      className={cn(
-                                        "px-2.5 py-1 rounded text-xs font-mono font-medium transition-colors",
-                                        quickCreateName.trim()
-                                          ? "bg-[#007FFF] hover:bg-[#0066CC] text-white"
-                                          : isDark ? "bg-white/5 text-white/20" : "bg-gray-100 text-gray-400"
-                                      )}
-                                    >
-                                      {locale === 'es' ? 'Guardar' : 'Save'}
-                                    </button>
-                                  </div>
+                                  <QuickTaskCreate
+                                    onSubmit={(data) => {
+                                      callbacks.onTaskCreate?.({
+                                        name: data.name,
+                                        startDate: data.startDate || day.date,
+                                        endDate: data.endDate || day.date,
+                                        priority: data.priority,
+                                        assignees: data.assignee ? [data.assignee] : undefined,
+                                      });
+                                      setQuickCreateCell(null);
+                                    }}
+                                    onCancel={() => setQuickCreateCell(null)}
+                                    availableUsers={config.availableUsers}
+                                    isDark={isDark}
+                                    locale={locale === 'es' ? 'es' : 'en'}
+                                    defaultDate={day.date}
+                                    dropdownDirection={isNearBottom ? 'up' : 'down'}
+                                  />
                                 </motion.div>
                               </>
                             )}

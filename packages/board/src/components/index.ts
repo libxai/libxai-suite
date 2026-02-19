@@ -1,5 +1,5 @@
-export { KanbanBoard, KanbanToolbar, AddColumnButton, AddCardButton } from './Board'
-export type { KanbanToolbarProps, AddColumnButtonProps, AddCardButtonProps, AddCardData } from './Board'
+export { KanbanBoard, KanbanToolbar, AddColumnButton, AddCardButton, QuickTaskCreate } from './Board'
+export type { KanbanToolbarProps, AddColumnButtonProps, AddCardButtonProps, AddCardData, QuickTaskCreateProps, QuickTaskCreateData } from './Board'
 export { Column, EditableColumnTitle } from './Column'
 export {
   Card,

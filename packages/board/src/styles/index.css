@@ -218,6 +218,7 @@
   /* v0.17.444: Changed overflow-y-hidden to overflow-y-auto and min-h-screen to h-full for proper pan/drag */
   .asakaa-board {
     @apply relative flex overflow-x-auto overflow-y-auto h-full;
+    align-items: flex-start;
     gap: var(--space-6);
     padding: var(--space-6);
     background: var(--color-bg-primary);
@@ -246,6 +247,17 @@
 
   .asakaa-board::-webkit-scrollbar-corner {
     background: var(--theme-bg-secondary, rgba(20, 20, 20, 0.4));
+  }
+
+  /* ==========================================================================
+     COLUMN WRAPPER (column + footer outside)
+     ========================================================================== */
+
+  .asakaa-column-wrapper {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    align-self: flex-start;
   }
 
   /* ==========================================================================
@@ -899,6 +911,76 @@
 
 .asakaa-board:not(.dark) .asakaa-add-column__cancel:hover {
   background: rgba(0, 0, 0, 0.05);
+}
+
+/* ============================================================================
+   ADD CARD BUTTON (v2.2.0)
+   Dashed-style button below each column — mirrors AddColumnButton visual
+   ============================================================================ */
+
+.asakaa-add-card {
+  padding: var(--space-2) 0 0;
+  flex-shrink: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.asakaa-add-card__button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 100%;
+  height: 40px;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-tertiary);
+  background: transparent;
+  border: 2px dashed var(--color-border-primary);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--ease-smooth), border-color var(--duration-fast) var(--ease-smooth), background var(--duration-fast) var(--ease-smooth);
+}
+
+.asakaa-add-card__button:hover:not(:disabled) {
+  color: var(--color-blue);
+  border-color: var(--color-blue);
+  background: rgba(59, 130, 246, var(--opacity-subtle));
+}
+
+.asakaa-add-card__button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.asakaa-add-card--editing {
+  padding: 0;
+  background: rgba(10, 10, 10, 0.95);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  margin-top: var(--space-2);
+}
+
+/* Light theme overrides */
+.asakaa-board:not(.dark) .asakaa-add-card__button {
+  border-color: rgba(0, 0, 0, 0.15);
+  color: var(--color-text-tertiary);
+}
+
+.asakaa-board:not(.dark) .asakaa-add-card__button:hover:not(:disabled) {
+  border-color: var(--color-blue);
+  color: var(--color-blue);
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.asakaa-board:not(.dark) .asakaa-add-card--editing {
+  background: white;
+  border-color: rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  backdrop-filter: none;
 }
 
 /* ============================================================================

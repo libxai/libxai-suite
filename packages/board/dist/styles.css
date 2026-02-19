@@ -8009,6 +8009,7 @@ body {
   height: 100%;
   overflow-x: auto;
   overflow-y: auto;
+    align-items: flex-start;
     gap: var(--space-6);
     padding: var(--space-6);
     background: var(--color-bg-primary);
@@ -8044,6 +8045,19 @@ body {
 
 .asakaa-board::-webkit-scrollbar-corner {
     background: var(--theme-bg-secondary, rgba(20, 20, 20, 0.4));
+  }
+
+
+/* ==========================================================================
+     COLUMN WRAPPER (column + footer outside)
+     ========================================================================== */
+
+
+.asakaa-column-wrapper {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    align-self: flex-start;
   }
 
 
@@ -9881,11 +9895,6 @@ body {
 }
 
 
-.border-0 {
-  border-width: 0px;
-}
-
-
 .border-2 {
   border-width: 2px;
 }
@@ -9975,12 +9984,6 @@ body {
 .border-\[\#3B82F6\] {
   --tw-border-opacity: 1;
   border-color: rgb(59 130 246 / var(--tw-border-opacity, 1));
-}
-
-
-.border-\[\#3a3a4e\] {
-  --tw-border-opacity: 1;
-  border-color: rgb(58 58 78 / var(--tw-border-opacity, 1));
 }
 
 
@@ -10340,21 +10343,9 @@ body {
 }
 
 
-.bg-\[\#1e1e2e\] {
-  --tw-bg-opacity: 1;
-  background-color: rgb(30 30 46 / var(--tw-bg-opacity, 1));
-}
-
-
 .bg-\[\#222\] {
   --tw-bg-opacity: 1;
   background-color: rgb(34 34 34 / var(--tw-bg-opacity, 1));
-}
-
-
-.bg-\[\#2a2a3e\] {
-  --tw-bg-opacity: 1;
-  background-color: rgb(42 42 62 / var(--tw-bg-opacity, 1));
 }
 
 
@@ -10481,25 +10472,8 @@ body {
 }
 
 
-.bg-emerald-500 {
-  --tw-bg-opacity: 1;
-  background-color: rgb(16 185 129 / var(--tw-bg-opacity, 1));
-}
-
-
 .bg-emerald-500\/10 {
   background-color: rgb(16 185 129 / 0.1);
-}
-
-
-.bg-emerald-500\/20 {
-  background-color: rgb(16 185 129 / 0.2);
-}
-
-
-.bg-emerald-600 {
-  --tw-bg-opacity: 1;
-  background-color: rgb(5 150 105 / var(--tw-bg-opacity, 1));
 }
 
 
@@ -11050,11 +11024,6 @@ body {
 }
 
 
-.pb-3 {
-  padding-bottom: 0.75rem;
-}
-
-
 .pb-6 {
   padding-bottom: 1.5rem;
 }
@@ -11092,11 +11061,6 @@ body {
 
 .pr-4 {
   padding-right: 1rem;
-}
-
-
-.pt-0 {
-  padding-top: 0px;
 }
 
 
@@ -11453,21 +11417,9 @@ body {
 }
 
 
-.text-emerald-500 {
-  --tw-text-opacity: 1;
-  color: rgb(16 185 129 / var(--tw-text-opacity, 1));
-}
-
-
 .text-emerald-600 {
   --tw-text-opacity: 1;
   color: rgb(5 150 105 / var(--tw-text-opacity, 1));
-}
-
-
-.text-gray-100 {
-  --tw-text-opacity: 1;
-  color: rgb(243 244 246 / var(--tw-text-opacity, 1));
 }
 
 
@@ -11695,18 +11647,6 @@ body {
 .placeholder-gray-400::placeholder {
   --tw-placeholder-opacity: 1;
   color: rgb(156 163 175 / var(--tw-placeholder-opacity, 1));
-}
-
-
-.placeholder-gray-500::-moz-placeholder {
-  --tw-placeholder-opacity: 1;
-  color: rgb(107 114 128 / var(--tw-placeholder-opacity, 1));
-}
-
-
-.placeholder-gray-500::placeholder {
-  --tw-placeholder-opacity: 1;
-  color: rgb(107 114 128 / var(--tw-placeholder-opacity, 1));
 }
 
 
@@ -12080,11 +12020,6 @@ body {
 
 .duration-150 {
   transition-duration: 150ms;
-}
-
-
-.duration-200 {
-  transition-duration: 200ms;
 }
 
 
@@ -12586,6 +12521,87 @@ body {
 
 
 /* ============================================================================
+   ADD CARD BUTTON (v2.2.0)
+   Dashed-style button below each column — mirrors AddColumnButton visual
+   ============================================================================ */
+
+
+.asakaa-add-card {
+  padding: var(--space-2) 0 0;
+  flex-shrink: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+
+.asakaa-add-card__button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 100%;
+  height: 40px;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-tertiary);
+  background: transparent;
+  border: 2px dashed var(--color-border-primary);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--ease-smooth), border-color var(--duration-fast) var(--ease-smooth), background var(--duration-fast) var(--ease-smooth);
+}
+
+
+.asakaa-add-card__button:hover:not(:disabled) {
+  color: var(--color-blue);
+  border-color: var(--color-blue);
+  background: rgba(59, 130, 246, var(--opacity-subtle));
+}
+
+
+.asakaa-add-card__button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+
+.asakaa-add-card--editing {
+  padding: 0;
+  background: rgba(10, 10, 10, 0.95);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  margin-top: var(--space-2);
+}
+
+
+/* Light theme overrides */
+
+
+.asakaa-board:not(.dark) .asakaa-add-card__button {
+  border-color: rgba(0, 0, 0, 0.15);
+  color: var(--color-text-tertiary);
+}
+
+
+.asakaa-board:not(.dark) .asakaa-add-card__button:hover:not(:disabled) {
+  border-color: var(--color-blue);
+  color: var(--color-blue);
+  background: rgba(59, 130, 246, 0.05);
+}
+
+
+.asakaa-board:not(.dark) .asakaa-add-card--editing {
+  background: white;
+  border-color: rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  backdrop-filter: none;
+}
+
+
+/* ============================================================================
    GANTT GRID SCROLL - v0.17.223
    Hide scrollbar on TaskGrid while keeping scroll functional
    ============================================================================ */
@@ -12892,18 +12908,6 @@ body {
 }
 
 
-.hover\:bg-\[\#2a2a3e\]:hover {
-  --tw-bg-opacity: 1;
-  background-color: rgb(42 42 62 / var(--tw-bg-opacity, 1));
-}
-
-
-.hover\:bg-\[\#3a3a4e\]:hover {
-  --tw-bg-opacity: 1;
-  background-color: rgb(58 58 78 / var(--tw-bg-opacity, 1));
-}
-
-
 .hover\:bg-blue-500:hover {
   --tw-bg-opacity: 1;
   background-color: rgb(59 130 246 / var(--tw-bg-opacity, 1));
@@ -12918,12 +12922,6 @@ body {
 .hover\:bg-blue-600:hover {
   --tw-bg-opacity: 1;
   background-color: rgb(37 99 235 / var(--tw-bg-opacity, 1));
-}
-
-
-.hover\:bg-emerald-600:hover {
-  --tw-bg-opacity: 1;
-  background-color: rgb(5 150 105 / var(--tw-bg-opacity, 1));
 }
 
 
@@ -13066,18 +13064,6 @@ body {
 .hover\:text-blue-500:hover {
   --tw-text-opacity: 1;
   color: rgb(59 130 246 / var(--tw-text-opacity, 1));
-}
-
-
-.hover\:text-emerald-400:hover {
-  --tw-text-opacity: 1;
-  color: rgb(52 211 153 / var(--tw-text-opacity, 1));
-}
-
-
-.hover\:text-gray-300:hover {
-  --tw-text-opacity: 1;
-  color: rgb(209 213 219 / var(--tw-text-opacity, 1));
 }
 
 
@@ -13275,19 +13261,8 @@ body {
 }
 
 
-.disabled\:opacity-40:disabled {
-  opacity: 0.4;
-}
-
-
 .disabled\:opacity-50:disabled {
   opacity: 0.5;
-}
-
-
-.disabled\:hover\:bg-emerald-500:hover:disabled {
-  --tw-bg-opacity: 1;
-  background-color: rgb(16 185 129 / var(--tw-bg-opacity, 1));
 }
 
 

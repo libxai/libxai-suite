@@ -371,6 +371,8 @@ export interface RenderProps {
   renderColumnHeader?: (column: Column, cardCount: number) => React.ReactNode
   /** Custom empty state */
   renderEmptyState?: (column: Column) => React.ReactNode
+  /** v2.2.0: Custom column footer (e.g. AddCardButton) */
+  renderColumnFooter?: (column: Column) => React.ReactNode
 }
 
 /**

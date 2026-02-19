@@ -13,6 +13,7 @@ export {
   KanbanToolbar, // v0.17.26: Kanban toolbar component
   AddColumnButton, // v0.9.0: Button to add new columns
   AddCardButton, // v0.17.49: Inline form to add new cards to columns
+  QuickTaskCreate, // v2.2.0: Shared quick-create form (Calendar + Kanban)
   Column,
   Card,
   EditableColumnTitle,
@@ -257,6 +258,8 @@ export type {
   AddColumnButtonProps, // v0.9.0
   AddCardButtonProps, // v0.17.49
   AddCardData, // v0.17.49
+  QuickTaskCreateProps, // v2.2.0
+  QuickTaskCreateData, // v2.2.0
   TaskDetailModalProps, // v0.17.247: Unified task detail modal props
   TaskComment, // v0.17.252: Comment type
   // LazyLoadWrapperProps,
