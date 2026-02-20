@@ -17,44 +17,44 @@ export const themes: Record<string, GanttTheme> = {
     textSecondary: 'rgba(255, 255, 255, 0.60)',
     textTertiary: 'rgba(255, 255, 255, 0.35)',
 
-    // Accent & Interactive — Chronos Blue
-    accent: '#007FFF',
-    accentHover: '#339FFF',
-    accentLight: 'rgba(0, 127, 255, 0.15)',
+    // Accent & Interactive — Chronos Blue (#2E94FF)
+    accent: '#2E94FF',
+    accentHover: '#5AADFF',
+    accentLight: 'rgba(46, 148, 255, 0.12)',
 
-    // Task Elements — Execution bar blue
-    taskBarPrimary: '#007AFF',
-    taskBarProgress: '#007AFF',
+    // Task Elements — Chronos blue execution bars
+    taskBarPrimary: '#2E94FF',
+    taskBarProgress: '#5AADFF',
     taskBarHandle: '#FFFFFF',
 
-    // Dependencies & Critical Path — Neon
+    // Dependencies & Critical Path — Softer Tailwind red
     dependency: '#444444',
     dependencyHover: '#FFFFFF',
-    criticalPath: '#FF453A',
-    criticalPathLight: 'rgba(255, 69, 58, 0.2)',
+    criticalPath: '#EF4444',
+    criticalPathLight: 'rgba(239, 68, 68, 0.15)',
 
-    // Special Elements — Neon red today marker
-    today: '#FF2E2E',
-    todayLight: 'rgba(255, 46, 46, 0.1)',
+    // Special Elements — Softer red today marker
+    today: '#EF4444',
+    todayLight: 'rgba(239, 68, 68, 0.08)',
     milestone: '#FFFFFF',
     milestoneLight: 'rgba(255, 255, 255, 0.1)',
 
     // Status Colors
     statusTodo: '#666666',
-    statusInProgress: '#007FFF',
+    statusInProgress: '#2E94FF',
     statusCompleted: '#10B981',
 
     // Hover & Focus States
     hoverBg: 'rgba(255, 255, 255, 0.04)',
-    focusRing: '#007FFF',
+    focusRing: '#2E94FF',
 
     // Chronos V2 additions
     dotGrid: 'rgba(255, 255, 255, 0.05)',
     glassHeader: '#0A0A0A',
     glassToolbar: 'rgba(0, 0, 0, 0.4)',
     forecastHud: 'rgba(15, 15, 15, 0.9)',
-    neonRedGlow: '0 0 10px rgba(255, 46, 46, 0.4)',
-    executionBarBg: 'rgba(0, 122, 255, 0.3)',
+    neonRedGlow: '0 0 8px rgba(239, 68, 68, 0.25)',
+    executionBarBg: 'rgba(46, 148, 255, 0.12)',
   },
   
   light: {

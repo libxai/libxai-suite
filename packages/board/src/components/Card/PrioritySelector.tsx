@@ -9,10 +9,10 @@ export interface PrioritySelectorProps {
 }
 
 const PRIORITY_CONFIG = {
-  URGENT: { label: 'Urgent', color: '#E74C3C' },
-  HIGH: { label: 'High', color: '#E67E22' },
-  MEDIUM: { label: 'Normal', color: '#F1C40F' },
-  LOW: { label: 'Low', color: '#2ECC71' },
+  URGENT: { label: 'Urgent', color: '#EF4444' },
+  HIGH: { label: 'High', color: '#F97316' },
+  MEDIUM: { label: 'Normal', color: '#F59E0B' },
+  LOW: { label: 'Low', color: '#10B981' },
 } as const
 
 const CLEAR_COLOR = '#BDC3C7'

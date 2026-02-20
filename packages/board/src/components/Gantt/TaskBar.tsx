@@ -104,19 +104,19 @@ export function TaskBar({
   // v0.17.38: Priority-based colors - aligned with PrioritySelector component
   // Supports both lowercase (from DB) and uppercase (from component) priority values
   const PRIORITY_COLORS: Record<string, string> = {
-    low: '#2ECC71',      // Verde (Green)
-    LOW: '#2ECC71',
-    medium: '#F1C40F',   // Amarillo (Yellow)
-    MEDIUM: '#F1C40F',
-    high: '#E67E22',     // Naranja (Orange)
-    HIGH: '#E67E22',
-    urgent: '#E74C3C',   // Rojo (Red)
-    URGENT: '#E74C3C',
+    low: '#10B981',      // Emerald-500 (Chronos status green)
+    LOW: '#10B981',
+    medium: '#F59E0B',   // Amber-500
+    MEDIUM: '#F59E0B',
+    high: '#F97316',     // Orange-500
+    HIGH: '#F97316',
+    urgent: '#EF4444',   // Red-500 (matches Chronos criticalPath)
+    URGENT: '#EF4444',
   };
 
   // Get task color: priority color > custom color > theme default
   const getTaskColor = () => {
-    if (task.isCriticalPath || isOverdue) return '#DC2626'; // Critical/overdue = red
+    if (task.isCriticalPath || isOverdue) return '#EF4444'; // Critical/overdue = Chronos red-500
     if (task.color) return task.color; // Custom color takes precedence
     if (task.priority && PRIORITY_COLORS[task.priority]) return PRIORITY_COLORS[task.priority];
     return theme.taskBarPrimary; // Fallback to theme
@@ -759,7 +759,7 @@ export function TaskBar({
                 width={actualEndX - blEndX}
                 height={height}
                 rx={0}
-                fill="#DC2626"
+                fill="#EF4444"
                 opacity={0.2}
               />
             )}
@@ -768,7 +768,7 @@ export function TaskBar({
               <text
                 x={Math.max(actualEndX, blEndX) + 6}
                 y={y + height / 2 + 1}
-                fill="#DC2626"
+                fill="#EF4444"
                 fontSize="10"
                 fontWeight="700"
                 fontFamily="'JetBrains Mono', monospace"
@@ -782,7 +782,7 @@ export function TaskBar({
               <text
                 x={actualEndX + 6}
                 y={y + height / 2 + 1}
-                fill="#22C55E"
+                fill="#10B981"
                 fontSize="10"
                 fontWeight="700"
                 fontFamily="'JetBrains Mono', monospace"

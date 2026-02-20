@@ -945,11 +945,12 @@ function FilterDropdown({ theme, value, onChange, hideCompleted = false, onHideC
  * Chronos V2: Time Capsule — pill-shaped time scale selector
  */
 function TimeCapsule({ value, onChange, theme }: { value: TimeScale; onChange: (s: TimeScale) => void; theme: any }) {
+  const t = useGanttI18n();
   const isDark = theme.bgPrimary === '#050505' || theme.textPrimary === '#FFFFFF';
   const scales: Array<{ value: TimeScale; label: string }> = [
-    { value: 'day', label: 'D' },
-    { value: 'week', label: 'W' },
-    { value: 'month', label: 'M' },
+    { value: 'day', label: t.toolbar.day.charAt(0).toUpperCase() },
+    { value: 'week', label: t.toolbar.week.charAt(0).toUpperCase() },
+    { value: 'month', label: t.toolbar.month.charAt(0).toUpperCase() },
   ];
 
   return (
@@ -987,6 +988,7 @@ function TimeCapsule({ value, onChange, theme }: { value: TimeScale; onChange: (
  * Chronos V2: Forecast HUD Panel — placeholder KPIs bar
  */
 function ForecastHUD({ theme }: { theme: any }) {
+  const t = useGanttI18n();
   const isDark = theme.bgPrimary === '#050505' || theme.textPrimary === '#FFFFFF';
   return (
     <div
@@ -1007,7 +1009,7 @@ function ForecastHUD({ theme }: { theme: any }) {
             fontWeight: 500,
           }}
         >
-          PROJECT FORECAST
+          {t.toolbar.projectForecast}
         </span>
 
         <div className="flex items-center gap-2">
@@ -1015,13 +1017,13 @@ function ForecastHUD({ theme }: { theme: any }) {
             className="text-[13px] font-semibold"
             style={{ color: theme.textPrimary, fontFamily: 'Inter, sans-serif' }}
           >
-            Expected Finish: Nov 28
+            {t.toolbar.expectedFinish}: Nov 28
           </span>
           <span
             className="px-1.5 py-0.5 rounded text-[10px] font-medium"
             style={{
-              backgroundColor: isDark ? 'rgba(255,46,46,0.15)' : 'rgba(220,38,38,0.1)',
-              color: isDark ? '#FF453A' : '#DC2626',
+              backgroundColor: isDark ? 'rgba(239,68,68,0.15)' : 'rgba(220,38,38,0.1)',
+              color: isDark ? '#EF4444' : '#DC2626',
               fontFamily: "'JetBrains Mono', monospace",
             }}
           >
@@ -1037,7 +1039,7 @@ function ForecastHUD({ theme }: { theme: any }) {
             className="text-[11px]"
             style={{ color: theme.textTertiary, fontFamily: 'Inter, sans-serif' }}
           >
-            Confidence:
+            {t.toolbar.confidence}:
           </span>
           <span
             className="text-[13px] font-semibold"
@@ -1060,7 +1062,7 @@ function ForecastHUD({ theme }: { theme: any }) {
             className="text-[11px]"
             style={{ color: theme.textTertiary, fontFamily: 'Inter, sans-serif' }}
           >
-            Cost at Completion:
+            {t.toolbar.costAtCompletion}:
           </span>
           <span
             className="text-[13px] font-bold"
@@ -1071,8 +1073,8 @@ function ForecastHUD({ theme }: { theme: any }) {
           <span
             className="px-1.5 py-0.5 rounded text-[10px] font-medium"
             style={{
-              backgroundColor: isDark ? 'rgba(255,46,46,0.15)' : 'rgba(220,38,38,0.1)',
-              color: isDark ? '#FF453A' : '#DC2626',
+              backgroundColor: isDark ? 'rgba(239,68,68,0.15)' : 'rgba(220,38,38,0.1)',
+              color: isDark ? '#EF4444' : '#DC2626',
               fontFamily: "'JetBrains Mono', monospace",
             }}
           >
@@ -1223,23 +1225,23 @@ export function GanttToolbar({
                 }}
                 whileHover={viewMode !== 'execution' ? { color: theme.textSecondary } : {}}
               >
-                Execution
+                {t.toolbar.viewExecution}
               </motion.button>
               <motion.button
                 onClick={() => onViewModeChange?.('oracle')}
                 className="px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors"
                 style={{
                   backgroundColor: viewMode === 'oracle'
-                    ? (isDark ? 'rgba(0,127,255,0.15)' : 'rgba(37,99,235,0.08)')
+                    ? (isDark ? 'rgba(46,148,255,0.15)' : 'rgba(37,99,235,0.08)')
                     : 'transparent',
                   color: viewMode === 'oracle'
-                    ? (isDark ? '#007FFF' : '#2E94FF')
+                    ? (isDark ? '#2E94FF' : '#2E94FF')
                     : theme.textTertiary,
                   fontFamily: 'Inter, sans-serif',
                 }}
                 whileHover={viewMode !== 'oracle' ? { color: theme.textSecondary } : {}}
               >
-                Oracle View
+                {t.toolbar.viewOracle}
               </motion.button>
             </div>
           </div>
@@ -1356,7 +1358,7 @@ export function GanttToolbar({
               }}
             >
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Simulate Scenario</span>
+              <span>{t.toolbar.simulateScenario}</span>
             </motion.button>
           </div>
         </div>

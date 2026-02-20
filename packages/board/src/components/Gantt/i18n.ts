@@ -60,6 +60,15 @@ export interface GanttTranslations {
     // v3.0.0: WBS Level selector
     wbsLevel: string;
     wbsAllLevels: string;
+    // v3.1.0: Chronos view modes & forecast
+    viewExecution: string;
+    viewOracle: string;
+    simulateScenario: string;
+    projectForecast: string;
+    expectedFinish: string;
+    confidence: string;
+    costAtCompletion: string;
+    baselines: string;
   };
 
   // v0.16.0: Context menu labels (right-click menu)
@@ -217,6 +226,15 @@ export const en: GanttTranslations = {
     // v3.0.0: WBS Level selector
     wbsLevel: 'Level',
     wbsAllLevels: 'All',
+    // v3.1.0: Chronos view modes & forecast
+    viewExecution: 'Execution',
+    viewOracle: 'Oracle View',
+    simulateScenario: 'Simulate Scenario',
+    projectForecast: 'PROJECT FORECAST',
+    expectedFinish: 'Expected Finish',
+    confidence: 'Confidence',
+    costAtCompletion: 'Cost at Completion',
+    baselines: 'Baselines',
   },
 
   // v0.16.0: Context menu labels (right-click menu)
@@ -368,6 +386,15 @@ export const es: GanttTranslations = {
     // v3.0.0: WBS Level selector
     wbsLevel: 'Nivel',
     wbsAllLevels: 'Todos',
+    // v3.1.0: Chronos view modes & forecast
+    viewExecution: 'Ejecución',
+    viewOracle: 'Vista Oracle',
+    simulateScenario: 'Simular Escenario',
+    projectForecast: 'PRONÓSTICO DEL PROYECTO',
+    expectedFinish: 'Fin Estimado',
+    confidence: 'Confianza',
+    costAtCompletion: 'Costo al Completar',
+    baselines: 'Líneas Base',
   },
 
   // v0.16.0: Context menu labels (right-click menu)

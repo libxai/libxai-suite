@@ -461,7 +461,7 @@ export function Timeline({
               {theme.neonRedGlow && (
                 <g transform={`translate(${todayX - 18}, 2)`}>
                   <rect x={0} y={0} width={36} height={14} rx={2} fill="rgba(0,0,0,0.8)" stroke={theme.today} strokeWidth={0.5} opacity={0.8} />
-                  <text x={18} y={10} textAnchor="middle" fill={theme.today} fontSize="7" fontFamily="'JetBrains Mono', monospace" fontWeight="700" letterSpacing="0.1em">TODAY</text>
+                  <text x={18} y={10} textAnchor="middle" fill={theme.today} fontSize="7" fontFamily="'JetBrains Mono', monospace" fontWeight="700" letterSpacing="0.1em">{t.labels.today.toUpperCase()}</text>
                 </g>
               )}
             </g>

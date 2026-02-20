@@ -3435,6 +3435,14 @@ interface GanttTranslations {
         toDo: string;
         wbsLevel: string;
         wbsAllLevels: string;
+        viewExecution: string;
+        viewOracle: string;
+        simulateScenario: string;
+        projectForecast: string;
+        expectedFinish: string;
+        confidence: string;
+        costAtCompletion: string;
+        baselines: string;
     };
     contextMenu: {
         editTask: string;
