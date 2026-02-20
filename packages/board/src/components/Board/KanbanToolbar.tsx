@@ -41,7 +41,7 @@ const lightTheme: KanbanToolbarTheme = {
   textPrimary: '#111827',
   textSecondary: '#6B7280',
   textTertiary: '#9CA3AF',
-  accent: '#3B82F6',
+  accent: '#2E94FF',
   accentLight: 'rgba(59, 130, 246, 0.1)',
   hoverBg: 'rgba(0, 0, 0, 0.05)',
 };

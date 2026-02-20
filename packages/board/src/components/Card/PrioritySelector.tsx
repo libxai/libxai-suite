@@ -194,7 +194,7 @@ export function PrioritySelector({
                   <span className="font-semibold text-sm">{config.label}</span>
                   {priority === key && (
                     <svg className="ml-auto" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                      <path d="M13.5 4.5L6 12L2.5 8.5" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M13.5 4.5L6 12L2.5 8.5" stroke="#2E94FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   )}
                 </button>
@@ -225,7 +225,7 @@ export function PrioritySelector({
                 <span className="font-semibold text-sm">Clear</span>
                 {!priority && (
                   <svg className="ml-auto" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <path d="M13.5 4.5L6 12L2.5 8.5" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M13.5 4.5L6 12L2.5 8.5" stroke="#2E94FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 )}
               </button>

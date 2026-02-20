@@ -420,7 +420,7 @@ export function createSubtask(
     status: 'todo',
     startDate: new Date(startDate), // Clone to avoid reference issues
     endDate: new Date(endDate),     // Clone to avoid reference issues
-    color: parentTask?.color || '#3B82F6', // v0.16.7: Inherit parent color (default: electric blue)
+    color: parentTask?.color || '#2E94FF', // v0.16.7: Inherit parent color (default: electric blue)
     position: subtaskCount, // Ensure position is at the end
     parentId: parentTaskId, // Link to parent for proper hierarchy
   };

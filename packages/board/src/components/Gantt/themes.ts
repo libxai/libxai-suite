@@ -75,19 +75,19 @@ export const themes: Record<string, GanttTheme> = {
     textTertiary: '#64748B',  // Slate 500 - for metadata
 
     // Accent & Interactive
-    accent: '#2563EB',
+    accent: '#2E94FF',
     accentHover: '#1D4ED8',
     accentLight: 'rgba(37, 99, 235, 0.08)',
 
     // Task Elements
-    taskBarPrimary: '#2563EB',
+    taskBarPrimary: '#2E94FF',
     taskBarProgress: '#1E40AF',
     taskBarHandle: '#FFFFFF',
 
     // Dependencies & Critical Path
     // v0.17.361: Solid colors for better visibility
     dependency: '#6B7280',
-    dependencyHover: '#3B82F6',  // v0.17.450: Bright blue hover for better visibility
+    dependencyHover: '#2E94FF',  // v0.17.450: Bright blue hover for better visibility
     criticalPath: '#DC2626',
     criticalPathLight: 'rgba(220, 38, 38, 0.1)',
 
@@ -99,12 +99,12 @@ export const themes: Record<string, GanttTheme> = {
 
     // Status Colors
     statusTodo: '#64748B',  // Slate 500
-    statusInProgress: '#2563EB',
+    statusInProgress: '#2E94FF',
     statusCompleted: '#059669',
 
     // Hover & Focus States
     hoverBg: 'rgba(0, 0, 0, 0.04)',
-    focusRing: '#2563EB',
+    focusRing: '#2E94FF',
 
     // Chronos V2 additions (light-mode equivalents)
     dotGrid: 'rgba(0, 0, 0, 0.04)',

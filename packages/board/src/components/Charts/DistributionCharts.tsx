@@ -32,12 +32,12 @@ export interface DistributionChartsProps {
 const PRIORITY_COLORS: Record<string, string> = {
   URGENT: '#EF4444',
   HIGH: '#F59E0B',
-  MEDIUM: '#3B82F6',
+  MEDIUM: '#2E94FF',
   LOW: '#10B981',
 }
 
 // Default colors for common categories
-const DEFAULT_COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899']
+const DEFAULT_COLORS = ['#2E94FF', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899']
 
 /**
  * Custom label for pie chart
@@ -174,7 +174,7 @@ export function DistributionCharts({
       <div className="chart-stats">
         <div className="chart-stat">
           <span className="chart-stat-label">Total Cards</span>
-          <span className="chart-stat-value" style={{ color: '#3B82F6' }}>
+          <span className="chart-stat-value" style={{ color: '#2E94FF' }}>
             {total}
           </span>
         </div>

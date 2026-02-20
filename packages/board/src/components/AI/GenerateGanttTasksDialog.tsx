@@ -440,7 +440,7 @@ export function GenerateGanttTasksDialog({
                   disabled={!prompt.trim() || isLoading}
                   className="px-6 py-2 rounded-lg text-sm font-semibold transition-all disabled:opacity-50"
                   style={{
-                    background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)',
+                    background: 'linear-gradient(135deg, #2E94FF 0%, #2E94FF 100%)',
                     color: '#ffffff',
                   }}
                 >

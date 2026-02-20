@@ -724,8 +724,8 @@ function FilterDropdown({ theme, value, onChange, hideCompleted = false, onHideC
     {
       value: 'all',
       label: t.toolbar.filterAll || 'Show All',
-      icon: <div className="w-4 h-4 rounded-full border-2 border-[#3B82F6] bg-[#3B82F6]" />,
-      color: 'text-[#3B82F6]'
+      icon: <div className="w-4 h-4 rounded-full border-2 border-[#2E94FF] bg-[#2E94FF]" />,
+      color: 'text-[#2E94FF]'
     },
     {
       value: 'completed',
@@ -768,7 +768,7 @@ function FilterDropdown({ theme, value, onChange, hideCompleted = false, onHideC
             ? (isDark ? 'rgba(59, 130, 246, 0.5)' : 'rgb(191 219 254)')
             : theme.borderLight}`,
           color: hasActiveFilter
-            ? '#3B82F6'
+            ? '#2E94FF'
             : theme.textSecondary,
           fontFamily: 'Inter, sans-serif',
           fontWeight: 500,
@@ -784,7 +784,7 @@ function FilterDropdown({ theme, value, onChange, hideCompleted = false, onHideC
         {hasActiveFilter && (
           <span
             className="w-2 h-2 rounded-full"
-            style={{ backgroundColor: '#3B82F6' }}
+            style={{ backgroundColor: '#2E94FF' }}
           />
         )}
       </motion.button>
@@ -832,7 +832,7 @@ function FilterDropdown({ theme, value, onChange, hideCompleted = false, onHideC
                 const getIcon = () => {
                   if (option.value === 'all') {
                     return isSelected
-                      ? <div className="w-4 h-4 rounded-full border-2 border-[#3B82F6] bg-[#3B82F6]" />
+                      ? <div className="w-4 h-4 rounded-full border-2 border-[#2E94FF] bg-[#2E94FF]" />
                       : <div className="w-4 h-4 rounded-full border-2 border-gray-400" />;
                   }
                   return option.icon;
@@ -872,7 +872,7 @@ function FilterDropdown({ theme, value, onChange, hideCompleted = false, onHideC
                     {isSelected && (
                       <Check
                         className="w-4 h-4 flex-shrink-0"
-                        style={{ color: isDark ? '#3B82F6' : '#2563EB' }}
+                        style={{ color: isDark ? '#2E94FF' : '#2E94FF' }}
                       />
                     )}
                   </motion.button>
@@ -913,7 +913,7 @@ function FilterDropdown({ theme, value, onChange, hideCompleted = false, onHideC
                     className="w-4 h-4 flex-shrink-0"
                     style={{
                       color: hideCompleted
-                        ? (isDark ? '#3B82F6' : '#2563EB')
+                        ? (isDark ? '#2E94FF' : '#2E94FF')
                         : (isDark ? '#6B7280' : '#9CA3AF')
                     }}
                   />
@@ -926,7 +926,7 @@ function FilterDropdown({ theme, value, onChange, hideCompleted = false, onHideC
                   {hideCompleted && (
                     <Check
                       className="w-4 h-4 flex-shrink-0"
-                      style={{ color: isDark ? '#3B82F6' : '#2563EB' }}
+                      style={{ color: isDark ? '#2E94FF' : '#2E94FF' }}
                     />
                   )}
                 </motion.button>
@@ -1233,7 +1233,7 @@ export function GanttToolbar({
                     ? (isDark ? 'rgba(0,127,255,0.15)' : 'rgba(37,99,235,0.08)')
                     : 'transparent',
                   color: viewMode === 'oracle'
-                    ? (isDark ? '#007FFF' : '#2563EB')
+                    ? (isDark ? '#007FFF' : '#2E94FF')
                     : theme.textTertiary,
                   fontFamily: 'Inter, sans-serif',
                 }}
@@ -1498,7 +1498,7 @@ export function GanttToolbar({
               onClick={onCreateTask}
               className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-all"
               style={{
-                background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)',
+                background: 'linear-gradient(135deg, #2E94FF 0%, #2E94FF 100%)',
                 color: '#FFFFFF',
                 fontFamily: 'Inter, sans-serif',
                 fontWeight: 500,

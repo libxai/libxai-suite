@@ -1371,7 +1371,7 @@ export function CalendarBoard({
                         ? '#EF4444'
                         : systemStatus.budgetUtil > 70
                           ? '#F59E0B'
-                          : 'linear-gradient(to right, #3B82F6, #8B5CF6)',
+                          : 'linear-gradient(to right, #2E94FF, #8B5CF6)',
                     }}
                   />
                 </div>

@@ -90,7 +90,7 @@ export const lightTheme: ListViewTheme = {
   neonRed: '#DC2626',
   neonGreen: '#16A34A',
   neonAmber: '#D97706',
-  neonBlue: '#2563EB',
+  neonBlue: '#2E94FF',
 };
 
 /**

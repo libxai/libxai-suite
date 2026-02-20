@@ -9975,15 +9975,15 @@ body {
 }
 
 
-.border-\[\#333\] {
+.border-\[\#2E94FF\] {
   --tw-border-opacity: 1;
-  border-color: rgb(51 51 51 / var(--tw-border-opacity, 1));
+  border-color: rgb(46 148 255 / var(--tw-border-opacity, 1));
 }
 
 
-.border-\[\#3B82F6\] {
+.border-\[\#333\] {
   --tw-border-opacity: 1;
-  border-color: rgb(59 130 246 / var(--tw-border-opacity, 1));
+  border-color: rgb(51 51 51 / var(--tw-border-opacity, 1));
 }
 
 
@@ -10343,6 +10343,12 @@ body {
 }
 
 
+.bg-\[\#2E94FF\] {
+  --tw-bg-opacity: 1;
+  background-color: rgb(46 148 255 / var(--tw-bg-opacity, 1));
+}
+
+
 .bg-\[\#32D74B\] {
   --tw-bg-opacity: 1;
   background-color: rgb(50 215 75 / var(--tw-bg-opacity, 1));
@@ -10361,12 +10367,6 @@ body {
 
 .bg-\[\#32D74B\]\/30 {
   background-color: rgb(50 215 75 / 0.3);
-}
-
-
-.bg-\[\#3B82F6\] {
-  --tw-bg-opacity: 1;
-  background-color: rgb(59 130 246 / var(--tw-bg-opacity, 1));
 }
 
 
@@ -11285,6 +11285,12 @@ body {
 }
 
 
+.text-\[\#2E94FF\] {
+  --tw-text-opacity: 1;
+  color: rgb(46 148 255 / var(--tw-text-opacity, 1));
+}
+
+
 .text-\[\#32D74B\] {
   --tw-text-opacity: 1;
   color: rgb(50 215 75 / var(--tw-text-opacity, 1));
@@ -11294,12 +11300,6 @@ body {
 .text-\[\#3B4252\] {
   --tw-text-opacity: 1;
   color: rgb(59 66 82 / var(--tw-text-opacity, 1));
-}
-
-
-.text-\[\#3B82F6\] {
-  --tw-text-opacity: 1;
-  color: rgb(59 130 246 / var(--tw-text-opacity, 1));
 }
 
 
@@ -11834,9 +11834,9 @@ body {
 }
 
 
-.ring-\[\#3B82F6\] {
+.ring-\[\#2E94FF\] {
   --tw-ring-opacity: 1;
-  --tw-ring-color: rgb(59 130 246 / var(--tw-ring-opacity, 1));
+  --tw-ring-color: rgb(46 148 255 / var(--tw-ring-opacity, 1));
 }
 
 
@@ -12026,6 +12026,11 @@ body {
 
 .duration-150 {
   transition-duration: 150ms;
+}
+
+
+.duration-200 {
+  transition-duration: 200ms;
 }
 
 
@@ -13273,15 +13278,6 @@ body {
 }
 
 
-@media (min-width: 640px) {
-
-
-  .sm\:inline-flex {
-    display: inline-flex;
-  }
-}
-
-
 @media (min-width: 768px) {
 
 
@@ -13557,9 +13553,9 @@ body {
 }
 
 
-.\[\&\:\:-webkit-slider-thumb\]\:bg-\[\#3B82F6\]::-webkit-slider-thumb {
+.\[\&\:\:-webkit-slider-thumb\]\:bg-\[\#2E94FF\]::-webkit-slider-thumb {
   --tw-bg-opacity: 1;
-  background-color: rgb(59 130 246 / var(--tw-bg-opacity, 1));
+  background-color: rgb(46 148 255 / var(--tw-bg-opacity, 1));
 }
 
 

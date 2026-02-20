@@ -72,11 +72,10 @@ const DEFAULT_SUGGESTIONS = [
   'Assign John to "Task Name"',
 ];
 
-// Sparkle/AI icon component
-const AIIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707" />
-    <circle cx="12" cy="12" r="4" />
+// Sparkle/AI icon component — compact 16px for mini FAB
+const AIIcon = ({ size = 16 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8L12 2z" />
   </svg>
 );
 
@@ -162,6 +161,58 @@ export function GanttAIAssistant({
     persistHistory,
     mentionableUsers = [],
   } = config;
+
+  // Theme-aware color tokens
+  const isDark = theme.bgPrimary === '#050505' || theme.bgPrimary === '#0a0a0a' || theme.textPrimary === '#FFFFFF';
+  const fabBg = isDark ? 'rgba(10, 10, 10, 0.75)' : 'rgba(255, 255, 255, 0.85)';
+  const fabBorder = isDark ? 'rgba(46, 148, 255, 0.15)' : 'rgba(46, 148, 255, 0.25)';
+  const fabShadow = isDark
+    ? '0 0 20px rgba(46, 148, 255, 0.08), 0 4px 12px rgba(0, 0, 0, 0.4), inset 0 0 12px rgba(46, 148, 255, 0.04)'
+    : '0 0 20px rgba(46, 148, 255, 0.06), 0 4px 12px rgba(0, 0, 0, 0.08)';
+  const ringBorderA = isDark ? 'rgba(46, 148, 255, 0.2)' : 'rgba(46, 148, 255, 0.15)';
+  const ringBorderB = isDark ? 'rgba(46, 148, 255, 0.08)' : 'rgba(46, 148, 255, 0.06)';
+  const tooltipBg = isDark ? 'rgba(10, 10, 10, 0.85)' : 'rgba(255, 255, 255, 0.95)';
+  const tooltipBorder = isDark ? 'rgba(46, 148, 255, 0.12)' : 'rgba(46, 148, 255, 0.2)';
+  const tooltipColor = isDark ? 'rgba(46, 148, 255, 0.9)' : '#2E94FF';
+  const panelBg = isDark ? 'rgba(10, 10, 10, 0.92)' : 'rgba(255, 255, 255, 0.95)';
+  const panelBorder = isDark ? 'rgba(46, 148, 255, 0.1)' : 'rgba(46, 148, 255, 0.15)';
+  const panelShadow = isDark
+    ? '0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(46, 148, 255, 0.04), inset 0 1px 0 rgba(255,255,255,0.03)'
+    : '0 20px 60px rgba(0, 0, 0, 0.1), 0 0 20px rgba(46, 148, 255, 0.04)';
+  const headerAccentBg = isDark ? 'rgba(46, 148, 255, 0.04)' : 'rgba(46, 148, 255, 0.03)';
+  const headerAccentBorder = isDark ? 'rgba(46, 148, 255, 0.1)' : 'rgba(46, 148, 255, 0.08)';
+  const iconCircleBg = isDark ? 'rgba(46, 148, 255, 0.08)' : 'rgba(46, 148, 255, 0.06)';
+  const iconCircleBorder = isDark ? 'rgba(46, 148, 255, 0.2)' : 'rgba(46, 148, 255, 0.15)';
+  const titleColor = isDark ? 'rgba(255, 255, 255, 0.85)' : 'rgba(0, 0, 0, 0.85)';
+  const btnColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.35)';
+  const btnHoverColor = isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)';
+  const btnHoverBg = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)';
+  const suggHintColor = isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.4)';
+  const suggBg = isDark ? 'rgba(46, 148, 255, 0.04)' : 'rgba(46, 148, 255, 0.04)';
+  const suggBorder = isDark ? 'rgba(46, 148, 255, 0.08)' : 'rgba(46, 148, 255, 0.12)';
+  const suggColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
+  const suggHoverBorder = isDark ? 'rgba(46, 148, 255, 0.25)' : 'rgba(46, 148, 255, 0.3)';
+  const userMsgBg = isDark ? 'rgba(46, 148, 255, 0.12)' : 'rgba(46, 148, 255, 0.08)';
+  const userMsgBorder = isDark ? 'rgba(46, 148, 255, 0.15)' : 'rgba(46, 148, 255, 0.12)';
+  const assistMsgBg = isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.03)';
+  const assistMsgBorder = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)';
+  const assistMsgColor = isDark ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.8)';
+  const inputAreaBorder = isDark ? 'rgba(46, 148, 255, 0.06)' : 'rgba(46, 148, 255, 0.06)';
+  const inputBoxBg = isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)';
+  const inputBoxBorder = isDark ? 'rgba(46, 148, 255, 0.08)' : 'rgba(46, 148, 255, 0.1)';
+  const inputColor = isDark ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.85)';
+  const submitBg = isDark ? 'rgba(46, 148, 255, 0.12)' : 'rgba(46, 148, 255, 0.08)';
+  const submitBorder = isDark ? 'rgba(46, 148, 255, 0.2)' : 'rgba(46, 148, 255, 0.15)';
+  const submitEmptyColor = isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)';
+  const hintColor = isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.25)';
+  const mentionDropBg = isDark ? 'rgba(15, 15, 15, 0.95)' : 'rgba(255, 255, 255, 0.98)';
+  const mentionDropBorder = isDark ? 'rgba(46, 148, 255, 0.1)' : 'rgba(46, 148, 255, 0.15)';
+  const mentionDropShadow = isDark ? '0 -4px 20px rgba(0, 0, 0, 0.4)' : '0 -4px 20px rgba(0, 0, 0, 0.08)';
+  const mentionActiveBg = isDark ? 'rgba(46, 148, 255, 0.08)' : 'rgba(46, 148, 255, 0.06)';
+  const mentionTextColor = isDark ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.85)';
+  const mentionEmailColor = isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.4)';
+  const mentionAvatarBg = isDark ? 'rgba(46, 148, 255, 0.12)' : 'rgba(46, 148, 255, 0.08)';
+  const mentionAvatarBorder = isDark ? 'rgba(46, 148, 255, 0.2)' : 'rgba(46, 148, 255, 0.15)';
 
   // Get storage key for localStorage
   const storageKey = persistHistory?.storageKey || 'gantt-ai-history';
@@ -495,33 +546,93 @@ export function GanttAIAssistant({
 
   return (
     <Portal>
-      {/* Floating AI Assistant Button */}
+      {/* Floating AI Assistant — Mini Chronos FAB */}
       <AnimatePresence>
         {!isOpen && (
           <motion.button
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0, opacity: 0 }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className={`fixed ${positionClasses[position]} z-[99999] flex items-center gap-2 px-4 py-3 rounded-full shadow-lg transition-colors`}
+            initial={{ scale: 0, opacity: 0, rotate: -180 }}
+            animate={{ scale: 1, opacity: 1, rotate: 0 }}
+            exit={{ scale: 0, opacity: 0, rotate: 180 }}
+            transition={{ type: 'spring', damping: 20, stiffness: 260 }}
+            whileHover={{ scale: 1.12 }}
+            whileTap={{ scale: 0.9 }}
+            className={`fixed ${positionClasses[position]} z-[99999] group`}
             style={{
-              background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)',
-              color: 'white',
-              boxShadow: '0 4px 20px rgba(59, 130, 246, 0.4)',
+              width: 44,
+              height: 44,
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: fabBg,
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+              border: `1px solid ${fabBorder}`,
+              color: '#2E94FF',
+              cursor: 'pointer',
+              boxShadow: fabShadow,
+              overflow: 'visible',
             }}
             onClick={() => setIsOpen(true)}
           >
-            <AIIcon />
-            <span className="text-sm font-medium">AI Assistant</span>
-            <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-mono rounded bg-white/20">
-              ⌘K
-            </kbd>
+            {/* Orbital ring animation */}
+            <span
+              style={{
+                position: 'absolute',
+                inset: -3,
+                borderRadius: '50%',
+                border: `1px solid ${ringBorderA}`,
+                animation: 'ai-fab-pulse 3s ease-in-out infinite',
+                pointerEvents: 'none',
+              }}
+            />
+            {/* Second orbital ring — offset phase */}
+            <span
+              style={{
+                position: 'absolute',
+                inset: -6,
+                borderRadius: '50%',
+                border: `1px solid ${ringBorderB}`,
+                animation: 'ai-fab-pulse 3s ease-in-out infinite 1.5s',
+                pointerEvents: 'none',
+              }}
+            />
+            <AIIcon size={18} />
+            {/* Tooltip on hover */}
+            <span
+              className="pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+              style={{
+                position: 'absolute',
+                right: '100%',
+                marginRight: 10,
+                whiteSpace: 'nowrap',
+                fontSize: 11,
+                fontWeight: 500,
+                fontFamily: "'JetBrains Mono', monospace",
+                letterSpacing: '0.05em',
+                textTransform: 'uppercase',
+                color: tooltipColor,
+                background: tooltipBg,
+                backdropFilter: 'blur(8px)',
+                padding: '4px 10px',
+                borderRadius: 6,
+                border: `1px solid ${tooltipBorder}`,
+              }}
+            >
+              AI · ⌘K
+            </span>
+            {/* Inject keyframes */}
+            <style>{`
+              @keyframes ai-fab-pulse {
+                0%, 100% { transform: scale(1); opacity: 0.4; }
+                50% { transform: scale(1.15); opacity: 0; }
+              }
+            `}</style>
           </motion.button>
         )}
       </AnimatePresence>
 
-      {/* Chat Panel */}
+      {/* Chat Panel — Chronos dark glass */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -535,34 +646,63 @@ export function GanttAIAssistant({
             }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className={`fixed ${positionClasses[position]} z-[99999] w-96 rounded-2xl overflow-hidden shadow-2xl flex flex-col`}
+            className={`fixed ${positionClasses[position]} z-[99999] w-96 rounded-2xl overflow-hidden flex flex-col`}
             style={{
-              background: theme.bgPrimary,
-              border: `1px solid ${theme.border}`,
-              boxShadow: `0 20px 60px rgba(0, 0, 0, 0.3), 0 0 0 1px ${theme.border}`,
+              background: panelBg,
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: `1px solid ${panelBorder}`,
+              boxShadow: panelShadow,
             }}
           >
-            {/* Header */}
+            {/* Header — glass with cyan accent line */}
             <div
               className="flex items-center justify-between px-4 py-3"
               style={{
-                background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)',
+                background: headerAccentBg,
+                borderBottom: `1px solid ${headerAccentBorder}`,
               }}
             >
-              <div className="flex items-center gap-2 text-white">
-                <AIIcon />
-                <span className="font-semibold">Gantt AI Assistant</span>
+              <div className="flex items-center gap-2.5">
+                <div
+                  style={{
+                    width: 28, height: 28, borderRadius: '50%',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: iconCircleBg,
+                    border: `1px solid ${iconCircleBorder}`,
+                    color: '#2E94FF',
+                  }}
+                >
+                  <AIIcon size={14} />
+                </div>
+                <span
+                  style={{
+                    fontSize: 12, fontWeight: 600,
+                    fontFamily: "'JetBrains Mono', monospace",
+                    letterSpacing: '0.06em',
+                    textTransform: 'uppercase',
+                    color: titleColor,
+                  }}
+                >
+                  AI Assistant
+                </span>
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-0.5">
                 <button
                   onClick={() => setIsMinimized((prev) => !prev)}
-                  className="p-1.5 rounded-lg hover:bg-white/20 text-white/80 hover:text-white transition-colors"
+                  className="p-1.5 rounded-lg transition-colors"
+                  style={{ color: btnColor }}
+                  onMouseEnter={e => { e.currentTarget.style.background = btnHoverBg; e.currentTarget.style.color = btnHoverColor; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = btnColor; }}
                 >
                   <MinimizeIcon />
                 </button>
                 <button
                   onClick={() => setIsOpen(false)}
-                  className="p-1.5 rounded-lg hover:bg-white/20 text-white/80 hover:text-white transition-colors"
+                  className="p-1.5 rounded-lg transition-colors"
+                  style={{ color: btnColor }}
+                  onMouseEnter={e => { e.currentTarget.style.background = btnHoverBg; e.currentTarget.style.color = btnHoverColor; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = btnColor; }}
                 >
                   <CloseIcon />
                 </button>
@@ -586,8 +726,8 @@ export function GanttAIAssistant({
                     {messages.length === 0 && showSuggestions && (
                       <div className="space-y-3">
                         <p
-                          className="text-sm text-center"
-                          style={{ color: theme.textSecondary }}
+                          className="text-xs text-center"
+                          style={{ color: suggHintColor, fontFamily: "'JetBrains Mono', monospace" }}
                         >
                           Try asking me to edit your Gantt chart:
                         </p>
@@ -596,12 +736,14 @@ export function GanttAIAssistant({
                             <button
                               key={index}
                               onClick={() => handleSuggestionClick(suggestion)}
-                              className="text-xs px-3 py-1.5 rounded-full transition-colors"
+                              className="text-xs px-3 py-1.5 rounded-full transition-all"
                               style={{
-                                background: theme.bgSecondary,
-                                color: theme.textSecondary,
-                                border: `1px solid ${theme.border}`,
+                                background: suggBg,
+                                color: suggColor,
+                                border: `1px solid ${suggBorder}`,
                               }}
+                              onMouseEnter={e => { e.currentTarget.style.borderColor = suggHoverBorder; e.currentTarget.style.color = '#2E94FF'; }}
+                              onMouseLeave={e => { e.currentTarget.style.borderColor = suggBorder; e.currentTarget.style.color = suggColor; }}
                             >
                               {suggestion.length > 30
                                 ? suggestion.slice(0, 30) + '...'
@@ -630,12 +772,15 @@ export function GanttAIAssistant({
                           style={{
                             background:
                               message.role === 'user'
-                                ? 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)'
-                                : theme.bgSecondary,
+                                ? userMsgBg
+                                : assistMsgBg,
                             color:
                               message.role === 'user'
-                                ? 'white'
-                                : theme.textPrimary,
+                                ? '#2E94FF'
+                                : assistMsgColor,
+                            border: message.role === 'user'
+                              ? `1px solid ${userMsgBorder}`
+                              : `1px solid ${assistMsgBorder}`,
                           }}
                         >
                           {message.isLoading ? (
@@ -652,11 +797,12 @@ export function GanttAIAssistant({
                               className="mt-2 text-xs px-2 py-1 rounded-md inline-flex items-center gap-1"
                               style={{
                                 background: message.command.success
-                                  ? 'rgba(16, 185, 129, 0.2)'
-                                  : 'rgba(239, 68, 68, 0.2)',
+                                  ? 'rgba(16, 185, 129, 0.15)'
+                                  : 'rgba(239, 68, 68, 0.15)',
                                 color: message.command.success
                                   ? '#10B981'
                                   : '#EF4444',
+                                border: `1px solid ${message.command.success ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`,
                               }}
                             >
                               {message.command.success ? '✓' : '✗'}
@@ -674,15 +820,14 @@ export function GanttAIAssistant({
                   {/* Input */}
                   <form
                     onSubmit={(e) => {
-                      // Don't submit if mention dropdown is open (Enter selects mention)
                       if (showMentionDropdown && filteredMentionUsers.length > 0) {
                         e.preventDefault();
                         return;
                       }
                       handleSubmit(e);
                     }}
-                    className="p-3 border-t relative"
-                    style={{ borderColor: theme.border }}
+                    className="p-3 relative"
+                    style={{ borderTop: `1px solid ${inputAreaBorder}` }}
                   >
                     {/* @Mention Autocomplete Dropdown */}
                     <AnimatePresence>
@@ -695,9 +840,10 @@ export function GanttAIAssistant({
                           transition={{ duration: 0.12 }}
                           className="absolute bottom-full left-3 right-3 mb-1 rounded-lg overflow-hidden z-10"
                           style={{
-                            background: theme.bgSecondary,
-                            border: `1px solid ${theme.border}`,
-                            boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.25)',
+                            background: mentionDropBg,
+                            border: `1px solid ${mentionDropBorder}`,
+                            boxShadow: mentionDropShadow,
+                            backdropFilter: 'blur(12px)',
                           }}
                         >
                           {filteredMentionUsers.map((user, idx) => (
@@ -708,18 +854,18 @@ export function GanttAIAssistant({
                               className="w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors"
                               style={{
                                 background: idx === mentionSelectedIndex
-                                  ? 'rgba(59, 130, 246, 0.15)'
+                                  ? mentionActiveBg
                                   : 'transparent',
-                                color: theme.textPrimary,
+                                color: mentionTextColor,
                               }}
                               onMouseEnter={() => setMentionSelectedIndex(idx)}
                             >
-                              {/* Avatar circle */}
                               <div
                                 className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
                                 style={{
-                                  background: 'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)',
-                                  color: 'white',
+                                  background: mentionAvatarBg,
+                                  border: `1px solid ${mentionAvatarBorder}`,
+                                  color: '#2E94FF',
                                 }}
                               >
                                 {user.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
@@ -727,7 +873,7 @@ export function GanttAIAssistant({
                               <div className="flex-1 min-w-0">
                                 <div className="text-sm font-medium truncate">{user.name}</div>
                                 {user.email && (
-                                  <div className="text-xs truncate" style={{ color: theme.textSecondary }}>
+                                  <div className="text-xs truncate" style={{ color: mentionEmailColor }}>
                                     {user.email}
                                   </div>
                                 )}
@@ -741,8 +887,8 @@ export function GanttAIAssistant({
                     <div
                       className="flex items-center gap-2 rounded-xl px-4 py-2"
                       style={{
-                        background: theme.bgSecondary,
-                        border: `1px solid ${theme.border}`,
+                        background: inputBoxBg,
+                        border: `1px solid ${inputBoxBorder}`,
                       }}
                     >
                       <input
@@ -751,23 +897,23 @@ export function GanttAIAssistant({
                         value={inputValue}
                         onChange={(e) => handleInputChange(e.target.value)}
                         onKeyDown={(e) => {
-                          // Let mention keyboard handler take priority
                           if (handleMentionKeyDown(e)) return;
                         }}
                         placeholder={placeholder}
                         disabled={isLoading}
                         className="flex-1 bg-transparent text-sm outline-none"
-                        style={{ color: theme.textPrimary }}
+                        style={{ color: inputColor, fontFamily: 'Inter, sans-serif' }}
                       />
                       <button
                         type="submit"
                         disabled={!inputValue.trim() || isLoading}
-                        className="p-2 rounded-lg transition-all disabled:opacity-50"
+                        className="p-2 rounded-lg transition-all disabled:opacity-30"
                         style={{
                           background: inputValue.trim()
-                            ? 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)'
+                            ? submitBg
                             : 'transparent',
-                          color: inputValue.trim() ? 'white' : theme.textSecondary,
+                          color: inputValue.trim() ? '#2E94FF' : submitEmptyColor,
+                          border: inputValue.trim() ? `1px solid ${submitBorder}` : '1px solid transparent',
                         }}
                       >
                         <SendIcon />
@@ -775,9 +921,9 @@ export function GanttAIAssistant({
                     </div>
                     <p
                       className="text-[10px] text-center mt-2"
-                      style={{ color: theme.textTertiary }}
+                      style={{ color: hintColor, fontFamily: "'JetBrains Mono', monospace" }}
                     >
-                      Press Enter to send • Esc to close
+                      Enter to send · Esc to close
                     </p>
                   </form>
                 </motion.div>

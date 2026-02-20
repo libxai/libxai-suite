@@ -515,7 +515,7 @@ export function TaskGrid({
                 <div
                   className="w-3 h-3 rounded-full border"
                   style={{
-                    backgroundColor: task.color || '#3B82F6',
+                    backgroundColor: task.color || '#2E94FF',
                     opacity: task.parentId ? 0.6 : 1, // Subtasks more transparent
                     borderColor: task.isMilestone ? theme.accent : 'transparent',
                     borderWidth: task.isMilestone ? '2px' : '0px',
@@ -798,8 +798,8 @@ export function TaskGrid({
                               className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] transition-colors"
                               style={{
                                 color: !d.isCurrentMonth ? theme.textTertiary : isSelected ? '#FFF' : theme.textPrimary,
-                                backgroundColor: isSelected ? '#3B82F6' : 'transparent',
-                                boxShadow: isToday && !isSelected ? 'inset 0 0 0 1px #3B82F6' : 'none',
+                                backgroundColor: isSelected ? '#2E94FF' : 'transparent',
+                                boxShadow: isToday && !isSelected ? 'inset 0 0 0 1px #2E94FF' : 'none',
                               }}
                               onClick={() => {
                                 onTaskUpdate?.(task.id, { [dateField]: d.date });

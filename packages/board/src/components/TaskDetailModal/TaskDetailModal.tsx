@@ -1179,8 +1179,8 @@ export function TaskDetailModal({
                                         "w-8 h-8 rounded-full flex items-center justify-center text-sm transition-colors",
                                         !d.isCurrentMonth && (isDark ? "text-[#4B5563]" : "text-gray-300"),
                                         d.isCurrentMonth && (isDark ? "text-white" : "text-gray-900"),
-                                        isToday && "ring-2 ring-[#3B82F6]",
-                                        isStartDate && "bg-[#3B82F6] text-white",
+                                        isToday && "ring-2 ring-[#2E94FF]",
+                                        isStartDate && "bg-[#2E94FF] text-white",
                                         isEndDate && !isStartDate && "bg-[#7C3AED] text-white",
                                         isInRange && !isSelected && (isDark ? "bg-[#7C3AED]/20" : "bg-purple-100"),
                                         !isSelected && (isDark ? "hover:bg-white/10" : "hover:bg-gray-100")
@@ -1311,7 +1311,7 @@ export function TaskDetailModal({
                           className={cn(
                             "flex-1 max-w-[120px] h-2 rounded-full appearance-none cursor-pointer",
                             isDark ? "bg-white/10" : "bg-gray-200",
-                            "[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#3B82F6] [&::-webkit-slider-thumb]:cursor-pointer"
+                            "[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#2E94FF] [&::-webkit-slider-thumb]:cursor-pointer"
                           )}
                           autoFocus
                         />
@@ -1326,7 +1326,7 @@ export function TaskDetailModal({
                           <div
                             className={cn(
                               "h-full rounded-full transition-all",
-                              selectedTask.progress === 100 ? "bg-green-500" : "bg-[#3B82F6]"
+                              selectedTask.progress === 100 ? "bg-green-500" : "bg-[#2E94FF]"
                             )}
                             style={{ width: `${selectedTask.progress || 0}%` }}
                           />

@@ -27,7 +27,7 @@ const TAG_COLORS = [
   '#14B8A6', // Teal
   '#06B6D4', // Cyan
   '#0EA5E9', // Sky
-  '#3B82F6', // Blue
+  '#2E94FF', // Blue
   '#6366F1', // Indigo
   '#8B5CF6', // Violet
   '#A855F7', // Purple
@@ -65,7 +65,7 @@ export function TagPicker({
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreating, setIsCreating] = useState(false);
-  const [newTagColor, setNewTagColor] = useState(TAG_COLORS[10] || '#3B82F6'); // Default blue
+  const [newTagColor, setNewTagColor] = useState(TAG_COLORS[10] || '#2E94FF'); // Default blue
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -139,7 +139,7 @@ export function TagPicker({
       if (newTag) {
         onChange([...selectedTags, newTag]);
         setSearchQuery('');
-        setNewTagColor(TAG_COLORS[Math.floor(Math.random() * TAG_COLORS.length)] || '#3B82F6');
+        setNewTagColor(TAG_COLORS[Math.floor(Math.random() * TAG_COLORS.length)] || '#2E94FF');
       }
     } finally {
       setIsCreating(false);
