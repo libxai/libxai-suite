@@ -69,6 +69,8 @@ export interface GanttTranslations {
     confidence: string;
     costAtCompletion: string;
     baselines: string;
+    visibility: string;
+    share: string;
   };
 
   // v0.16.0: Context menu labels (right-click menu)
@@ -235,6 +237,8 @@ export const en: GanttTranslations = {
     confidence: 'Confidence',
     costAtCompletion: 'Cost at Completion',
     baselines: 'Baselines',
+    visibility: 'Visibility',
+    share: 'Share',
   },
 
   // v0.16.0: Context menu labels (right-click menu)
@@ -395,6 +399,8 @@ export const es: GanttTranslations = {
     confidence: 'Confianza',
     costAtCompletion: 'Costo al Completar',
     baselines: 'Líneas Base',
+    visibility: 'Visibilidad',
+    share: 'Compartir',
   },
 
   // v0.16.0: Context menu labels (right-click menu)

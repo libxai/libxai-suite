@@ -8650,6 +8650,12 @@ body {
 }
 
 
+.mx-3 {
+  margin-left: 0.75rem;
+  margin-right: 0.75rem;
+}
+
+
 .mx-4 {
   margin-left: 1rem;
   margin-right: 1rem;
@@ -9107,6 +9113,11 @@ body {
 }
 
 
+.w-24 {
+  width: 6rem;
+}
+
+
 .w-28 {
   width: 7rem;
 }
@@ -9119,6 +9130,11 @@ body {
 
 .w-3\.5 {
   width: 0.875rem;
+}
+
+
+.w-32 {
+  width: 8rem;
 }
 
 
@@ -11239,6 +11255,11 @@ body {
 
 .tracking-\[0\.15em\] {
   letter-spacing: 0.15em;
+}
+
+
+.tracking-\[0\.1em\] {
+  letter-spacing: 0.1em;
 }
 
 

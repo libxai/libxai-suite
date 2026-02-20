@@ -3443,6 +3443,8 @@ interface GanttTranslations {
         confidence: string;
         costAtCompletion: string;
         baselines: string;
+        visibility: string;
+        share: string;
     };
     contextMenu: {
         editTask: string;

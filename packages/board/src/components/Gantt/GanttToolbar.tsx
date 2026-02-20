@@ -180,7 +180,7 @@ function ExportDropdown({ theme, onExportPNG, onExportPDF, onExportExcel, onExpo
       <motion.button
         ref={triggerRef}
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-all"
+        className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px] transition-all"
         style={{
           backgroundColor: isOpen ? theme.accent : theme.bgSecondary,
           border: `1px solid ${isOpen ? theme.accent : theme.borderLight}`,
@@ -212,14 +212,17 @@ function ExportDropdown({ theme, onExportPNG, onExportPDF, onExportExcel, onExpo
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.95 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="fixed w-48 rounded-lg overflow-hidden"
+            className="fixed w-44 rounded-xl overflow-hidden"
             style={{
               top: portalPos.top,
-              left: portalPos.left - 192, // w-48 = 12rem = 192px, right-aligned
+              left: portalPos.left - 176, // w-44 = 11rem = 176px, right-aligned
               zIndex: 99999,
-              backgroundColor: theme.bgSecondary,
-              border: `1px solid ${theme.border}`,
-              boxShadow: '0 10px 40px rgba(0, 0, 0, 0.25)',
+              backgroundColor: theme.bgPrimary === '#050505' ? 'rgba(10, 10, 10, 0.95)' : theme.bgSecondary,
+              border: `1px solid ${theme.bgPrimary === '#050505' ? 'rgba(255,255,255,0.08)' : theme.border}`,
+              boxShadow: theme.bgPrimary === '#050505'
+                ? '0 8px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.04)'
+                : '0 10px 40px rgba(0, 0, 0, 0.12)',
+              backdropFilter: 'blur(16px)',
             }}
           >
             <div className="py-1">
@@ -228,20 +231,21 @@ function ExportDropdown({ theme, onExportPNG, onExportPDF, onExportExcel, onExpo
                   key={option.id}
                   onClick={() => handleExport(option.id, option.handler)}
                   disabled={isExporting !== null}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 text-left transition-all"
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-left transition-all"
                   style={{
                     backgroundColor: 'transparent',
-                    borderBottom: index < exportOptions.length - 1 ? `1px solid ${theme.borderLight}` : 'none',
+                    borderBottom: index < exportOptions.length - 1 ? `1px solid ${theme.bgPrimary === '#050505' ? 'rgba(255,255,255,0.06)' : theme.borderLight}` : 'none',
+                    fontFamily: 'Inter, sans-serif',
                   }}
                   whileHover={{
-                    backgroundColor: theme.hoverBg,
+                    backgroundColor: theme.bgPrimary === '#050505' ? 'rgba(255,255,255,0.06)' : theme.hoverBg,
                   }}
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.03 }}
                 >
                   <div
-                    className="flex items-center justify-center w-8 h-8 rounded-md"
+                    className="flex items-center justify-center w-7 h-7 rounded-md"
                     style={{
                       backgroundColor: theme.accentLight,
                       color: theme.accent,
@@ -252,7 +256,7 @@ function ExportDropdown({ theme, onExportPNG, onExportPDF, onExportExcel, onExpo
                         animate={{ rotate: 360 }}
                         transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                       >
-                        <Download className="w-4 h-4" />
+                        <Download className="w-3.5 h-3.5" />
                       </motion.div>
                     ) : (
                       option.icon
@@ -260,13 +264,13 @@ function ExportDropdown({ theme, onExportPNG, onExportPDF, onExportExcel, onExpo
                   </div>
                   <div className="flex-1 min-w-0">
                     <div
-                      className="text-xs font-medium truncate"
+                      className="text-[11px] font-medium truncate"
                       style={{ color: theme.textPrimary }}
                     >
                       {option.label}
                     </div>
                     <div
-                      className="text-[10px] truncate"
+                      className="text-[9px] truncate"
                       style={{ color: theme.textTertiary }}
                     >
                       {option.description}
@@ -308,7 +312,7 @@ function SegmentedControl({ options, value, onChange, theme, layoutId = 'activeS
           <motion.button
             key={option.value}
             onClick={() => onChange(option.value)}
-            className="relative px-3 py-1.5 rounded-md text-xs transition-all flex items-center gap-1.5 min-w-[70px] justify-center"
+            className="relative px-3 py-1.5 rounded-md text-[11px] transition-all flex items-center gap-1.5 min-w-[70px] justify-center"
             style={{
               color: isActive ? theme.textPrimary : theme.textTertiary,
               fontFamily: 'Inter, sans-serif',
@@ -368,7 +372,7 @@ function MinimalTabs({ options, value, onChange, theme }: MinimalTabsProps) {
           <motion.button
             key={option.value}
             onClick={() => onChange(option.value)}
-            className="relative px-3 py-1.5 text-xs transition-all"
+            className="relative px-3 py-1.5 text-[11px] transition-all"
             style={{
               color: isActive ? theme.accent : theme.textTertiary,
               fontFamily: 'Inter, sans-serif',
@@ -469,14 +473,17 @@ function DensityDropdown({ theme, value, onChange }: DensityDropdownProps) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.95 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="fixed w-36 rounded-lg overflow-hidden"
+            className="fixed w-32 rounded-xl overflow-hidden"
             style={{
               top: portalPos.top,
               left: portalPos.left,
               zIndex: 99999,
-              backgroundColor: theme.bgSecondary,
-              border: `1px solid ${theme.border}`,
-              boxShadow: '0 10px 40px rgba(0, 0, 0, 0.25)',
+              backgroundColor: theme.bgPrimary === '#050505' ? 'rgba(10, 10, 10, 0.95)' : theme.bgSecondary,
+              border: `1px solid ${theme.bgPrimary === '#050505' ? 'rgba(255,255,255,0.08)' : theme.border}`,
+              boxShadow: theme.bgPrimary === '#050505'
+                ? '0 8px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.04)'
+                : '0 10px 40px rgba(0, 0, 0, 0.12)',
+              backdropFilter: 'blur(16px)',
             }}
           >
             <div className="py-1">
@@ -492,17 +499,17 @@ function DensityDropdown({ theme, value, onChange }: DensityDropdownProps) {
                     className="w-full flex items-center justify-between px-3 py-2 text-left transition-all"
                     style={{
                       backgroundColor: isActive ? theme.accentLight : 'transparent',
-                      borderBottom: index < densityOptions.length - 1 ? `1px solid ${theme.borderLight}` : 'none',
+                      borderBottom: index < densityOptions.length - 1 ? `1px solid ${theme.bgPrimary === '#050505' ? 'rgba(255,255,255,0.06)' : theme.borderLight}` : 'none',
                     }}
                     whileHover={{
-                      backgroundColor: isActive ? theme.accentLight : theme.hoverBg,
+                      backgroundColor: isActive ? theme.accentLight : (theme.bgPrimary === '#050505' ? 'rgba(255,255,255,0.06)' : theme.hoverBg),
                     }}
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.03 }}
                   >
                     <span
-                      className="text-xs"
+                      className="text-[11px]"
                       style={{
                         color: isActive ? theme.accent : theme.textPrimary,
                         fontFamily: 'Inter, sans-serif',
@@ -590,7 +597,7 @@ function WbsLevelDropdown({ theme, value, onChange, maxDepth }: WbsLevelDropdown
       >
         <Layers className="w-3.5 h-3.5" />
         <span
-          className="text-[10px] font-semibold"
+          className="text-[11px] font-medium"
           style={{ fontFamily: "'JetBrains Mono', monospace" }}
         >
           {currentLabel}
@@ -606,14 +613,17 @@ function WbsLevelDropdown({ theme, value, onChange, maxDepth }: WbsLevelDropdown
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.95 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="fixed w-28 rounded-lg overflow-hidden"
+            className="fixed w-24 rounded-xl overflow-hidden"
             style={{
               top: portalPos.top,
               left: portalPos.left,
               zIndex: 99999,
-              backgroundColor: theme.bgSecondary,
-              border: `1px solid ${theme.border}`,
-              boxShadow: '0 10px 40px rgba(0, 0, 0, 0.25)',
+              backgroundColor: theme.bgPrimary === '#050505' ? 'rgba(10, 10, 10, 0.95)' : theme.bgSecondary,
+              border: `1px solid ${theme.bgPrimary === '#050505' ? 'rgba(255,255,255,0.08)' : theme.border}`,
+              boxShadow: theme.bgPrimary === '#050505'
+                ? '0 8px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.04)'
+                : '0 10px 40px rgba(0, 0, 0, 0.12)',
+              backdropFilter: 'blur(16px)',
             }}
           >
             <div className="py-1">
@@ -629,17 +639,17 @@ function WbsLevelDropdown({ theme, value, onChange, maxDepth }: WbsLevelDropdown
                     className="w-full flex items-center justify-between px-3 py-2 text-left transition-all"
                     style={{
                       backgroundColor: isActive ? theme.accentLight : 'transparent',
-                      borderBottom: index < options.length - 1 ? `1px solid ${theme.borderLight}` : 'none',
+                      borderBottom: index < options.length - 1 ? `1px solid ${theme.bgPrimary === '#050505' ? 'rgba(255,255,255,0.06)' : theme.borderLight}` : 'none',
                     }}
                     whileHover={{
-                      backgroundColor: isActive ? theme.accentLight : theme.hoverBg,
+                      backgroundColor: isActive ? theme.accentLight : (theme.bgPrimary === '#050505' ? 'rgba(255,255,255,0.06)' : theme.hoverBg),
                     }}
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.03 }}
                   >
                     <span
-                      className="text-xs"
+                      className="text-[11px]"
                       style={{
                         color: isActive ? theme.accent : theme.textPrimary,
                         fontFamily: "'JetBrains Mono', monospace",
@@ -724,25 +734,25 @@ function FilterDropdown({ theme, value, onChange, hideCompleted = false, onHideC
     {
       value: 'all',
       label: t.toolbar.filterAll || 'Show All',
-      icon: <div className="w-4 h-4 rounded-full border-2 border-[#2E94FF] bg-[#2E94FF]" />,
+      icon: <div className="w-3.5 h-3.5 rounded-full border-2 border-[#2E94FF] bg-[#2E94FF]" />,
       color: 'text-[#2E94FF]'
     },
     {
       value: 'completed',
       label: t.toolbar.filterCompleted || 'Completed',
-      icon: <CheckCircle2 className="w-4 h-4" />,
+      icon: <CheckCircle2 className="w-3.5 h-3.5" />,
       color: 'text-green-500'
     },
     {
       value: 'in_progress',
       label: t.toolbar.filterInProgress || 'In Progress',
-      icon: <PlayCircle className="w-4 h-4" />,
+      icon: <PlayCircle className="w-3.5 h-3.5" />,
       color: 'text-blue-500'
     },
     {
       value: 'incomplete',
       label: t.toolbar.toDo || 'To Do / Pending',
-      icon: <Circle className="w-4 h-4" />,
+      icon: <Circle className="w-3.5 h-3.5" />,
       color: 'text-gray-400'
     },
   ];
@@ -759,7 +769,7 @@ function FilterDropdown({ theme, value, onChange, hideCompleted = false, onHideC
           e.stopPropagation();
           setIsOpen(prev => !prev);
         }}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-all"
+        className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px] transition-all"
         style={{
           backgroundColor: hasActiveFilter
             ? (isDark ? 'rgba(59, 130, 246, 0.2)' : 'rgb(239 246 255)')
@@ -799,31 +809,37 @@ function FilterDropdown({ theme, value, onChange, hideCompleted = false, onHideC
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.95 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="fixed w-72 rounded-lg overflow-hidden"
+            className="fixed w-56 rounded-xl overflow-hidden"
             style={{
               top: portalPos.top,
               left: portalPos.left,
               zIndex: 99999,
-              backgroundColor: isDark ? '#050505' : '#FFFFFF',
+              backgroundColor: isDark ? 'rgba(10, 10, 10, 0.95)' : '#FFFFFF',
               border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgb(229 231 235)'}`,
-              boxShadow: '0 10px 40px rgba(0, 0, 0, 0.25)',
+              boxShadow: isDark
+                ? '0 8px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.04)'
+                : '0 10px 40px rgba(0, 0, 0, 0.12)',
+              backdropFilter: 'blur(16px)',
             }}
           >
             {/* Header */}
             <div
-              className="px-4 py-3 border-b"
-              style={{ borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgb(229 231 235)' }}
+              className="px-3 py-2 border-b"
+              style={{ borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgb(229 231 235)' }}
             >
               <span
-                className="text-xs font-medium uppercase tracking-wider"
-                style={{ color: isDark ? '#6B7280' : '#9CA3AF' }}
+                className="text-[10px] font-medium uppercase tracking-[0.1em]"
+                style={{
+                  color: isDark ? 'rgba(255,255,255,0.35)' : '#9CA3AF',
+                  fontFamily: 'Inter, sans-serif',
+                }}
               >
                 {t.toolbar.filterBy || 'FILTER BY STATUS'}
               </span>
             </div>
 
             {/* Status Options */}
-            <div className="py-2">
+            <div className="py-1">
               {filterOptions.map((option) => {
                 // Don't show checkmark on status options when hideCompleted is active
                 const isSelected = value === option.value && !hideCompleted;
@@ -832,8 +848,8 @@ function FilterDropdown({ theme, value, onChange, hideCompleted = false, onHideC
                 const getIcon = () => {
                   if (option.value === 'all') {
                     return isSelected
-                      ? <div className="w-4 h-4 rounded-full border-2 border-[#2E94FF] bg-[#2E94FF]" />
-                      : <div className="w-4 h-4 rounded-full border-2 border-gray-400" />;
+                      ? <div className="w-3.5 h-3.5 rounded-full border-2 border-[#2E94FF] bg-[#2E94FF]" />
+                      : <div className="w-3.5 h-3.5 rounded-full border-2 border-gray-400" />;
                   }
                   return option.icon;
                 };
@@ -850,29 +866,30 @@ function FilterDropdown({ theme, value, onChange, hideCompleted = false, onHideC
                       // Close dropdown after selection
                       setIsOpen(false);
                     }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors"
+                    className="w-full flex items-center gap-2.5 px-3 py-2 text-[11px] transition-colors"
                     style={{
                       backgroundColor: isSelected
                         ? (isDark ? 'rgba(255,255,255,0.05)' : 'rgb(249 250 251)')
                         : 'transparent',
+                      fontFamily: 'Inter, sans-serif',
                     }}
                     whileHover={{
-                      backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgb(243 244 246)',
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgb(243 244 246)',
                     }}
                   >
                     <span className={`${isSelected ? option.color : 'text-gray-400'} flex-shrink-0`}>
                       {getIcon()}
                     </span>
                     <span
-                      className="flex-1 text-left whitespace-nowrap"
-                      style={{ color: isDark ? '#FFFFFF' : '#111827' }}
+                      className="flex-1 text-left whitespace-nowrap font-medium"
+                      style={{ color: isDark ? 'rgba(255,255,255,0.85)' : '#111827' }}
                     >
                       {option.label}
                     </span>
                     {isSelected && (
                       <Check
-                        className="w-4 h-4 flex-shrink-0"
-                        style={{ color: isDark ? '#2E94FF' : '#2E94FF' }}
+                        className="w-3.5 h-3.5 flex-shrink-0"
+                        style={{ color: '#2E94FF' }}
                       />
                     )}
                   </motion.button>
@@ -882,8 +899,8 @@ function FilterDropdown({ theme, value, onChange, hideCompleted = false, onHideC
 
             {/* Separator */}
             <div
-              className="my-2 mx-4 h-px"
-              style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgb(229 231 235)' }}
+              className="mx-3 h-px"
+              style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgb(229 231 235)' }}
             />
 
             {/* Hide Completed Toggle */}
@@ -899,34 +916,35 @@ function FilterDropdown({ theme, value, onChange, hideCompleted = false, onHideC
                     // Close dropdown after selection
                     setIsOpen(false);
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors"
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-[11px] transition-colors"
                   style={{
                     backgroundColor: hideCompleted
                       ? (isDark ? 'rgba(255,255,255,0.05)' : 'rgb(249 250 251)')
                       : 'transparent',
+                    fontFamily: 'Inter, sans-serif',
                   }}
                   whileHover={{
-                    backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgb(243 244 246)',
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgb(243 244 246)',
                   }}
                 >
                   <EyeOff
-                    className="w-4 h-4 flex-shrink-0"
+                    className="w-3.5 h-3.5 flex-shrink-0"
                     style={{
                       color: hideCompleted
-                        ? (isDark ? '#2E94FF' : '#2E94FF')
-                        : (isDark ? '#6B7280' : '#9CA3AF')
+                        ? '#2E94FF'
+                        : (isDark ? 'rgba(255,255,255,0.35)' : '#9CA3AF')
                     }}
                   />
                   <span
-                    className="flex-1 text-left whitespace-nowrap"
-                    style={{ color: isDark ? '#FFFFFF' : '#111827' }}
+                    className="flex-1 text-left whitespace-nowrap font-medium"
+                    style={{ color: isDark ? 'rgba(255,255,255,0.85)' : '#111827' }}
                   >
                     {t.toolbar.hideCompleted || 'Hide Completed Tasks'}
                   </span>
                   {hideCompleted && (
                     <Check
-                      className="w-4 h-4 flex-shrink-0"
-                      style={{ color: isDark ? '#2E94FF' : '#2E94FF' }}
+                      className="w-3.5 h-3.5 flex-shrink-0"
+                      style={{ color: '#2E94FF' }}
                     />
                   )}
                 </motion.button>
@@ -970,7 +988,7 @@ function TimeCapsule({ value, onChange, theme }: { value: TimeScale; onChange: (
             className="relative px-3 py-1 text-[11px] font-medium rounded-full transition-colors"
             style={{
               color: isActive ? (isDark ? '#FFFFFF' : theme.textPrimary) : theme.textTertiary,
-              fontFamily: "'JetBrains Mono', monospace",
+              fontFamily: 'Inter, sans-serif',
               backgroundColor: isActive ? (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)') : 'transparent',
             }}
             whileHover={{ color: isDark ? '#FFFFFF' : theme.textPrimary }}
@@ -1189,7 +1207,7 @@ export function GanttToolbar({
                   ref={searchInputRef}
                   type="text"
                   placeholder="Search tasks..."
-                  className="bg-transparent border-none outline-none text-xs pr-3 w-full"
+                  className="bg-transparent border-none outline-none text-[11px] pr-3 w-full"
                   style={{
                     color: theme.textPrimary,
                     fontFamily: 'Inter, sans-serif',
@@ -1250,7 +1268,7 @@ export function GanttToolbar({
           {showCreateTaskButton && onCreateTask && (
             <motion.button
               onClick={onCreateTask}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px]"
               style={{
                 background: `linear-gradient(135deg, ${theme.accent} 0%, ${theme.accentHover} 100%)`,
                 color: '#FFFFFF',
@@ -1314,7 +1332,7 @@ export function GanttToolbar({
               className="flex items-center justify-center w-8 h-8 rounded-lg"
               style={{ color: theme.textTertiary, backgroundColor: 'transparent' }}
               whileHover={{ color: theme.textPrimary, backgroundColor: iconHoverBg }}
-              title="Visibility"
+              title={t.toolbar.visibility}
             >
               <Eye className="w-4 h-4" />
             </motion.button>
@@ -1324,7 +1342,7 @@ export function GanttToolbar({
               className="flex items-center justify-center w-8 h-8 rounded-lg"
               style={{ color: theme.textTertiary, backgroundColor: 'transparent' }}
               whileHover={{ color: theme.textPrimary, backgroundColor: iconHoverBg }}
-              title="Share"
+              title={t.toolbar.share}
             >
               <Share2 className="w-4 h-4" />
             </motion.button>
@@ -1413,10 +1431,10 @@ export function GanttToolbar({
           </motion.button>
 
           <div
-            className="px-2 py-0.5 rounded text-xs tabular-nums min-w-[42px] text-center"
+            className="px-2 py-0.5 rounded text-[11px] tabular-nums min-w-[42px] text-center"
             style={{
               color: theme.textSecondary,
-              fontFamily: 'Inter, sans-serif',
+              fontFamily: "'JetBrains Mono', monospace",
               fontWeight: 500,
             }}
           >
@@ -1498,7 +1516,7 @@ export function GanttToolbar({
           <>
             <motion.button
               onClick={onCreateTask}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-all"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px] transition-all"
               style={{
                 background: 'linear-gradient(135deg, #2E94FF 0%, #2E94FF 100%)',
                 color: '#FFFFFF',
