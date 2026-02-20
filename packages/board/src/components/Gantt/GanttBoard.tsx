@@ -19,7 +19,7 @@ import { mergeTranslations, GanttTranslations } from './i18n'; // v0.15.0: i18n
 import { GanttBoardRef } from './GanttBoardRef';
 import { ganttUtils } from './ganttUtils';
 import { mergeTemplates } from './defaultTemplates';
-import html2canvas from 'html2canvas';
+import { toPng } from 'html-to-image';
 import {
   indentTasks,
   outdentTasks,
@@ -909,7 +909,9 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       }
 
       const ganttContainer = ganttContainerRef.current;
-      const gridScroll = gridScrollRef.current.querySelector('.gantt-grid-scroll') as HTMLElement;
+      const gridWrapper = gridScrollRef.current;
+      const gridScroll = (gridScrollInnerRef.current ||
+        gridWrapper.querySelector('.gantt-grid-scroll')) as HTMLElement | null;
       const timelineScroll = timelineScrollRef.current;
 
       // Store original state
@@ -917,47 +919,46 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       const originalTimelineScrollTop = timelineScroll.scrollTop;
       const originalOverflow = ganttContainer.style.overflow;
       const originalHeight = ganttContainer.style.height;
+      const originalWrapperOverflow = gridWrapper.style.overflow;
 
       try {
         // Calculate full content dimensions
-        const taskGridContent = gridScroll?.querySelector('.gantt-taskgrid-content') as HTMLElement;
-        const timelineSvg = timelineScroll.querySelector('svg') as SVGElement;
+        const taskGridContent = gridScroll?.querySelector('.gantt-taskgrid-content') as HTMLElement | null;
+        const timelineSvg = timelineScroll.querySelector('svg') as SVGElement | null;
         const gridContentHeight = taskGridContent?.scrollHeight || gridScroll?.scrollHeight || 600;
         const timelineContentHeight = timelineSvg?.getBoundingClientRect().height || timelineScroll.scrollHeight;
-        const toolbar = ganttContainer.querySelector('[class*="h-12"]') as HTMLElement;
+        const toolbar = ganttContainer.querySelector('[style*="z-index: 100"]') as HTMLElement | null;
         const toolbarHeight = toolbar?.offsetHeight || 48;
         const totalHeight = toolbarHeight + Math.max(gridContentHeight, timelineContentHeight) + 20;
 
-        // Reset scroll and expand
+        // Reset scroll and expand; remove overflow:clip from wrapper
         if (gridScroll) gridScroll.scrollTop = 0;
         timelineScroll.scrollTop = 0;
         ganttContainer.style.overflow = 'visible';
         ganttContainer.style.height = `${totalHeight}px`;
+        gridWrapper.style.overflow = 'visible';
 
         await new Promise(resolve => setTimeout(resolve, 100));
 
-        const canvas = await html2canvas(ganttContainer, {
+        const dataUrl = await toPng(ganttContainer, {
           backgroundColor: theme.bgPrimary,
-          scale: 2,
-          logging: false,
-          useCORS: true,
-          ignoreElements: (element) => {
-            const style = window.getComputedStyle(element);
+          pixelRatio: 2,
+          filter: (node) => {
+            if (!(node instanceof Element)) return true;
+            const style = window.getComputedStyle(node);
             const zIndex = parseInt(style.zIndex, 10);
-            return (!isNaN(zIndex) && zIndex >= 50) || style.position === 'fixed';
+            return (isNaN(zIndex) || zIndex < 50) && style.position !== 'fixed';
           },
         });
 
-        return new Promise<Blob>((resolve, reject) => {
-          canvas.toBlob((blob) => {
-            if (blob) resolve(blob);
-            else reject(new Error('Failed to create blob from canvas'));
-          }, 'image/png');
-        });
+        // Convert dataUrl to Blob
+        const res = await fetch(dataUrl);
+        return await res.blob();
       } finally {
         // Restore original state
         ganttContainer.style.overflow = originalOverflow;
         ganttContainer.style.height = originalHeight;
+        gridWrapper.style.overflow = originalWrapperOverflow;
         if (gridScroll) gridScroll.scrollTop = originalGridScrollTop;
         timelineScroll.scrollTop = originalTimelineScrollTop;
       }
@@ -1473,7 +1474,10 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     await new Promise(resolve => setTimeout(resolve, 200));
 
     const ganttContainer = ganttContainerRef.current;
-    const gridScroll = gridScrollRef.current.querySelector('.gantt-grid-scroll') as HTMLElement;
+    // gridScrollRef points to the flex wrapper (overflow:clip); gridScrollInner is the actual scrollable panel
+    const gridWrapper = gridScrollRef.current;
+    const gridScroll = (gridScrollInnerRef.current ||
+      gridWrapper.querySelector('.gantt-grid-scroll')) as HTMLElement | null;
     const timelineScroll = timelineScrollRef.current;
 
     // Store original scroll positions and dimensions
@@ -1485,6 +1489,8 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     const originalHeight = ganttContainer.style.height;
     const originalGridOverflow = gridScroll?.style.overflow || '';
     const originalTimelineOverflow = timelineScroll.style.overflow;
+    // Fix: also save/restore the wrapper's overflow:clip so content isn't clipped during capture
+    const originalWrapperOverflow = gridWrapper.style.overflow;
 
     // Store original dimensions for restoration
     const originalContainerWidth = ganttContainer.style.width;
@@ -1492,8 +1498,8 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
 
     try {
       // Calculate full content dimensions
-      const taskGridContent = gridScroll?.querySelector('.gantt-taskgrid-content') as HTMLElement;
-      const timelineSvg = timelineScroll.querySelector('svg') as SVGElement;
+      const taskGridContent = gridScroll?.querySelector('.gantt-taskgrid-content') as HTMLElement | null;
+      const timelineSvg = timelineScroll.querySelector('svg') as SVGElement | null;
 
       // v0.17.226: Get height from SVG attribute for accurate full height
       const svgHeight = timelineSvg?.getAttribute('height')
@@ -1509,7 +1515,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         : timelineSvg?.getBoundingClientRect().width || timelineScroll.scrollWidth;
 
       // Get toolbar height (to include it)
-      const toolbar = ganttContainer.querySelector('[class*="h-12"]') as HTMLElement;
+      const toolbar = ganttContainer.querySelector('[style*="z-index: 100"]') as HTMLElement | null;
       const toolbarHeight = toolbar?.offsetHeight || 48;
 
       // v0.17.226: Calculate total height with extra padding to ensure all content is captured
@@ -1517,7 +1523,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       const totalHeight = toolbarHeight + contentHeight + 50; // +50 extra padding for safety
 
       // v0.17.225: Calculate total width = grid width + timeline SVG full width + separator
-      const gridWidth = gridScroll?.offsetWidth || 300;
+      const gridWidth = gridScroll?.offsetWidth || gridWrapper.offsetWidth || 300;
       const totalWidth = gridWidth + timelineSvgWidth + 10; // +10 for separator and padding
 
       // Reset scroll positions to capture from the beginning
@@ -1528,10 +1534,12 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       timelineScroll.scrollTop = 0;
       timelineScroll.scrollLeft = 0;
 
-      // Temporarily expand container to show all content
+      // Temporarily expand containers to show all content
+      // Fix: remove overflow:clip from wrapper so html2canvas can see the full content
       ganttContainer.style.overflow = 'visible';
       ganttContainer.style.height = `${totalHeight}px`;
       ganttContainer.style.width = `${totalWidth}px`;
+      gridWrapper.style.overflow = 'visible';
       if (gridScroll) {
         gridScroll.style.overflow = 'visible';
         gridScroll.style.height = `${contentHeight + 50}px`;
@@ -1543,39 +1551,27 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       // Wait for DOM to update
       await new Promise(resolve => setTimeout(resolve, 150));
 
-      // Capture with html2canvas
-      const canvas = await html2canvas(ganttContainer, {
+      // Capture with html-to-image (handles SVGs correctly unlike html2canvas)
+      const dataUrl = await toPng(ganttContainer, {
         backgroundColor: theme.bgPrimary,
-        scale: 2,
-        logging: false,
-        useCORS: true,
-        allowTaint: true,
+        pixelRatio: 2,
         width: totalWidth,
         height: totalHeight,
-        windowWidth: totalWidth + 100,
-        windowHeight: totalHeight + 100,
-        scrollX: 0,
-        scrollY: 0,
-        // Ignore dropdown menus and modals
-        ignoreElements: (element) => {
-          // Ignore elements with z-index >= 50 (dropdowns, modals)
-          const style = window.getComputedStyle(element);
+        skipFonts: false,
+        filter: (node) => {
+          if (!(node instanceof Element)) return true;
+          const style = window.getComputedStyle(node);
           const zIndex = parseInt(style.zIndex, 10);
-          if (!isNaN(zIndex) && zIndex >= 50) {
-            return true;
-          }
-          // Ignore elements with position fixed (modals, overlays)
-          if (style.position === 'fixed') {
-            return true;
-          }
-          return false;
+          if (!isNaN(zIndex) && zIndex >= 50) return false;
+          if (style.position === 'fixed') return false;
+          return true;
         },
       });
 
       // Create download link
       const link = document.createElement('a');
       link.download = `gantt-chart-${new Date().toISOString().slice(0, 10)}.png`;
-      link.href = canvas.toDataURL('image/png');
+      link.href = dataUrl;
       link.click();
 
     } finally {
@@ -1583,6 +1579,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       ganttContainer.style.overflow = originalOverflow;
       ganttContainer.style.height = originalHeight;
       ganttContainer.style.width = originalContainerWidth;
+      gridWrapper.style.overflow = originalWrapperOverflow;
       if (gridScroll) {
         gridScroll.style.overflow = originalGridOverflow;
         gridScroll.style.height = '';
