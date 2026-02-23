@@ -510,19 +510,8 @@ export function TaskGrid({
                 )}
               </button>
             ) : (
-              /* v0.17.183: Color dot in same position as chevron for perfect alignment */
-              <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
-                <div
-                  className="w-3 h-3 rounded-full border"
-                  style={{
-                    backgroundColor: task.color || '#2E94FF',
-                    opacity: task.parentId ? 0.6 : 1, // Subtasks more transparent
-                    borderColor: task.isMilestone ? theme.accent : 'transparent',
-                    borderWidth: task.isMilestone ? '2px' : '0px',
-                  }}
-                  title={task.isMilestone ? 'Milestone' : task.parentId ? 'Subtask' : 'Task'}
-                />
-              </div>
+              /* v2.2.0: Removed color dot — spacer keeps alignment with chevron */
+              <div className="w-5 h-5 flex-shrink-0" />
             )}
 
             {/* Task Name or Input */}
