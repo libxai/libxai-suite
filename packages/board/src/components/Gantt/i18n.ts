@@ -230,7 +230,7 @@ export const en: GanttTranslations = {
     wbsAllLevels: 'All',
     // v3.1.0: Chronos view modes & forecast
     viewExecution: 'Execution',
-    viewOracle: 'Oracle View',
+    viewOracle: 'Pulse View',
     simulateScenario: 'Simulate Scenario',
     projectForecast: 'PROJECT FORECAST',
     expectedFinish: 'Expected Finish',
@@ -392,7 +392,7 @@ export const es: GanttTranslations = {
     wbsAllLevels: 'Todos',
     // v3.1.0: Chronos view modes & forecast
     viewExecution: 'Ejecución',
-    viewOracle: 'Vista Oracle',
+    viewOracle: 'Vista Pulse',
     simulateScenario: 'Simular Escenario',
     projectForecast: 'PRONÓSTICO DEL PROYECTO',
     expectedFinish: 'Fin Estimado',

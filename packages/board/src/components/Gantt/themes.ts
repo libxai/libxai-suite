@@ -112,7 +112,7 @@ export const themes: Record<string, GanttTheme> = {
     glassToolbar: 'rgba(255, 255, 255, 0.85)',
     forecastHud: 'rgba(248, 250, 252, 0.95)',
     neonRedGlow: '0 0 10px rgba(220, 38, 38, 0.3)',
-    executionBarBg: 'rgba(37, 99, 235, 0.15)',
+    executionBarBg: 'rgba(37, 99, 235, 0.28)',
   },
 
   neutral: {
@@ -170,6 +170,6 @@ export const themes: Record<string, GanttTheme> = {
     glassToolbar: 'rgba(250, 250, 249, 0.85)',
     forecastHud: 'rgba(245, 245, 244, 0.95)',
     neonRedGlow: '0 0 10px rgba(68, 64, 60, 0.3)',
-    executionBarBg: 'rgba(41, 37, 36, 0.15)',
+    executionBarBg: 'rgba(41, 37, 36, 0.25)',
   },
 };
