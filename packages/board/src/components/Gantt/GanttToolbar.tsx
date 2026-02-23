@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { ZoomIn, ZoomOut, Sun, Moon, Palette, Download, FileImage, FileSpreadsheet, FileText, FileJson, ChevronDown, FolderKanban, Plus, Rows3, Check, Filter, CheckCircle2, PlayCircle, Circle, EyeOff, Search, Eye, Share2, Sparkles, Layers } from 'lucide-react';
-import { TimeScale, Theme, RowDensity, TaskFilterType } from './types';
+import { TimeScale, Theme, RowDensity, TaskFilterType, ProjectForecast } from './types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGanttI18n } from './GanttI18nContext'; // v0.15.0: i18n
 
@@ -68,6 +68,8 @@ interface GanttToolbarProps {
   // v3.0.0: Execution/Oracle view mode toggle
   viewMode?: 'execution' | 'oracle';
   onViewModeChange?: (mode: 'execution' | 'oracle') => void;
+  // v3.1.0: Forecast HUD data
+  projectForecast?: ProjectForecast;
   // Export handlers
   onExportPNG?: () => Promise<void>;
   onExportPDF?: () => Promise<void>;
@@ -1003,11 +1005,58 @@ function TimeCapsule({ value, onChange, theme }: { value: TimeScale; onChange: (
 }
 
 /**
- * Chronos V2: Forecast HUD Panel — placeholder KPIs bar
+ * Chronos V2: Forecast HUD Panel — real KPIs bar (v3.1.0)
  */
-function ForecastHUD({ theme }: { theme: any }) {
+function ForecastHUD({ theme, forecast }: { theme: any; forecast?: ProjectForecast }) {
   const t = useGanttI18n();
   const isDark = theme.bgPrimary === '#050505' || theme.textPrimary === '#FFFFFF';
+
+  // Format expected finish date
+  const finishLabel = forecast?.expectedFinish
+    ? forecast.expectedFinish.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+    : '—';
+
+  // Delay badge
+  const delay = forecast?.delayDays;
+  const hasDelay = delay != null && delay !== 0;
+  const delayLabel = delay != null
+    ? (delay > 0 ? `+${delay}d Delay` : delay < 0 ? `${delay}d Early` : 'On Time')
+    : null;
+  const delayColor = delay != null && delay > 0
+    ? { bg: isDark ? 'rgba(239,68,68,0.15)' : 'rgba(220,38,38,0.1)', text: isDark ? '#EF4444' : '#DC2626' }
+    : delay != null && delay < 0
+      ? { bg: isDark ? 'rgba(34,197,94,0.15)' : 'rgba(22,163,74,0.1)', text: isDark ? '#22C55E' : '#16A34A' }
+      : { bg: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)', text: theme.textTertiary };
+
+  // Confidence color
+  const conf = forecast?.confidencePercent;
+  const confColor = conf != null
+    ? conf >= 75 ? '#22C55E' : conf >= 40 ? '#F59E0B' : '#EF4444'
+    : theme.textTertiary;
+
+  // Format cost
+  const cost = forecast?.costAtCompletion;
+  const currency = forecast?.currency || '$';
+  const costLabel = cost != null
+    ? cost >= 1_000_000
+      ? `${currency}${(cost / 1_000_000).toFixed(2)}M`
+      : cost >= 1_000
+        ? `${currency}${(cost / 1_000).toFixed(1)}K`
+        : `${currency}${cost.toFixed(0)}`
+    : '—';
+
+  // Budget variance badge
+  const variance = forecast?.budgetVariancePercent;
+  const hasVariance = variance != null && variance !== 0;
+  const varianceLabel = variance != null
+    ? (variance > 0 ? `+${variance.toFixed(0)}% Over` : `${variance.toFixed(0)}% Under`)
+    : null;
+  const varianceColor = variance != null && variance > 0
+    ? { bg: isDark ? 'rgba(239,68,68,0.15)' : 'rgba(220,38,38,0.1)', text: isDark ? '#EF4444' : '#DC2626' }
+    : variance != null && variance < 0
+      ? { bg: isDark ? 'rgba(34,197,94,0.15)' : 'rgba(22,163,74,0.1)', text: isDark ? '#22C55E' : '#16A34A' }
+      : { bg: 'transparent', text: theme.textTertiary };
+
   return (
     <div
       className="h-12 px-4 flex items-center justify-between border-b"
@@ -1035,18 +1084,20 @@ function ForecastHUD({ theme }: { theme: any }) {
             className="text-[13px] font-semibold"
             style={{ color: theme.textPrimary, fontFamily: 'Inter, sans-serif' }}
           >
-            {t.toolbar.expectedFinish}: Nov 28
+            {t.toolbar.expectedFinish}: {finishLabel}
           </span>
-          <span
-            className="px-1.5 py-0.5 rounded text-[10px] font-medium"
-            style={{
-              backgroundColor: isDark ? 'rgba(239,68,68,0.15)' : 'rgba(220,38,38,0.1)',
-              color: isDark ? '#EF4444' : '#DC2626',
-              fontFamily: "'JetBrains Mono', monospace",
-            }}
-          >
-            +12d Delay
-          </span>
+          {hasDelay && delayLabel && (
+            <span
+              className="px-1.5 py-0.5 rounded text-[10px] font-medium"
+              style={{
+                backgroundColor: delayColor.bg,
+                color: delayColor.text,
+                fontFamily: "'JetBrains Mono', monospace",
+              }}
+            >
+              {delayLabel}
+            </span>
+          )}
         </div>
       </div>
 
@@ -1062,11 +1113,11 @@ function ForecastHUD({ theme }: { theme: any }) {
           <span
             className="text-[13px] font-semibold"
             style={{
-              color: '#F59E0B',
+              color: confColor,
               fontFamily: "'JetBrains Mono', monospace",
             }}
           >
-            62%
+            {conf != null ? `${conf.toFixed(0)}%` : '—'}
           </span>
         </div>
 
@@ -1086,18 +1137,20 @@ function ForecastHUD({ theme }: { theme: any }) {
             className="text-[13px] font-bold"
             style={{ color: theme.textPrimary, fontFamily: "'JetBrains Mono', monospace" }}
           >
-            $1.42M
+            {costLabel}
           </span>
-          <span
-            className="px-1.5 py-0.5 rounded text-[10px] font-medium"
-            style={{
-              backgroundColor: isDark ? 'rgba(239,68,68,0.15)' : 'rgba(220,38,38,0.1)',
-              color: isDark ? '#EF4444' : '#DC2626',
-              fontFamily: "'JetBrains Mono', monospace",
-            }}
-          >
-            +15% Over
-          </span>
+          {hasVariance && varianceLabel && (
+            <span
+              className="px-1.5 py-0.5 rounded text-[10px] font-medium"
+              style={{
+                backgroundColor: varianceColor.bg,
+                color: varianceColor.text,
+                fontFamily: "'JetBrains Mono', monospace",
+              }}
+            >
+              {varianceLabel}
+            </span>
+          )}
         </div>
       </div>
     </div>
@@ -1130,6 +1183,8 @@ export function GanttToolbar({
   // v3.0.0: Execution/Oracle view mode
   viewMode = 'execution',
   onViewModeChange,
+  // v3.1.0: Forecast HUD data
+  projectForecast,
   onExportPNG,
   onExportPDF,
   onExportExcel,
@@ -1382,7 +1437,7 @@ export function GanttToolbar({
         </div>
 
         {/* Bar 2: Forecast HUD Panel (48px) */}
-        <ForecastHUD theme={theme} />
+        <ForecastHUD theme={theme} forecast={projectForecast} />
       </div>
     );
   }

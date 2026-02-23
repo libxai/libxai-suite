@@ -399,6 +399,19 @@ export interface AICommandResult {
   error?: string;
 }
 
+/**
+ * v3.1.0: Project forecast metrics for the Forecast HUD panel
+ * Computed by the consumer app and passed through GanttConfig
+ */
+export interface ProjectForecast {
+  expectedFinish?: Date | null;
+  delayDays?: number | null;
+  confidencePercent?: number | null;
+  costAtCompletion?: number | null;
+  budgetVariancePercent?: number | null;
+  currency?: string;
+}
+
 export interface GanttConfig {
   theme?: Theme;
   timeScale?: TimeScale;
@@ -526,6 +539,12 @@ export interface GanttConfig {
    */
   viewMode?: 'execution' | 'oracle';
   onViewModeChange?: (mode: 'execution' | 'oracle') => void;
+
+  /**
+   * v3.1.0: Project forecast data for the Forecast HUD panel in Chronos toolbar
+   * When provided, replaces hardcoded placeholder values with real metrics
+   */
+  projectForecast?: ProjectForecast;
 
   // ==================== UI Events ====================
   onThemeChange?: (theme: Theme) => void; // v0.9.0: Theme change event

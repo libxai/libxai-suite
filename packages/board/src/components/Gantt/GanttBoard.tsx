@@ -88,6 +88,8 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     showBaseline: configShowBaseline,
     viewMode: configViewMode,
     onViewModeChange: configOnViewModeChange,
+    // v3.1.0: Forecast HUD
+    projectForecast,
     // UI events
     onThemeChange, // v0.9.0
     // Basic events
@@ -1833,6 +1835,8 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         // v3.0.0: Execution/Oracle view mode
         viewMode={viewMode}
         onViewModeChange={handleViewModeChange}
+        // v3.1.0: Forecast HUD
+        projectForecast={projectForecast}
         // v0.12.0: Export handlers
         onExportPNG={showExportButton ? handleExportPNG : undefined}
         onExportPDF={showExportButton ? handleExportPDF : undefined}

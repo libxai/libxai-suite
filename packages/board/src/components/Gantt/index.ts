@@ -39,6 +39,7 @@ export type {
   TaskFilterType, // v0.17.300: Task filter type for toolbar
   DependencyLineStyle, // v0.17.310: Dependency line style
   GanttConfig,
+  ProjectForecast, // v3.1.0: Forecast HUD data
   GanttPermissions, // v0.8.2: Permissions for authorization
   GanttColumn,
   ColumnType,

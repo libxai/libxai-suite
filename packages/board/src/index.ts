@@ -102,6 +102,7 @@ export type {
   TimeScale,
   Theme as GanttTheme,
   GanttConfig as GanttBoardConfig,
+  ProjectForecast, // v3.1.0: Forecast HUD data
   GanttPermissions, // v0.8.2 - Permissions for authorization
   GanttColumn,
   ColumnType as GanttColumnType,
