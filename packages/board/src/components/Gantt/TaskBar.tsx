@@ -91,8 +91,8 @@ export function TaskBar({
   // Chronos V2: Angular bars (4px) vs rounded (8px)
   const isChronos = !!theme.executionBarBg;
   const borderRadius = isChronos ? 4 : 8;
-  // Chronos: Only tasks with actual children are "summary" bars (outline only)
-  const isSummaryTask = !task.parentId && task.subtasks && task.subtasks.length > 0;
+  // Chronos: Any task with children is a "summary" bar (thin line, no label)
+  const isSummaryTask = task.subtasks && task.subtasks.length > 0;
 
   // Detect task states for neutral theme visualization
   const isOverdue = task.endDate && task.endDate < new Date() && task.progress < 100;
@@ -796,37 +796,48 @@ export function TaskBar({
       })()}
 
       {/* Main Task Bar - Background */}
-      {!task.segments && isChronos && isSummaryTask && (
-        /* Chronos V2: Summary tasks (with children) — read-only container, no drag */
-        <>
-          <rect
-            x={displayX}
-            y={y}
-            width={displayWidth}
-            height={height}
-            rx={borderRadius}
-            fill="none"
-            stroke="rgba(255,255,255,0.15)"
-            strokeWidth={1}
+      {!task.segments && isChronos && isSummaryTask && (() => {
+        /* Chronos V2: Summary tasks — thin line with bracket endpoints (Forecast Oracle style) */
+        const barH = 6;
+        const barY = y + (height - barH) / 2;
+        const bracketH = 14;
+        const bracketY = y + (height - bracketH) / 2;
+        const bracketW = 2;
+        return (
+          <g
             data-task-class={customClass}
-            style={{
-              cursor: 'default',
-              pointerEvents: 'all',
-            }}
-          />
-          {/* Summary bar: thin solid line at bottom to show span */}
-          <rect
-            x={displayX}
-            y={y + height - 3}
-            width={displayWidth}
-            height={3}
-            rx={1.5}
-            fill={taskColor}
-            opacity={0.6}
-            style={{ pointerEvents: 'none' }}
-          />
-        </>
-      )}
+            style={{ cursor: 'default', pointerEvents: 'all' }}
+          >
+            {/* Thin horizontal line spanning the full duration */}
+            <rect
+              x={displayX}
+              y={barY}
+              width={displayWidth}
+              height={barH}
+              rx={1}
+              fill="rgba(255,255,255,0.12)"
+            />
+            {/* Left bracket — vertical tick */}
+            <rect
+              x={displayX}
+              y={bracketY}
+              width={bracketW}
+              height={bracketH}
+              rx={0.5}
+              fill="rgba(255,255,255,0.45)"
+            />
+            {/* Right bracket — vertical tick */}
+            <rect
+              x={displayX + displayWidth - bracketW}
+              y={bracketY}
+              width={bracketW}
+              height={bracketH}
+              rx={0.5}
+              fill="rgba(255,255,255,0.45)"
+            />
+          </g>
+        );
+      })()}
 
       {!task.segments && isChronos && !isSummaryTask && (
         /* Chronos V2: Execution bars — dark track + solid progress fill (two-tone) */
@@ -1062,7 +1073,8 @@ export function TaskBar({
 
       {/* Task Name Text - v0.8.0: Using taskLabel template */}
       {/* v0.8.1: Hide text for split tasks to avoid blocking segment clicks */}
-      {displayWidth > 60 && !task.segments && (() => {
+      {/* Chronos: Hide label for summary tasks (thin-line style, name shown in grid only) */}
+      {displayWidth > 60 && !task.segments && !(isChronos && isSummaryTask) && (() => {
         const label = templates.taskLabel(task);
         const labelText = typeof label === 'string' ? label : task.name;
         const truncated = labelText.length > Math.floor(displayWidth / 8)
@@ -1090,8 +1102,8 @@ export function TaskBar({
         );
       })()}
 
-      {/* Progress Percentage — Chronos V2: outside bar to the right */}
-      {!isDragging && !task.segments && task.progress > 0 && task.progress < 100 && (
+      {/* Progress Percentage — Chronos V2: outside bar to the right (hidden for summary tasks) */}
+      {!isDragging && !task.segments && !isSummaryTask && task.progress > 0 && task.progress < 100 && (
         isChronos ? (
           <text
             x={displayX + displayWidth + 6}
@@ -1124,7 +1136,8 @@ export function TaskBar({
 
       {/* Status Indicator Badge */}
       {/* v0.8.1: Hide status badge for split tasks to avoid blocking segment clicks */}
-      {task.status && displayWidth > 80 && !isDragging && !task.segments && (
+      {/* Chronos: Hidden for summary tasks (thin-line style) */}
+      {task.status && displayWidth > 80 && !isDragging && !task.segments && !(isChronos && isSummaryTask) && (
         <g style={{ pointerEvents: 'none' }}>
           {task.status === 'completed' && (
             <circle

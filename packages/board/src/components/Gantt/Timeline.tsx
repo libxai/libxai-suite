@@ -700,13 +700,12 @@ export function Timeline({
           }
 
           if (isContainer) {
-            // v1.5.0: Summary bar — thin bar with end caps (MS Project / Chronos style)
-            // Parent tasks show a slim summary line spanning all subtask dates
-            const summaryH = 8;
-            const summaryY = y + 10; // Centered vertically in the row
-            const capSize = 5;       // Triangle cap size at each end
-            const barColor = theme.taskBarPrimary;
-            const progressW = width * (task.progress / 100);
+            // v2.2.0: Forecast Oracle summary bar — dark solid line + downward bracket caps
+            const barH = 4;
+            const barY = y + 12; // Top-aligned within the row
+            const capW = 2;      // Bracket vertical stroke width
+            const capDrop = 8;   // How far down the bracket drops below the bar
+            const barColor = 'rgba(255,255,255,0.25)';
 
             return (
               <g
@@ -721,10 +720,10 @@ export function Timeline({
                   handleTooltipChange({
                     task,
                     x,
-                    y: summaryY,
+                    y: barY,
                     width,
-                    height: summaryH,
-                    showBelow: summaryY < 100,
+                    height: barH,
+                    showBelow: barY < 100,
                   });
                 }}
                 onMouseLeave={() => handleTooltipChange(null)}
@@ -739,58 +738,30 @@ export function Timeline({
                   fill="transparent"
                   style={{ pointerEvents: 'all' }}
                 />
-                {/* Background bar (track) */}
+                {/* Solid horizontal bar */}
                 <rect
                   x={x}
-                  y={summaryY}
+                  y={barY}
                   width={width}
-                  height={summaryH}
+                  height={barH}
                   fill={barColor}
-                  opacity={0.35}
-                  rx={2}
                 />
-                {/* Progress fill */}
-                {task.progress > 0 && (
-                  <rect
-                    x={x}
-                    y={summaryY}
-                    width={progressW}
-                    height={summaryH}
-                    fill={barColor}
-                    opacity={1}
-                    rx={2}
-                    style={{ pointerEvents: 'none' }}
-                  />
-                )}
-                {/* Left end cap — downward triangle */}
-                <path
-                  d={`M ${x} ${summaryY} L ${x + capSize} ${summaryY} L ${x} ${summaryY + summaryH + capSize} Z`}
+                {/* Left bracket — vertical drop ⌐ */}
+                <rect
+                  x={x}
+                  y={barY}
+                  width={capW}
+                  height={barH + capDrop}
                   fill={barColor}
-                  opacity={0.9}
                 />
-                {/* Right end cap — downward triangle */}
-                <path
-                  d={`M ${x + width - capSize} ${summaryY} L ${x + width} ${summaryY} L ${x + width} ${summaryY + summaryH + capSize} Z`}
+                {/* Right bracket — vertical drop (mirrored) */}
+                <rect
+                  x={x + width - capW}
+                  y={barY}
+                  width={capW}
+                  height={barH + capDrop}
                   fill={barColor}
-                  opacity={0.9}
                 />
-                {/* Task name text */}
-                {width > 60 && (
-                  <text
-                    x={x + 12}
-                    y={summaryY + summaryH / 2}
-                    dominantBaseline="middle"
-                    fill={theme.textPrimary}
-                    fontSize="12"
-                    fontWeight="600"
-                    fontFamily="Inter, sans-serif"
-                    style={{ pointerEvents: 'none', userSelect: 'none' }}
-                  >
-                    {task.name.length > Math.floor(width / 8)
-                      ? `${task.name.substring(0, Math.floor(width / 8))}...`
-                      : task.name}
-                  </text>
-                )}
               </g>
             );
           }
