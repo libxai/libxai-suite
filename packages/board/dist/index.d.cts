@@ -295,6 +295,13 @@ interface GanttAIAssistantConfig {
     maxHistory?: number;
     /** Persist chat history in localStorage @version 0.17.42 */
     persistHistory?: PersistHistoryConfig;
+    /** Mentionable users for @mention autocomplete in the chat input */
+    mentionableUsers?: Array<{
+        id: string;
+        name: string;
+        email?: string;
+        avatar?: string;
+    }>;
 }
 /**
  * AI Command result interface

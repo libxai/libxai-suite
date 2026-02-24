@@ -58,13 +58,43 @@ const DEFAULT_COLUMNS: TableColumn[] = [
   { id: 'progress', type: 'progress', label: 'Progress', width: 100, visible: true, sortable: true, resizable: true },
 ];
 
+/** Time fields that should roll up from children to parents */
+const TIME_ROLLUP_FIELDS = [
+  'estimatedTime', 'quotedTime', 'elapsedTime',
+  'effortMinutes', 'timeLoggedMinutes', 'soldEffortMinutes',
+] as const;
+
+/**
+ * Recursively compute rolled-up time totals for parent tasks.
+ * Returns a new tree where each parent's time fields = sum of all descendant leaves.
+ * Leaf tasks keep their original values untouched.
+ */
+function applyTimeRollup(tasks: Task[]): Task[] {
+  return tasks.map(task => {
+    if (!task.subtasks?.length) return task; // leaf — keep as-is
+    const rolledChildren = applyTimeRollup(task.subtasks);
+    const sums: Record<string, number> = {};
+    for (const field of TIME_ROLLUP_FIELDS) {
+      let total = 0;
+      for (const child of rolledChildren) {
+        const v = (child as any)[field];
+        if (typeof v === 'number' && v > 0) total += v;
+      }
+      if (total > 0) sums[field] = total;
+    }
+    return { ...task, ...sums, subtasks: rolledChildren } as Task;
+  });
+}
+
 /**
  * Flatten hierarchical tasks to flat list with level info
  */
 function flattenTasksWithLevel(tasks: Task[], level = 0): FlattenedTask[] {
   const result: FlattenedTask[] = [];
+  // Sort by position at each level to match Gantt ordering
+  const sorted = [...tasks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
 
-  for (const task of tasks) {
+  for (const task of sorted) {
     result.push({
       ...task,
       level,
@@ -136,7 +166,7 @@ export function ListView({
   }, [persistFilter]);
 
   // State
-  const [sortField, setSortField] = useState<SortField>('startDate');
+  const [sortField, setSortField] = useState<SortField>('position');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilterValue>(() => loadPersistedFilter().statusFilter);
@@ -312,7 +342,9 @@ export function ListView({
 
   // Filter and sort tasks
   const displayTasks = useMemo(() => {
-    let flatTasks = flattenTasksWithLevel(tasks);
+    // Roll up time fields from children to parents before flattening
+    const rolledUpTasks = applyTimeRollup(tasks);
+    let flatTasks = flattenTasksWithLevel(rolledUpTasks);
 
     // Filter by search
     if (searchQuery.trim()) {
@@ -332,11 +364,16 @@ export function ListView({
       flatTasks = flatTasks.filter(task => getTaskStatus(task) !== 'completed');
     }
 
-    // Sort
+    // Sort — skip when 'position' since flattenTasksWithLevel already sorts by position at each hierarchy level
+    if (sortField === 'position') return flatTasks;
     flatTasks.sort((a, b) => {
       let aVal: string | number, bVal: string | number;
 
       switch (sortField) {
+        case 'position':
+          aVal = a.position ?? 0;
+          bVal = b.position ?? 0;
+          break;
         case 'name':
           aVal = a.name.toLowerCase();
           bVal = b.name.toLowerCase();
@@ -375,7 +412,7 @@ export function ListView({
   }, [tasks, searchQuery, statusFilter, hideCompleted, sortField, sortOrder, getTaskStatus]);
 
   // Render cell based on column type
-  const renderCell = useCallback((task: Task, column: TableColumn) => {
+  const renderCell = useCallback((task: Task, column: TableColumn, isParent = false) => {
     const handleUpdate = (updates: Partial<Task>) => {
       callbacks.onTaskUpdate?.({ ...task, ...updates });
     };
@@ -535,15 +572,16 @@ export function ListView({
         );
 
       // v0.18.3: Time tracking columns
+      // Parent tasks show rolled-up totals (read-only); only leaf tasks are editable
       case 'estimatedTime': {
         const isCompleted = task.status === 'completed' || task.progress === 100;
         return (
           <TimeCell
             value={(task as any).estimatedTime}
-            onChange={(minutes) => handleUpdate({ estimatedTime: minutes } as any)}
+            onChange={isParent ? undefined : (minutes) => handleUpdate({ estimatedTime: minutes } as any)}
             isDark={isDark}
             locale={locale}
-            disabled={isCompleted}
+            disabled={isCompleted || isParent}
           />
         );
       }
@@ -558,10 +596,10 @@ export function ListView({
         return (
           <TimeCell
             value={(task as any).quotedTime}
-            onChange={(minutes) => handleUpdate({ quotedTime: minutes } as any)}
+            onChange={isParent ? undefined : (minutes) => handleUpdate({ quotedTime: minutes } as any)}
             isDark={isDark}
             locale={locale}
-            disabled={isCompleted}
+            disabled={isCompleted || isParent}
             isBlurred={shouldBlurQuoted}
           />
         );
@@ -572,10 +610,10 @@ export function ListView({
         return (
           <TimeCell
             value={(task as any).elapsedTime}
-            onChange={(minutes) => handleUpdate({ elapsedTime: minutes } as any)}
+            onChange={isParent ? undefined : (minutes) => handleUpdate({ elapsedTime: minutes } as any)}
             isDark={isDark}
             locale={locale}
-            disabled={isCompleted}
+            disabled={isCompleted || isParent}
           />
         );
       }
@@ -586,10 +624,10 @@ export function ListView({
         return (
           <TimeCell
             value={(task as any).effortMinutes}
-            onChange={(minutes) => handleUpdate({ effortMinutes: minutes } as any)}
+            onChange={isParent ? undefined : (minutes) => handleUpdate({ effortMinutes: minutes } as any)}
             isDark={isDark}
             locale={locale}
-            disabled={isCompleted}
+            disabled={isCompleted || isParent}
           />
         );
       }
@@ -599,14 +637,14 @@ export function ListView({
         return (
           <TimeCell
             value={(task as any).timeLoggedMinutes}
-            onChange={callbacks.onLogTime ? (minutes) => {
+            onChange={isParent ? undefined : (callbacks.onLogTime ? (minutes) => {
               // Inline time logging - pass minutes directly to callback
               callbacks.onLogTime?.(task, minutes);
-            } : undefined}
+            } : undefined)}
             isDark={isDark}
             locale={locale}
             placeholder={locale === 'es' ? 'Agregar' : 'Add'}
-            disabled={isCompleted}
+            disabled={isCompleted || isParent}
           />
         );
       }
@@ -620,10 +658,10 @@ export function ListView({
         return (
           <TimeCell
             value={(task as any).soldEffortMinutes}
-            onChange={(minutes) => handleUpdate({ soldEffortMinutes: minutes } as any)}
+            onChange={isParent ? undefined : (minutes) => handleUpdate({ soldEffortMinutes: minutes } as any)}
             isDark={isDark}
             locale={locale}
-            disabled={isCompleted}
+            disabled={isCompleted || isParent}
             isBlurred={shouldBlurSold}
           />
         );
@@ -945,7 +983,7 @@ export function ListView({
                           </span>
                         </div>
                       ) : (
-                        renderCell(task, column)
+                        renderCell(task, column, task.hasChildren)
                       )}
                     </div>
                   ))}
