@@ -11,8 +11,6 @@ export interface DependencyHoverData {
   y2: number;
   onDelete: () => void;
   lineStyle?: DependencyLineStyle;
-  mouseX?: number;
-  mouseY?: number;
 }
 
 // Keep old interface name for backwards compatibility
@@ -126,96 +124,116 @@ export function DependencyLine({
   const deleteColor = '#f87171';
   const deleteColorSoft = 'rgba(248, 113, 113, 0.15)';
 
-  // v0.17.366: Calculate delete button position - follows cursor along the ENTIRE line path
-  // Project mouse position onto the closest point on the line segments
+  // Delete button position - follows cursor along the line, projected onto nearest segment
+  // Default: midpoint of the line
   let deleteX = turnX;
   let deleteY = (y1 + y2) / 2;
 
   if (mousePos) {
-    // For same row - simple horizontal line
-    if (isSameRow) {
-      deleteX = Math.max(x1 + 10, Math.min(x2 - 10, mousePos.x));
-      deleteY = y1;
-    } else if (isBackward) {
-      // Backward dependency has 5 segments, find closest point
-      const firstTurnX = x1 + 15;
-      const secondTurnX = x2 - OFFSET;
-      const bridgeY = goingDown ? y1 + 20 : y1 - 20;
+    if (lineStyle === 'squared') {
+      if (isSameRow) {
+        deleteX = Math.max(x1 + 10, Math.min(x2 - 10, mousePos.x));
+        deleteY = y1;
+      } else if (isBackward) {
+        const firstTurnX = x1 + 15;
+        const secondTurnX = x2 - OFFSET;
+        const bridgeY = goingDown ? y1 + 20 : y1 - 20;
 
-      // Define segments: [startX, startY, endX, endY]
-      const segments: [number, number, number, number][] = [
-        [x1, y1, firstTurnX, y1],           // 1. Horizontal right
-        [firstTurnX, y1, firstTurnX, bridgeY], // 2. Short vertical
-        [firstTurnX, bridgeY, secondTurnX, bridgeY], // 3. Horizontal left (bridge)
-        [secondTurnX, bridgeY, secondTurnX, y2], // 4. Main vertical
-        [secondTurnX, y2, x2, y2],           // 5. Enter destination
-      ];
+        const segments: [number, number, number, number][] = [
+          [x1, y1, firstTurnX, y1],
+          [firstTurnX, y1, firstTurnX, bridgeY],
+          [firstTurnX, bridgeY, secondTurnX, bridgeY],
+          [secondTurnX, bridgeY, secondTurnX, y2],
+          [secondTurnX, y2, x2, y2],
+        ];
 
-      let minDist = Infinity;
-      let closestPoint = { x: deleteX, y: deleteY };
+        let minDist = Infinity;
+        let closestPoint = { x: deleteX, y: deleteY };
 
-      for (const seg of segments) {
-        const point = projectPointOnSegment(mousePos.x, mousePos.y, seg[0], seg[1], seg[2], seg[3]);
-        const dist = Math.hypot(mousePos.x - point.x, mousePos.y - point.y);
-        if (dist < minDist) {
-          minDist = dist;
-          closestPoint = point;
+        for (const seg of segments) {
+          const point = projectPointOnSegment(mousePos.x, mousePos.y, seg[0], seg[1], seg[2], seg[3]);
+          const dist = Math.hypot(mousePos.x - point.x, mousePos.y - point.y);
+          if (dist < minDist) {
+            minDist = dist;
+            closestPoint = point;
+          }
         }
-      }
 
-      deleteX = closestPoint.x;
-      deleteY = closestPoint.y;
+        deleteX = closestPoint.x;
+        deleteY = closestPoint.y;
+      } else {
+        const segments: [number, number, number, number][] = [
+          [x1, y1, turnX, y1],
+          [turnX, y1, turnX, y2],
+          [turnX, y2, x2, y2],
+        ];
+
+        let minDist = Infinity;
+        let closestPoint = { x: deleteX, y: deleteY };
+
+        for (const seg of segments) {
+          const point = projectPointOnSegment(mousePos.x, mousePos.y, seg[0], seg[1], seg[2], seg[3]);
+          const dist = Math.hypot(mousePos.x - point.x, mousePos.y - point.y);
+          if (dist < minDist) {
+            minDist = dist;
+            closestPoint = point;
+          }
+        }
+
+        deleteX = closestPoint.x;
+        deleteY = closestPoint.y;
+      }
     } else {
-      // Forward dependency has 3 segments
-      const segments: [number, number, number, number][] = [
-        [x1, y1, turnX, y1],     // Horizontal from source
-        [turnX, y1, turnX, y2],  // Vertical
-        [turnX, y2, x2, y2],     // Horizontal to destination
-      ];
-
+      // Curved: sample the Bézier and find closest point
+      const cp1x = midX, cp1y = y1, cp2x = midX, cp2y = y2;
       let minDist = Infinity;
-      let closestPoint = { x: deleteX, y: deleteY };
-
-      for (const seg of segments) {
-        const point = projectPointOnSegment(mousePos.x, mousePos.y, seg[0], seg[1], seg[2], seg[3]);
-        const dist = Math.hypot(mousePos.x - point.x, mousePos.y - point.y);
-        if (dist < minDist) {
-          minDist = dist;
-          closestPoint = point;
+      let bestX = deleteX, bestY = deleteY;
+      for (let t = 0; t <= 1; t += 0.02) {
+        const it = 1 - t;
+        const bx = it*it*it*x1 + 3*it*it*t*cp1x + 3*it*t*t*cp2x + t*t*t*x2;
+        const by = it*it*it*y1 + 3*it*it*t*cp1y + 3*it*t*t*cp2y + t*t*t*y2;
+        const d = Math.hypot(mousePos.x - bx, mousePos.y - by);
+        if (d < minDist) {
+          minDist = d;
+          bestX = bx;
+          bestY = by;
         }
       }
-
-      deleteX = closestPoint.x;
-      deleteY = closestPoint.y;
+      deleteX = bestX;
+      deleteY = bestY;
     }
   }
 
   // Helper function to project a point onto a line segment
-  function projectPointOnSegment(px: number, py: number, x1: number, y1: number, x2: number, y2: number) {
-    const dx = x2 - x1;
-    const dy = y2 - y1;
-    const lenSq = dx * dx + dy * dy;
+  function projectPointOnSegment(px: number, py: number, sx1: number, sy1: number, sx2: number, sy2: number) {
+    const sdx = sx2 - sx1;
+    const sdy = sy2 - sy1;
+    const lenSq = sdx * sdx + sdy * sdy;
 
-    if (lenSq === 0) return { x: x1, y: y1 }; // Segment is a point
+    if (lenSq === 0) return { x: sx1, y: sy1 };
 
-    // Project point onto line, clamped to segment
-    let t = ((px - x1) * dx + (py - y1) * dy) / lenSq;
+    let t = ((px - sx1) * sdx + (py - sy1) * sdy) / lenSq;
     t = Math.max(0, Math.min(1, t));
 
     return {
-      x: x1 + t * dx,
-      y: y1 + t * dy,
+      x: sx1 + t * sdx,
+      y: sy1 + t * sdy,
     };
   }
 
-  // Mouse event handler
+  // v1.4.27: Use SVG getScreenCTM() for accurate mouse→SVG coordinate conversion
+  // This correctly handles scroll offsets, zoom, and any CSS transforms on parent elements
   const handleMouseMove = (e: React.MouseEvent<SVGElement>) => {
     const svg = e.currentTarget.ownerSVGElement;
     if (!svg) return;
-    const rect = svg.getBoundingClientRect();
+
+    const ctm = svg.getScreenCTM();
+    if (!ctm) return;
+
+    const inverseCTM = ctm.inverse();
     setMousePos({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
+      x: inverseCTM.a * e.clientX + inverseCTM.c * e.clientY + inverseCTM.e,
+      y: inverseCTM.b * e.clientX + inverseCTM.d * e.clientY + inverseCTM.f,
     });
   };
 
@@ -228,6 +246,61 @@ export function DependencyLine({
   const handleMouseEnter = () => {
     setIsLocalHovered(true);
     onHoverChange?.(true);
+  };
+
+  // Render the delete button SVG elements
+  const renderDeleteButton = (animInitial: Record<string, any>) => {
+    if (!onDelete) return null;
+    return (
+      <motion.g
+        initial={animInitial}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.15, ease: 'easeOut' }}
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete();
+        }}
+        style={{ cursor: 'pointer', pointerEvents: 'auto' }}
+      >
+        {/* Larger invisible hit area so the X is easy to click */}
+        <circle
+          cx={deleteX}
+          cy={deleteY}
+          r={16}
+          fill="transparent"
+          style={{ cursor: 'pointer' }}
+        />
+        <circle
+          cx={deleteX}
+          cy={deleteY}
+          r={9}
+          fill={deleteColorSoft}
+          stroke={deleteColor}
+          strokeWidth={1.5}
+          style={{ pointerEvents: 'none' }}
+        />
+        <line
+          x1={deleteX - 3}
+          y1={deleteY - 3}
+          x2={deleteX + 3}
+          y2={deleteY + 3}
+          stroke={deleteColor}
+          strokeWidth={1.5}
+          strokeLinecap="round"
+          style={{ pointerEvents: 'none' }}
+        />
+        <line
+          x1={deleteX + 3}
+          y1={deleteY - 3}
+          x2={deleteX - 3}
+          y2={deleteY + 3}
+          stroke={deleteColor}
+          strokeWidth={1.5}
+          strokeLinecap="round"
+          style={{ pointerEvents: 'none' }}
+        />
+      </motion.g>
+    );
   };
 
   // For hover layer, we render with glow effect
@@ -291,46 +364,8 @@ export function DependencyLine({
           style={{ pointerEvents: 'none' }}
         />
 
-        {/* Delete button - v0.17.366: Follows cursor along entire line */}
-        {onDelete && (
-          <motion.g
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.15, ease: 'easeOut' }}
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete();
-            }}
-            style={{ cursor: 'pointer' }}
-          >
-            <circle
-              cx={deleteX}
-              cy={deleteY}
-              r={9}
-              fill={deleteColorSoft}
-              stroke={deleteColor}
-              strokeWidth={1.5}
-            />
-            <line
-              x1={deleteX - 3}
-              y1={deleteY - 3}
-              x2={deleteX + 3}
-              y2={deleteY + 3}
-              stroke={deleteColor}
-              strokeWidth={1.5}
-              strokeLinecap="round"
-            />
-            <line
-              x1={deleteX + 3}
-              y1={deleteY - 3}
-              x2={deleteX - 3}
-              y2={deleteY + 3}
-              stroke={deleteColor}
-              strokeWidth={1.5}
-              strokeLinecap="round"
-            />
-          </motion.g>
-        )}
+        {/* Delete button */}
+        {renderDeleteButton({ opacity: 0, scale: 0.8 })}
       </g>
     );
   }
@@ -400,45 +435,7 @@ export function DependencyLine({
           style={{ pointerEvents: 'none' }}
         />
         {/* Delete button */}
-        {onDelete && (
-          <motion.g
-            initial={{ opacity: 0, scale: 0 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.15 }}
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete();
-            }}
-            style={{ cursor: 'pointer' }}
-          >
-            <circle
-              cx={deleteX}
-              cy={deleteY}
-              r={9}
-              fill={deleteColorSoft}
-              stroke={deleteColor}
-              strokeWidth={1.5}
-            />
-            <line
-              x1={deleteX - 3}
-              y1={deleteY - 3}
-              x2={deleteX + 3}
-              y2={deleteY + 3}
-              stroke={deleteColor}
-              strokeWidth={1.5}
-              strokeLinecap="round"
-            />
-            <line
-              x1={deleteX + 3}
-              y1={deleteY - 3}
-              x2={deleteX - 3}
-              y2={deleteY + 3}
-              stroke={deleteColor}
-              strokeWidth={1.5}
-              strokeLinecap="round"
-            />
-          </motion.g>
-        )}
+        {renderDeleteButton({ opacity: 0, scale: 0 })}
       </g>
     );
   }
