@@ -378,4 +378,13 @@ export interface CalendarBoardProps {
 
   /** v2.1.0: Suppress internal TaskDetailModal (consumer provides own drawer) */
   suppressDetailModal?: boolean;
+
+  // ========================================================================
+  // v5.2.0: Financial lens
+  // ========================================================================
+
+  /** Display mode: 'hours' shows Xh, 'financial' shows $X (hours × hourlyRate) */
+  lens?: 'hours' | 'financial';
+  /** Rate used to convert hours → dollars when lens='financial' */
+  hourlyRate?: number;
 }

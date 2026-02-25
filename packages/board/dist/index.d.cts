@@ -4421,12 +4421,16 @@ interface CalendarBoardProps {
     blurFinancials?: boolean;
     /** v2.1.0: Suppress internal TaskDetailModal (consumer provides own drawer) */
     suppressDetailModal?: boolean;
+    /** Display mode: 'hours' shows Xh, 'financial' shows $X (hours × hourlyRate) */
+    lens?: 'hours' | 'financial';
+    /** Rate used to convert hours → dollars when lens='financial' */
+    hourlyRate?: number;
 }
 
 /**
  * Main CalendarBoard Component — Chronos V2.0
  */
-declare function CalendarBoard({ tasks, config, callbacks, initialDate, isLoading, error, className, style, availableTags, onCreateTag, attachmentsByTask, comments, onAddComment, currentUser, mentionableUsers, onUploadCommentAttachments, onTaskOpen, enableTimeTracking, timeTrackingSummary, timeEntries, timerState, onLogTime, onUpdateEstimate, onUpdateSoldEffort, onStartTimer, onStopTimer, onDiscardTimer, blurFinancials, suppressDetailModal, }: CalendarBoardProps): react_jsx_runtime.JSX.Element;
+declare function CalendarBoard({ tasks, config, callbacks, initialDate, isLoading, error, className, style, availableTags, onCreateTag, attachmentsByTask, comments, onAddComment, currentUser, mentionableUsers, onUploadCommentAttachments, onTaskOpen, enableTimeTracking, timeTrackingSummary, timeEntries, timerState, onLogTime, onUpdateEstimate, onUpdateSoldEffort, onStartTimer, onStopTimer, onDiscardTimer, blurFinancials, suppressDetailModal, lens: calLens, hourlyRate: calRate, }: CalendarBoardProps): react_jsx_runtime.JSX.Element;
 
 /**
  * CalendarBoard Themes — Chronos V2.0

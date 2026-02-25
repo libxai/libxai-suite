@@ -105,22 +105,42 @@ function dayIndex(date: Date, gridStart: Date): number {
 
 // ─── Chronos V2.0 Helpers ────────────────────────────────────────
 
-/** Format effort in days (effortMinutes → "Xd", 480min = 1 day) */
-function formatEffortDays(minutes: number | undefined): string | null {
+/** Format effort: days (default), hours (lens=hours), or dollars (lens=financial) */
+function formatEffortDays(minutes: number | undefined, lens: 'hours' | 'financial' = 'hours', hourlyRate = 0): string | null {
   if (!minutes || minutes <= 0) return null;
+  if (lens === 'financial' && hourlyRate > 0) {
+    const dollars = Math.round((minutes / 60) * hourlyRate);
+    return dollars >= 1000 ? `$${(dollars / 1000).toFixed(1)}k` : `$${dollars}`;
+  }
   const days = Math.round(minutes / 480);
   return days > 0 ? `${days}d` : null;
 }
 
 /** Format cost variance between sold vs actual effort */
-function formatCostVariance(task: Task): { text: string; isNegative: boolean } | null {
+function formatCostVariance(task: Task, lens: 'hours' | 'financial' = 'hours', hourlyRate = 0): { text: string; isNegative: boolean } | null {
   if (task.soldEffortMinutes == null || task.effortMinutes == null) return null;
   const deltaMinutes = task.soldEffortMinutes - task.effortMinutes;
   if (deltaMinutes === 0) return null;
-  const hours = Math.round(Math.abs(deltaMinutes) / 60);
   const isNegative = deltaMinutes < 0; // over budget
-  const display = hours >= 1000 ? `$${(hours / 1000).toFixed(1)}k` : `$${hours}`;
+  let display: string;
+  if (lens === 'financial' && hourlyRate > 0) {
+    const dollars = Math.round(Math.abs(deltaMinutes / 60) * hourlyRate);
+    display = dollars >= 1000 ? `$${(dollars / 1000).toFixed(1)}k` : `$${dollars}`;
+  } else {
+    const hours = Math.round(Math.abs(deltaMinutes) / 60);
+    display = hours >= 1000 ? `$${(hours / 1000).toFixed(1)}k` : `$${hours}`;
+  }
   return { text: `${isNegative ? '-' : '+'}${display}`, isNegative };
+}
+
+/** Format minutes as hours or dollars depending on lens */
+function fmtMinutes(minutes: number, lens: 'hours' | 'financial' = 'hours', hourlyRate = 0): string {
+  if (lens === 'financial' && hourlyRate > 0) {
+    const dollars = Math.round(Math.abs(minutes / 60) * hourlyRate);
+    return dollars >= 1000 ? `$${(dollars / 1000).toFixed(1)}k` : `$${dollars}`;
+  }
+  const hours = Math.round(Math.abs(minutes) / 60);
+  return hours >= 1000 ? `$${(hours / 1000).toFixed(1)}k` : `$${hours}`;
 }
 
 /**
@@ -134,6 +154,8 @@ function MultiDayBar({
   blurFinancials,
   isSelected,
   t,
+  lens = 'hours',
+  hourlyRate = 0,
 }: {
   segment: BarSegment;
   isDark: boolean;
@@ -141,6 +163,8 @@ function MultiDayBar({
   blurFinancials?: boolean;
   isSelected?: boolean;
   t: CalendarTranslations;
+  lens?: 'hours' | 'financial';
+  hourlyRate?: number;
 }) {
   const { task, spanCols, lane, isStart, isEnd } = segment;
 
@@ -156,8 +180,8 @@ function MultiDayBar({
         : '';
 
   // v2.0.0: Pre-compute metadata for end segment
-  const effortStr = isEnd ? formatEffortDays(task.effortMinutes) : null;
-  const costVar = isEnd ? formatCostVariance(task) : null;
+  const effortStr = isEnd ? formatEffortDays(task.effortMinutes, lens, hourlyRate) : null;
+  const costVar = isEnd ? formatCostVariance(task, lens, hourlyRate) : null;
   const criticalBlocker = isEnd
     ? task.blockers?.find(b => b.severity === 'critical')
     : null;
@@ -299,6 +323,8 @@ export function CalendarBoard({
   onDiscardTimer,
   blurFinancials = false,
   suppressDetailModal = false,
+  lens: calLens = 'hours',
+  hourlyRate: calRate = 0,
 }: CalendarBoardProps) {
   const {
     theme: themeName = 'dark',
@@ -453,13 +479,11 @@ export function CalendarBoard({
       ? Math.min(100, Math.round((totalEffort / totalSoldEffort) * 100))
       : 0;
     const avgVariance = varianceCount > 0 ? Math.round(totalVarianceDays / varianceCount) : 0;
-    const costHours = Math.round(totalCostDelta / 60);
-    const costDisplay = Math.abs(costHours) >= 1000
-      ? `${costHours < 0 ? '-' : '+'}$${(Math.abs(costHours) / 1000).toFixed(1)}k`
-      : `${costHours < 0 ? '-' : '+'}$${Math.abs(costHours)}`;
+    const costSign = totalCostDelta < 0 ? '-' : '+';
+    const costDisplay = `${costSign}${fmtMinutes(totalCostDelta, calLens, calRate)}`;
 
     return { budgetUtil, avgVariance, costDisplay, hasCostData: totalSoldEffort > 0 };
-  }, [tasks]);
+  }, [tasks, calLens, calRate]);
 
   // v2.0.0: Weekly cash out aggregation per calendar row
   const weeklyCashOut = useMemo(() => {
@@ -871,6 +895,8 @@ export function CalendarBoard({
                           blurFinancials={blurFinancials}
                           isSelected={selectedTaskId === segment.taskId}
                           t={t}
+                          lens={calLens}
+                          hourlyRate={calRate}
                           onClick={() => {
                             handleOpenTask(segment.task);
                             callbacks.onEventClick?.({
@@ -1133,8 +1159,7 @@ export function CalendarBoard({
                   const row = Math.floor(index / 7);
                   const cashOut = weeklyCashOut[row];
                   if (!cashOut || cashOut === 0) return null;
-                  const hours = Math.round(Math.abs(cashOut) / 60);
-                  const display = hours >= 1000 ? `$${(hours / 1000).toFixed(1)}k` : `$${hours}`;
+                  const display = fmtMinutes(cashOut, calLens, calRate);
                   return (
                     <div className={cn(
                       "absolute bottom-1 right-2 text-[9px] font-mono font-bold tabular-nums z-20",
@@ -1260,11 +1285,11 @@ export function CalendarBoard({
                       isDark ? "text-white/25" : "text-gray-400",
                       blurFinancials && "blur-sm select-none"
                     )}>
-                      {formatEffortDays(task.effortMinutes) && (
-                        <span>{t.labels.estimate}: {formatEffortDays(task.effortMinutes)}</span>
+                      {formatEffortDays(task.effortMinutes, calLens, calRate) && (
+                        <span>{t.labels.estimate}: {formatEffortDays(task.effortMinutes, calLens, calRate)}</span>
                       )}
                       {(() => {
-                        const cv = formatCostVariance(task);
+                        const cv = formatCostVariance(task, calLens, calRate);
                         if (!cv) return null;
                         return (
                           <span className={cv.isNegative ? 'text-red-400' : 'text-emerald-400'}>
