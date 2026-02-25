@@ -324,6 +324,12 @@ export interface ListViewConfig {
   // v2.2.1: Show "Ofertado: Xh" line in HoursBarCell for users who can view but not edit financials
   /** When true, shows the sold effort line in HoursBarCell even without onSoldEffortUpdate callback */
   showSoldEffort?: boolean;
+
+  // v2.3.0: Financial lens — show dollar values instead of hours
+  /** Display mode: 'hours' shows time values, 'financial' converts to dollars (hours × hourlyRate) */
+  lens?: 'hours' | 'financial';
+  /** Hourly rate for converting hours → dollars when lens='financial' */
+  hourlyRate?: number;
 }
 
 /**

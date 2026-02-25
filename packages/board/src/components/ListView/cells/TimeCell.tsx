@@ -8,7 +8,7 @@
  */
 
 import { useState, useRef, useEffect } from 'react';
-import { Clock } from 'lucide-react';
+import { Clock, DollarSign } from 'lucide-react';
 import { cn } from '../../../utils';
 import { useSaveFlash } from '../../../hooks/useMicroInteractions';
 
@@ -28,6 +28,10 @@ interface TimeCellProps {
    * When true, shows a blurred placeholder instead of the actual value
    */
   isBlurred?: boolean;
+  /** Display mode: 'hours' shows Xh Ym, 'financial' shows $X (minutes/60 × hourlyRate) */
+  lens?: 'hours' | 'financial';
+  /** Rate used to convert hours → dollars when lens='financial' */
+  hourlyRate?: number;
 }
 
 /**
@@ -113,6 +117,8 @@ export function TimeCell({
   disabled = false,
   enableSaveFlash = true,
   isBlurred = false,
+  lens = 'hours',
+  hourlyRate = 0,
 }: TimeCellProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState('');
@@ -121,7 +127,10 @@ export function TimeCell({
   // Micro-interaction: flash green on save
   const { isFlashing, triggerFlash } = useSaveFlash();
 
-  const formattedValue = formatTime(value, locale);
+  const isFin = lens === 'financial' && hourlyRate > 0;
+  const formattedValue = isFin && value
+    ? `$${Math.round((value / 60) * hourlyRate).toLocaleString('en-US')}`
+    : formatTime(value, locale);
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -188,12 +197,14 @@ export function TimeCell({
     );
   }
 
+  const ValueIcon = isFin ? DollarSign : Clock;
+
   // Read-only mode (no onChange provided)
   if (disabled || !onChange) {
     return (
       <div className="flex items-center gap-1.5">
         {value != null && value > 0 && (
-          <Clock className={cn('w-3.5 h-3.5 flex-shrink-0', isDark ? 'text-white/30' : 'text-gray-400')} />
+          <ValueIcon className={cn('w-3.5 h-3.5 flex-shrink-0', isDark ? 'text-white/30' : 'text-gray-400')} />
         )}
         <span className={cn(
           'text-sm font-mono',
@@ -246,7 +257,7 @@ export function TimeCell({
       )}
     >
       {value != null && value > 0 && (
-        <Clock className={cn('w-3 h-3 flex-shrink-0', isDark ? 'text-white/30' : 'text-gray-400')} />
+        <ValueIcon className={cn('w-3 h-3 flex-shrink-0', isDark ? 'text-white/30' : 'text-gray-400')} />
       )}
       <span className="truncate font-mono">{formattedValue}</span>
     </button>

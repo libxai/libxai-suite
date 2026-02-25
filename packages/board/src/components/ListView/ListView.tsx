@@ -160,6 +160,9 @@ export function ListView({
     financialBlur,
     // v2.0.0: Chronos health sidebar
     healthSidebar,
+    // v2.3.0: Financial lens
+    lens = 'hours',
+    hourlyRate = 0,
   } = config;
 
   const t = mergeListViewTranslations(locale, customTranslations);
@@ -594,6 +597,8 @@ export function ListView({
             isDark={isDark}
             locale={locale}
             disabled={isCompleted}
+            lens={lens}
+            hourlyRate={hourlyRate}
           />
         );
       }
@@ -613,6 +618,8 @@ export function ListView({
             locale={locale}
             disabled={isCompleted}
             isBlurred={shouldBlurQuoted}
+            lens={lens}
+            hourlyRate={hourlyRate}
           />
         );
       }
@@ -626,6 +633,8 @@ export function ListView({
             isDark={isDark}
             locale={locale}
             disabled={isCompleted}
+            lens={lens}
+            hourlyRate={hourlyRate}
           />
         );
       }
@@ -640,6 +649,8 @@ export function ListView({
             isDark={isDark}
             locale={locale}
             disabled={isCompleted}
+            lens={lens}
+            hourlyRate={hourlyRate}
           />
         );
       }
@@ -657,6 +668,8 @@ export function ListView({
             locale={locale}
             placeholder={locale === 'es' ? 'Agregar' : 'Add'}
             disabled={isCompleted}
+            lens={lens}
+            hourlyRate={hourlyRate}
           />
         );
       }
@@ -675,6 +688,8 @@ export function ListView({
             locale={locale}
             disabled={isCompleted}
             isBlurred={shouldBlurSold}
+            lens={lens}
+            hourlyRate={hourlyRate}
           />
         );
       }
@@ -702,6 +717,8 @@ export function ListView({
             onSoldEffortUpdate={callbacks.onSoldEffortUpdate}
             showSoldEffort={config.showSoldEffort}
             onOpenTimeLog={callbacks.onOpenTimeLog}
+            lens={lens}
+            hourlyRate={hourlyRate}
           />
         );
 

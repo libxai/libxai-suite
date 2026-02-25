@@ -26,6 +26,10 @@ interface HoursBarCellProps {
   showSoldEffort?: boolean;
   /** @deprecated Use onLogTime instead */
   onOpenTimeLog?: (task: Task) => void;
+  /** Display mode: 'hours' shows Xh, 'financial' shows $X (hours × hourlyRate) */
+  lens?: 'hours' | 'financial';
+  /** Rate used to convert hours → dollars when lens='financial' */
+  hourlyRate?: number;
 }
 
 export function HoursBarCell({
@@ -37,8 +41,15 @@ export function HoursBarCell({
   onSoldEffortUpdate,
   showSoldEffort,
   onOpenTimeLog,
+  lens = 'hours',
+  hourlyRate = 0,
 }: HoursBarCellProps) {
   const isEs = locale === 'es';
+  const isFin = lens === 'financial' && hourlyRate > 0;
+  /** Format a value as hours or dollars depending on lens */
+  const fmt = (hours: number) => isFin
+    ? `$${Math.round(hours * hourlyRate).toLocaleString('en-US')}`
+    : `${hours}h`;
   const [isHovered, setIsHovered] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [popoverMode, setPopoverMode] = useState<PopoverMode>(null);
@@ -235,16 +246,16 @@ export function HoursBarCell({
         {/* Main line: Registered / Estimated */}
         <div className="flex items-center gap-1.5">
           <span className="font-mono" style={{ fontSize: 13, fontWeight: 700, color: isDark ? '#FFFFFF' : '#111827' }}>
-            {spentHours}h
+            {fmt(spentHours)}
           </span>
           {allocatedMinutes > 0 && (
             <span className="font-mono" style={{ fontSize: 11, color: isDark ? 'rgba(255,255,255,0.3)' : '#9CA3AF' }}>
-              / {allocatedHours}h
+              / {fmt(allocatedHours)}
             </span>
           )}
           {overHours > 0 && (
             <span className="font-mono" style={{ fontSize: 10, color: '#FF453A' }}>
-              +{overHours}h {isEs ? 'Exceso' : 'Over'}
+              +{fmt(overHours)} {isEs ? 'Exceso' : 'Over'}
             </span>
           )}
         </div>
@@ -263,7 +274,7 @@ export function HoursBarCell({
               {isEs ? 'Ofertado' : 'Quoted'}:
             </span>
             <span className="font-mono" style={{ fontSize: 10, color: isDark ? 'rgba(255,255,255,0.4)' : '#6B7280' }}>
-              {soldHours}h
+              {fmt(soldHours)}
             </span>
           </div>
         )}

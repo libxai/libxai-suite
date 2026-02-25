@@ -3840,6 +3840,10 @@ interface ListViewConfig {
     };
     /** When true, shows the sold effort line in HoursBarCell even without onSoldEffortUpdate callback */
     showSoldEffort?: boolean;
+    /** Display mode: 'hours' shows time values, 'financial' converts to dollars (hours × hourlyRate) */
+    lens?: 'hours' | 'financial';
+    /** Hourly rate for converting hours → dollars when lens='financial' */
+    hourlyRate?: number;
 }
 /**
  * ListView translations
