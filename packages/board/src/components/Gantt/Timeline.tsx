@@ -60,6 +60,9 @@ export function Timeline({
   // v0.17.400: Get i18n translations
   const t = useGanttI18n();
 
+  // v1.4.28: Ref to content SVG for viewport-aware tooltip positioning
+  const contentSvgRef = useRef<SVGSVGElement>(null);
+
   // v0.13.0: State for dependency cascade preview
   const [cascadePreviews, setCascadePreviews] = useState<DependentTaskPreview[]>([]);
 
@@ -473,6 +476,7 @@ export function Timeline({
       {/* v0.17.31: Added overflow:visible to allow tooltips to render above the header */}
       {/* v0.17.452: Added onMouseMove to detect when mouse leaves dependency lines (fast movement fix) */}
       <svg
+        ref={contentSvgRef}
         width={Math.max(timelineWidth, 1000)}
         height={contentHeight}
         style={{ display: 'block', flexShrink: 0, overflow: 'visible' }}
@@ -944,16 +948,17 @@ export function Timeline({
           </g>
         )}
 
-        {/* v0.17.76: Tooltip layer - rendered last to ensure it's always on top */}
-        {/* v1.2.0: Pass locale for i18n support */}
-        {activeTooltip && (
-          <TaskTooltip
-            tooltipData={activeTooltip}
-            theme={theme}
-            locale={locale === 'es' ? 'es' : 'en'}
-          />
-        )}
       </svg>
+
+      {/* v1.4.28: Tooltip rendered via portal to document.body — never clipped by scroll containers */}
+      {activeTooltip && (
+        <TaskTooltip
+          tooltipData={activeTooltip}
+          theme={theme}
+          locale={locale === 'es' ? 'es' : 'en'}
+          svgRef={contentSvgRef}
+        />
+      )}
     </div>
   );
 }
