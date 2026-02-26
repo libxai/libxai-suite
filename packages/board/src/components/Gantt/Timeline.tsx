@@ -303,13 +303,13 @@ export function Timeline({
       .map((task) => {
         const { x, width } = getTaskPosition(task);
         const actualIndex = flatTasks.findIndex(t => t.id === task.id);
-        const y = actualIndex * ROW_HEIGHT + 14; // v1.4.4: Adjusted for 24px bar height
+        const y = actualIndex * ROW_HEIGHT + (ROW_HEIGHT - 18) / 2; // v1.4.29: Centered for 18px bar
         return {
           id: task.id,
           x,
           y,
           width,
-          height: 24, // v1.4.4: TaskBar height reduced from 32
+          height: 18, // v1.4.29: Slimmer elegant bars
         };
       });
   }, [flatTasks, getTaskPosition]);
@@ -496,6 +496,11 @@ export function Timeline({
           <pattern id="weekend-hatch" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)">
             <line x1="0" y1="0" x2="0" y2="10" stroke="rgba(255,255,255,0.015)" strokeWidth="5" />
           </pattern>
+
+          {/* v1.4.29: Diagonal stripes for remaining (no-progress) area of task bars */}
+          <pattern id="bar-remaining-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="6" stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
+          </pattern>
         </defs>
 
         {/* Full SVG Background - v0.17.220: Matches TaskGrid bgPrimary for alignment */}
@@ -507,73 +512,102 @@ export function Timeline({
           fill={theme.bgPrimary}
         />
 
-        {/* Grid Lines and Weekend Backgrounds - v0.13.7: Adjusted Y positions (no header offset) */}
+        {/* Weekend Backgrounds only (grid lines moved below row backgrounds) */}
         {headers.map((header, index) => {
           const nextX = headers[index + 1]?.x || timelineWidth;
           const isWeekendDay = isWeekend(header.date);
 
-          return (
+          return isWeekendDay ? (
             <g key={index}>
-              {/* Weekend background — Chronos V2: hatched pattern, fallback to solid */}
-              {isWeekendDay && (
-                <>
-                  <rect
-                    x={header.x}
-                    y={0}
-                    width={nextX - header.x}
-                    height={flatTasks.length * ROW_HEIGHT}
-                    fill={theme.neonRedGlow ? 'rgba(17,17,17,0.4)' : theme.bgWeekend}
-                    opacity={1}
-                  />
-                  {theme.neonRedGlow && (
-                    <rect
-                      x={header.x}
-                      y={0}
-                      width={nextX - header.x}
-                      height={flatTasks.length * ROW_HEIGHT}
-                      fill="url(#weekend-hatch)"
-                      opacity={1}
-                    />
-                  )}
-                </>
-              )}
-
-              {/* Grid line - skip first line since TaskGrid border serves as divider */}
-              {/* Chronos V2: Very subtle grid lines (white/5%) */}
-              {index > 0 && (
-                <line
-                  x1={header.x}
-                  y1={0}
-                  x2={header.x}
-                  y2={flatTasks.length * ROW_HEIGHT}
-                  stroke={theme.borderLight}
-                  strokeWidth={1}
-                  opacity={theme.neonRedGlow ? 1 : 0.1}
+              <rect
+                x={header.x}
+                y={0}
+                width={nextX - header.x}
+                height={flatTasks.length * ROW_HEIGHT}
+                fill={theme.neonRedGlow ? 'rgba(17,17,17,0.4)' : theme.bgWeekend}
+                opacity={1}
+              />
+              {theme.neonRedGlow && (
+                <rect
+                  x={header.x}
+                  y={0}
+                  width={nextX - header.x}
+                  height={flatTasks.length * ROW_HEIGHT}
+                  fill="url(#weekend-hatch)"
+                  opacity={1}
                 />
               )}
             </g>
-          );
+          ) : null;
         })}
 
-        {/* Row Backgrounds with Click-to-Create functionality - v0.13.7: Adjusted Y positions */}
-        {/* v0.17.220: Aligned row colors with TaskGrid - same alternating pattern for visual consistency */}
+        {/* Row Backgrounds - v0.17.220: Alternating rows matching TaskGrid */}
+        {flatTasks.map((task, index) => (
+          <rect
+            key={`row-bg-${task.id}`}
+            x={0}
+            y={index * ROW_HEIGHT}
+            width={Math.max(timelineWidth, 1000)}
+            height={ROW_HEIGHT}
+            fill={index % 2 === 0 ? theme.bgPrimary : theme.bgGrid}
+            opacity={1}
+            style={{ pointerEvents: 'none' }}
+          />
+        ))}
+
+        {/* v1.4.29: Grid lines rendered AFTER row backgrounds so they are never covered */}
+        {/* Vertical column grid lines */}
+        {headers.map((header, index) =>
+          index > 0 ? (
+            <line
+              key={`vgrid-${index}`}
+              x1={header.x}
+              y1={0}
+              x2={header.x}
+              y2={flatTasks.length * ROW_HEIGHT}
+              stroke={theme.borderLight}
+              strokeWidth={1}
+              shapeRendering="crispEdges"
+              opacity={theme.neonRedGlow ? 1 : 0.1}
+            />
+          ) : null
+        )}
+
+        {/* Weekend overlays ON TOP of grid — subtle darkening without hiding lines */}
+        {headers.map((header, index) => {
+          const nextX = headers[index + 1]?.x || timelineWidth;
+          const isWeekendDay = isWeekend(header.date);
+
+          return isWeekendDay ? (
+            <g key={`we-overlay-${index}`}>
+              <rect
+                x={header.x}
+                y={0}
+                width={nextX - header.x}
+                height={flatTasks.length * ROW_HEIGHT}
+                fill={theme.neonRedGlow ? 'rgba(0,0,0,0.15)' : theme.bgWeekend}
+                style={{ pointerEvents: 'none' }}
+              />
+              {theme.neonRedGlow && (
+                <rect
+                  x={header.x}
+                  y={0}
+                  width={nextX - header.x}
+                  height={flatTasks.length * ROW_HEIGHT}
+                  fill="url(#weekend-hatch)"
+                  style={{ pointerEvents: 'none' }}
+                />
+              )}
+            </g>
+          ) : null;
+        })}
+
+        {/* Row interactions: Click-to-Create functionality */}
         {flatTasks.map((task, index) => {
           const hasTaskBar = task.startDate && task.endDate;
 
           return (
             <g key={`row-group-${task.id}`}>
-              {/* Background stripe - alternating rows matching TaskGrid colors for perfect alignment */}
-              <rect
-                key={`row-${task.id}`}
-                x={0}
-                y={index * ROW_HEIGHT}
-                width={timelineWidth}
-                height={ROW_HEIGHT}
-                fill={index % 2 === 0 ? theme.bgPrimary : theme.bgGrid}
-                opacity={1}
-                style={{ pointerEvents: 'none' }}
-              />
-
               {/* Clickable area for tasks without dates - v1.4.19: ClickUp-style with moving indicator */}
               {!hasTaskBar && (
                 <>
@@ -685,7 +719,7 @@ export function Timeline({
           }
 
           const { x, width } = getTaskPosition(task);
-          const y = index * ROW_HEIGHT + 14; // v1.4.4: Adjusted for 24px bar height
+          const y = index * ROW_HEIGHT + (ROW_HEIGHT - 18) / 2; // v1.4.29: Centered for 18px bar
 
           // Container phase (has subtasks): render as bracket bar
           const isContainer = task.subtasks && task.subtasks.length > 0 && !task.isMilestone;
@@ -705,10 +739,10 @@ export function Timeline({
 
           if (isContainer) {
             // v2.2.0: Forecast Oracle summary bar — dark solid line + downward bracket caps
-            const barH = 4;
-            const barY = y + 12; // Top-aligned within the row
-            const capW = 2;      // Bracket vertical stroke width
-            const capDrop = 8;   // How far down the bracket drops below the bar
+            const barH = 2;
+            const barY = y + (ROW_HEIGHT - 18) / 2 + 8; // Centered within row
+            const capW = 1.5;   // Bracket vertical stroke width
+            const capDrop = 6;  // How far down the bracket drops below the bar
             const barColor = 'rgba(255,255,255,0.25)';
 
             return (

@@ -314,7 +314,7 @@ export function createTask(
     status: 'todo',
     startDate: today,
     endDate: weekFromNow,
-    color: '#6366F1', // v0.11.0: Default blue pastel color
+    color: '#2E94FF', // v1.4.29: Default Chronos Blue
   };
 
   const insertTask = (tasks: Task[]): boolean => {

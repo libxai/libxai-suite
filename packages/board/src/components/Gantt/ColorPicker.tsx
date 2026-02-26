@@ -14,7 +14,7 @@ export interface TaskColor {
 
 // v0.17.112: Professional vibrant color palette - all colors are eye-catching
 export const TASK_COLORS: TaskColor[] = [
-  { name: 'Azul', value: '#6366F1', light: '#818CF8' },
+  { name: 'Azul', value: '#2E94FF', light: '#5AADFF' },
   { name: 'Púrpura', value: '#A855F7', light: '#C084FC' },
   { name: 'Rosa', value: '#EC4899', light: '#F472B6' },
   { name: 'Rojo', value: '#EF4444', light: '#F87171' },
@@ -38,7 +38,7 @@ interface ColorPickerProps {
   disabled?: boolean;
 }
 
-export function ColorPicker({ value = '#6366F1', onChange, disabled = false }: ColorPickerProps) {
+export function ColorPicker({ value = '#2E94FF', onChange, disabled = false }: ColorPickerProps) {
   return (
     <div className="space-y-2">
       {/* v0.17.187: Grid with larger click area (28px) and small visual circle (16px) */}

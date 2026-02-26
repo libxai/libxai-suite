@@ -41,17 +41,17 @@ interface GanttBoardProps {
   onTasksChange?: (tasks: Task[]) => void;
 }
 
-// v0.17.71: Increased row heights for better "breathing" - less Excel, more SaaS
+// v1.4.29: Slimmer rows for elegant Chronos look
 const getRowHeight = (density: RowDensity): number => {
   switch (density) {
     case 'compact':
-      return 44;  // Was 40 - still compact but not cramped
+      return 36;
     case 'comfortable':
-      return 52;  // Was 48 - default: luxurious spacing like Linear
+      return 42;
     case 'spacious':
-      return 60;  // Was 56 - generous for touch/accessibility
-    default:
       return 52;
+    default:
+      return 42;
   }
 };
 

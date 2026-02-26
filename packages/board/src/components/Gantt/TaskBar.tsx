@@ -87,10 +87,10 @@ export function TaskBar({
     resetDragState
   } = dragState;
 
-  const height = 24; // v1.4.4: Reduced from 32 for slimmer bars
+  const height = 18; // v1.4.29: Slimmer elegant bars (was 24)
   // Chronos V2: Angular bars (4px) vs rounded (8px)
   const isChronos = !!theme.executionBarBg;
-  const borderRadius = isChronos ? 4 : 8;
+  const borderRadius = isChronos ? 3 : 6;
   // Chronos: Any task with children is a "summary" bar (thin line, no label)
   const isSummaryTask = task.subtasks && task.subtasks.length > 0;
 
@@ -929,6 +929,24 @@ export function TaskBar({
         )
       )}
 
+      {/* v1.4.29: Diagonal hatch on remaining (no-progress) area */}
+      {!task.segments && !isSummaryTask && task.progress < 100 && (() => {
+        const progressW = displayWidth * (task.progress / 100);
+        const remainX = displayX + progressW;
+        const remainW = displayWidth - progressW;
+        return (
+          <rect
+            x={remainX}
+            y={y}
+            width={remainW}
+            height={height}
+            rx={0}
+            fill="url(#bar-remaining-hatch)"
+            style={{ pointerEvents: 'none' }}
+          />
+        );
+      })()}
+
       {/* Chronos V2: Assignee avatar at end of progress bar */}
       {isChronos && !task.segments && task.progress > 0 && task.progress < 100 && !isSummaryTask && !isDragging && (
         (() => {
@@ -1083,11 +1101,11 @@ export function TaskBar({
 
         return (
           <text
-            x={displayX + 12}
+            x={displayX + 8}
             y={y + height / 2}
             dominantBaseline="middle"
             fill={isCompleted ? 'rgba(255, 255, 255, 0.6)' : '#FFFFFF'}
-            fontSize="13"
+            fontSize="11"
             fontWeight="500"
             fontFamily="Inter, sans-serif"
             style={{

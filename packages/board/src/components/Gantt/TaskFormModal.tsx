@@ -207,7 +207,7 @@ export function TaskFormModal({
     status: 'todo',
     priority: 'medium',
     isMilestone: false,
-    color: '#6366F1',
+    color: '#2E94FF',
     assignees: [],
     dependencies: [],
     tags: [], // v0.17.158
@@ -227,7 +227,7 @@ export function TaskFormModal({
         status: task.status || 'todo',
         priority: (task as any).priority || 'medium',
         isMilestone: task.isMilestone || false,
-        color: task.color || '#6366F1',
+        color: task.color || '#2E94FF',
         assignees: task.assignees || [],
         dependencies: task.dependencies || [],
         tags: task.tags || [], // v0.17.158
@@ -243,7 +243,7 @@ export function TaskFormModal({
         status: defaultStatus || 'todo',
         priority: 'medium',
         isMilestone: false,
-        color: '#6366F1',
+        color: '#2E94FF',
         assignees: [],
         dependencies: [],
         pendingFiles: [], // v0.17.166
