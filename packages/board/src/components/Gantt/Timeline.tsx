@@ -492,9 +492,9 @@ export function Timeline({
             <line x1="0" y1="0" x2="0" y2="8" stroke={theme.border} strokeWidth="2" />
           </pattern>
 
-          {/* Chronos V2: Weekend hatched pattern */}
-          <pattern id="weekend-hatch" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)">
-            <line x1="0" y1="0" x2="0" y2="10" stroke="rgba(255,255,255,0.015)" strokeWidth="5" />
+          {/* Chronos V2: Weekend hatched pattern — diagonal toward right */}
+          <pattern id="weekend-hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="8" stroke="rgba(255,255,255,0.055)" strokeWidth="4" />
           </pattern>
 
           {/* v1.4.29: Diagonal stripes for remaining (no-progress) area of task bars */}
@@ -512,34 +512,7 @@ export function Timeline({
           fill={theme.bgPrimary}
         />
 
-        {/* Weekend Backgrounds only (grid lines moved below row backgrounds) */}
-        {headers.map((header, index) => {
-          const nextX = headers[index + 1]?.x || timelineWidth;
-          const isWeekendDay = isWeekend(header.date);
-
-          return isWeekendDay ? (
-            <g key={index}>
-              <rect
-                x={header.x}
-                y={0}
-                width={nextX - header.x}
-                height={flatTasks.length * ROW_HEIGHT}
-                fill={theme.neonRedGlow ? 'rgba(17,17,17,0.4)' : theme.bgWeekend}
-                opacity={1}
-              />
-              {theme.neonRedGlow && (
-                <rect
-                  x={header.x}
-                  y={0}
-                  width={nextX - header.x}
-                  height={flatTasks.length * ROW_HEIGHT}
-                  fill="url(#weekend-hatch)"
-                  opacity={1}
-                />
-              )}
-            </g>
-          ) : null;
-        })}
+        {/* Weekend backgrounds removed — only hatch overlay after row backgrounds */}
 
         {/* Row Backgrounds - v0.17.220: Alternating rows matching TaskGrid */}
         {flatTasks.map((task, index) => (
@@ -573,7 +546,7 @@ export function Timeline({
           ) : null
         )}
 
-        {/* Weekend overlays ON TOP of grid — subtle darkening without hiding lines */}
+        {/* Weekend overlays — subtle gray tint + diagonal hatch */}
         {headers.map((header, index) => {
           const nextX = headers[index + 1]?.x || timelineWidth;
           const isWeekendDay = isWeekend(header.date);
@@ -585,19 +558,17 @@ export function Timeline({
                 y={0}
                 width={nextX - header.x}
                 height={flatTasks.length * ROW_HEIGHT}
-                fill={theme.neonRedGlow ? 'rgba(0,0,0,0.15)' : theme.bgWeekend}
+                fill={theme.neonRedGlow ? 'rgba(255,255,255,0.04)' : theme.bgWeekend}
                 style={{ pointerEvents: 'none' }}
               />
-              {theme.neonRedGlow && (
-                <rect
-                  x={header.x}
-                  y={0}
-                  width={nextX - header.x}
-                  height={flatTasks.length * ROW_HEIGHT}
-                  fill="url(#weekend-hatch)"
-                  style={{ pointerEvents: 'none' }}
-                />
-              )}
+              <rect
+                x={header.x}
+                y={0}
+                width={nextX - header.x}
+                height={flatTasks.length * ROW_HEIGHT}
+                fill="url(#weekend-hatch)"
+                style={{ pointerEvents: 'none' }}
+              />
             </g>
           ) : null;
         })}
