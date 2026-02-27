@@ -53,6 +53,8 @@ export interface ColumnProps {
   className?: string
   /** v2.0.0: Custom metrics renderer below column header */
   renderMetrics?: (column: ColumnType, cards: CardType[]) => React.ReactNode
+  /** Locale for i18n */
+  locale?: 'en' | 'es'
 }
 
 /**
@@ -80,6 +82,7 @@ export const Column = memo<ColumnProps>(
     isDeletable = false,
     className,
     renderMetrics,
+    locale,
   }) => {
     const { setNodeRef, isOver } = useDroppable({
       id: column.id,
@@ -200,6 +203,7 @@ export const Column = memo<ColumnProps>(
                   onRename={(newTitle) => onColumnRename?.(column.id, newTitle)}
                   onDelete={onColumnDelete ? () => onColumnDelete(column.id) : undefined}
                   isDeletable={isDeletable}
+                  locale={locale}
                 />
               )}
               {onToggleCollapse && (

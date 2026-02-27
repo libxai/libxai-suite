@@ -267,6 +267,8 @@ export interface GanttPermissions {
   canExport?: boolean;
   canToggleExpansion?: boolean;
   canPerformAction?: (task: Task, action: 'create' | 'update' | 'delete' | 'assign' | 'progress') => boolean;
+  /** v4.1.0: Per-task edit check — when provided, each task bar uses this to determine read-only state */
+  canEditTask?: (task: Task) => boolean;
 }
 
 /**

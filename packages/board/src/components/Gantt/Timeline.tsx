@@ -30,6 +30,8 @@ interface TimelineProps {
   showCriticalPath?: boolean;
   showDependencies?: boolean;
   highlightWeekends?: boolean;
+  /** v4.1.0: Per-task edit check — returns false for read-only bars */
+  canEditTask?: (task: Task) => boolean;
 }
 
 export interface TaskPosition {
@@ -62,6 +64,7 @@ export function Timeline({
   showCriticalPath = true,
   showDependencies = true,
   highlightWeekends = true,
+  canEditTask,
 }: TimelineProps) {
   const HEADER_HEIGHT = 48; // Must match TaskGrid's HEADER_HEIGHT for alignment
 
@@ -808,6 +811,7 @@ export function Timeline({
               showBaseline={showBaseline} // v3.0.0: Baseline overlay
               showTaskBarLabels={showTaskBarLabels}
               showCriticalPath={showCriticalPath}
+              readOnly={canEditTask ? !canEditTask(task) : false}
             />
           );
         })}

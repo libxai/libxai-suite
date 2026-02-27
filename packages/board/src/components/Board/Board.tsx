@@ -400,9 +400,10 @@ export function KanbanBoard({
                       renderMetrics={renderColumnMetrics ? (col, crds) => renderColumnMetrics(col, crds) : undefined}
                       onCardClick={handleCardClick}
                       onCardUpdate={handleCardUpdate}
-                      onColumnRename={handleColumnRename}
-                      onColumnDelete={handleColumnDelete}
+                      onColumnRename={callbacks.onColumnUpdate ? handleColumnRename : undefined}
+                      onColumnDelete={callbacks.onColumnDelete ? handleColumnDelete : undefined}
                       isDeletable={isDeletable}
+                      locale={config?.locale === 'es' ? 'es' : 'en'}
                       availableUsers={availableUsers}
                       allCards={board.cards}
                       enableVirtualization={config?.enableVirtualization}

@@ -1987,6 +1987,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
             showCriticalPath={showCriticalPath}
             showDependencies={showDependencies}
             highlightWeekends={highlightWeekends}
+            canEditTask={permissions?.canEditTask}
           />
         </div>
       </div>

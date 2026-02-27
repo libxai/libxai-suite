@@ -37,6 +37,8 @@ interface TaskBarProps {
   showBaseline?: boolean;
   showTaskBarLabels?: boolean;
   showCriticalPath?: boolean;
+  // v4.1.0: When true, disable drag/resize/connect interactions (read-only bar)
+  readOnly?: boolean;
 }
 
 type DragMode = 'none' | 'move' | 'resize-start' | 'resize-end' | 'connect';
@@ -61,6 +63,7 @@ export function TaskBar({
   showBaseline, // v3.0.0
   showTaskBarLabels = true,
   showCriticalPath = true,
+  readOnly = false,
 }: TaskBarProps) {
   // v0.8.1: Centralized drag state management for better modularity
   const dragState = useDragState(x, width);
@@ -127,6 +130,10 @@ export function TaskBar({
   };
 
   const taskColor = getTaskColor();
+
+  // v4.1.0: Cursor for read-only bars
+  const barCursor = readOnly ? 'default' : (isDragging ? (isConnecting ? 'crosshair' : isResizing ? 'ew-resize' : 'grabbing') : 'grab');
+  const resizeCursor = readOnly ? 'default' : 'ew-resize';
 
   // Dynamic resize zones based on bar width for better UX
   const getResizeZone = (barWidth: number): number => {
@@ -227,7 +234,9 @@ export function TaskBar({
 
   // Handle mouse down for dragging
   // v0.8.1: Added segmentX parameter for split tasks - allows segments to calculate their own offset
+  // v4.1.0: Block all drag interactions when readOnly
   const handleMouseDown = useCallback((e: React.MouseEvent, mode?: DragMode, segmentX?: number) => {
+    if (readOnly) return; // v4.1.0: No drag/resize/connect for read-only bars
     e.preventDefault();
     e.stopPropagation();
 
@@ -304,7 +313,7 @@ export function TaskBar({
 
     setGhostX(effectiveX);
     setGhostWidth(width);
-  }, [x, width, y, height]);
+  }, [x, width, y, height, readOnly]);
 
   // v0.17.379: Auto-scroll function when dragging near edges
   const performAutoScroll = useCallback((e: MouseEvent) => {
@@ -618,7 +627,7 @@ export function TaskBar({
             height={height}
             fill={activeZone === 'resize-start' ? theme.accent : 'transparent'}
             opacity={activeZone === 'resize-start' ? 0.15 : 0}
-            style={{ cursor: 'ew-resize', pointerEvents: 'all' }}
+            style={{ cursor: resizeCursor, pointerEvents: 'all' }}
             onMouseEnter={() => setActiveZone('resize-start')}
             onMouseDown={(e) => handleMouseDown(e as any, 'resize-start')}
           />
@@ -630,7 +639,7 @@ export function TaskBar({
             height={height}
             fill={activeZone === 'move' ? theme.accent : 'transparent'}
             opacity={activeZone === 'move' ? 0.1 : 0}
-            style={{ cursor: 'grab', pointerEvents: 'all' }}
+            style={{ cursor: readOnly ? 'default' : 'grab', pointerEvents: 'all' }}
             onMouseEnter={() => setActiveZone('move')}
             onMouseDown={(e) => handleMouseDown(e as any, 'move')}
           />
@@ -642,7 +651,7 @@ export function TaskBar({
             height={height}
             fill={activeZone === 'resize-end' ? theme.accent : 'transparent'}
             opacity={activeZone === 'resize-end' ? 0.15 : 0}
-            style={{ cursor: 'ew-resize', pointerEvents: 'all' }}
+            style={{ cursor: resizeCursor, pointerEvents: 'all' }}
             onMouseEnter={() => setActiveZone('resize-end')}
             onMouseDown={(e) => handleMouseDown(e as any, 'resize-end')}
           />
@@ -660,7 +669,7 @@ export function TaskBar({
             height={height}
             fill={activeZone === 'move' ? theme.accent : 'transparent'}
             opacity={activeZone === 'move' ? 0.2 : 0}
-            style={{ cursor: 'grab', pointerEvents: 'all' }}
+            style={{ cursor: readOnly ? 'default' : 'grab', pointerEvents: 'all' }}
             onMouseEnter={() => setActiveZone('move')}
             onMouseDown={(e) => handleMouseDown(e as any, 'move')}
           />
@@ -672,7 +681,7 @@ export function TaskBar({
             height={height}
             fill={activeZone === 'resize-end' ? theme.accent : 'transparent'}
             opacity={activeZone === 'resize-end' ? 0.2 : 0}
-            style={{ cursor: 'ew-resize', pointerEvents: 'all' }}
+            style={{ cursor: resizeCursor, pointerEvents: 'all' }}
             onMouseEnter={() => setActiveZone('resize-end')}
             onMouseDown={(e) => handleMouseDown(e as any, 'resize-end')}
           />
@@ -864,7 +873,7 @@ export function TaskBar({
             transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
             onMouseDown={(e) => handleMouseDown(e as any)}
             style={{
-              cursor: isDragging ? (isConnecting ? 'crosshair' : isResizing ? 'ew-resize' : 'grabbing') : 'grab',
+              cursor: barCursor,
               pointerEvents: 'all',
             }}
           />
@@ -895,7 +904,7 @@ export function TaskBar({
           transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
           onMouseDown={isSummaryTask ? undefined : (e) => handleMouseDown(e as any)}
           style={{
-            cursor: isSummaryTask ? 'default' : (isDragging ? (isConnecting ? 'crosshair' : isResizing ? 'ew-resize' : 'grabbing') : 'grab'),
+            cursor: isSummaryTask ? 'default' : barCursor,
             pointerEvents: 'all',
           }}
         />
@@ -1056,7 +1065,7 @@ export function TaskBar({
                 handleMouseDown(e as any, undefined, segmentStartX);
               }}
               style={{
-                cursor: isDragging ? (isConnecting ? 'crosshair' : isResizing ? 'ew-resize' : 'grabbing') : 'grab',
+                cursor: barCursor,
                 pointerEvents: 'all'
               }}
             />
@@ -1218,7 +1227,7 @@ export function TaskBar({
               width={16}
               height={height}
               fill="transparent"
-              style={{ cursor: 'ew-resize' }}
+              style={{ cursor: resizeCursor }}
               onMouseEnter={() => setActiveZone('resize-start')}
               onMouseLeave={() => setActiveZone(null)}
               onMouseDown={(e) => {
@@ -1250,7 +1259,7 @@ export function TaskBar({
               width={16}
               height={height}
               fill="transparent"
-              style={{ cursor: 'ew-resize' }}
+              style={{ cursor: resizeCursor }}
               onMouseEnter={() => setActiveZone('resize-end')}
               onMouseLeave={() => setActiveZone(null)}
               onMouseDown={(e) => {

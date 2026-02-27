@@ -215,6 +215,8 @@ interface GanttPermissions {
     canExport?: boolean;
     canToggleExpansion?: boolean;
     canPerformAction?: (task: Task, action: 'create' | 'update' | 'delete' | 'assign' | 'progress') => boolean;
+    /** v4.1.0: Per-task edit check — when provided, each task bar uses this to determine read-only state */
+    canEditTask?: (task: Task) => boolean;
 }
 /**
  * Scroll behavior configuration for timeline interactions
@@ -490,6 +492,11 @@ interface GanttConfig {
      * When provided, replaces hardcoded placeholder values with real metrics
      */
     projectForecast?: ProjectForecast;
+    /**
+     * Callback for "Copy Snapshot Link" in the Share dropdown
+     * When provided, shows the option in the export/share menu
+     */
+    onCopySnapshotLink?: () => void;
     onThemeChange?: (theme: Theme$1) => void;
     onTimeScaleChange?: (timeScale: TimeScale) => void;
     onZoomChange?: (zoom: number) => void;
@@ -1747,6 +1754,8 @@ interface ColumnProps {
     className?: string;
     /** v2.0.0: Custom metrics renderer below column header */
     renderMetrics?: (column: Column$1, cards: Card$1[]) => React.ReactNode;
+    /** Locale for i18n */
+    locale?: 'en' | 'es';
 }
 /**
  * Column Component
@@ -2739,12 +2748,13 @@ interface GanttToolbarProps {
     onHighlightWeekendsChange?: (show: boolean) => void;
     showBaseline?: boolean;
     onShowBaselineChange?: (show: boolean) => void;
+    onCopySnapshotLink?: () => void;
 }
 declare function GanttToolbar({ theme, timeScale, onTimeScaleChange, zoom, onZoomChange, currentTheme, onThemeChange, rowDensity, onRowDensityChange, showThemeSelector, // v0.17.29: Default to false - themes should be in app settings
 showCreateTaskButton, createTaskLabel, // v0.15.0: Will use translations if not provided
 onCreateTask, taskFilter, // v0.17.300: Task filter
 onTaskFilterChange, hideCompleted, // v0.18.0: Hide completed toggle
-onHideCompletedChange, toolbarRightContent, wbsLevel, onWbsLevelChange, maxWbsDepth, viewMode, onViewModeChange, projectForecast, onExportPNG, onExportPDF, onExportExcel, onExportCSV, onExportJSON, onExportMSProject, showCriticalPath, onShowCriticalPathChange, showDependencies, onShowDependenciesChange, highlightWeekends, onHighlightWeekendsChange, showBaseline, onShowBaselineChange, }: GanttToolbarProps): react_jsx_runtime.JSX.Element;
+onHideCompletedChange, toolbarRightContent, wbsLevel, onWbsLevelChange, maxWbsDepth, viewMode, onViewModeChange, projectForecast, onExportPNG, onExportPDF, onExportExcel, onExportCSV, onExportJSON, onExportMSProject, showCriticalPath, onShowCriticalPathChange, showDependencies, onShowDependenciesChange, highlightWeekends, onHighlightWeekendsChange, showBaseline, onShowBaselineChange, onCopySnapshotLink, }: GanttToolbarProps): react_jsx_runtime.JSX.Element;
 
 interface TaskGridProps {
     tasks: Task[];
@@ -2809,6 +2819,8 @@ interface TimelineProps {
     showCriticalPath?: boolean;
     showDependencies?: boolean;
     highlightWeekends?: boolean;
+    /** v4.1.0: Per-task edit check — returns false for read-only bars */
+    canEditTask?: (task: Task) => boolean;
 }
 interface TaskPosition {
     id: string;
@@ -2821,7 +2833,7 @@ declare function Timeline({ tasks, theme, rowHeight: ROW_HEIGHT, timeScale, star
 templates, dependencyLineStyle, // v0.17.310
 showTaskBarLabels, onTaskClick, onTaskDblClick, // v0.8.0
 onTaskContextMenu, // v0.8.0
-onTaskDateChange, onDependencyCreate, onDependencyDelete, showBaseline, showCriticalPath, showDependencies, highlightWeekends, }: TimelineProps): react_jsx_runtime.JSX.Element;
+onTaskDateChange, onDependencyCreate, onDependencyDelete, showBaseline, showCriticalPath, showDependencies, highlightWeekends, canEditTask, }: TimelineProps): react_jsx_runtime.JSX.Element;
 
 interface TaskTooltipData {
     task: Task;
@@ -2851,13 +2863,14 @@ interface TaskBarProps {
     showBaseline?: boolean;
     showTaskBarLabels?: boolean;
     showCriticalPath?: boolean;
+    readOnly?: boolean;
 }
 declare function TaskBar({ task, x, y, width, theme, dayWidth, startDate, templates, onClick, onDoubleClick, // v0.8.0
 onContextMenu, // v0.8.0
 onDateChange, onDependencyCreate, allTaskPositions, onDragMove, // v0.13.0
 onHoverChange, // v0.17.76
 showBaseline, // v3.0.0
-showTaskBarLabels, showCriticalPath, }: TaskBarProps): react_jsx_runtime.JSX.Element;
+showTaskBarLabels, showCriticalPath, readOnly, }: TaskBarProps): react_jsx_runtime.JSX.Element;
 
 interface DependencyLineProps {
     x1: number;
@@ -3501,6 +3514,8 @@ interface GanttTranslations {
         baselines: string;
         visibility: string;
         share: string;
+        copySnapshotLink: string;
+        copied: string;
     };
     contextMenu: {
         editTask: string;

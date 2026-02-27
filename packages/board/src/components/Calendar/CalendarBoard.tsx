@@ -1076,8 +1076,8 @@ export function CalendarBoard({
                   );
                 })()}
 
-                {/* Quick create button — bottom right */}
-                {day.isCurrentMonth && (
+                {/* Quick create button — bottom right (only when onTaskCreate exists) */}
+                {day.isCurrentMonth && callbacks.onTaskCreate && (
                   <div className="flex items-center justify-end mt-1">
                     {(() => {
                       const isNearBottom = index >= 28;
