@@ -573,6 +573,12 @@ export interface GanttConfig {
    */
   projectForecast?: ProjectForecast;
 
+  /**
+   * Callback for "Copy Snapshot Link" in the Share dropdown
+   * When provided, shows the option in the export/share menu
+   */
+  onCopySnapshotLink?: () => void;
+
   // ==================== UI Events ====================
   onThemeChange?: (theme: Theme) => void; // v0.9.0: Theme change event
   onTimeScaleChange?: (timeScale: TimeScale) => void; // v1.5.0: TimeScale change event

@@ -1208,8 +1208,8 @@ export const ganttUtils = {
         // Width calculation - minimum 1 day width for visibility
         const width = Math.max(durationDays * scaledDayWidth, scaledDayWidth);
 
-        // Y position - same formula as Timeline.tsx: HEADER_HEIGHT + index * ROW_HEIGHT + 12
-        const y = headerHeight + rowIndex * rowHeight + 12;
+        // Y position - same formula as Timeline.tsx: HEADER_HEIGHT + index * ROW_HEIGHT + (ROW_HEIGHT - 18) / 2
+        const y = headerHeight + rowIndex * rowHeight + (rowHeight - 18) / 2;
 
         previews.push({
           taskId: dependent.id,

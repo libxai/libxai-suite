@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { ZoomIn, ZoomOut, Sun, Moon, Palette, Download, FileImage, FileSpreadsheet, FileText, FileJson, ChevronDown, FolderKanban, Plus, Rows3, Check, Filter, CheckCircle2, PlayCircle, Circle, EyeOff, Search, Eye, Share2, Layers, GitBranch, CalendarDays, Zap } from 'lucide-react';
+import { ZoomIn, ZoomOut, Sun, Moon, Palette, Download, FileImage, FileSpreadsheet, FileText, FileJson, ChevronDown, FolderKanban, Plus, Rows3, Check, Filter, CheckCircle2, PlayCircle, Circle, EyeOff, Search, Eye, Share2, Layers, GitBranch, CalendarDays, Zap, Link2 } from 'lucide-react';
 import { TimeScale, Theme, RowDensity, TaskFilterType, ProjectForecast } from './types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGanttI18n } from './GanttI18nContext'; // v0.15.0: i18n
@@ -86,6 +86,8 @@ interface GanttToolbarProps {
   onHighlightWeekendsChange?: (show: boolean) => void;
   showBaseline?: boolean;
   onShowBaselineChange?: (show: boolean) => void;
+  // Share dropdown
+  onCopySnapshotLink?: () => void;
 }
 
 // Export Dropdown Component
@@ -99,7 +101,7 @@ interface ExportDropdownProps {
   onExportMSProject?: () => void;
 }
 
-function ExportDropdown({ theme, onExportPNG, onExportPDF, onExportExcel, onExportCSV, onExportJSON, onExportMSProject }: ExportDropdownProps) {
+export function ExportDropdown({ theme, onExportPNG, onExportPDF, onExportExcel, onExportCSV, onExportJSON, onExportMSProject }: ExportDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isExporting, setIsExporting] = useState<string | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -294,6 +296,202 @@ function ExportDropdown({ theme, onExportPNG, onExportPDF, onExportExcel, onExpo
         )}
       </AnimatePresence>,
       document.body
+      )}
+    </>
+  );
+}
+
+// ─── ShareExportDropdown ─────────────────────────────────────────────────────
+// Consolidates Export (PDF, Excel, MS Project) + Share (Copy Snapshot Link)
+// under the Share2 icon, replacing both the old Share placeholder and ExportDropdown.
+
+interface ShareExportDropdownProps {
+  theme: any;
+  onExportPNG?: () => Promise<void>;
+  onExportPDF?: () => Promise<void>;
+  onExportExcel?: () => Promise<void>;
+  onExportMSProject?: () => void;
+  onCopySnapshotLink?: () => void;
+}
+
+function ShareExportDropdown({ theme, onExportPNG, onExportPDF, onExportExcel, onExportMSProject, onCopySnapshotLink }: ShareExportDropdownProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const t = useGanttI18n();
+  const portalPos = useDropdownPortal(triggerRef, isOpen, 'right');
+  const isDark = theme.bgPrimary === '#050505' || (theme.bgPrimary || '').charAt(1) === '0';
+  const isEs = t.toolbar.visibility === 'Visibilidad';
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (
+        triggerRef.current && !triggerRef.current.contains(target) &&
+        dropdownRef.current && !dropdownRef.current.contains(target)
+      ) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
+
+  const exportOptions = [
+    { id: 'png', label: t.toolbar.exportPng, icon: <FileImage className="w-3.5 h-3.5" />, handler: onExportPNG },
+    { id: 'pdf', label: t.toolbar.exportPdf, icon: <FileText className="w-3.5 h-3.5" />, handler: onExportPDF },
+    { id: 'excel', label: t.toolbar.exportExcel, icon: <FileSpreadsheet className="w-3.5 h-3.5" />, handler: onExportExcel },
+    { id: 'msproject', label: t.toolbar.exportMsProject, icon: <FolderKanban className="w-3.5 h-3.5" />, handler: onExportMSProject },
+  ].filter(opt => opt.handler);
+
+  const handleExport = async (id: string, handler: (() => void | Promise<void>) | undefined) => {
+    if (!handler) return;
+    setIsExporting(id);
+    try {
+      await handler();
+    } catch (error) {
+      console.error(`Export ${id} failed:`, error);
+    } finally {
+      setIsExporting(null);
+      setIsOpen(false);
+    }
+  };
+
+  const handleCopyLink = () => {
+    onCopySnapshotLink?.();
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <>
+      <motion.button
+        ref={triggerRef}
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center justify-center w-8 h-8 rounded-lg"
+        style={{
+          color: isOpen ? theme.accent : theme.textTertiary,
+          backgroundColor: isOpen ? theme.accentLight : 'transparent',
+        }}
+        whileHover={{ color: theme.textPrimary, backgroundColor: theme.hoverBg }}
+        title={t.toolbar.share}
+      >
+        <Share2 className="w-4 h-4" />
+      </motion.button>
+
+      {createPortal(
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div
+              ref={dropdownRef}
+              initial={{ opacity: 0, y: -8, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -8, scale: 0.95 }}
+              transition={{ duration: 0.15, ease: 'easeOut' }}
+              className="fixed w-56 rounded-xl overflow-hidden"
+              style={{
+                top: portalPos.top,
+                left: portalPos.left - 224, // w-56 = 14rem = 224px, right-aligned
+                zIndex: 99999,
+                backgroundColor: isDark ? 'rgba(10, 10, 10, 0.95)' : theme.bgSecondary || '#F8FAFC',
+                border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : theme.border || '#CBD5E1'}`,
+                boxShadow: isDark
+                  ? '0 8px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.04)'
+                  : '0 10px 40px rgba(0, 0, 0, 0.12)',
+                backdropFilter: 'blur(16px)',
+              }}
+            >
+              {/* EXPORT Section */}
+              {exportOptions.length > 0 && (
+                <>
+                  <div className="px-3 pt-2.5 pb-1.5">
+                    <span className="text-[10px] font-medium uppercase tracking-[0.1em]"
+                      style={{ color: isDark ? 'rgba(255,255,255,0.35)' : theme.textTertiary }}>
+                      {isEs ? 'EXPORTAR' : 'EXPORT'}
+                    </span>
+                  </div>
+                  <div className="py-0.5">
+                    {exportOptions.map((option, index) => (
+                      <motion.button
+                        key={option.id}
+                        onClick={() => handleExport(option.id, option.handler)}
+                        disabled={isExporting !== null}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-[11px] transition-colors"
+                        style={{ color: isDark ? 'rgba(255,255,255,0.85)' : '#111827' }}
+                        whileHover={{ backgroundColor: theme.hoverBg }}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.03 }}
+                      >
+                        <div
+                          className="flex items-center justify-center w-7 h-7 rounded-md flex-shrink-0"
+                          style={{ backgroundColor: theme.accentLight, color: theme.accent }}
+                        >
+                          {isExporting === option.id ? (
+                            <motion.div
+                              animate={{ rotate: 360 }}
+                              transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                            </motion.div>
+                          ) : (
+                            option.icon
+                          )}
+                        </div>
+                        <span className="flex-1 text-left">{option.label}</span>
+                      </motion.button>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {/* Divider */}
+              {exportOptions.length > 0 && onCopySnapshotLink && (
+                <div className="mx-3 h-px" style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : theme.borderLight }} />
+              )}
+
+              {/* SHARE Section */}
+              {onCopySnapshotLink && (
+                <>
+                  <div className="px-3 pt-2.5 pb-1.5">
+                    <span className="text-[10px] font-medium uppercase tracking-[0.1em]"
+                      style={{ color: isDark ? 'rgba(255,255,255,0.35)' : theme.textTertiary }}>
+                      {isEs ? 'COMPARTIR' : 'SHARE'}
+                    </span>
+                  </div>
+                  <div className="py-0.5 pb-1.5">
+                    <motion.button
+                      onClick={handleCopyLink}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-[11px] transition-colors"
+                      style={{ color: isDark ? 'rgba(255,255,255,0.85)' : '#111827' }}
+                      whileHover={{ backgroundColor: theme.hoverBg }}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: exportOptions.length * 0.03 }}
+                    >
+                      <div
+                        className="flex items-center justify-center w-7 h-7 rounded-md flex-shrink-0"
+                        style={{
+                          backgroundColor: copied ? 'rgba(34,197,94,0.15)' : theme.accentLight,
+                          color: copied ? '#22C55E' : theme.accent,
+                        }}
+                      >
+                        {copied ? <Check className="w-3.5 h-3.5" /> : <Link2 className="w-3.5 h-3.5" />}
+                      </div>
+                      <span className="flex-1 text-left">
+                        {copied ? t.toolbar.copied : t.toolbar.copySnapshotLink}
+                      </span>
+                    </motion.button>
+                  </div>
+                </>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
       )}
     </>
   );
@@ -1386,6 +1584,7 @@ export function GanttToolbar({
   onHighlightWeekendsChange,
   showBaseline = false,
   onShowBaselineChange,
+  onCopySnapshotLink,
 }: GanttToolbarProps) {
   const t = useGanttI18n(); // v0.15.0: i18n
   const hasExport = onExportPNG || onExportPDF || onExportExcel || onExportCSV || onExportJSON || onExportMSProject;
@@ -1420,7 +1619,6 @@ export function GanttToolbar({
 
   if (isChronos) {
     const dividerColor = isDark ? 'rgba(255,255,255,0.08)' : theme.borderLight;
-    const iconHoverBg = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)';
 
     return (
       <div className="flex flex-col">
@@ -1569,28 +1767,15 @@ export function GanttToolbar({
               onRowDensityChange={onRowDensityChange}
             />
 
-            {/* Share icon */}
-            <motion.button
-              className="flex items-center justify-center w-8 h-8 rounded-lg"
-              style={{ color: theme.textTertiary, backgroundColor: 'transparent' }}
-              whileHover={{ color: theme.textPrimary, backgroundColor: iconHoverBg }}
-              title={t.toolbar.share}
-            >
-              <Share2 className="w-4 h-4" />
-            </motion.button>
-
-            {/* Export */}
-            {hasExport && (
-              <ExportDropdown
-                theme={theme}
-                onExportPNG={onExportPNG}
-                onExportPDF={onExportPDF}
-                onExportExcel={onExportExcel}
-                onExportCSV={onExportCSV}
-                onExportJSON={onExportJSON}
-                onExportMSProject={onExportMSProject}
-              />
-            )}
+            {/* Share & Export Dropdown */}
+            <ShareExportDropdown
+              theme={theme}
+              onExportPNG={onExportPNG}
+              onExportPDF={onExportPDF}
+              onExportExcel={onExportExcel}
+              onExportMSProject={onExportMSProject}
+              onCopySnapshotLink={onCopySnapshotLink}
+            />
 
             {/* Create Task Button */}
             {showCreateTaskButton && onCreateTask && (
@@ -1768,24 +1953,19 @@ export function GanttToolbar({
           </>
         )}
 
-        {hasExport && (
-          <>
-            <ExportDropdown
-              theme={theme}
-              onExportPNG={onExportPNG}
-              onExportPDF={onExportPDF}
-              onExportExcel={onExportExcel}
-              onExportCSV={onExportCSV}
-              onExportJSON={onExportJSON}
-              onExportMSProject={onExportMSProject}
-            />
-            {showThemeSelector && (
-              <div
-                className="w-px h-6"
-                style={{ backgroundColor: theme.borderLight }}
-              />
-            )}
-          </>
+        <ShareExportDropdown
+          theme={theme}
+          onExportPNG={onExportPNG}
+          onExportPDF={onExportPDF}
+          onExportExcel={onExportExcel}
+          onExportMSProject={onExportMSProject}
+          onCopySnapshotLink={onCopySnapshotLink}
+        />
+        {showThemeSelector && (
+          <div
+            className="w-px h-6"
+            style={{ backgroundColor: theme.borderLight }}
+          />
         )}
         {showThemeSelector && (
           <SegmentedControl

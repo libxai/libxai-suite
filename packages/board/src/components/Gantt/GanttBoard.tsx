@@ -115,6 +115,8 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     onAfterTaskDelete,
     // v1.4.10: Permissions
     permissions,
+    // Share dropdown
+    onCopySnapshotLink,
   } = config;
 
   // Try to get global theme from ThemeProvider (will return undefined if not in ThemeProvider)
@@ -1874,6 +1876,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
           if (show && viewMode !== 'oracle') handleViewModeChange('oracle');
           if (!show && viewMode === 'oracle') handleViewModeChange('execution');
         }}
+        onCopySnapshotLink={onCopySnapshotLink}
       />
       </div>
 

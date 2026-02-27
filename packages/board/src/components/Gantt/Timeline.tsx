@@ -876,24 +876,24 @@ export function Timeline({
             key={`cascade-preview-${preview.taskId}`}
             style={{ pointerEvents: 'none' }}
           >
-            {/* Ghost bar at exact preview position - v0.13.7: Y adjusted (subtract HEADER_HEIGHT) */}
+            {/* Ghost bar at exact preview position - matched to actual bar height (18px) */}
             <rect
               x={preview.previewX}
               y={preview.y - HEADER_HEIGHT}
               width={preview.width}
-              height={32}
-              rx={8}
+              height={18}
+              rx={6}
               fill={preview.color || theme.accent}
-              opacity={0.3}
+              opacity={0.15}
               stroke={theme.accent}
-              strokeWidth={2}
-              strokeDasharray="4 2"
+              strokeWidth={1}
+              strokeDasharray="4 3"
             />
             {/* Days delta label */}
             {Math.abs(preview.daysDelta) > 0 && (
               <text
                 x={preview.previewX + preview.width / 2}
-                y={preview.y - HEADER_HEIGHT + 16}
+                y={preview.y - HEADER_HEIGHT + 9}
                 textAnchor="middle"
                 dominantBaseline="middle"
                 fill={theme.accent}

@@ -707,12 +707,12 @@ export function TaskBar({
           height={height}
           rx={borderRadius}
           fill={theme.accent}
-          opacity={0.5}
+          opacity={0.15}
           stroke={theme.accent}
-          strokeWidth={2}
-          strokeDasharray="4 4"
+          strokeWidth={1}
+          strokeDasharray="4 3"
           initial={{ opacity: 0 }}
-          animate={{ opacity: 0.6 }}
+          animate={{ opacity: 0.25 }}
           transition={{ duration: 0.15 }}
           style={{ pointerEvents: 'none' }}
         />
@@ -745,15 +745,15 @@ export function TaskBar({
             {/* Baseline ghost bar — dashed outline */}
             <rect
               x={blX}
-              y={y - 2}
+              y={y}
               width={blWidth}
-              height={height + 4}
-              rx={borderRadius + 1}
+              height={height}
+              rx={borderRadius}
               fill="none"
               stroke={theme.textTertiary}
-              strokeWidth={1.5}
+              strokeWidth={1}
               strokeDasharray="4 3"
-              opacity={0.5}
+              opacity={0.4}
             />
             {/* Delay overshoot — red zone where actual exceeds baseline */}
             {hasDelay && actualEndX > blEndX && (

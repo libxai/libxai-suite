@@ -71,6 +71,8 @@ export interface GanttTranslations {
     baselines: string;
     visibility: string;
     share: string;
+    copySnapshotLink: string;
+    copied: string;
   };
 
   // v0.16.0: Context menu labels (right-click menu)
@@ -239,6 +241,8 @@ export const en: GanttTranslations = {
     baselines: 'Baselines',
     visibility: 'Visibility',
     share: 'Share',
+    copySnapshotLink: 'Copy Snapshot Link',
+    copied: 'Copied!',
   },
 
   // v0.16.0: Context menu labels (right-click menu)
@@ -401,6 +405,8 @@ export const es: GanttTranslations = {
     baselines: 'Líneas Base',
     visibility: 'Visibilidad',
     share: 'Compartir',
+    copySnapshotLink: 'Copiar enlace de vista',
+    copied: '¡Copiado!',
   },
 
   // v0.16.0: Context menu labels (right-click menu)
