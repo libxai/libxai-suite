@@ -839,31 +839,33 @@ export function TaskBar({
         );
       })()}
 
-      {!task.segments && isChronos && !isSummaryTask && (
+      {!task.segments && isChronos && !isSummaryTask && (() => {
         /* Chronos V2: Execution bars — dark track + solid progress fill (two-tone) */
-        <motion.rect
-          x={displayX}
-          y={y}
-          width={displayWidth}
-          height={height}
-          rx={borderRadius}
-          fill={theme.executionBarBg || 'rgba(255,255,255,0.06)'}
-          stroke={isChronos && theme.border ? theme.border : 'rgba(255,255,255,0.1)'}
-          strokeWidth={1}
-          data-task-class={customClass}
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{
-            opacity: isDragging && !isConnecting ? 0.15 : 1,
-            scale: isHovered && !isDragging ? 1.01 : 1,
-          }}
-          transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-          onMouseDown={(e) => handleMouseDown(e as any)}
-          style={{
-            cursor: isDragging ? (isConnecting ? 'crosshair' : isResizing ? 'ew-resize' : 'grabbing') : 'grab',
-            pointerEvents: 'all',
-          }}
-        />
-      )}
+        return (
+          <motion.rect
+            x={displayX}
+            y={y}
+            width={displayWidth}
+            height={height}
+            rx={borderRadius}
+            fill={theme.executionBarBg || 'rgba(255,255,255,0.06)'}
+            stroke={theme.border || 'rgba(255,255,255,0.1)'}
+            strokeWidth={1}
+            data-task-class={customClass}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{
+              opacity: isDragging && !isConnecting ? 0.15 : 1,
+              scale: isHovered && !isDragging ? 1.01 : 1,
+            }}
+            transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+            onMouseDown={(e) => handleMouseDown(e as any)}
+            style={{
+              cursor: isDragging ? (isConnecting ? 'crosshair' : isResizing ? 'ew-resize' : 'grabbing') : 'grab',
+              pointerEvents: 'all',
+            }}
+          />
+        );
+      })()}
 
       {!task.segments && !isChronos && (
         /* Non-Chronos themes: original solid bar */
@@ -929,21 +931,40 @@ export function TaskBar({
         )
       )}
 
-      {/* v1.4.29: Diagonal hatch on remaining (no-progress) area */}
+      {/* v1.4.30: Diagonal hatch + dashed border on remaining (no-progress) area */}
       {!task.segments && !isSummaryTask && task.progress < 100 && (() => {
-        const progressW = displayWidth * (task.progress / 100);
+        const progressW = task.progress > 0 ? displayWidth * (task.progress / 100) : 0;
         const remainX = displayX + progressW;
         const remainW = displayWidth - progressW;
+        const rx = task.progress === 0 ? borderRadius : 0;
+        const xPos = task.progress === 0 ? displayX : remainX;
+        const wPos = task.progress === 0 ? displayWidth : remainW;
         return (
-          <rect
-            x={remainX}
-            y={y}
-            width={remainW}
-            height={height}
-            rx={0}
-            fill="url(#bar-remaining-hatch)"
-            style={{ pointerEvents: 'none' }}
-          />
+          <>
+            {/* Diagonal lines fill */}
+            <rect
+              x={xPos}
+              y={y}
+              width={wPos}
+              height={height}
+              rx={rx}
+              fill="url(#bar-remaining-hatch)"
+              style={{ pointerEvents: 'none' }}
+            />
+            {/* Dashed border */}
+            <rect
+              x={xPos}
+              y={y}
+              width={wPos}
+              height={height}
+              rx={rx}
+              fill="none"
+              stroke="#2E94FF"
+              strokeWidth={0.8}
+              strokeDasharray="5 3"
+              style={{ pointerEvents: 'none' }}
+            />
+          </>
         );
       })()}
 

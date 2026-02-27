@@ -498,8 +498,11 @@ export function Timeline({
           </pattern>
 
           {/* v1.4.29: Diagonal stripes for remaining (no-progress) area of task bars */}
-          <pattern id="bar-remaining-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-            <line x1="0" y1="0" x2="0" y2="6" stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
+          <pattern id="bar-remaining-hatch" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            {/* Stripe 1: colored band */}
+            <rect x="0" y="0" width="5" height="10" fill="#2E94FF" opacity="0.18" />
+            {/* Stripe 2: gray band */}
+            <rect x="5" y="0" width="5" height="10" fill="#94A3B8" opacity="0.12" />
           </pattern>
         </defs>
 
