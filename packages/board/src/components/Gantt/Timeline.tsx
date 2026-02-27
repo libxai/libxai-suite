@@ -27,6 +27,9 @@ interface TimelineProps {
   onDependencyDelete?: (taskId: string, dependencyId: string) => void;
   /** v3.0.0: Show baseline ghost bars behind actual bars (Oracle view) */
   showBaseline?: boolean;
+  showCriticalPath?: boolean;
+  showDependencies?: boolean;
+  highlightWeekends?: boolean;
 }
 
 export interface TaskPosition {
@@ -56,6 +59,9 @@ export function Timeline({
   onDependencyCreate,
   onDependencyDelete,
   showBaseline,
+  showCriticalPath = true,
+  showDependencies = true,
+  highlightWeekends = true,
 }: TimelineProps) {
   const HEADER_HEIGHT = 48; // Must match TaskGrid's HEADER_HEIGHT for alignment
 
@@ -552,7 +558,7 @@ export function Timeline({
         )}
 
         {/* Weekend overlays — subtle gray tint + diagonal hatch */}
-        {headers.map((header, index) => {
+        {highlightWeekends && headers.map((header, index) => {
           const nextX = headers[index + 1]?.x || timelineWidth;
           const isWeekendDay = isWeekend(header.date);
 
@@ -801,13 +807,14 @@ export function Timeline({
               onHoverChange={handleTooltipChange} // v0.17.76: Top-layer tooltip
               showBaseline={showBaseline} // v3.0.0: Baseline overlay
               showTaskBarLabels={showTaskBarLabels}
+              showCriticalPath={showCriticalPath}
             />
           );
         })}
 
         {/* v0.17.363: SINGLE dependency layer - rendered AFTER tasks for proper z-order */}
         {/* v0.17.451: Base layer only - hover overlay rendered separately at end */}
-        {flatTasks.map((task, toIndex) => {
+        {showDependencies && flatTasks.map((task, toIndex) => {
           if (!task.dependencies || task.dependencies.length === 0) return null;
           if (!task.startDate || !task.endDate) return null;
 
@@ -902,7 +909,7 @@ export function Timeline({
         ))}
 
         {/* v0.17.451: Dependency hover overlay - rendered LAST to appear on top of all lines */}
-        {hoveredDepLine && (
+        {showDependencies && hoveredDepLine && (
           <DependencyLine
             key={`${hoveredDepLine.key}-hover-overlay`}
             x1={hoveredDepLine.exitX}

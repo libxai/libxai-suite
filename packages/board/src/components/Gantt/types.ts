@@ -532,6 +532,27 @@ export interface GanttConfig {
   showTaskBarLabels?: boolean;
 
   /**
+   * Show/hide critical path highlighting (red border + glow on critical tasks)
+   * @default true
+   */
+  showCriticalPath?: boolean;
+  onShowCriticalPathChange?: (show: boolean) => void;
+
+  /**
+   * Show/hide dependency connector arrows between tasks
+   * @default true
+   */
+  showDependencies?: boolean;
+  onShowDependenciesChange?: (show: boolean) => void;
+
+  /**
+   * Highlight weekend columns with shading/hatch pattern
+   * @default true
+   */
+  highlightWeekends?: boolean;
+  onHighlightWeekendsChange?: (show: boolean) => void;
+
+  /**
    * v3.0.0: Show baseline ghost bars behind actual bars (Oracle view)
    * When true, tasks with baselineStartDate/baselineEndDate show a dashed outline behind the actual bar
    * @default false

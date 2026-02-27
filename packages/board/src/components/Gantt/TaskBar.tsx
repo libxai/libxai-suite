@@ -36,6 +36,7 @@ interface TaskBarProps {
   // v3.0.0: Show baseline ghost bar behind actual bar
   showBaseline?: boolean;
   showTaskBarLabels?: boolean;
+  showCriticalPath?: boolean;
 }
 
 type DragMode = 'none' | 'move' | 'resize-start' | 'resize-end' | 'connect';
@@ -59,6 +60,7 @@ export function TaskBar({
   onHoverChange, // v0.17.76
   showBaseline, // v3.0.0
   showTaskBarLabels = true,
+  showCriticalPath = true,
 }: TaskBarProps) {
   // v0.8.1: Centralized drag state management for better modularity
   const dragState = useDragState(x, width);
@@ -98,7 +100,7 @@ export function TaskBar({
 
   // Detect task states for neutral theme visualization
   const isOverdue = task.endDate && task.endDate < new Date() && task.progress < 100;
-  const isAtRisk = task.isCriticalPath;  // Critical path tasks are "at risk"
+  const isAtRisk = showCriticalPath && task.isCriticalPath;  // Critical path tasks are "at risk"
   const isNeutralTheme = theme.name === 'neutral' || theme.today === '#1C1917';  // Detect neutral theme
   // v0.17.41: Detect completed tasks for strikethrough styling
   const isCompleted = task.status === 'completed' || task.progress === 100;
@@ -118,7 +120,7 @@ export function TaskBar({
 
   // Get task color: priority color > custom color > theme default
   const getTaskColor = () => {
-    if (task.isCriticalPath || isOverdue) return '#EF4444'; // Critical/overdue = Chronos red-500
+    if ((showCriticalPath && task.isCriticalPath) || isOverdue) return '#EF4444'; // Critical/overdue = Chronos red-500
     if (task.color) return task.color; // Custom color takes precedence
     if (task.priority && PRIORITY_COLORS[task.priority]) return PRIORITY_COLORS[task.priority];
     return theme.taskBarPrimary; // Fallback to theme

@@ -142,6 +142,24 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   // v3.0.0: Derive showBaseline from config or viewMode
   const showBaseline = configShowBaseline ?? (viewMode === 'oracle');
 
+  // View Options state (eye icon dropdown)
+  const [showCriticalPath, setShowCriticalPath] = useState(config.showCriticalPath !== false);
+  const [showDependencies, setShowDependencies] = useState(config.showDependencies !== false);
+  const [highlightWeekends, setHighlightWeekends] = useState(config.highlightWeekends !== false);
+
+  const handleShowCriticalPathChange = useCallback((show: boolean) => {
+    setShowCriticalPath(show);
+    config.onShowCriticalPathChange?.(show);
+  }, [config.onShowCriticalPathChange]);
+  const handleShowDependenciesChange = useCallback((show: boolean) => {
+    setShowDependencies(show);
+    config.onShowDependenciesChange?.(show);
+  }, [config.onShowDependenciesChange]);
+  const handleHighlightWeekendsChange = useCallback((show: boolean) => {
+    setHighlightWeekends(show);
+    config.onHighlightWeekendsChange?.(show);
+  }, [config.onHighlightWeekendsChange]);
+
   // v1.5.0: Notify consumer of timeScale/zoom changes
   useEffect(() => { config.onTimeScaleChange?.(timeScale); }, [timeScale]);
   useEffect(() => { config.onZoomChange?.(zoom); }, [zoom]);
@@ -1844,6 +1862,18 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         onExportCSV={showExportButton ? handleExportCSV : undefined}
         onExportJSON={showExportButton ? handleExportJSON : undefined}
         onExportMSProject={showExportButton ? handleExportMSProject : undefined}
+        // View Options (eye icon)
+        showCriticalPath={showCriticalPath}
+        onShowCriticalPathChange={handleShowCriticalPathChange}
+        showDependencies={showDependencies}
+        onShowDependenciesChange={handleShowDependenciesChange}
+        highlightWeekends={highlightWeekends}
+        onHighlightWeekendsChange={handleHighlightWeekendsChange}
+        showBaseline={showBaseline}
+        onShowBaselineChange={(show) => {
+          if (show && viewMode !== 'oracle') handleViewModeChange('oracle');
+          if (!show && viewMode === 'oracle') handleViewModeChange('execution');
+        }}
       />
       </div>
 
@@ -1951,6 +1981,9 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
             onDependencyCreate={handleDependencyCreate}
             onDependencyDelete={handleDependencyDelete}
             showBaseline={showBaseline}
+            showCriticalPath={showCriticalPath}
+            showDependencies={showDependencies}
+            highlightWeekends={highlightWeekends}
           />
         </div>
       </div>

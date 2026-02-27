@@ -450,6 +450,29 @@ interface GanttConfig {
      */
     autoExpandSubtasks?: boolean;
     /**
+     * Show task name labels inside task bars
+     * @default true
+     */
+    showTaskBarLabels?: boolean;
+    /**
+     * Show/hide critical path highlighting (red border + glow on critical tasks)
+     * @default true
+     */
+    showCriticalPath?: boolean;
+    onShowCriticalPathChange?: (show: boolean) => void;
+    /**
+     * Show/hide dependency connector arrows between tasks
+     * @default true
+     */
+    showDependencies?: boolean;
+    onShowDependenciesChange?: (show: boolean) => void;
+    /**
+     * Highlight weekend columns with shading/hatch pattern
+     * @default true
+     */
+    highlightWeekends?: boolean;
+    onHighlightWeekendsChange?: (show: boolean) => void;
+    /**
      * v3.0.0: Show baseline ghost bars behind actual bars (Oracle view)
      * When true, tasks with baselineStartDate/baselineEndDate show a dashed outline behind the actual bar
      * @default false
@@ -2708,12 +2731,20 @@ interface GanttToolbarProps {
     onExportCSV?: () => void;
     onExportJSON?: () => void;
     onExportMSProject?: () => void;
+    showCriticalPath?: boolean;
+    onShowCriticalPathChange?: (show: boolean) => void;
+    showDependencies?: boolean;
+    onShowDependenciesChange?: (show: boolean) => void;
+    highlightWeekends?: boolean;
+    onHighlightWeekendsChange?: (show: boolean) => void;
+    showBaseline?: boolean;
+    onShowBaselineChange?: (show: boolean) => void;
 }
 declare function GanttToolbar({ theme, timeScale, onTimeScaleChange, zoom, onZoomChange, currentTheme, onThemeChange, rowDensity, onRowDensityChange, showThemeSelector, // v0.17.29: Default to false - themes should be in app settings
 showCreateTaskButton, createTaskLabel, // v0.15.0: Will use translations if not provided
 onCreateTask, taskFilter, // v0.17.300: Task filter
 onTaskFilterChange, hideCompleted, // v0.18.0: Hide completed toggle
-onHideCompletedChange, toolbarRightContent, wbsLevel, onWbsLevelChange, maxWbsDepth, viewMode, onViewModeChange, projectForecast, onExportPNG, onExportPDF, onExportExcel, onExportCSV, onExportJSON, onExportMSProject, }: GanttToolbarProps): react_jsx_runtime.JSX.Element;
+onHideCompletedChange, toolbarRightContent, wbsLevel, onWbsLevelChange, maxWbsDepth, viewMode, onViewModeChange, projectForecast, onExportPNG, onExportPDF, onExportExcel, onExportCSV, onExportJSON, onExportMSProject, showCriticalPath, onShowCriticalPathChange, showDependencies, onShowDependenciesChange, highlightWeekends, onHighlightWeekendsChange, showBaseline, onShowBaselineChange, }: GanttToolbarProps): react_jsx_runtime.JSX.Element;
 
 interface TaskGridProps {
     tasks: Task[];
@@ -2766,6 +2797,7 @@ interface TimelineProps {
     locale?: string;
     templates: Required<GanttTemplates>;
     dependencyLineStyle?: DependencyLineStyle;
+    showTaskBarLabels?: boolean;
     onTaskClick?: (task: Task) => void;
     onTaskDblClick?: (task: Task) => void;
     onTaskContextMenu?: (task: Task, event: React.MouseEvent) => void;
@@ -2774,6 +2806,9 @@ interface TimelineProps {
     onDependencyDelete?: (taskId: string, dependencyId: string) => void;
     /** v3.0.0: Show baseline ghost bars behind actual bars (Oracle view) */
     showBaseline?: boolean;
+    showCriticalPath?: boolean;
+    showDependencies?: boolean;
+    highlightWeekends?: boolean;
 }
 interface TaskPosition {
     id: string;
@@ -2784,9 +2819,9 @@ interface TaskPosition {
 }
 declare function Timeline({ tasks, theme, rowHeight: ROW_HEIGHT, timeScale, startDate, endDate, zoom, locale, // v0.17.400: Default to English
 templates, dependencyLineStyle, // v0.17.310
-onTaskClick, onTaskDblClick, // v0.8.0
+showTaskBarLabels, onTaskClick, onTaskDblClick, // v0.8.0
 onTaskContextMenu, // v0.8.0
-onTaskDateChange, onDependencyCreate, onDependencyDelete, showBaseline, }: TimelineProps): react_jsx_runtime.JSX.Element;
+onTaskDateChange, onDependencyCreate, onDependencyDelete, showBaseline, showCriticalPath, showDependencies, highlightWeekends, }: TimelineProps): react_jsx_runtime.JSX.Element;
 
 interface TaskTooltipData {
     task: Task;
@@ -2814,12 +2849,15 @@ interface TaskBarProps {
     onDragMove?: (taskId: string, daysDelta: number, isDragging: boolean) => void;
     onHoverChange?: (tooltipData: TaskTooltipData | null) => void;
     showBaseline?: boolean;
+    showTaskBarLabels?: boolean;
+    showCriticalPath?: boolean;
 }
 declare function TaskBar({ task, x, y, width, theme, dayWidth, startDate, templates, onClick, onDoubleClick, // v0.8.0
 onContextMenu, // v0.8.0
 onDateChange, onDependencyCreate, allTaskPositions, onDragMove, // v0.13.0
 onHoverChange, // v0.17.76
-showBaseline, }: TaskBarProps): react_jsx_runtime.JSX.Element;
+showBaseline, // v3.0.0
+showTaskBarLabels, showCriticalPath, }: TaskBarProps): react_jsx_runtime.JSX.Element;
 
 interface DependencyLineProps {
     x1: number;

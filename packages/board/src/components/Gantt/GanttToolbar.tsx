@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { ZoomIn, ZoomOut, Sun, Moon, Palette, Download, FileImage, FileSpreadsheet, FileText, FileJson, ChevronDown, FolderKanban, Plus, Rows3, Check, Filter, CheckCircle2, PlayCircle, Circle, EyeOff, Search, Eye, Share2, Sparkles, Layers } from 'lucide-react';
+import { ZoomIn, ZoomOut, Sun, Moon, Palette, Download, FileImage, FileSpreadsheet, FileText, FileJson, ChevronDown, FolderKanban, Plus, Rows3, Check, Filter, CheckCircle2, PlayCircle, Circle, EyeOff, Search, Eye, Share2, Sparkles, Layers, GitBranch, CalendarDays, Zap } from 'lucide-react';
 import { TimeScale, Theme, RowDensity, TaskFilterType, ProjectForecast } from './types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGanttI18n } from './GanttI18nContext'; // v0.15.0: i18n
@@ -77,6 +77,15 @@ interface GanttToolbarProps {
   onExportCSV?: () => void;
   onExportJSON?: () => void;
   onExportMSProject?: () => void;
+  // View Options (eye icon dropdown)
+  showCriticalPath?: boolean;
+  onShowCriticalPathChange?: (show: boolean) => void;
+  showDependencies?: boolean;
+  onShowDependenciesChange?: (show: boolean) => void;
+  highlightWeekends?: boolean;
+  onHighlightWeekendsChange?: (show: boolean) => void;
+  showBaseline?: boolean;
+  onShowBaselineChange?: (show: boolean) => void;
 }
 
 // Export Dropdown Component
@@ -414,7 +423,8 @@ interface DensityDropdownProps {
   onChange: (density: RowDensity) => void;
 }
 
-function DensityDropdown({ theme, value, onChange }: DensityDropdownProps) {
+/* exported for potential standalone use */
+export function DensityDropdown({ theme, value, onChange }: DensityDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -1157,6 +1167,182 @@ function ForecastHUD({ theme, forecast }: { theme: any; forecast?: ProjectForeca
   );
 }
 
+// ============================================================================
+// VIEW OPTIONS DROPDOWN (Eye icon)
+// ============================================================================
+interface ViewOptionsDropdownProps {
+  theme: any;
+  showCriticalPath: boolean;
+  onShowCriticalPathChange?: (show: boolean) => void;
+  showBaseline: boolean;
+  onShowBaselineChange?: (show: boolean) => void;
+  highlightWeekends: boolean;
+  onHighlightWeekendsChange?: (show: boolean) => void;
+  showDependencies: boolean;
+  onShowDependenciesChange?: (show: boolean) => void;
+  rowDensity: RowDensity;
+  onRowDensityChange: (density: RowDensity) => void;
+}
+
+function ViewOptionsDropdown({
+  theme,
+  showCriticalPath,
+  onShowCriticalPathChange,
+  showBaseline,
+  onShowBaselineChange,
+  highlightWeekends,
+  onHighlightWeekendsChange,
+  showDependencies,
+  onShowDependenciesChange,
+  rowDensity,
+  onRowDensityChange,
+}: ViewOptionsDropdownProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const t = useGanttI18n();
+  const portalPos = useDropdownPortal(triggerRef, isOpen, 'left');
+  const isDark = theme.bgPrimary === '#050505' || (theme.bgPrimary || '').charAt(1) === '0';
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (
+        triggerRef.current && !triggerRef.current.contains(target) &&
+        dropdownRef.current && !dropdownRef.current.contains(target)
+      ) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
+
+  const toggleOptions = [
+    { key: 'criticalPath', label: t.toolbar.visibility === 'Visibilidad' ? 'Ruta Crítica' : 'Critical Path', icon: Zap, active: showCriticalPath, onChange: onShowCriticalPathChange },
+    { key: 'baselines', label: t.toolbar.visibility === 'Visibilidad' ? 'Líneas Base' : 'Baselines', icon: Layers, active: showBaseline, onChange: onShowBaselineChange },
+    { key: 'weekends', label: t.toolbar.visibility === 'Visibilidad' ? 'Fines de Semana' : 'Weekends', icon: CalendarDays, active: highlightWeekends, onChange: onHighlightWeekendsChange },
+    { key: 'dependencies', label: t.toolbar.visibility === 'Visibilidad' ? 'Dependencias' : 'Dependencies', icon: GitBranch, active: showDependencies, onChange: onShowDependenciesChange },
+  ];
+
+  const densityOptions: { value: RowDensity; label: string }[] = [
+    { value: 'compact', label: t.toolbar.visibility === 'Visibilidad' ? 'Compacto' : 'Compact' },
+    { value: 'comfortable', label: 'Normal' },
+    { value: 'spacious', label: t.toolbar.visibility === 'Visibilidad' ? 'Amplio' : 'Spacious' },
+  ];
+
+  return (
+    <>
+      <motion.button
+        ref={triggerRef}
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center justify-center w-8 h-8 rounded-lg"
+        style={{
+          color: isOpen ? theme.accent : theme.textTertiary,
+          backgroundColor: isOpen ? theme.accentLight : 'transparent',
+        }}
+        whileHover={{ color: theme.textPrimary, backgroundColor: theme.hoverBg }}
+        title={t.toolbar.visibility}
+      >
+        <Eye className="w-4 h-4" />
+      </motion.button>
+
+      {createPortal(
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div
+              ref={dropdownRef}
+              initial={{ opacity: 0, y: -8, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -8, scale: 0.95 }}
+              transition={{ duration: 0.15, ease: 'easeOut' }}
+              className="fixed w-52 rounded-xl overflow-hidden"
+              style={{
+                top: portalPos.top,
+                left: portalPos.left,
+                zIndex: 99999,
+                backgroundColor: isDark ? 'rgba(10, 10, 10, 0.95)' : theme.bgSecondary || '#F8FAFC',
+                border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : theme.border || '#CBD5E1'}`,
+                boxShadow: isDark
+                  ? '0 8px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.04)'
+                  : '0 10px 40px rgba(0, 0, 0, 0.12)',
+                backdropFilter: 'blur(16px)',
+              }}
+            >
+              {/* Header */}
+              <div className="px-3 pt-2.5 pb-1.5">
+                <span className="text-[10px] font-medium uppercase tracking-[0.1em]"
+                  style={{ color: isDark ? 'rgba(255,255,255,0.35)' : theme.textTertiary }}>
+                  {t.toolbar.visibility === 'Visibilidad' ? 'OPCIONES DE VISTA' : 'DISPLAY OPTIONS'}
+                </span>
+              </div>
+
+              {/* Toggle Options */}
+              <div className="py-0.5">
+                {toggleOptions.map((option, index) => {
+                  const Icon = option.icon;
+                  return (
+                    <motion.button
+                      key={option.key}
+                      onClick={() => option.onChange?.(!option.active)}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-[11px] transition-colors"
+                      style={{ color: isDark ? 'rgba(255,255,255,0.85)' : '#111827' }}
+                      whileHover={{ backgroundColor: theme.hoverBg }}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.03 }}
+                    >
+                      <Icon className="w-3.5 h-3.5 flex-shrink-0"
+                        style={{ color: option.active ? theme.accent || '#2E94FF' : theme.textTertiary }} />
+                      <span className="flex-1 text-left">{option.label}</span>
+                      {option.active && <Check className="w-3.5 h-3.5" style={{ color: theme.accent || '#2E94FF' }} />}
+                    </motion.button>
+                  );
+                })}
+              </div>
+
+              {/* Divider */}
+              <div className="mx-3 h-px" style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : theme.borderLight }} />
+
+              {/* Density Section */}
+              <div className="py-0.5">
+                <div className="px-3 pt-2 pb-1">
+                  <span className="text-[10px] font-medium uppercase tracking-[0.1em]"
+                    style={{ color: isDark ? 'rgba(255,255,255,0.35)' : theme.textTertiary }}>
+                    {t.toolbar.visibility === 'Visibilidad' ? 'DENSIDAD' : 'DENSITY'}
+                  </span>
+                </div>
+                {densityOptions.map((option, index) => {
+                  const isActive = rowDensity === option.value;
+                  return (
+                    <motion.button
+                      key={option.value}
+                      onClick={() => onRowDensityChange(option.value)}
+                      className="w-full flex items-center justify-between px-3 py-2 text-[11px] transition-colors"
+                      style={{ color: isDark ? 'rgba(255,255,255,0.85)' : '#111827' }}
+                      whileHover={{ backgroundColor: theme.hoverBg }}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: (toggleOptions.length + index) * 0.03 }}
+                    >
+                      <span style={{ color: isActive ? theme.accent || '#2E94FF' : (isDark ? 'rgba(255,255,255,0.85)' : theme.textPrimary) }}>
+                        {option.label}
+                      </span>
+                      {isActive && <Check className="w-3.5 h-3.5" style={{ color: theme.accent || '#2E94FF' }} />}
+                    </motion.button>
+                  );
+                })}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
+    </>
+  );
+}
+
 export function GanttToolbar({
   theme,
   timeScale,
@@ -1191,6 +1377,15 @@ export function GanttToolbar({
   onExportCSV,
   onExportJSON,
   onExportMSProject,
+  // View Options
+  showCriticalPath = true,
+  onShowCriticalPathChange,
+  showDependencies = true,
+  onShowDependenciesChange,
+  highlightWeekends = true,
+  onHighlightWeekendsChange,
+  showBaseline = false,
+  onShowBaselineChange,
 }: GanttToolbarProps) {
   const t = useGanttI18n(); // v0.15.0: i18n
   const hasExport = onExportPNG || onExportPDF || onExportExcel || onExportCSV || onExportJSON || onExportMSProject;
@@ -1347,9 +1542,6 @@ export function GanttToolbar({
             {/* Divider */}
             <div className="w-px h-5" style={{ backgroundColor: dividerColor }} />
 
-            {/* Density */}
-            <DensityDropdown theme={theme} value={rowDensity} onChange={onRowDensityChange} />
-
             {/* v3.0.0: WBS Level Selector */}
             {onWbsLevelChange && (
               <WbsLevelDropdown
@@ -1382,15 +1574,20 @@ export function GanttToolbar({
             {/* Divider */}
             <div className="w-px h-5" style={{ backgroundColor: dividerColor }} />
 
-            {/* Visibility icon */}
-            <motion.button
-              className="flex items-center justify-center w-8 h-8 rounded-lg"
-              style={{ color: theme.textTertiary, backgroundColor: 'transparent' }}
-              whileHover={{ color: theme.textPrimary, backgroundColor: iconHoverBg }}
-              title={t.toolbar.visibility}
-            >
-              <Eye className="w-4 h-4" />
-            </motion.button>
+            {/* View Options Dropdown (Eye icon) */}
+            <ViewOptionsDropdown
+              theme={theme}
+              showCriticalPath={showCriticalPath}
+              onShowCriticalPathChange={onShowCriticalPathChange}
+              showBaseline={showBaseline}
+              onShowBaselineChange={onShowBaselineChange}
+              highlightWeekends={highlightWeekends}
+              onHighlightWeekendsChange={onHighlightWeekendsChange}
+              showDependencies={showDependencies}
+              onShowDependenciesChange={onShowDependenciesChange}
+              rowDensity={rowDensity}
+              onRowDensityChange={onRowDensityChange}
+            />
 
             {/* Share icon */}
             <motion.button
@@ -1517,13 +1714,6 @@ export function GanttToolbar({
         <div
           className="w-px h-5"
           style={{ backgroundColor: theme.borderLight }}
-        />
-
-        {/* v0.16.0: Row Density as Dropdown Icon */}
-        <DensityDropdown
-          theme={theme}
-          value={rowDensity}
-          onChange={onRowDensityChange}
         />
 
         {/* v3.0.0: WBS Level Selector */}
