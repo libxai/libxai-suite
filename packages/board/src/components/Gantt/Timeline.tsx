@@ -496,7 +496,7 @@ export function Timeline({
 
           {/* Chronos V2: Weekend hatched pattern — diagonal toward right */}
           <pattern id="weekend-hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-            <line x1="0" y1="0" x2="0" y2="8" stroke="rgba(255,255,255,0.055)" strokeWidth="4" />
+            <line x1="0" y1="0" x2="0" y2="8" stroke={(theme.bgPrimary || '').charAt(1) === '0' ? 'rgba(255,255,255,0.055)' : 'rgba(0,0,0,0.04)'} strokeWidth="4" />
           </pattern>
 
           {/* v1.4.29: Diagonal stripes for remaining (no-progress) area of task bars */}
@@ -563,7 +563,7 @@ export function Timeline({
                 y={0}
                 width={nextX - header.x}
                 height={flatTasks.length * ROW_HEIGHT}
-                fill={theme.neonRedGlow ? 'rgba(255,255,255,0.04)' : theme.bgWeekend}
+                fill={(theme.bgPrimary || '').charAt(1) === '0' ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)'}
                 style={{ pointerEvents: 'none' }}
               />
               <rect
