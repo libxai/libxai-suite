@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { ZoomIn, ZoomOut, Sun, Moon, Palette, Download, FileImage, FileSpreadsheet, FileText, FileJson, ChevronDown, FolderKanban, Plus, Rows3, Check, Filter, CheckCircle2, PlayCircle, Circle, EyeOff, Search, Eye, Share2, Sparkles, Layers, GitBranch, CalendarDays, Zap } from 'lucide-react';
+import { ZoomIn, ZoomOut, Sun, Moon, Palette, Download, FileImage, FileSpreadsheet, FileText, FileJson, ChevronDown, FolderKanban, Plus, Rows3, Check, Filter, CheckCircle2, PlayCircle, Circle, EyeOff, Search, Eye, Share2, Layers, GitBranch, CalendarDays, Zap } from 'lucide-react';
 import { TimeScale, Theme, RowDensity, TaskFilterType, ProjectForecast } from './types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGanttI18n } from './GanttI18nContext'; // v0.15.0: i18n
@@ -1514,27 +1514,7 @@ export function GanttToolbar({
             </div>
           </div>
 
-          {/* Center: Create Task (if enabled) */}
-          {showCreateTaskButton && onCreateTask && (
-            <motion.button
-              onClick={onCreateTask}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px]"
-              style={{
-                background: `linear-gradient(135deg, ${theme.accent} 0%, ${theme.accentHover} 100%)`,
-                color: '#FFFFFF',
-                fontFamily: 'Inter, sans-serif',
-                fontWeight: 500,
-                boxShadow: `0 2px 8px ${isDark ? 'rgba(46,148,255,0.3)' : 'rgba(37,99,235,0.3)'}`,
-              }}
-              whileHover={{ scale: 1.02, boxShadow: `0 4px 12px ${isDark ? 'rgba(46,148,255,0.4)' : 'rgba(37,99,235,0.4)'}` }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>{createTaskLabel || t.toolbar.createTask}</span>
-            </motion.button>
-          )}
-
-          {/* Right: Time Capsule + Icons + AI Button */}
+          {/* Right: Time Capsule + Icons + Create Task */}
           <div className="flex items-center gap-3">
             {/* Time Capsule */}
             <TimeCapsule value={timeScale} onChange={onTimeScaleChange} theme={theme} />
@@ -1612,24 +1592,25 @@ export function GanttToolbar({
               />
             )}
 
-            {/* AI Simulate Scenario Button */}
-            <motion.button
-              className="flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-medium"
-              style={{
-                backgroundColor: 'transparent',
-                border: '1px solid rgba(168,85,247,0.4)',
-                color: '#A855F7',
-                fontFamily: 'Inter, sans-serif',
-                background: 'linear-gradient(135deg, rgba(168,85,247,0.1) 0%, rgba(139,92,246,0.05) 100%)',
-              }}
-              whileHover={{
-                borderColor: 'rgba(168,85,247,0.7)',
-                boxShadow: '0 0 12px rgba(168,85,247,0.2)',
-              }}
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>{t.toolbar.simulateScenario}</span>
-            </motion.button>
+            {/* Create Task Button */}
+            {showCreateTaskButton && onCreateTask && (
+              <motion.button
+                onClick={onCreateTask}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px]"
+                style={{
+                  background: `linear-gradient(135deg, ${theme.accent} 0%, ${theme.accentHover} 100%)`,
+                  color: '#FFFFFF',
+                  fontFamily: 'Inter, sans-serif',
+                  fontWeight: 500,
+                  boxShadow: `0 2px 8px ${isDark ? 'rgba(46,148,255,0.3)' : 'rgba(37,99,235,0.3)'}`,
+                }}
+                whileHover={{ scale: 1.02, boxShadow: `0 4px 12px ${isDark ? 'rgba(46,148,255,0.4)' : 'rgba(37,99,235,0.4)'}` }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>{createTaskLabel || t.toolbar.createTask}</span>
+              </motion.button>
+            )}
           </div>
         </div>
 
