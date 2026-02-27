@@ -1671,45 +1671,47 @@ export function GanttToolbar({
             {/* Divider */}
             <div className="w-px h-5" style={{ backgroundColor: dividerColor }} />
 
-            {/* Segmented Control: Execution | Oracle View */}
-            <div
-              className="inline-flex items-center rounded-full p-0.5"
-              style={{
-                backgroundColor: isDark ? '#000000' : theme.bgSecondary,
-                border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : theme.border}`,
-              }}
-            >
-              <motion.button
-                onClick={() => onViewModeChange?.('execution')}
-                className="px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors"
+            {/* Segmented Control: Execution | Oracle View — only if onViewModeChange provided */}
+            {onViewModeChange && (
+              <div
+                className="inline-flex items-center rounded-full p-0.5"
                 style={{
-                  backgroundColor: viewMode === 'execution'
-                    ? (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)')
-                    : 'transparent',
-                  color: viewMode === 'execution' ? theme.textPrimary : theme.textTertiary,
-                  fontFamily: 'Inter, sans-serif',
+                  backgroundColor: isDark ? '#000000' : theme.bgSecondary,
+                  border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : theme.border}`,
                 }}
-                whileHover={viewMode !== 'execution' ? { color: theme.textSecondary } : {}}
               >
-                {t.toolbar.viewExecution}
-              </motion.button>
-              <motion.button
-                onClick={() => onViewModeChange?.('oracle')}
-                className="px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors"
-                style={{
-                  backgroundColor: viewMode === 'oracle'
-                    ? (isDark ? 'rgba(46,148,255,0.15)' : 'rgba(37,99,235,0.08)')
-                    : 'transparent',
-                  color: viewMode === 'oracle'
-                    ? (isDark ? '#2E94FF' : '#2E94FF')
-                    : theme.textTertiary,
-                  fontFamily: 'Inter, sans-serif',
-                }}
-                whileHover={viewMode !== 'oracle' ? { color: theme.textSecondary } : {}}
-              >
-                {t.toolbar.viewOracle}
-              </motion.button>
-            </div>
+                <motion.button
+                  onClick={() => onViewModeChange('execution')}
+                  className="px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors"
+                  style={{
+                    backgroundColor: viewMode === 'execution'
+                      ? (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)')
+                      : 'transparent',
+                    color: viewMode === 'execution' ? theme.textPrimary : theme.textTertiary,
+                    fontFamily: 'Inter, sans-serif',
+                  }}
+                  whileHover={viewMode !== 'execution' ? { color: theme.textSecondary } : {}}
+                >
+                  {t.toolbar.viewExecution}
+                </motion.button>
+                <motion.button
+                  onClick={() => onViewModeChange('oracle')}
+                  className="px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors"
+                  style={{
+                    backgroundColor: viewMode === 'oracle'
+                      ? (isDark ? 'rgba(46,148,255,0.15)' : 'rgba(37,99,235,0.08)')
+                      : 'transparent',
+                    color: viewMode === 'oracle'
+                      ? (isDark ? '#2E94FF' : '#2E94FF')
+                      : theme.textTertiary,
+                    fontFamily: 'Inter, sans-serif',
+                  }}
+                  whileHover={viewMode !== 'oracle' ? { color: theme.textSecondary } : {}}
+                >
+                  {t.toolbar.viewOracle}
+                </motion.button>
+              </div>
+            )}
           </div>
 
           {/* Right: Time Capsule + Icons + Create Task */}
@@ -1799,8 +1801,8 @@ export function GanttToolbar({
           </div>
         </div>
 
-        {/* Bar 2: Forecast HUD Panel (48px) */}
-        <ForecastHUD theme={theme} forecast={projectForecast} />
+        {/* Bar 2: Forecast HUD Panel (48px) — only if forecast data provided */}
+        {projectForecast && <ForecastHUD theme={theme} forecast={projectForecast} />}
       </div>
     );
   }
