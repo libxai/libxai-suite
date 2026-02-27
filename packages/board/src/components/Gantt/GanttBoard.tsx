@@ -1943,6 +1943,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
             locale={locale} // v0.17.400: Pass locale for date formatting
             templates={mergedTemplates}
             dependencyLineStyle={config?.dependencyLineStyle} // v0.17.310
+            showTaskBarLabels={config?.showTaskBarLabels !== false} // default true
             onTaskClick={onTaskClick}
             onTaskDblClick={handleTaskDblClickInternal} // v0.10.0: Use internal handler that opens modal
             onTaskContextMenu={handleTaskContextMenu} // v0.8.0: Now uses our handler for Split feature

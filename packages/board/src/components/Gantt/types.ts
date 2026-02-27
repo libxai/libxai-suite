@@ -526,6 +526,12 @@ export interface GanttConfig {
   autoExpandSubtasks?: boolean;
 
   /**
+   * Show task name labels inside task bars
+   * @default true
+   */
+  showTaskBarLabels?: boolean;
+
+  /**
    * v3.0.0: Show baseline ghost bars behind actual bars (Oracle view)
    * When true, tasks with baselineStartDate/baselineEndDate show a dashed outline behind the actual bar
    * @default false

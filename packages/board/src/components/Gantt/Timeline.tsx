@@ -18,6 +18,7 @@ interface TimelineProps {
   locale?: string; // v0.17.400: Locale for date formatting (e.g., 'en', 'es')
   templates: Required<GanttTemplates>; // v0.8.0
   dependencyLineStyle?: DependencyLineStyle; // v0.17.310: Dependency line style
+  showTaskBarLabels?: boolean;
   onTaskClick?: (task: Task) => void;
   onTaskDblClick?: (task: Task) => void; // v0.8.0
   onTaskContextMenu?: (task: Task, event: React.MouseEvent) => void; // v0.8.0
@@ -47,6 +48,7 @@ export function Timeline({
   locale = 'en', // v0.17.400: Default to English
   templates,
   dependencyLineStyle = 'curved', // v0.17.310
+  showTaskBarLabels = true,
   onTaskClick,
   onTaskDblClick, // v0.8.0
   onTaskContextMenu, // v0.8.0
@@ -798,6 +800,7 @@ export function Timeline({
               onDragMove={handleTaskDragMove} // v0.13.0
               onHoverChange={handleTooltipChange} // v0.17.76: Top-layer tooltip
               showBaseline={showBaseline} // v3.0.0: Baseline overlay
+              showTaskBarLabels={showTaskBarLabels}
             />
           );
         })}

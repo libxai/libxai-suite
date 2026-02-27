@@ -35,6 +35,7 @@ interface TaskBarProps {
   onHoverChange?: (tooltipData: TaskTooltipData | null) => void;
   // v3.0.0: Show baseline ghost bar behind actual bar
   showBaseline?: boolean;
+  showTaskBarLabels?: boolean;
 }
 
 type DragMode = 'none' | 'move' | 'resize-start' | 'resize-end' | 'connect';
@@ -57,6 +58,7 @@ export function TaskBar({
   onDragMove, // v0.13.0
   onHoverChange, // v0.17.76
   showBaseline, // v3.0.0
+  showTaskBarLabels = true,
 }: TaskBarProps) {
   // v0.8.1: Centralized drag state management for better modularity
   const dragState = useDragState(x, width);
@@ -1113,7 +1115,7 @@ export function TaskBar({
       {/* Task Name Text - v0.8.0: Using taskLabel template */}
       {/* v0.8.1: Hide text for split tasks to avoid blocking segment clicks */}
       {/* Chronos: Hide label for summary tasks (thin-line style, name shown in grid only) */}
-      {displayWidth > 60 && !task.segments && !(isChronos && isSummaryTask) && (() => {
+      {showTaskBarLabels && displayWidth > 60 && !task.segments && !(isChronos && isSummaryTask) && (() => {
         const label = templates.taskLabel(task);
         const labelText = typeof label === 'string' ? label : task.name;
         const truncated = labelText.length > Math.floor(displayWidth / 8)
