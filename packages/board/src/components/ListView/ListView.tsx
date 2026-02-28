@@ -775,11 +775,6 @@ export function ListView({
     return typeof label === 'string' ? label : String(label || column.type);
   }, [t, locale]);
 
-  // Calculate total width for grid and column percentages
-  const totalWidth = useMemo(() => {
-    return visibleColumns.reduce((sum, col) => sum + col.width, 0) + (allowColumnCustomization ? 48 : 0);
-  }, [visibleColumns, allowColumnCustomization]);
-
   // v2.1.0: Calculate proportional percentage for each column so they fill available width
   const columnWidthPercent = useMemo(() => {
     const colTotal = visibleColumns.reduce((sum, col) => sum + col.width, 0);
@@ -941,7 +936,7 @@ export function ListView({
       <div style={{ display: 'flex', flex: '1 1 0%', overflow: 'hidden', minHeight: 0 }}>
       {/* Table Container */}
       <div style={{ flex: '1 1 0%', overflow: 'auto', minHeight: 0 }}>
-        <div style={{ width: '100%', minWidth: totalWidth }}>
+        <div style={{ width: '100%' }}>
           {/* List Header */}
           <div
             className={cn(

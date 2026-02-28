@@ -97,6 +97,7 @@ export function TaskBar({
   const height = 18; // v1.4.29: Slimmer elegant bars (was 24)
   // Chronos V2: Angular bars (4px) vs rounded (8px)
   const isChronos = !!theme.executionBarBg;
+  const isDark = theme.textPrimary === '#FFFFFF' || theme.bgPrimary === '#050505';
   const borderRadius = isChronos ? 3 : 6;
   // Chronos: Any task with children is a "summary" bar (thin line, no label)
   const isSummaryTask = task.subtasks && task.subtasks.length > 0;
@@ -768,10 +769,9 @@ export function TaskBar({
               height={height}
               rx={borderRadius}
               fill="none"
-              stroke={theme.textTertiary}
-              strokeWidth={1}
-              strokeDasharray="4 3"
-              opacity={0.4}
+              stroke={isDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.35)'}
+              strokeWidth={1.5}
+              strokeDasharray="6 4"
             />
             {/* Delay overshoot — red zone where actual exceeds baseline */}
             {hasDelay && actualEndX > blEndX && (

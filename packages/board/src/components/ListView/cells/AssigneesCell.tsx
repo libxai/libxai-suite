@@ -99,9 +99,12 @@ export function AssigneesCell({
         initials: getInitials(user.name),
         color: user.color || getAvatarColor(user.name).replace('bg-', '').replace('-500', ''),
         avatar: user.avatarUrl,
-      };
+        id: user.id,
+      } as any;
       onChange([...value, newAssignee]);
     }
+    setIsOpen(false);
+    setSearch('');
   };
 
   // Display mode (no onChange or disabled)

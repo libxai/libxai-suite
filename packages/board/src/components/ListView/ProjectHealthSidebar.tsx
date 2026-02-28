@@ -21,7 +21,7 @@ export function ProjectHealthSidebar({
 
   return (
     <div className={cn(
-      'w-[280px] flex-shrink-0 overflow-y-auto border-l',
+      'w-[220px] xl:w-[280px] flex-shrink-0 overflow-y-auto border-l',
       isDark ? 'bg-[#141414] border-[#222]' : 'bg-gray-50 border-gray-200'
     )}>
       {/* Header */}
