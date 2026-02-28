@@ -3511,6 +3511,9 @@ interface GanttTranslations {
         expectedFinish: string;
         confidence: string;
         costAtCompletion: string;
+        delayLabel: string;
+        earlyLabel: string;
+        onTimeLabel: string;
         baselines: string;
         visibility: string;
         share: string;

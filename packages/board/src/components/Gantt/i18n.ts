@@ -68,6 +68,9 @@ export interface GanttTranslations {
     expectedFinish: string;
     confidence: string;
     costAtCompletion: string;
+    delayLabel: string;
+    earlyLabel: string;
+    onTimeLabel: string;
     baselines: string;
     visibility: string;
     share: string;
@@ -238,6 +241,9 @@ export const en: GanttTranslations = {
     expectedFinish: 'Expected Finish',
     confidence: 'Confidence',
     costAtCompletion: 'Cost at Completion',
+    delayLabel: 'Delay',
+    earlyLabel: 'Early',
+    onTimeLabel: 'On Time',
     baselines: 'Baselines',
     visibility: 'Visibility',
     share: 'Share',
@@ -402,6 +408,9 @@ export const es: GanttTranslations = {
     expectedFinish: 'Fin Estimado',
     confidence: 'Confianza',
     costAtCompletion: 'Costo al Completar',
+    delayLabel: 'Retraso',
+    earlyLabel: 'Adelanto',
+    onTimeLabel: 'A Tiempo',
     baselines: 'Líneas Base',
     visibility: 'Visibilidad',
     share: 'Compartir',

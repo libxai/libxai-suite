@@ -1224,11 +1224,11 @@ function ForecastHUD({ theme, forecast }: { theme: any; forecast?: ProjectForeca
     ? forecast.expectedFinish.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
     : '—';
 
-  // Delay badge
+  // Delay badge — always show when baseline is active (including "On Time" at 0)
   const delay = forecast?.delayDays;
-  const hasDelay = delay != null && delay !== 0;
+  const hasDelay = delay != null;
   const delayLabel = delay != null
-    ? (delay > 0 ? `+${delay}d Delay` : delay < 0 ? `${delay}d Early` : 'On Time')
+    ? (delay > 0 ? `+${delay}d ${t.toolbar.delayLabel}` : delay < 0 ? `${delay}d ${t.toolbar.earlyLabel}` : t.toolbar.onTimeLabel)
     : null;
   const delayColor = delay != null && delay > 0
     ? { bg: isDark ? 'rgba(239,68,68,0.15)' : 'rgba(220,38,38,0.1)', text: isDark ? '#EF4444' : '#DC2626' }
