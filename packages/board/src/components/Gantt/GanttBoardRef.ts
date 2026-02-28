@@ -147,6 +147,14 @@ export interface GanttBoardRef {
    */
   collapseAll: () => void;
 
+  /**
+   * v3.0.0: Collapse tasks to a specific WBS level
+   * Level 1 = only root tasks visible
+   * Level 2 = root + first-level children
+   * 'all' = expand everything
+   */
+  collapseToLevel: (level: number | 'all') => void;
+
   // ==================== Undo/Redo ====================
 
   /**

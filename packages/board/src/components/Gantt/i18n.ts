@@ -57,6 +57,27 @@ export interface GanttTranslations {
     // v0.18.0: Hide completed toggle
     hideCompleted: string;
     toDo: string;
+    // v3.0.0: WBS Level selector
+    wbsLevel: string;
+    wbsAllLevels: string;
+    // v3.1.0: Chronos view modes & forecast
+    viewExecution: string;
+    viewOracle: string;
+    simulateScenario: string;
+    projectForecast: string;
+    expectedFinish: string;
+    confidence: string;
+    costAtCompletion: string;
+    delayLabel: string;
+    earlyLabel: string;
+    onTimeLabel: string;
+    budgetOver: string;
+    budgetUnder: string;
+    baselines: string;
+    visibility: string;
+    share: string;
+    copySnapshotLink: string;
+    copied: string;
   };
 
   // v0.16.0: Context menu labels (right-click menu)
@@ -211,6 +232,27 @@ export const en: GanttTranslations = {
     // v0.18.0: Hide completed toggle
     hideCompleted: 'Hide Completed Tasks',
     toDo: 'To Do / Pending',
+    // v3.0.0: WBS Level selector
+    wbsLevel: 'Level',
+    wbsAllLevels: 'All',
+    // v3.1.0: Chronos view modes & forecast
+    viewExecution: 'Execution',
+    viewOracle: 'Pulse View',
+    simulateScenario: 'Simulate Scenario',
+    projectForecast: 'PROJECT FORECAST',
+    expectedFinish: 'Expected Finish',
+    confidence: 'Confidence',
+    costAtCompletion: 'Cost at Completion',
+    delayLabel: 'Delay',
+    earlyLabel: 'Early',
+    onTimeLabel: 'On Time',
+    budgetOver: 'Over',
+    budgetUnder: 'Under',
+    baselines: 'Baselines',
+    visibility: 'Visibility',
+    share: 'Share',
+    copySnapshotLink: 'Copy Snapshot Link',
+    copied: 'Copied!',
   },
 
   // v0.16.0: Context menu labels (right-click menu)
@@ -359,6 +401,27 @@ export const es: GanttTranslations = {
     // v0.18.0: Hide completed toggle
     hideCompleted: 'Ocultar Tareas Completadas',
     toDo: 'Por Hacer / Pendiente',
+    // v3.0.0: WBS Level selector
+    wbsLevel: 'Nivel',
+    wbsAllLevels: 'Todos',
+    // v3.1.0: Chronos view modes & forecast
+    viewExecution: 'Ejecución',
+    viewOracle: 'Vista Pulse',
+    simulateScenario: 'Simular Escenario',
+    projectForecast: 'PRONÓSTICO DEL PROYECTO',
+    expectedFinish: 'Fin Estimado',
+    confidence: 'Confianza',
+    costAtCompletion: 'Costo al Completar',
+    delayLabel: 'Retraso',
+    earlyLabel: 'Adelanto',
+    onTimeLabel: 'A Tiempo',
+    budgetOver: 'Excedido',
+    budgetUnder: 'Bajo',
+    baselines: 'Líneas Base',
+    visibility: 'Visibilidad',
+    share: 'Compartir',
+    copySnapshotLink: 'Copiar enlace de vista',
+    copied: '¡Copiado!',
   },
 
   // v0.16.0: Context menu labels (right-click menu)

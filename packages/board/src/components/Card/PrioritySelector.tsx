@@ -9,10 +9,10 @@ export interface PrioritySelectorProps {
 }
 
 const PRIORITY_CONFIG = {
-  URGENT: { label: 'Urgent', color: '#E74C3C' },
-  HIGH: { label: 'High', color: '#E67E22' },
-  MEDIUM: { label: 'Normal', color: '#F1C40F' },
-  LOW: { label: 'Low', color: '#2ECC71' },
+  URGENT: { label: 'Urgent', color: '#EF4444' },
+  HIGH: { label: 'High', color: '#F97316' },
+  MEDIUM: { label: 'Normal', color: '#F59E0B' },
+  LOW: { label: 'Low', color: '#10B981' },
 } as const
 
 const CLEAR_COLOR = '#BDC3C7'
@@ -194,7 +194,7 @@ export function PrioritySelector({
                   <span className="font-semibold text-sm">{config.label}</span>
                   {priority === key && (
                     <svg className="ml-auto" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                      <path d="M13.5 4.5L6 12L2.5 8.5" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M13.5 4.5L6 12L2.5 8.5" stroke="#2E94FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   )}
                 </button>
@@ -225,7 +225,7 @@ export function PrioritySelector({
                 <span className="font-semibold text-sm">Clear</span>
                 {!priority && (
                   <svg className="ml-auto" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <path d="M13.5 4.5L6 12L2.5 8.5" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M13.5 4.5L6 12L2.5 8.5" stroke="#2E94FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 )}
               </button>

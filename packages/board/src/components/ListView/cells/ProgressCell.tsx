@@ -57,23 +57,23 @@ export function ProgressCell({
   return (
     <div
       className={cn(
-        "flex items-center gap-2 w-full rounded px-1 py-0.5 transition-all duration-300",
+        "flex items-center gap-2 w-full rounded px-1 py-0.5 transition-[background-color] duration-300",
         // Flash animation
-        isFlashing && (isDark ? 'bg-green-500/30' : 'bg-green-500/20')
+        isFlashing && (isDark ? 'bg-[#32D74B]/30' : 'bg-[#32D74B]/20')
       )}
     >
       <div
         onClick={handleClick}
         className={cn(
           'flex-1 h-2 rounded-full overflow-hidden',
-          isDark ? 'bg-white/10' : 'bg-gray-200',
+          isDark ? 'bg-white/[0.05]' : 'bg-gray-200',
           !disabled && onChange && 'cursor-pointer'
         )}
       >
         <div
           className={cn(
-            'h-full rounded-full transition-all',
-            displayPercent === 100 ? 'bg-green-500' : 'bg-[#3B82F6]',
+            'h-full rounded-full transition-[width]',
+            displayPercent === 100 ? 'bg-[#32D74B]' : 'bg-[#007BFF]',
             isAnimating && 'transition-none'
           )}
           style={{ width: `${displayPercent}%` }}
@@ -81,8 +81,8 @@ export function ProgressCell({
       </div>
       <span
         className={cn(
-          'text-xs w-8 text-right tabular-nums transition-all',
-          isDark ? 'text-[#9CA3AF]' : 'text-gray-500',
+          'text-xs w-8 text-right tabular-nums font-mono',
+          isDark ? 'text-white/60' : 'text-gray-500',
           // Slot machine animation emphasis
           isAnimating && 'font-medium scale-105'
         )}

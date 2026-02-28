@@ -2,6 +2,7 @@
  * CalendarBoard Component Types
  * @version 0.17.241
  */
+import type { ReactNode } from 'react';
 
 import type { Task, TaskTag } from '../Gantt/types';
 import type { User, Attachment, TimeEntry, TimeTrackingSummary, TimerState, TimeLogInput } from '../../types';
@@ -76,6 +77,14 @@ export interface CalendarTheme {
 
   // Interactive
   focusRing: string;
+
+  // Chronos V2.0 extended tokens
+  glass: string;
+  glassBorder: string;
+  glassHover: string;
+  neonRed: string;
+  glowBlue: string;
+  glowRed: string;
 }
 
 /**
@@ -119,6 +128,10 @@ export interface CalendarConfig {
   enableDragDrop?: boolean;
   /** Show task details on hover */
   showTooltip?: boolean;
+  /** Show right sidebar with unscheduled/backlog tasks (default: true) */
+  showBacklog?: boolean;
+  /** Render custom content on the right side of header (e.g. lens toggle) */
+  toolbarRightContent?: ReactNode;
 }
 
 /**
@@ -188,6 +201,21 @@ export interface CalendarTranslations {
     newTask: string;
     viewAll: string;
     week: string;
+    // v2.0.0: Chronos Oracle labels
+    backlogTitle: string;
+    systemStatus: string;
+    budgetUtil: string;
+    variance: string;
+    cost: string;
+    estimate: string;
+    sold: string;
+    cashOut: string;
+    typeToAdd: string;
+    critical: string;
+    blocker: string;
+    risk: string;
+    delay: string;
+    days: string;
   };
 
   // Tooltips
@@ -347,4 +375,16 @@ export interface CalendarBoardProps {
 
   /** Blur financial data (tiempo ofertado) for unauthorized users */
   blurFinancials?: boolean;
+
+  /** v2.1.0: Suppress internal TaskDetailModal (consumer provides own drawer) */
+  suppressDetailModal?: boolean;
+
+  // ========================================================================
+  // v5.2.0: Financial lens
+  // ========================================================================
+
+  /** Display mode: 'hours' shows Xh, 'financial' shows $X (hours × hourlyRate) */
+  lens?: 'hours' | 'financial';
+  /** Rate used to convert hours → dollars when lens='financial' */
+  hourlyRate?: number;
 }

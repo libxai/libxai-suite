@@ -14,6 +14,8 @@ import {
   ArrowUpDown,
   Search,
   Plus,
+  FolderOpen,
+  Folder,
 } from 'lucide-react';
 import type { Task } from '../Gantt/types';
 import type {
@@ -39,12 +41,18 @@ import { DropdownCell } from './cells/DropdownCell';
 import { CheckboxCell } from './cells/CheckboxCell';
 import { TagsCell } from './cells/TagsCell';
 import { TimeCell } from './cells/TimeCell';
+// v2.0.0: Chronos Interactive Time Manager cells
+import { ScheduleVarianceCell } from './cells/ScheduleVarianceCell';
+import { HoursBarCell } from './cells/HoursBarCell';
+import { TeamLoadCell } from './cells/TeamLoadCell';
+import { BlockersCell } from './cells/BlockersCell';
 
 // Components
 import { TableContextMenu } from './TableContextMenu';
 import { ColumnSelector } from './ColumnSelector';
 import { CreateFieldModal } from './CreateFieldModal';
 import { StatusFilter, type StatusFilterValue } from './StatusFilter';
+import { ProjectHealthSidebar } from './ProjectHealthSidebar';
 
 type SortField = 'name' | 'startDate' | 'endDate' | 'progress' | 'status' | 'priority' | string;
 type SortOrder = 'asc' | 'desc';
@@ -58,43 +66,13 @@ const DEFAULT_COLUMNS: TableColumn[] = [
   { id: 'progress', type: 'progress', label: 'Progress', width: 100, visible: true, sortable: true, resizable: true },
 ];
 
-/** Time fields that should roll up from children to parents */
-const TIME_ROLLUP_FIELDS = [
-  'estimatedTime', 'quotedTime', 'elapsedTime',
-  'effortMinutes', 'timeLoggedMinutes', 'soldEffortMinutes',
-] as const;
-
-/**
- * Recursively compute rolled-up time totals for parent tasks.
- * Returns a new tree where each parent's time fields = sum of all descendant leaves.
- * Leaf tasks keep their original values untouched.
- */
-function applyTimeRollup(tasks: Task[]): Task[] {
-  return tasks.map(task => {
-    if (!task.subtasks?.length) return task; // leaf — keep as-is
-    const rolledChildren = applyTimeRollup(task.subtasks);
-    const sums: Record<string, number> = {};
-    for (const field of TIME_ROLLUP_FIELDS) {
-      let total = 0;
-      for (const child of rolledChildren) {
-        const v = (child as any)[field];
-        if (typeof v === 'number' && v > 0) total += v;
-      }
-      if (total > 0) sums[field] = total;
-    }
-    return { ...task, ...sums, subtasks: rolledChildren } as Task;
-  });
-}
-
 /**
  * Flatten hierarchical tasks to flat list with level info
  */
 function flattenTasksWithLevel(tasks: Task[], level = 0): FlattenedTask[] {
   const result: FlattenedTask[] = [];
-  // Sort by position at each level to match Gantt ordering
-  const sorted = [...tasks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
 
-  for (const task of sorted) {
+  for (const task of tasks) {
     result.push({
       ...task,
       level,
@@ -110,6 +88,45 @@ function flattenTasksWithLevel(tasks: Task[], level = 0): FlattenedTask[] {
 }
 
 /**
+ * Calculate average SPI (Schedule Performance Index) for a group task's subtasks
+ * SPI = progress / expected_progress (based on elapsed time vs duration)
+ */
+function calculateGroupSPI(task: Task): number | null {
+  const subtasks = task.subtasks;
+  if (!subtasks?.length) return null;
+
+  const now = new Date();
+  let totalSPI = 0;
+  let count = 0;
+
+  for (const sub of subtasks) {
+    if (!sub.startDate || !sub.endDate) continue;
+    const start = sub.startDate.getTime();
+    const end = sub.endDate.getTime();
+    const duration = end - start;
+    if (duration <= 0) continue;
+
+    const elapsed = Math.max(0, Math.min(now.getTime() - start, duration));
+    const expectedProgress = (elapsed / duration) * 100;
+    if (expectedProgress <= 0) continue;
+
+    const spi = (sub.progress || 0) / expectedProgress;
+    totalSPI += spi;
+    count++;
+  }
+
+  return count > 0 ? totalSPI / count : null;
+}
+
+/**
+ * Count resource conflicts in a group (subtasks with >100% team load)
+ */
+function countResourceConflicts(task: Task): number {
+  if (!task.subtasks?.length) return 0;
+  return task.subtasks.filter(sub => sub.teamLoad && sub.teamLoad.percentage >= 100).length;
+}
+
+/**
  * Main ListView Component
  */
 export function ListView({
@@ -122,6 +139,7 @@ export function ListView({
   style,
   availableUsers = [],
   customFields = [],
+  toolbarRightContent,
 }: ListViewProps) {
   const {
     theme: themeName = 'dark',
@@ -140,6 +158,11 @@ export function ListView({
     persistFilter = false,
     // v1.4.9: Governance v2.0 - Financial blur
     financialBlur,
+    // v2.0.0: Chronos health sidebar
+    healthSidebar,
+    // v2.3.0: Financial lens
+    lens = 'hours',
+    hourlyRate = 0,
   } = config;
 
   const t = mergeListViewTranslations(locale, customTranslations);
@@ -166,7 +189,7 @@ export function ListView({
   }, [persistFilter]);
 
   // State
-  const [sortField, setSortField] = useState<SortField>('position');
+  const [sortField, setSortField] = useState<SortField>('startDate');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilterValue>(() => loadPersistedFilter().statusFilter);
@@ -342,9 +365,7 @@ export function ListView({
 
   // Filter and sort tasks
   const displayTasks = useMemo(() => {
-    // Roll up time fields from children to parents before flattening
-    const rolledUpTasks = applyTimeRollup(tasks);
-    let flatTasks = flattenTasksWithLevel(rolledUpTasks);
+    let flatTasks = flattenTasksWithLevel(tasks);
 
     // Filter by search
     if (searchQuery.trim()) {
@@ -364,16 +385,11 @@ export function ListView({
       flatTasks = flatTasks.filter(task => getTaskStatus(task) !== 'completed');
     }
 
-    // Sort — skip when 'position' since flattenTasksWithLevel already sorts by position at each hierarchy level
-    if (sortField === 'position') return flatTasks;
+    // Sort
     flatTasks.sort((a, b) => {
       let aVal: string | number, bVal: string | number;
 
       switch (sortField) {
-        case 'position':
-          aVal = a.position ?? 0;
-          bVal = b.position ?? 0;
-          break;
         case 'name':
           aVal = a.name.toLowerCase();
           bVal = b.name.toLowerCase();
@@ -412,7 +428,7 @@ export function ListView({
   }, [tasks, searchQuery, statusFilter, hideCompleted, sortField, sortOrder, getTaskStatus]);
 
   // Render cell based on column type
-  const renderCell = useCallback((task: Task, column: TableColumn, isParent = false) => {
+  const renderCell = useCallback((task: Task, column: TableColumn) => {
     const handleUpdate = (updates: Partial<Task>) => {
       callbacks.onTaskUpdate?.({ ...task, ...updates });
     };
@@ -572,16 +588,17 @@ export function ListView({
         );
 
       // v0.18.3: Time tracking columns
-      // Parent tasks show rolled-up totals (read-only); only leaf tasks are editable
       case 'estimatedTime': {
         const isCompleted = task.status === 'completed' || task.progress === 100;
         return (
           <TimeCell
             value={(task as any).estimatedTime}
-            onChange={isParent ? undefined : (minutes) => handleUpdate({ estimatedTime: minutes } as any)}
+            onChange={(minutes) => handleUpdate({ estimatedTime: minutes } as any)}
             isDark={isDark}
             locale={locale}
-            disabled={isCompleted || isParent}
+            disabled={isCompleted}
+            lens={lens}
+            hourlyRate={hourlyRate}
           />
         );
       }
@@ -596,11 +613,13 @@ export function ListView({
         return (
           <TimeCell
             value={(task as any).quotedTime}
-            onChange={isParent ? undefined : (minutes) => handleUpdate({ quotedTime: minutes } as any)}
+            onChange={(minutes) => handleUpdate({ quotedTime: minutes } as any)}
             isDark={isDark}
             locale={locale}
-            disabled={isCompleted || isParent}
+            disabled={isCompleted}
             isBlurred={shouldBlurQuoted}
+            lens={lens}
+            hourlyRate={hourlyRate}
           />
         );
       }
@@ -610,10 +629,12 @@ export function ListView({
         return (
           <TimeCell
             value={(task as any).elapsedTime}
-            onChange={isParent ? undefined : (minutes) => handleUpdate({ elapsedTime: minutes } as any)}
+            onChange={(minutes) => handleUpdate({ elapsedTime: minutes } as any)}
             isDark={isDark}
             locale={locale}
-            disabled={isCompleted || isParent}
+            disabled={isCompleted}
+            lens={lens}
+            hourlyRate={hourlyRate}
           />
         );
       }
@@ -624,10 +645,12 @@ export function ListView({
         return (
           <TimeCell
             value={(task as any).effortMinutes}
-            onChange={isParent ? undefined : (minutes) => handleUpdate({ effortMinutes: minutes } as any)}
+            onChange={(minutes) => handleUpdate({ effortMinutes: minutes } as any)}
             isDark={isDark}
             locale={locale}
-            disabled={isCompleted || isParent}
+            disabled={isCompleted}
+            lens={lens}
+            hourlyRate={hourlyRate}
           />
         );
       }
@@ -637,14 +660,16 @@ export function ListView({
         return (
           <TimeCell
             value={(task as any).timeLoggedMinutes}
-            onChange={isParent ? undefined : (callbacks.onLogTime ? (minutes) => {
+            onChange={callbacks.onLogTime ? (minutes) => {
               // Inline time logging - pass minutes directly to callback
               callbacks.onLogTime?.(task, minutes);
-            } : undefined)}
+            } : undefined}
             isDark={isDark}
             locale={locale}
             placeholder={locale === 'es' ? 'Agregar' : 'Add'}
-            disabled={isCompleted || isParent}
+            disabled={isCompleted}
+            lens={lens}
+            hourlyRate={hourlyRate}
           />
         );
       }
@@ -658,17 +683,64 @@ export function ListView({
         return (
           <TimeCell
             value={(task as any).soldEffortMinutes}
-            onChange={isParent ? undefined : (minutes) => handleUpdate({ soldEffortMinutes: minutes } as any)}
+            onChange={(minutes) => handleUpdate({ soldEffortMinutes: minutes } as any)}
             isDark={isDark}
             locale={locale}
-            disabled={isCompleted || isParent}
+            disabled={isCompleted}
             isBlurred={shouldBlurSold}
+            lens={lens}
+            hourlyRate={hourlyRate}
           />
         );
       }
 
+      // v2.0.0: Chronos Interactive Time Manager columns
+      case 'scheduleVariance':
+        return (
+          <ScheduleVarianceCell
+            startDate={task.startDate}
+            endDate={task.endDate}
+            scheduleVariance={task.scheduleVariance}
+            isDark={isDark}
+            locale={locale}
+          />
+        );
+
+      case 'hoursBar':
+        return (
+          <HoursBarCell
+            task={task}
+            isDark={isDark}
+            locale={locale}
+            onLogTime={callbacks.onLogTime}
+            onEstimateUpdate={callbacks.onEstimateUpdate}
+            onSoldEffortUpdate={callbacks.onSoldEffortUpdate}
+            showSoldEffort={config.showSoldEffort}
+            onOpenTimeLog={callbacks.onOpenTimeLog}
+            lens={lens}
+            hourlyRate={hourlyRate}
+          />
+        );
+
+      case 'teamLoad':
+        return (
+          <TeamLoadCell
+            task={task}
+            isDark={isDark}
+          />
+        );
+
+      case 'blockers':
+        return (
+          <BlockersCell
+            blockers={task.blockers}
+            isDark={isDark}
+            locale={locale}
+          />
+        );
+
       default:
-        return <span className={cn("text-sm", isDark ? "text-[#94A3B8]" : "text-gray-500")}>-</span>;
+        return <span className={cn("text-sm", isDark ? "text-white/60" : "text-gray-500")}>-</span>;
     }
   }, [callbacks, isDark, locale, availableUsers, t]);
 
@@ -692,24 +764,36 @@ export function ListView({
       effortMinutes: (t.columns as any).effortMinutes || (locale === 'es' ? 'Estimado' : 'Estimated'),
       timeLoggedMinutes: (t.columns as any).timeLoggedMinutes || (locale === 'es' ? 'Tiempo' : 'Time Logged'),
       soldEffortMinutes: (t.columns as any).soldEffortMinutes || (locale === 'es' ? 'Ofertado' : 'Quoted'),
+      // v2.0.0: Chronos columns
+      scheduleVariance: (t.columns as any).scheduleVariance || (locale === 'es' ? 'Prog / Var' : 'Sched / Var'),
+      hoursBar: (t.columns as any).hoursBar || (locale === 'es' ? 'Horas (Usado / Asignado)' : 'Hours (Spent / Allocated)'),
+      teamLoad: (t.columns as any).teamLoad || (locale === 'es' ? 'Carga Equipo' : 'Team Load'),
+      blockers: (t.columns as any).blockers || (locale === 'es' ? 'Bloqueantes' : 'Blockers'),
     };
     const label = labelMap[column.type] || column.label;
     // Ensure we always return a string to prevent React error #310
     return typeof label === 'string' ? label : String(label || column.type);
   }, [t, locale]);
 
-  // Calculate total width for grid
-  const totalWidth = useMemo(() => {
-    return visibleColumns.reduce((sum, col) => sum + col.width, 0) + (allowColumnCustomization ? 48 : 0);
+  // v2.1.0: Calculate proportional percentage for each column so they fill available width
+  const columnWidthPercent = useMemo(() => {
+    const colTotal = visibleColumns.reduce((sum, col) => sum + col.width, 0);
+    const addColWidth = allowColumnCustomization ? 48 : 0;
+    const fullTotal = colTotal + addColWidth;
+    const map: Record<string, string> = {};
+    for (const col of visibleColumns) {
+      map[col.id] = `${(col.width / fullTotal) * 100}%`;
+    }
+    return map;
   }, [visibleColumns, allowColumnCustomization]);
 
   // Loading state
   if (isLoading) {
     return (
-      <div className={cn("flex-1 flex items-center justify-center", isDark ? "bg-[#0F1117]" : "bg-white", className)} style={style}>
+      <div className={cn("flex-1 flex items-center justify-center", isDark ? "bg-[#0D0D0D]" : "bg-white", className)} style={style}>
         <div className="flex flex-col items-center gap-4">
-          <div className="w-8 h-8 animate-spin rounded-full border-b-2 border-[#3B82F6]" />
-          <p className={cn("text-sm", isDark ? "text-[#9CA3AF]" : "text-gray-600")}>
+          <div className="w-8 h-8 animate-spin rounded-full border-b-2 border-[#007BFF]" />
+          <p className={cn("text-sm", isDark ? "text-white/60" : "text-gray-600")}>
             {t.empty.noTasks}...
           </p>
         </div>
@@ -720,7 +804,7 @@ export function ListView({
   // Error state
   if (error) {
     return (
-      <div className={cn("flex-1 flex items-center justify-center", isDark ? "bg-[#0F1117]" : "bg-white", className)} style={style}>
+      <div className={cn("flex-1 flex items-center justify-center", isDark ? "bg-[#0D0D0D]" : "bg-white", className)} style={style}>
         <div className="flex flex-col items-center gap-4 max-w-md text-center">
           <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center">
             <span className="text-red-500 text-2xl">⚠</span>
@@ -729,7 +813,7 @@ export function ListView({
             <h3 className={cn("text-lg font-semibold mb-2", isDark ? "text-white" : "text-gray-900")}>
               Error
             </h3>
-            <p className={cn("text-sm", isDark ? "text-[#9CA3AF]" : "text-gray-600")}>
+            <p className={cn("text-sm", isDark ? "text-white/60" : "text-gray-600")}>
               {typeof error === 'string' ? error : error.message}
             </p>
           </div>
@@ -741,15 +825,15 @@ export function ListView({
   // Empty state
   if (tasks.length === 0) {
     return (
-      <div className={cn("flex-1 flex items-center justify-center", isDark ? "bg-[#0F1117]" : "bg-white", className)} style={style}>
+      <div className={cn("flex-1 flex items-center justify-center", isDark ? "bg-[#0D0D0D]" : "bg-white", className)} style={style}>
         <div className="text-center max-w-md">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-[#3B82F6]/10 flex items-center justify-center">
-            <List className="w-8 h-8 text-[#3B82F6]" />
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-[#007BFF]/10 flex items-center justify-center">
+            <List className="w-8 h-8 text-[#007BFF]" />
           </div>
           <h3 className={cn("text-lg font-semibold mb-2", isDark ? "text-white" : "text-gray-900")}>
             {t.empty.noTasks}
           </h3>
-          <p className={cn("text-sm", isDark ? "text-[#9CA3AF]" : "text-gray-600")}>
+          <p className={cn("text-sm", isDark ? "text-white/60" : "text-gray-600")}>
             {t.empty.addFirstTask}
           </p>
         </div>
@@ -761,15 +845,23 @@ export function ListView({
     <div
       ref={tableRef}
       className={cn(
-        "flex-1 flex flex-col w-full h-full overflow-hidden",
-        isDark ? "bg-[#0F1117]" : "bg-white",
+        isDark ? "bg-[#0D0D0D]" : "bg-white",
         resizingColumn && "select-none",
         className
       )}
-      style={style}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        flex: '1 1 0%',
+        width: '100%',
+        height: '100%',
+        overflow: 'hidden',
+        minHeight: 0,
+        ...style,
+      }}
     >
       {/* Toolbar */}
-      <div className={cn("flex-shrink-0 px-6 py-4 border-b", isDark ? "border-white/10" : "border-gray-200")}>
+      <div className={cn("flex-shrink-0 px-6 py-4 border-b", isDark ? "border-[#222]" : "border-gray-200")}>
         <div className="flex items-center gap-4">
           {/* Status Filter */}
           <StatusFilter
@@ -782,23 +874,23 @@ export function ListView({
           />
 
           {/* Task count - next to filters */}
-          <div className={cn("text-sm", isDark ? "text-[#9CA3AF]" : "text-gray-600")}>
+          <div className={cn("text-sm", isDark ? "text-white/60" : "text-gray-600")}>
             {displayTasks.length} {t.pagination.tasks}
           </div>
 
           {/* Search */}
           {showSearch && (
             <div className="relative flex-1 max-w-md">
-              <Search className={cn("absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4", isDark ? "text-[#9CA3AF]" : "text-gray-400")} />
+              <Search className={cn("absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4", isDark ? "text-white/60" : "text-gray-400")} />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={t.toolbar.searchPlaceholder}
                 className={cn(
-                  "w-full h-9 pl-10 pr-4 rounded-lg border outline-none focus:ring-2 focus:ring-[#3B82F6]/30",
+                  "w-full h-9 pl-10 pr-4 rounded-lg border outline-none focus:ring-2 focus:ring-[#007BFF]/30",
                   isDark
-                    ? "bg-white/5 border-white/10 text-white placeholder:text-[#6B7280]"
+                    ? "bg-white/[0.03] border-[#222] text-white placeholder:text-white/30 font-mono"
                     : "bg-gray-100 border-gray-200 text-gray-900 placeholder:text-gray-400"
                 )}
               />
@@ -808,21 +900,28 @@ export function ListView({
           {/* Spacer to push right items */}
           <div className="flex-1" />
 
+          {/* v2.1.0: Custom right toolbar content (e.g., lens toggle) */}
+          {toolbarRightContent && (
+            <div className="flex items-center gap-2">
+              {toolbarRightContent}
+            </div>
+          )}
+
           {/* Create Task Button - v0.18.0: Same style as GanttToolbar */}
           {showCreateTaskButton && onCreateTask && (
             <motion.button
               onClick={onCreateTask}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-all"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-[transform,box-shadow]"
               style={{
-                background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)',
+                background: 'linear-gradient(135deg, #007BFF 0%, #005FCC 100%)',
                 color: '#FFFFFF',
                 fontFamily: 'Inter, sans-serif',
                 fontWeight: 500,
-                boxShadow: '0 2px 8px rgba(59, 130, 246, 0.3)',
+                boxShadow: '0 2px 8px rgba(0, 123, 255, 0.3)',
               }}
               whileHover={{
                 scale: 1.02,
-                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.4)',
+                boxShadow: '0 4px 12px rgba(0, 123, 255, 0.4)',
               }}
               whileTap={{ scale: 0.98 }}
             >
@@ -833,35 +932,37 @@ export function ListView({
         </div>
       </div>
 
+      {/* Table + Sidebar Container */}
+      <div style={{ display: 'flex', flex: '1 1 0%', overflow: 'hidden', minHeight: 0 }}>
       {/* Table Container */}
-      <div className="flex-1 overflow-auto">
-        <div style={{ minWidth: totalWidth }}>
+      <div style={{ flex: '1 1 0%', overflow: 'auto', minHeight: 0 }}>
+        <div style={{ width: '100%' }}>
           {/* List Header */}
           <div
             className={cn(
-              "flex-shrink-0 flex items-center border-b text-xs font-medium uppercase tracking-wider sticky top-0 z-10",
-              isDark ? "border-white/10 bg-[#0F1117]" : "border-gray-200 bg-gray-50"
+              "flex-shrink-0 flex items-center border-b text-[9px] font-bold uppercase tracking-wider sticky top-0 z-10",
+              isDark ? "border-[#222] bg-[#1A1A1A] font-mono" : "border-gray-200 bg-gray-50"
             )}
           >
             {visibleColumns.map((column) => (
               <div
                 key={column.id}
                 className={cn(
-                  "relative flex items-center gap-2 px-4 py-3",
-                  isDark ? "text-[#9CA3AF]" : "text-gray-500"
+                  "relative flex items-center gap-2 px-4 py-2",
+                  isDark ? "text-white/60" : "text-gray-500"
                 )}
-                style={{ width: column.width, minWidth: column.minWidth }}
+                style={{ width: columnWidthPercent[column.id], minWidth: column.minWidth }}
                 onContextMenu={(e) => handleContextMenu(e, undefined, column.id)}
               >
                 {column.sortable ? (
                   <button
                     onClick={() => handleSort(column.id)}
-                    className="flex items-center gap-1 hover:text-[#3B82F6]"
+                    className="flex items-center gap-1 hover:text-[#007BFF]"
                   >
                     {getColumnLabel(column)}
                     <ArrowUpDown className={cn(
                       "w-3 h-3",
-                      sortField === column.id && "text-[#3B82F6]"
+                      sortField === column.id && "text-[#007BFF]"
                     )} />
                   </button>
                 ) : (
@@ -873,8 +974,8 @@ export function ListView({
                   <div
                     className={cn(
                       "absolute right-0 top-0 bottom-0 w-1 cursor-col-resize group",
-                      "hover:bg-[#3B82F6]",
-                      resizingColumn === column.id && "bg-[#3B82F6]"
+                      "hover:bg-[#007BFF]",
+                      resizingColumn === column.id && "bg-[#007BFF]"
                     )}
                     onMouseDown={(e) => handleResizeStart(e, column.id)}
                   />
@@ -884,22 +985,22 @@ export function ListView({
 
             {/* Add column button */}
             {allowColumnCustomization && (
-              <div className="relative flex items-center justify-center px-3 py-3">
+              <div className="relative flex items-center justify-center px-3 py-0.5">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     setShowColumnSelector(prev => !prev);
                   }}
                   className={cn(
-                    "p-1.5 rounded-lg transition-colors",
+                    "p-0.5 rounded transition-colors",
                     isDark
-                      ? "hover:bg-white/10 text-[#9CA3AF] hover:text-white"
+                      ? "hover:bg-white/[0.05] text-white/60 hover:text-white"
                       : "hover:bg-gray-200 text-gray-400 hover:text-gray-600",
-                    showColumnSelector && (isDark ? "bg-white/10" : "bg-gray-200")
+                    showColumnSelector && (isDark ? "bg-white/[0.05]" : "bg-gray-200")
                   )}
                   title={locale === 'es' ? 'Agregar columna' : 'Add column'}
                 >
-                  <Plus className="w-4 h-4" />
+                  <Plus className="w-3 h-3" />
                 </button>
 
                 {/* Column Selector - positioned relative to button */}
@@ -926,6 +1027,92 @@ export function ListView({
               const isExpanded = expandedTasks.has(task.id);
               // v0.18.3: Limit animation delay to max 200ms for better filter responsiveness
               const animationDelay = Math.min(index * 0.01, 0.2);
+              // Chronos V2.0: Group header for parent tasks at level 0
+              const isGroupHeader = task.hasChildren && task.level === 0;
+              const subtaskCount = task.subtasks?.length || 0;
+
+              // Chronos V2.0: WBS Group Header Row
+              if (isGroupHeader) {
+                return (
+                  <motion.div
+                    key={task.id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15, delay: animationDelay }}
+                    className={cn("flex items-center border-y cursor-pointer", isDark ? "border-[#222] bg-[#222]" : "border-gray-200 bg-gray-100")}
+                    onClick={() => toggleExpand(task.id)}
+                  >
+                    <div className="flex items-center gap-3 px-4 py-2.5 w-full">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleExpand(task.id);
+                        }}
+                        className={cn("p-0.5 rounded flex-shrink-0", isDark ? "hover:bg-white/[0.05]" : "hover:bg-gray-200")}
+                      >
+                        {isExpanded ? (
+                          <ChevronDown className={cn("w-4 h-4", isDark ? "text-white/40" : "text-gray-500")} />
+                        ) : (
+                          <ChevronRight className={cn("w-4 h-4", isDark ? "text-white/40" : "text-gray-500")} />
+                        )}
+                      </button>
+                      {isExpanded ? (
+                        <FolderOpen className="w-4 h-4 flex-shrink-0" style={{ color: isDark ? '#FFD60A' : '#B45309' }} />
+                      ) : (
+                        <Folder className="w-4 h-4 flex-shrink-0" style={{ color: isDark ? '#FFD60A' : '#B45309' }} />
+                      )}
+                      {/* WBS code prefix */}
+                      {task.wbsCode && (
+                        <span className="text-[10px] font-mono flex-shrink-0" style={{ color: isDark ? '#FFD60A' : '#B45309' }}>
+                          {task.wbsCode}
+                        </span>
+                      )}
+                      <span className={cn("text-xs font-bold font-mono uppercase tracking-wide truncate", isDark ? "text-gray-200" : "text-gray-800")}>
+                        {task.name}
+                      </span>
+                      <span className={cn("text-[10px] font-mono px-2 py-0.5 rounded-full flex-shrink-0", isDark ? "text-white/30 bg-white/[0.05]" : "text-gray-500 bg-gray-200")}>
+                        ({subtaskCount} {locale === 'es' ? (subtaskCount === 1 ? 'Tarea' : 'Tareas') : (subtaskCount === 1 ? 'Item' : 'Items')})
+                      </span>
+
+                      {/* Spacer */}
+                      <div className="flex-1" />
+
+                      {/* Group metrics: Avg SPI + Resource Conflicts */}
+                      {(() => {
+                        const spi = calculateGroupSPI(task);
+                        const conflicts = countResourceConflicts(task);
+                        return (
+                          <div className="flex items-center gap-3 flex-shrink-0">
+                            {spi !== null && (
+                              <span className={cn(
+                                "text-[10px] font-mono",
+                                spi >= 1 ? "text-[#32D74B]" : spi >= 0.8 ? "text-[#FFD60A]" : "text-[#FF453A]"
+                              )}>
+                                Avg SPI: {spi.toFixed(2)}
+                              </span>
+                            )}
+                            {conflicts > 0 && (
+                              <span className="text-[10px] font-mono text-[#FF453A]">
+                                {locale === 'es' ? 'Conflicto Recurso' : 'Resource Conflict'}: {conflicts}
+                              </span>
+                            )}
+                            {/* Progress summary */}
+                            {task.progress != null && task.progress > 0 && (
+                              <span className={cn(
+                                "text-[10px] font-mono",
+                                task.progress === 100 ? "text-[#32D74B]" : "text-[#007BFF]"
+                              )}>
+                                {task.progress}%
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  </motion.div>
+                );
+              }
 
               return (
                 <motion.div
@@ -937,7 +1124,7 @@ export function ListView({
                   className={cn(
                     "flex items-center border-b transition-colors",
                     isDark
-                      ? "border-white/5 hover:bg-white/5"
+                      ? "border-[#222] hover:bg-white/[0.05]"
                       : "border-gray-100 hover:bg-gray-50"
                   )}
                   onClick={() => callbacks.onTaskClick?.(task)}
@@ -947,11 +1134,11 @@ export function ListView({
                   {visibleColumns.map((column) => (
                     <div
                       key={column.id}
-                      className="flex items-center px-4 py-3 min-h-[52px]"
-                      style={{ width: column.width, minWidth: column.minWidth }}
+                      className="flex items-center px-4 py-3 min-h-[56px]"
+                      style={{ width: columnWidthPercent[column.id], minWidth: column.minWidth }}
                     >
                       {column.type === 'name' ? (
-                        // Name column with hierarchy
+                        // Name column with hierarchy — Chronos V2.0 two-line layout
                         <div className="flex items-center gap-2 min-w-0 w-full">
                           {/* Indentation spacer for hierarchy levels */}
                           {showHierarchy && task.level > 0 && (
@@ -963,27 +1150,58 @@ export function ListView({
                                 e.stopPropagation();
                                 toggleExpand(task.id);
                               }}
-                              className={cn("p-0.5 rounded flex-shrink-0", isDark ? "hover:bg-white/10" : "hover:bg-gray-200")}
+                              className={cn("p-0.5 rounded flex-shrink-0", isDark ? "hover:bg-white/[0.05]" : "hover:bg-gray-200")}
                             >
                               {isExpanded ? (
-                                <ChevronDown className={cn("w-4 h-4", isDark ? "text-[#9CA3AF]" : "text-gray-400")} />
+                                <ChevronDown className={cn("w-4 h-4", isDark ? "text-white/60" : "text-gray-400")} />
                               ) : (
-                                <ChevronRight className={cn("w-4 h-4", isDark ? "text-[#9CA3AF]" : "text-gray-400")} />
+                                <ChevronRight className={cn("w-4 h-4", isDark ? "text-white/60" : "text-gray-400")} />
                               )}
                             </button>
                           )}
                           {showHierarchy && !task.hasChildren && <div className="w-5 flex-shrink-0" />}
 
-                          <span className={cn(
-                            "truncate font-medium",
-                            isDark ? "text-white" : "text-gray-900",
-                            task.progress === 100 && (isDark ? "line-through text-[#6B7280]" : "line-through text-gray-400")
-                          )}>
-                            {task.name}
-                          </span>
+                          {/* Two-line name layout */}
+                          <div className="flex flex-col min-w-0 flex-1">
+                            {/* Line 1: WBS code + Task code */}
+                            {(task.wbsCode || task.taskCode) && (
+                              <div className="flex items-center gap-1.5">
+                                {task.wbsCode && (
+                                  <span className={cn("text-[10px] font-mono", isDark ? "text-[#007BFF]" : "text-blue-600")}>
+                                    {task.wbsCode}
+                                  </span>
+                                )}
+                                {task.taskCode && (
+                                  <span className={cn("text-[10px] font-mono", isDark ? "text-white/40" : "text-gray-400")}>
+                                    {task.taskCode}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                            {/* Line 2: Task name */}
+                            <span className={cn(
+                              "truncate font-bold text-[13px]",
+                              isDark ? "text-white" : "text-gray-900",
+                              task.progress === 100 && (isDark ? "line-through text-white/30" : "line-through text-gray-400")
+                            )}>
+                              {task.name}
+                            </span>
+                            {/* Line 3: First tag badge */}
+                            {task.tags?.[0] && (
+                              <span
+                                className="text-[9px] font-mono uppercase tracking-wide px-1.5 py-0.5 rounded w-fit"
+                                style={{
+                                  backgroundColor: `${task.tags[0].color}20`,
+                                  color: task.tags[0].color,
+                                }}
+                              >
+                                {task.tags[0].name}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       ) : (
-                        renderCell(task, column, task.hasChildren)
+                        renderCell(task, column)
                       )}
                     </div>
                   ))}
@@ -1001,14 +1219,24 @@ export function ListView({
           {displayTasks.length === 0 && searchQuery && (
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
-                <List className={cn("w-12 h-12 mx-auto mb-4", isDark ? "text-[#6B7280]" : "text-gray-400")} />
-                <p className={cn(isDark ? "text-[#9CA3AF]" : "text-gray-600")}>
+                <List className={cn("w-12 h-12 mx-auto mb-4", isDark ? "text-white/30" : "text-gray-400")} />
+                <p className={cn(isDark ? "text-white/60" : "text-gray-600")}>
                   {t.empty.noResults}
                 </p>
               </div>
             </div>
           )}
         </div>
+      </div>
+
+      {/* v2.0.0: Project Health Sidebar */}
+      {healthSidebar?.enabled && healthSidebar.data && (
+        <ProjectHealthSidebar
+          data={healthSidebar.data}
+          isDark={isDark}
+          locale={locale}
+        />
+      )}
       </div>
 
       {/* Context Menu */}
@@ -1024,6 +1252,9 @@ export function ListView({
         onColumnHide={handleColumnHide}
         onColumnSort={handleColumnSort}
         availableUsers={availableUsers}
+        onOpenTimeLog={callbacks.onOpenTimeLog}
+        onReportBlocker={callbacks.onReportBlocker}
+        onCopyTaskLink={callbacks.onCopyTaskLink}
       />
 
       {/* Create Field Modal */}

@@ -1,16 +1,17 @@
 /**
- * TaskTooltip - v1.2.0
+ * TaskTooltip - v1.4.28
  *
- * Renders task tooltips in a separate SVG layer to ensure they always appear
- * above all task bars regardless of their vertical position.
+ * Renders task tooltips as a fixed-position HTML overlay via React Portal.
+ * This ensures tooltips are NEVER clipped by any scroll container or SVG boundary.
  *
+ * v1.4.28: Complete rewrite — switched from SVG <g> to HTML <div> with position:fixed
+ *          rendered via createPortal to document.body. Viewport-aware: automatically
+ *          flips above/below and clamps horizontally so it never overflows the screen.
  * v1.2.0: Added three-tier time tracking display (effortMinutes, timeLoggedMinutes, soldEffortMinutes)
- *
- * This solves the SVG z-order issue where tooltips appearing below a task bar
- * would be hidden behind tasks rendered later in the DOM.
  */
 
-import { motion, AnimatePresence } from 'framer-motion';
+import { useLayoutEffect, useState, type RefObject } from 'react';
+import { createPortal } from 'react-dom';
 import { Task } from './types';
 
 export interface TaskTooltipData {
@@ -26,57 +27,86 @@ interface TaskTooltipProps {
   tooltipData: TaskTooltipData | null;
   theme: any;
   locale?: 'en' | 'es';
+  /** Ref to the content SVG — used to convert SVG coords to screen coords */
+  svgRef?: RefObject<SVGSVGElement>;
 }
 
-export function TaskTooltip({ tooltipData, theme, locale = 'en' }: TaskTooltipProps) {
-  if (!tooltipData) return null;
+const TOOLTIP_WIDTH = 260;
+const TOOLTIP_GAP = 10;
+const SCREEN_PADDING = 8;
 
-  const { task, x, y, width, height, showBelow } = tooltipData;
+export function TaskTooltip({ tooltipData, theme, locale = 'en', svgRef }: TaskTooltipProps) {
+  const [pos, setPos] = useState<{ left: number; top: number; showBelow: boolean } | null>(null);
 
-  // v1.2.0: Check if task has time tracking data
+  useLayoutEffect(() => {
+    if (!tooltipData || !svgRef?.current) {
+      setPos(null);
+      return;
+    }
+
+    const svg = svgRef.current;
+    const svgRect = svg.getBoundingClientRect();
+    const { x, y, width, height, task } = tooltipData;
+
+    // Check if task has time tracking data to determine tooltip height
+    const hasTimeData = task.effortMinutes != null || task.timeLoggedMinutes != null || task.soldEffortMinutes != null;
+    const tooltipH = hasTimeData ? 155 : 105;
+
+    // Convert SVG coords to screen coords
+    const barScreenLeft = svgRect.left + x;
+    const barScreenTop = svgRect.top + y;
+    const barScreenBottom = barScreenTop + height;
+    const barCenterX = barScreenLeft + width / 2;
+
+    // Decide above vs below
+    const spaceAbove = barScreenTop - SCREEN_PADDING;
+    const spaceBelow = window.innerHeight - barScreenBottom - SCREEN_PADDING;
+    const showBelow = spaceAbove < tooltipH + TOOLTIP_GAP ? true : spaceBelow < tooltipH + TOOLTIP_GAP ? false : false; // prefer above
+
+    // Y position
+    const top = showBelow
+      ? barScreenBottom + TOOLTIP_GAP
+      : barScreenTop - TOOLTIP_GAP - tooltipH;
+
+    // X position — centered on bar, clamped to screen
+    let left = barCenterX - TOOLTIP_WIDTH / 2;
+    if (left < SCREEN_PADDING) left = SCREEN_PADDING;
+    if (left + TOOLTIP_WIDTH > window.innerWidth - SCREEN_PADDING) {
+      left = window.innerWidth - SCREEN_PADDING - TOOLTIP_WIDTH;
+    }
+
+    setPos({ left, top, showBelow });
+  }, [tooltipData, svgRef]);
+
+  if (!tooltipData || !pos) return null;
+
+  const { task } = tooltipData;
   const hasTimeData = task.effortMinutes != null || task.timeLoggedMinutes != null || task.soldEffortMinutes != null;
-  const tooltipHeight = hasTimeData ? 130 : 82; // Increased height for time data
-  const tooltipGap = 13;
 
-  // Calculate tooltip Y position
-  const tooltipY = showBelow
-    ? y + height + tooltipGap
-    : y - tooltipHeight - tooltipGap;
-
-  // Arrow path
-  const arrowPath = showBelow
-    ? `M ${x + width / 2 - 6} ${y + height + 3} L ${x + width / 2} ${y + height + 13} L ${x + width / 2 + 6} ${y + height + 3}`
-    : `M ${x + width / 2 - 6} ${y - 13} L ${x + width / 2} ${y - 3} L ${x + width / 2 + 6} ${y - 13}`;
-
-  // Text Y positions
-  const nameY = tooltipY + 22;
-  const row1Y = tooltipY + 40;
-  const row2Y = tooltipY + 55;
-  const assigneesY = tooltipY + 70;
-  // v1.2.0: Time tracking rows
-  const timeRow1Y = tooltipY + 90;
-  const timeRow2Y = tooltipY + 105;
-  const timeRow3Y = tooltipY + 120;
-
-  // Format date
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
+  // Translations
+  const t = {
+    start: locale === 'es' ? 'Inicio' : 'Start',
+    end: locale === 'es' ? 'Fin' : 'End',
+    duration: locale === 'es' ? 'Duración' : 'Duration',
+    progress: locale === 'es' ? 'Progreso' : 'Progress',
+    assignees: locale === 'es' ? 'Asignados' : 'Assignees',
+    estimated: locale === 'es' ? 'Estimado' : 'Estimated',
+    logged: locale === 'es' ? 'Registrado' : 'Logged',
+    quoted: locale === 'es' ? 'Ofertado' : 'Quoted',
   };
 
-  // Calculate duration
+  // Format helpers
+  const formatDate = (date: Date) =>
+    date.toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
   const getDuration = () => {
     if (!task.startDate || !task.endDate) return 'N/A';
     const days = Math.ceil((task.endDate.getTime() - task.startDate.getTime()) / (1000 * 60 * 60 * 24));
-    return `${days} day${days !== 1 ? 's' : ''}`;
+    return locale === 'es' ? `${days} día${days !== 1 ? 's' : ''}` : `${days} day${days !== 1 ? 's' : ''}`;
   };
 
-  // v1.2.0: Format minutes to hours/minutes
   const formatMinutes = (minutes: number | null | undefined): string => {
-    if (minutes == null || minutes === 0) return locale === 'es' ? 'N/A' : 'N/A';
+    if (minutes == null || minutes === 0) return 'N/A';
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     if (hours === 0) return `${mins}m`;
@@ -84,257 +114,102 @@ export function TaskTooltip({ tooltipData, theme, locale = 'en' }: TaskTooltipPr
     return `${hours}h ${mins}m`;
   };
 
-  // v1.2.0: Translations
-  const t = {
-    start: locale === 'es' ? 'Inicio:' : 'Start:',
-    end: locale === 'es' ? 'Fin:' : 'End:',
-    duration: locale === 'es' ? 'Duración:' : 'Duration:',
-    progress: locale === 'es' ? 'Progreso:' : 'Progress:',
-    assignees: locale === 'es' ? 'Asignados:' : 'Assignees:',
-    estimated: locale === 'es' ? 'Estimado:' : 'Estimated:',
-    logged: locale === 'es' ? 'Registrado:' : 'Logged:',
-    quoted: locale === 'es' ? 'Ofertado:' : 'Quoted:',
-  };
+  const labelColor = theme.textTertiary || '#9CA3AF';
+  const valueColor = theme.textSecondary || '#D1D5DB';
+  const nameColor = theme.textPrimary || '#F9FAFB';
+  const accentColor = theme.accent || '#3B82F6';
+  const bgColor = theme.bgSecondary || '#1F2937';
+  const borderColor = theme.border || '#374151';
 
-  // Bar size flags for hint text
-  const isSmallBar = width < 50;
-  const isVerySmallBar = width < 40;
-
-  return (
-    <AnimatePresence>
-      <motion.g
-        initial={{ opacity: 0, y: showBelow ? -10 : 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: showBelow ? -10 : 10 }}
-        transition={{ duration: 0.2 }}
-        style={{ pointerEvents: 'none' }}
+  const tooltip = (
+    <div
+      style={{
+        position: 'fixed',
+        left: pos.left,
+        top: pos.top,
+        width: TOOLTIP_WIDTH,
+        zIndex: 99999,
+        pointerEvents: 'none',
+        fontFamily: 'Inter, system-ui, sans-serif',
+        animation: 'gantt-tooltip-fade 0.15s ease-out',
+      }}
+    >
+      <div
+        style={{
+          background: bgColor,
+          border: `1px solid ${borderColor}`,
+          borderRadius: 8,
+          padding: '12px 14px',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+        }}
       >
-        {/* Tooltip Arrow */}
-        <path
-          d={arrowPath}
-          fill={theme.bgSecondary}
-          stroke={theme.border}
-          strokeWidth={1}
-        />
-
-        {/* Tooltip Background */}
-        <rect
-          x={x + width / 2 - 120}
-          y={tooltipY}
-          width={240}
-          height={tooltipHeight}
-          rx={8}
-          fill={theme.bgSecondary}
-          stroke={theme.border}
-          strokeWidth={1}
-          filter="drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15))"
-        />
-
         {/* Task Name */}
-        <text
-          x={x + width / 2}
-          y={nameY}
-          textAnchor="middle"
-          fill={theme.textPrimary}
-          fontSize="13"
-          fontWeight="600"
-          fontFamily="Inter, sans-serif"
-        >
-          {task.name.length > 28 ? `${task.name.substring(0, 28)}...` : task.name}
-        </text>
+        <div style={{ fontSize: 13, fontWeight: 600, color: nameColor, marginBottom: 8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {task.name}
+        </div>
 
-        {/* Start Date */}
-        <text
-          x={x + width / 2 - 110}
-          y={row1Y}
-          fill={theme.textTertiary}
-          fontSize="11"
-          fontFamily="Inter, sans-serif"
-        >
-          {t.start}
-        </text>
-        <text
-          x={x + width / 2 - 70}
-          y={row1Y}
-          fill={theme.textSecondary}
-          fontSize="11"
-          fontWeight="500"
-          fontFamily="Inter, sans-serif"
-        >
-          {task.startDate ? formatDate(task.startDate) : 'N/A'}
-        </text>
-
-        {/* End Date */}
-        <text
-          x={x + width / 2 - 110}
-          y={row2Y}
-          fill={theme.textTertiary}
-          fontSize="11"
-          fontFamily="Inter, sans-serif"
-        >
-          {t.end}
-        </text>
-        <text
-          x={x + width / 2 - 70}
-          y={row2Y}
-          fill={theme.textSecondary}
-          fontSize="11"
-          fontWeight="500"
-          fontFamily="Inter, sans-serif"
-        >
-          {task.endDate ? formatDate(task.endDate) : 'N/A'}
-        </text>
-
-        {/* Duration */}
-        <text
-          x={x + width / 2 + 10}
-          y={row1Y}
-          fill={theme.textTertiary}
-          fontSize="11"
-          fontFamily="Inter, sans-serif"
-        >
-          {t.duration}
-        </text>
-        <text
-          x={x + width / 2 + 65}
-          y={row1Y}
-          fill={theme.textSecondary}
-          fontSize="11"
-          fontWeight="500"
-          fontFamily="Inter, sans-serif"
-        >
-          {getDuration()}
-        </text>
-
-        {/* Progress */}
-        <text
-          x={x + width / 2 + 10}
-          y={row2Y}
-          fill={theme.textTertiary}
-          fontSize="11"
-          fontFamily="Inter, sans-serif"
-        >
-          {t.progress}
-        </text>
-        <text
-          x={x + width / 2 + 65}
-          y={row2Y}
-          fill={theme.textSecondary}
-          fontSize="11"
-          fontWeight="500"
-          fontFamily="Inter, sans-serif"
-        >
-          {task.progress}%
-        </text>
+        {/* Info Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3px 12px', fontSize: 11 }}>
+          <Row label={t.start} value={task.startDate ? formatDate(task.startDate) : 'N/A'} labelColor={labelColor} valueColor={valueColor} />
+          <Row label={t.duration} value={getDuration()} labelColor={labelColor} valueColor={valueColor} />
+          <Row label={t.end} value={task.endDate ? formatDate(task.endDate) : 'N/A'} labelColor={labelColor} valueColor={valueColor} />
+          <Row label={t.progress} value={`${task.progress}%`} labelColor={labelColor} valueColor={valueColor} />
+        </div>
 
         {/* Assignees */}
         {task.assignees && task.assignees.length > 0 && (
-          <>
-            <text
-              x={x + width / 2 - 110}
-              y={assigneesY}
-              fill={theme.textTertiary}
-              fontSize="11"
-              fontFamily="Inter, sans-serif"
-            >
-              {t.assignees}
-            </text>
-            <text
-              x={x + width / 2 - 50}
-              y={assigneesY}
-              fill={theme.textSecondary}
-              fontSize="11"
-              fontWeight="500"
-              fontFamily="Inter, sans-serif"
-            >
-              {task.assignees.map(a => a.name).join(', ').substring(0, 30)}
-              {task.assignees.map(a => a.name).join(', ').length > 30 ? '...' : ''}
-            </text>
-          </>
+          <div style={{ fontSize: 11, marginTop: 6 }}>
+            <span style={{ color: labelColor }}>{t.assignees}: </span>
+            <span style={{ color: valueColor, fontWeight: 500 }}>
+              {task.assignees.map(a => a.name).join(', ')}
+            </span>
+          </div>
         )}
 
-        {/* v1.2.0: Time Tracking Section */}
+        {/* Time Tracking */}
         {hasTimeData && (
-          <>
-            {/* Effort Minutes (Estimated) */}
+          <div style={{ marginTop: 6, display: 'flex', gap: 10, fontSize: 11 }}>
             {task.effortMinutes != null && (
-              <>
-                <text
-                  x={x + width / 2 - 110}
-                  y={timeRow1Y}
-                  fill={theme.textTertiary}
-                  fontSize="11"
-                  fontFamily="Inter, sans-serif"
-                >
-                  {t.estimated}
-                </text>
-                <text
-                  x={x + width / 2 - 50}
-                  y={timeRow1Y}
-                  fill={theme.textSecondary}
-                  fontSize="11"
-                  fontWeight="500"
-                  fontFamily="Inter, sans-serif"
-                >
-                  {formatMinutes(task.effortMinutes)}
-                </text>
-              </>
+              <span>
+                <span style={{ color: labelColor }}>{t.estimated}:</span>{' '}
+                <span style={{ color: valueColor, fontWeight: 600 }}>{formatMinutes(task.effortMinutes)}</span>
+              </span>
             )}
-
-            {/* Time Logged Minutes */}
             {task.timeLoggedMinutes != null && (
-              <>
-                <text
-                  x={x + width / 2 - 110}
-                  y={timeRow2Y}
-                  fill={theme.textTertiary}
-                  fontSize="11"
-                  fontFamily="Inter, sans-serif"
-                >
-                  {t.logged}
-                </text>
-                <text
-                  x={x + width / 2 - 50}
-                  y={timeRow2Y}
-                  fill={theme.accent}
-                  fontSize="11"
-                  fontWeight="600"
-                  fontFamily="Inter, sans-serif"
-                >
-                  {formatMinutes(task.timeLoggedMinutes)}
-                </text>
-              </>
+              <span>
+                <span style={{ color: labelColor }}>{t.logged}:</span>{' '}
+                <span style={{ color: accentColor, fontWeight: 600 }}>{formatMinutes(task.timeLoggedMinutes)}</span>
+              </span>
             )}
-
-            {/* Sold Effort Minutes (Quoted) */}
             {task.soldEffortMinutes != null && (
-              <>
-                <text
-                  x={x + width / 2 - 110}
-                  y={timeRow3Y}
-                  fill={theme.textTertiary}
-                  fontSize="11"
-                  fontFamily="Inter, sans-serif"
-                >
-                  {t.quoted}
-                </text>
-                <text
-                  x={x + width / 2 - 50}
-                  y={timeRow3Y}
-                  fill={theme.textSecondary}
-                  fontSize="11"
-                  fontWeight="500"
-                  fontFamily="Inter, sans-serif"
-                >
-                  {formatMinutes(task.soldEffortMinutes)}
-                </text>
-              </>
+              <span>
+                <span style={{ color: labelColor }}>{t.quoted}:</span>{' '}
+                <span style={{ color: valueColor, fontWeight: 600 }}>{formatMinutes(task.soldEffortMinutes)}</span>
+              </span>
             )}
-          </>
+          </div>
         )}
+      </div>
 
-        {/* v0.17.137: Removed interaction hints text for cleaner tooltip */}
-      </motion.g>
-    </AnimatePresence>
+      {/* CSS animation injected once */}
+      <style>{`
+        @keyframes gantt-tooltip-fade {
+          from { opacity: 0; transform: translateY(${pos.showBelow ? '-6px' : '6px'}); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+    </div>
+  );
+
+  return createPortal(tooltip, document.body);
+}
+
+/** Simple label: value row */
+function Row({ label, value, labelColor, valueColor }: { label: string; value: string; labelColor: string; valueColor: string }) {
+  return (
+    <div>
+      <span style={{ color: labelColor }}>{label}: </span>
+      <span style={{ color: valueColor, fontWeight: 500 }}>{value}</span>
+    </div>
   );
 }

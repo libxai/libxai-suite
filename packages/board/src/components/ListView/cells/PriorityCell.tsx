@@ -15,10 +15,10 @@ interface PriorityCellProps {
 }
 
 const PRIORITY_OPTIONS = [
-  { value: 'urgent', label: { en: 'Urgent', es: 'Urgente' }, color: 'text-red-500', bg: 'bg-red-500' },
-  { value: 'high', label: { en: 'High', es: 'Alta' }, color: 'text-orange-500', bg: 'bg-orange-500' },
-  { value: 'medium', label: { en: 'Medium', es: 'Media' }, color: 'text-yellow-500', bg: 'bg-yellow-500' },
-  { value: 'low', label: { en: 'Low', es: 'Baja' }, color: 'text-blue-500', bg: 'bg-blue-500' },
+  { value: 'urgent', label: { en: 'Urgent', es: 'Urgente' }, color: 'text-[#FF453A]', bg: 'bg-[#FF453A]' },
+  { value: 'high', label: { en: 'High', es: 'Alta' }, color: 'text-[#FF453A]', bg: 'bg-[#FF453A]' },
+  { value: 'medium', label: { en: 'Medium', es: 'Media' }, color: 'text-[#FFD60A]', bg: 'bg-[#FFD60A]' },
+  { value: 'low', label: { en: 'Low', es: 'Baja' }, color: 'text-[#007BFF]', bg: 'bg-[#007BFF]' },
   { value: 'none', label: { en: 'None', es: 'Ninguna' }, color: 'text-gray-400', bg: 'bg-gray-400' },
 ];
 
@@ -51,7 +51,7 @@ export function PriorityCell({
     return (
       <div className="flex items-center gap-2">
         <Flag className={cn('w-4 h-4', currentPriority.color)} />
-        <span className={cn('text-sm', isDark ? 'text-[#94A3B8]' : 'text-gray-500')}>
+        <span className={cn('text-sm', isDark ? 'text-white/60' : 'text-gray-500')}>
           {currentPriority.label[lang]}
         </span>
       </div>
@@ -67,21 +67,21 @@ export function PriorityCell({
         }}
         className={cn(
           'flex items-center gap-2 px-2 py-1 rounded transition-colors',
-          isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100'
+          isDark ? 'hover:bg-white/[0.05]' : 'hover:bg-gray-100'
         )}
       >
         <Flag className={cn('w-4 h-4', currentPriority.color)} />
-        <span className={cn('text-sm', isDark ? 'text-[#94A3B8]' : 'text-gray-500')}>
+        <span className={cn('text-sm', isDark ? 'text-white/60' : 'text-gray-500')}>
           {currentPriority.label[lang]}
         </span>
-        <ChevronDown className={cn('w-3 h-3', isDark ? 'text-[#6B7280]' : 'text-gray-400')} />
+        <ChevronDown className={cn('w-3 h-3', isDark ? 'text-white/30' : 'text-gray-400')} />
       </button>
 
       {isOpen && (
         <div
           className={cn(
             'absolute z-50 top-full left-0 mt-1 py-1 rounded-lg shadow-lg border min-w-[120px]',
-            isDark ? 'bg-[#1F2937] border-white/10' : 'bg-white border-gray-200'
+            isDark ? 'bg-[#1A1A1A] border-[#222]' : 'bg-white border-gray-200'
           )}
         >
           {PRIORITY_OPTIONS.map((option) => (
@@ -94,8 +94,8 @@ export function PriorityCell({
               }}
               className={cn(
                 'w-full flex items-center gap-2 px-3 py-2 text-sm transition-colors',
-                isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100',
-                value === option.value && (isDark ? 'bg-white/5' : 'bg-gray-50')
+                isDark ? 'hover:bg-white/[0.05]' : 'hover:bg-gray-100',
+                value === option.value && (isDark ? 'bg-white/[0.03]' : 'bg-gray-50')
               )}
             >
               <div className={cn('w-2 h-2 rounded-full', option.bg)} />

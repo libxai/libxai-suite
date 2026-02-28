@@ -305,7 +305,7 @@ export const Card = memo<CardProps>(
           <div className="mt-3 pt-2 border-t border-white/5">
             <div className="flex items-center justify-between mb-1">
               <span className="text-[10px] text-[#6B7280]">Progreso</span>
-              <span className="text-[10px] font-medium" style={{ color: '#3B82F6' }}>
+              <span className="text-[10px] font-medium" style={{ color: '#2E94FF' }}>
                 {Math.round(card.progress)}%
               </span>
             </div>
@@ -314,7 +314,7 @@ export const Card = memo<CardProps>(
                 className="h-full rounded-full transition-all duration-300"
                 style={{
                   width: `${Math.min(100, Math.max(0, card.progress))}%`,
-                  backgroundColor: '#3B82F6',
+                  backgroundColor: '#2E94FF',
                 }}
               />
             </div>
@@ -337,6 +337,8 @@ export const Card = memo<CardProps>(
       prevProps.card.startDate === nextProps.card.startDate &&
       prevProps.card.endDate === nextProps.card.endDate &&
       prevProps.isSelected === nextProps.isSelected &&
+      // v2.1.1: Compare render prop so theme changes propagate to custom cards
+      prevProps.render === nextProps.render &&
       JSON.stringify(prevProps.card.labels) ===
         JSON.stringify(nextProps.card.labels) &&
       JSON.stringify(prevProps.card.assignedUserIds) ===

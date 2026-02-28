@@ -1,13 +1,12 @@
 /**
- * ColumnSelector - Panel for adding/removing columns in ListView
- * @version 0.18.0
+ * ColumnSelector - Chronos V2 glass panel for column visibility
+ * @version 2.3.0
  */
 
 import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import {
   X,
   Search,
-  // Plus, // Disabled - custom fields feature not active
   Check,
   Type,
   Hash,
@@ -23,8 +22,10 @@ import {
   Clock,
   Timer,
   FileText,
+  CalendarClock,
+  BarChart3,
+  AlertTriangle,
 } from 'lucide-react';
-import { cn } from '../../utils';
 import type { TableColumn, CustomFieldDefinition, ColumnType } from './types';
 
 interface ColumnSelectorProps {
@@ -58,6 +59,11 @@ const COLUMN_ICONS: Record<ColumnType, React.ReactNode> = {
   effortMinutes: <Clock className="w-4 h-4" />,
   timeLoggedMinutes: <Timer className="w-4 h-4" />,
   soldEffortMinutes: <FileText className="w-4 h-4" />,
+  // v2.0.0: Chronos Interactive Time Manager columns
+  scheduleVariance: <CalendarClock className="w-4 h-4" />,
+  hoursBar: <BarChart3 className="w-4 h-4" />,
+  teamLoad: <Users className="w-4 h-4" />,
+  blockers: <AlertTriangle className="w-4 h-4" />,
   // Custom field types
   text: <Type className="w-4 h-4" />,
   number: <Hash className="w-4 h-4" />,
@@ -194,64 +200,109 @@ export function ColumnSelector({
     field.name.toLowerCase().includes(search.toLowerCase())
   );
 
+  // Chronos accent color
+  const accent = isDark ? '#00E5FF' : '#2E94FF';
+
   return (
     <div
       ref={panelRef}
-      style={maxHeight ? { maxHeight: `${maxHeight}px` } : undefined}
-      className={cn(
-        'absolute right-0 top-full mt-1 w-72 rounded-lg shadow-xl border z-50 flex flex-col',
-        isDark ? 'bg-[#0F1117] border-white/10' : 'bg-white border-gray-200'
-      )}
+      style={{
+        ...(maxHeight ? { maxHeight: `${maxHeight}px` } : {}),
+        background: isDark ? '#111114' : '#FFFFFF',
+        border: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.08)'}`,
+        boxShadow: isDark
+          ? '0 8px 32px rgba(0,0,0,0.7)'
+          : '0 8px 32px rgba(0,0,0,0.12)',
+      }}
+      className="absolute right-0 top-full mt-1 w-64 rounded-xl z-50 flex flex-col"
     >
       {/* Header */}
-      <div className={cn(
-        'flex items-center justify-between px-4 py-3 border-b',
-        isDark ? 'border-white/10' : 'border-gray-200'
-      )}>
-        <h3 className={cn('font-medium', isDark ? 'text-white' : 'text-gray-900')}>
-          {t.title}
-        </h3>
+      <div
+        className="flex items-center justify-between px-3.5 py-2.5"
+        style={{ borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}` }}
+      >
+        <span
+          style={{
+            fontSize: 10,
+            fontWeight: 600,
+            letterSpacing: '0.08em',
+            color: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.35)',
+            fontFamily: 'JetBrains Mono, monospace',
+          }}
+        >
+          {t.title.toUpperCase()}
+        </span>
         <button
           onClick={onClose}
-          className={cn('p-1 rounded', isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100')}
+          className="w-6 h-6 rounded-md flex items-center justify-center transition-colors"
+          style={{ color: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}
+          onMouseEnter={e => {
+            e.currentTarget.style.backgroundColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)';
+            e.currentTarget.style.color = isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.backgroundColor = 'transparent';
+            e.currentTarget.style.color = isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)';
+          }}
         >
-          <X className={cn('w-4 h-4', isDark ? 'text-[#9CA3AF]' : 'text-gray-400')} />
+          <X className="w-3.5 h-3.5" />
         </button>
       </div>
 
       {/* Search */}
-      <div className="p-3">
+      <div className="px-3 py-2">
         <div className="relative">
-          <Search className={cn(
-            'absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4',
-            isDark ? 'text-[#6B7280]' : 'text-gray-400'
-          )} />
+          <Search
+            className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5"
+            style={{ color: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.25)' }}
+          />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={t.searchPlaceholder}
-            className={cn(
-              'w-full pl-9 pr-3 py-2 text-sm rounded-lg border outline-none',
-              isDark
-                ? 'bg-white/5 border-white/10 text-white placeholder:text-[#6B7280]'
-                : 'bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400'
-            )}
+            style={{
+              fontSize: 12,
+              background: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+              border: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`,
+              color: isDark ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.8)',
+            }}
+            className="w-full pl-8 pr-3 py-1.5 rounded-lg outline-none placeholder:opacity-40 transition-colors focus:border-[var(--focus-border)]"
+            ref={(el) => {
+              if (el) el.style.setProperty('--focus-border', accent);
+            }}
+            onFocus={e => {
+              e.currentTarget.style.borderColor = accent;
+              e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)';
+            }}
+            onBlur={e => {
+              e.currentTarget.style.borderColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+              e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)';
+            }}
           />
         </div>
       </div>
 
-      {/* Scrollable content area - flex-1 takes remaining space */}
+      {/* Scrollable content */}
       <div
-        className="overflow-y-auto flex-1 min-h-0 overscroll-contain"
+        className="overflow-y-auto flex-1 min-h-0 overscroll-contain px-2 pb-2"
         onWheel={(e) => e.stopPropagation()}
       >
         {/* Standard Fields */}
-        <div className="px-3 pb-2">
-          <h4 className={cn('text-xs font-medium uppercase tracking-wider mb-2', isDark ? 'text-[#6B7280]' : 'text-gray-400')}>
-            {t.standardFields}
-          </h4>
-          <div className="space-y-1">
+        <div className="mb-1">
+          <div
+            className="px-1.5 py-1.5"
+            style={{
+              fontSize: 9,
+              fontWeight: 600,
+              letterSpacing: '0.1em',
+              color: isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.3)',
+              fontFamily: 'JetBrains Mono, monospace',
+            }}
+          >
+            {t.standardFields.toUpperCase()}
+          </div>
+          <div className="space-y-px">
             {filteredStandardColumns.map((type) => {
               const column = columns.find((c) => c.type === type && !c.customFieldId);
               const isVisible = column?.visible ?? false;
@@ -262,7 +313,6 @@ export function ColumnSelector({
                   key={type}
                   onClick={() => {
                     if (isName) return;
-                    // If column exists, toggle visibility. If not, add it.
                     if (column) {
                       toggleColumnVisibility(column.id);
                     } else {
@@ -270,24 +320,46 @@ export function ColumnSelector({
                     }
                   }}
                   disabled={isName}
-                  className={cn(
-                    'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
-                    isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100',
-                    isName && 'opacity-50 cursor-not-allowed'
-                  )}
+                  className="w-full flex items-center gap-2.5 px-2 py-[5px] rounded-md transition-colors"
+                  style={{
+                    opacity: isName ? 0.4 : 1,
+                    cursor: isName ? 'not-allowed' : 'pointer',
+                  }}
+                  onMouseEnter={e => {
+                    if (!isName) e.currentTarget.style.backgroundColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
                 >
-                  <div className={cn(
-                    'w-5 h-5 rounded border flex items-center justify-center',
-                    isVisible
-                      ? 'bg-[#3B82F6] border-[#3B82F6]'
-                      : isDark ? 'border-[#4B5563]' : 'border-gray-300'
-                  )}>
-                    {isVisible && <Check className="w-3 h-3 text-white" />}
+                  {/* Checkbox — Chronos style */}
+                  <div
+                    className="w-4 h-4 rounded flex items-center justify-center flex-shrink-0 transition-all"
+                    style={{
+                      background: isVisible ? accent : 'transparent',
+                      border: isVisible ? `1.5px solid ${accent}` : `1.5px solid ${isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)'}`,
+                      boxShadow: isVisible ? `0 0 6px ${accent}40` : 'none',
+                    }}
+                  >
+                    {isVisible && <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />}
                   </div>
-                  <span className={isDark ? 'text-[#9CA3AF]' : 'text-gray-400'}>
+                  {/* Icon */}
+                  <span
+                    className="flex-shrink-0 [&>svg]:w-3.5 [&>svg]:h-3.5"
+                    style={{ color: isVisible ? accent : isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}
+                  >
                     {COLUMN_ICONS[type]}
                   </span>
-                  <span className={isDark ? 'text-white' : 'text-gray-900'}>
+                  {/* Label */}
+                  <span
+                    style={{
+                      fontSize: 12,
+                      fontWeight: isVisible ? 500 : 400,
+                      color: isVisible
+                        ? (isDark ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.85)')
+                        : (isDark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.5)'),
+                    }}
+                  >
                     {getColumnLabel(type)}
                   </span>
                 </button>
@@ -298,11 +370,23 @@ export function ColumnSelector({
 
         {/* Custom Fields */}
         {filteredCustomFields.length > 0 && (
-          <div className="px-3 pb-2">
-            <h4 className={cn('text-xs font-medium uppercase tracking-wider mb-2', isDark ? 'text-[#6B7280]' : 'text-gray-400')}>
-              {t.customFields}
-            </h4>
-            <div className="space-y-1">
+          <div className="mt-1">
+            <div
+              className="px-1.5 py-1.5"
+              style={{
+                fontSize: 9,
+                fontWeight: 600,
+                letterSpacing: '0.1em',
+                color: isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.3)',
+                fontFamily: 'JetBrains Mono, monospace',
+                borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`,
+                paddingTop: 8,
+                marginTop: 4,
+              }}
+            >
+              {t.customFields.toUpperCase()}
+            </div>
+            <div className="space-y-px">
               {filteredCustomFields.map((field) => {
                 const column = columns.find((c) => c.customFieldId === field.id);
                 const isVisible = column?.visible ?? false;
@@ -311,23 +395,39 @@ export function ColumnSelector({
                   <button
                     key={field.id}
                     onClick={() => addColumn(field.type as ColumnType, field.id)}
-                    className={cn(
-                      'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
-                      isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100'
-                    )}
+                    className="w-full flex items-center gap-2.5 px-2 py-[5px] rounded-md transition-colors"
+                    onMouseEnter={e => {
+                      e.currentTarget.style.backgroundColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)';
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                    }}
                   >
-                    <div className={cn(
-                      'w-5 h-5 rounded border flex items-center justify-center',
-                      isVisible
-                        ? 'bg-[#3B82F6] border-[#3B82F6]'
-                        : isDark ? 'border-[#4B5563]' : 'border-gray-300'
-                    )}>
-                      {isVisible && <Check className="w-3 h-3 text-white" />}
+                    <div
+                      className="w-4 h-4 rounded flex items-center justify-center flex-shrink-0 transition-all"
+                      style={{
+                        background: isVisible ? accent : 'transparent',
+                        border: isVisible ? `1.5px solid ${accent}` : `1.5px solid ${isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)'}`,
+                        boxShadow: isVisible ? `0 0 6px ${accent}40` : 'none',
+                      }}
+                    >
+                      {isVisible && <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />}
                     </div>
-                    <span className={isDark ? 'text-[#9CA3AF]' : 'text-gray-400'}>
+                    <span
+                      className="flex-shrink-0 [&>svg]:w-3.5 [&>svg]:h-3.5"
+                      style={{ color: isVisible ? accent : isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}
+                    >
                       {COLUMN_ICONS[field.type as ColumnType] || <Type className="w-4 h-4" />}
                     </span>
-                    <span className={isDark ? 'text-white' : 'text-gray-900'}>
+                    <span
+                      style={{
+                        fontSize: 12,
+                        fontWeight: isVisible ? 500 : 400,
+                        color: isVisible
+                          ? (isDark ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.85)')
+                          : (isDark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.5)'),
+                      }}
+                    >
                       {field.name}
                     </span>
                   </button>
@@ -337,8 +437,6 @@ export function ColumnSelector({
           </div>
         )}
       </div>
-
-      {/* Create Custom Field Button - disabled for now */}
     </div>
   );
 }

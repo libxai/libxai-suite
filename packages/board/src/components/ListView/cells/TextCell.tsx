@@ -53,7 +53,7 @@ export function TextCell({
 
   if (disabled || !onChange) {
     return (
-      <span className={cn('text-sm truncate', isDark ? 'text-[#94A3B8]' : 'text-gray-500')}>
+      <span className={cn('text-sm truncate', isDark ? 'text-white/60' : 'text-gray-500')}>
         {value || placeholder}
       </span>
     );
@@ -72,8 +72,8 @@ export function TextCell({
         className={cn(
           'w-full px-2 py-1 text-sm rounded border outline-none',
           isDark
-            ? 'bg-white/5 border-[#3B82F6] text-white'
-            : 'bg-white border-[#3B82F6] text-gray-900'
+            ? 'bg-white/[0.03] border-[#007BFF] text-white'
+            : 'bg-white border-[#007BFF] text-gray-900'
         )}
       />
     );
@@ -87,8 +87,8 @@ export function TextCell({
       }}
       className={cn(
         'text-sm truncate text-left w-full px-2 py-1 rounded transition-colors',
-        isDark ? 'text-[#94A3B8] hover:bg-white/10' : 'text-gray-500 hover:bg-gray-100',
-        !value && (isDark ? 'text-[#6B7280]' : 'text-gray-400')
+        isDark ? 'text-white/60 hover:bg-white/[0.05]' : 'text-gray-500 hover:bg-gray-100',
+        !value && (isDark ? 'text-white/30' : 'text-gray-400')
       )}
     >
       {value || placeholder}

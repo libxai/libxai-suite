@@ -288,7 +288,7 @@ export function TaskDetailModal({
     borderLight: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
     border: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
     bgPrimary: isDark ? '#1A1D25' : '#FFFFFF',
-    bgSecondary: isDark ? '#0F1117' : '#F9FAFB',
+    bgSecondary: isDark ? '#0A0A0A' : '#F9FAFB',
     hoverBg: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
   };
 
@@ -1179,8 +1179,8 @@ export function TaskDetailModal({
                                         "w-8 h-8 rounded-full flex items-center justify-center text-sm transition-colors",
                                         !d.isCurrentMonth && (isDark ? "text-[#4B5563]" : "text-gray-300"),
                                         d.isCurrentMonth && (isDark ? "text-white" : "text-gray-900"),
-                                        isToday && "ring-2 ring-[#3B82F6]",
-                                        isStartDate && "bg-[#3B82F6] text-white",
+                                        isToday && "ring-2 ring-[#2E94FF]",
+                                        isStartDate && "bg-[#2E94FF] text-white",
                                         isEndDate && !isStartDate && "bg-[#7C3AED] text-white",
                                         isInRange && !isSelected && (isDark ? "bg-[#7C3AED]/20" : "bg-purple-100"),
                                         !isSelected && (isDark ? "hover:bg-white/10" : "hover:bg-gray-100")
@@ -1311,7 +1311,7 @@ export function TaskDetailModal({
                           className={cn(
                             "flex-1 max-w-[120px] h-2 rounded-full appearance-none cursor-pointer",
                             isDark ? "bg-white/10" : "bg-gray-200",
-                            "[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#3B82F6] [&::-webkit-slider-thumb]:cursor-pointer"
+                            "[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#2E94FF] [&::-webkit-slider-thumb]:cursor-pointer"
                           )}
                           autoFocus
                         />
@@ -1326,7 +1326,7 @@ export function TaskDetailModal({
                           <div
                             className={cn(
                               "h-full rounded-full transition-all",
-                              selectedTask.progress === 100 ? "bg-green-500" : "bg-[#3B82F6]"
+                              selectedTask.progress === 100 ? "bg-green-500" : "bg-[#2E94FF]"
                             )}
                             style={{ width: `${selectedTask.progress || 0}%` }}
                           />
@@ -2194,7 +2194,7 @@ export function TaskDetailModal({
             {/* Activity Panel - Right Sidebar */}
             <div className={cn(
               "w-96 border-l flex flex-col",
-              isDark ? "border-white/10 bg-[#0F1117]" : "border-gray-200 bg-gray-50"
+              isDark ? "border-white/[0.08] bg-[#0A0A0A]" : "border-gray-200 bg-gray-50"
             )}>
               {/* Activity Header */}
               <div className={cn(

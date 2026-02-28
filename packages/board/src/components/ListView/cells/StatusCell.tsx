@@ -22,8 +22,8 @@ interface StatusCellProps {
 // Only 3 options shown in dropdown
 const STATUS_OPTIONS = [
   { value: 'todo', icon: Circle, color: 'text-gray-400' },
-  { value: 'in-progress', icon: PlayCircle, color: 'text-blue-500' },
-  { value: 'completed', icon: CheckCircle2, color: 'text-green-500' },
+  { value: 'in-progress', icon: PlayCircle, color: 'text-[#007BFF]' },
+  { value: 'completed', icon: CheckCircle2, color: 'text-[#32D74B]' },
 ];
 
 // Normalize status value to handle different formats
@@ -80,7 +80,7 @@ export function StatusCell({
     return (
       <div className="flex items-center gap-2">
         <Icon className={cn('w-4 h-4 flex-shrink-0', currentStatus.color)} />
-        <span className={cn('text-sm whitespace-nowrap', isDark ? 'text-[#94A3B8]' : 'text-gray-500')}>
+        <span className={cn('text-sm whitespace-nowrap', isDark ? 'text-white/60' : 'text-gray-500')}>
           {getLabel(value)}
         </span>
       </div>
@@ -96,21 +96,21 @@ export function StatusCell({
         }}
         className={cn(
           'flex items-center gap-2 px-2 py-1 rounded transition-colors',
-          isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100'
+          isDark ? 'hover:bg-white/[0.05]' : 'hover:bg-gray-100'
         )}
       >
         <Icon className={cn('w-4 h-4 flex-shrink-0', currentStatus.color)} />
-        <span className={cn('text-sm whitespace-nowrap', isDark ? 'text-[#94A3B8]' : 'text-gray-500')}>
+        <span className={cn('text-sm whitespace-nowrap', isDark ? 'text-white/60' : 'text-gray-500')}>
           {getLabel(value)}
         </span>
-        <ChevronDown className={cn('w-3 h-3', isDark ? 'text-[#6B7280]' : 'text-gray-400')} />
+        <ChevronDown className={cn('w-3 h-3', isDark ? 'text-white/30' : 'text-gray-400')} />
       </button>
 
       {isOpen && (
         <div
           className={cn(
             'absolute z-50 top-full left-0 mt-1 py-1 rounded-lg shadow-lg border min-w-[140px]',
-            isDark ? 'bg-[#1F2937] border-white/10' : 'bg-white border-gray-200'
+            isDark ? 'bg-[#1A1A1A] border-[#222]' : 'bg-white border-gray-200'
           )}
         >
           {STATUS_OPTIONS.map((option) => {
@@ -125,8 +125,8 @@ export function StatusCell({
                 }}
                 className={cn(
                   'w-full flex items-center gap-2 px-3 py-2 text-sm transition-colors',
-                  isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100',
-                  normalizedValue === option.value && (isDark ? 'bg-white/5' : 'bg-gray-50')
+                  isDark ? 'hover:bg-white/[0.05]' : 'hover:bg-gray-100',
+                  normalizedValue === option.value && (isDark ? 'bg-white/[0.03]' : 'bg-gray-50')
                 )}
               >
                 <OptionIcon className={cn('w-4 h-4', option.color)} />

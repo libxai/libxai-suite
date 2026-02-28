@@ -371,6 +371,8 @@ export interface RenderProps {
   renderColumnHeader?: (column: Column, cardCount: number) => React.ReactNode
   /** Custom empty state */
   renderEmptyState?: (column: Column) => React.ReactNode
+  /** v2.2.0: Custom column footer (e.g. AddCardButton) */
+  renderColumnFooter?: (column: Column) => React.ReactNode
 }
 
 /**
@@ -518,6 +520,18 @@ export interface KanbanBoardProps {
 
   /** Blur financial data (tiempo ofertado) for unauthorized users */
   blurFinancials?: boolean
+
+  // ========================================================================
+  // v2.0.0: Kanban RBAC — Oracle Conscious Board
+  // ========================================================================
+
+  /** Side panel rendered alongside the board columns */
+  sidePanel?: React.ReactNode
+  /** Custom renderer for column header metrics (below title) */
+  renderColumnMetrics?: (column: Column, cards: Card[]) => React.ReactNode
+
+  /** v2.1.0: Suppress internal TaskDetailModal (consumer provides own drawer) */
+  suppressDetailModal?: boolean
 }
 
 // ============================================================================

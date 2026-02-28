@@ -104,22 +104,22 @@ export function CreateFieldModal({
       <div
         className={cn(
           'relative w-full max-w-md rounded-xl shadow-2xl border',
-          isDark ? 'bg-[#0F1117] border-white/10' : 'bg-white border-gray-200'
+          isDark ? 'bg-[#0D0D0D] border-[#222]' : 'bg-white border-gray-200'
         )}
       >
         {/* Header */}
         <div className={cn(
           'flex items-center justify-between px-6 py-4 border-b',
-          isDark ? 'border-white/10' : 'border-gray-200'
+          isDark ? 'border-[#222]' : 'border-gray-200'
         )}>
           <h2 className={cn('text-lg font-semibold', isDark ? 'text-white' : 'text-gray-900')}>
             {t.title}
           </h2>
           <button
             onClick={onClose}
-            className={cn('p-1 rounded', isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100')}
+            className={cn('p-1 rounded', isDark ? 'hover:bg-white/[0.05]' : 'hover:bg-gray-100')}
           >
-            <X className={cn('w-5 h-5', isDark ? 'text-[#9CA3AF]' : 'text-gray-400')} />
+            <X className={cn('w-5 h-5', isDark ? 'text-white/60' : 'text-gray-400')} />
           </button>
         </div>
 
@@ -136,9 +136,9 @@ export function CreateFieldModal({
               onChange={(e) => setName(e.target.value)}
               placeholder={t.fieldNamePlaceholder}
               className={cn(
-                'w-full px-4 py-2.5 rounded-lg border outline-none focus:ring-2 focus:ring-[#3B82F6]/30',
+                'w-full px-4 py-2.5 rounded-lg border outline-none focus:ring-2 focus:ring-[#007BFF]/30',
                 isDark
-                  ? 'bg-white/5 border-white/10 text-white placeholder:text-[#6B7280]'
+                  ? 'bg-white/[0.03] border-[#222] text-white placeholder:text-white/30'
                   : 'bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400'
               )}
               autoFocus
@@ -158,20 +158,20 @@ export function CreateFieldModal({
                   className={cn(
                     'flex flex-col items-center gap-1 p-3 rounded-lg border transition-colors',
                     type === ft.type
-                      ? 'border-[#3B82F6] bg-[#3B82F6]/10'
+                      ? 'border-[#007BFF] bg-[#007BFF]/10'
                       : isDark
-                        ? 'border-white/10 hover:border-white/20'
+                        ? 'border-[#222] hover:border-white/20'
                         : 'border-gray-200 hover:border-gray-300'
                   )}
                 >
-                  <span className={type === ft.type ? 'text-[#3B82F6]' : isDark ? 'text-[#9CA3AF]' : 'text-gray-400'}>
+                  <span className={type === ft.type ? 'text-[#007BFF]' : isDark ? 'text-white/60' : 'text-gray-400'}>
                     {ft.icon}
                   </span>
                   <span className={cn(
                     'text-xs',
                     type === ft.type
-                      ? 'text-[#3B82F6]'
-                      : isDark ? 'text-[#9CA3AF]' : 'text-gray-500'
+                      ? 'text-[#007BFF]'
+                      : isDark ? 'text-white/60' : 'text-gray-500'
                   )}>
                     {t.types[ft.type]}
                   </span>
@@ -195,9 +195,9 @@ export function CreateFieldModal({
                       onChange={(e) => updateOption(index, e.target.value)}
                       placeholder={`${t.option} ${index + 1}`}
                       className={cn(
-                        'flex-1 px-3 py-2 rounded-lg border outline-none focus:ring-2 focus:ring-[#3B82F6]/30',
+                        'flex-1 px-3 py-2 rounded-lg border outline-none focus:ring-2 focus:ring-[#007BFF]/30',
                         isDark
-                          ? 'bg-white/5 border-white/10 text-white placeholder:text-[#6B7280]'
+                          ? 'bg-white/[0.03] border-[#222] text-white placeholder:text-white/30'
                           : 'bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400'
                       )}
                     />
@@ -206,7 +206,7 @@ export function CreateFieldModal({
                         onClick={() => removeOption(index)}
                         className={cn(
                           'p-2 rounded-lg transition-colors',
-                          isDark ? 'hover:bg-white/10 text-[#9CA3AF]' : 'hover:bg-gray-100 text-gray-400'
+                          isDark ? 'hover:bg-white/[0.05] text-white/60' : 'hover:bg-gray-100 text-gray-400'
                         )}
                       >
                         <Trash2 className="w-4 h-4" />
@@ -219,7 +219,7 @@ export function CreateFieldModal({
                   className={cn(
                     'flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors',
                     isDark
-                      ? 'text-[#3B82F6] hover:bg-white/10'
+                      ? 'text-[#007BFF] hover:bg-white/[0.05]'
                       : 'text-blue-600 hover:bg-gray-100'
                   )}
                 >
@@ -234,14 +234,14 @@ export function CreateFieldModal({
         {/* Footer */}
         <div className={cn(
           'flex items-center justify-end gap-3 px-6 py-4 border-t',
-          isDark ? 'border-white/10' : 'border-gray-200'
+          isDark ? 'border-[#222]' : 'border-gray-200'
         )}>
           <button
             onClick={onClose}
             className={cn(
               'px-4 py-2 text-sm font-medium rounded-lg transition-colors',
               isDark
-                ? 'text-[#9CA3AF] hover:bg-white/10'
+                ? 'text-white/60 hover:bg-white/[0.05]'
                 : 'text-gray-600 hover:bg-gray-100'
             )}
           >
@@ -252,7 +252,7 @@ export function CreateFieldModal({
             disabled={!name.trim()}
             className={cn(
               'px-4 py-2 text-sm font-medium rounded-lg transition-colors',
-              'bg-[#3B82F6] text-white hover:bg-[#2563EB]',
+              'bg-[#007BFF] text-white hover:bg-[#005FCC]',
               !name.trim() && 'opacity-50 cursor-not-allowed'
             )}
           >

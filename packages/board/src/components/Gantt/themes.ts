@@ -2,53 +2,59 @@ import { GanttTheme } from './types';
 
 export const themes: Record<string, GanttTheme> = {
   dark: {
-    // Backgrounds
-    // v0.17.71: Improved contrast - sidebar darker, main area brighter
-    bgPrimary: '#1A1D21',
-    bgSecondary: '#22262D',  // Slightly lighter for better card contrast
-    bgGrid: '#1E2126',  // v0.17.71: More visible zebra stripes
-    bgWeekend: 'rgba(59, 130, 246, 0.03)',
+    // Backgrounds — Chronos V2: Ultra-dark base
+    bgPrimary: '#050505',
+    bgSecondary: '#0A0A0A',
+    bgGrid: 'rgba(255, 255, 255, 0.02)',
+    bgWeekend: 'rgba(17, 17, 17, 0.4)',
 
-    // Borders - v0.17.71: More visible separation
-    border: '#334155',  // Brighter border for better column separation
-    borderLight: '#2D3139',
+    // Borders — Chronos V2: Subtle glass borders
+    border: 'rgba(255, 255, 255, 0.08)',
+    borderLight: 'rgba(255, 255, 255, 0.05)',
 
-    // Text - v0.17.71: Enhanced hierarchy
-    textPrimary: '#FFFFFF',  // Pure white for maximum brightness (Phases)
-    textSecondary: '#CBD5E1',  // Slate 300 - for child tasks
-    textTertiary: '#64748B',  // Slate 500 - for metadata
+    // Text — Chronos V2: Unified with drawer tokens
+    textPrimary: 'rgba(255, 255, 255, 0.92)',
+    textSecondary: 'rgba(255, 255, 255, 0.60)',
+    textTertiary: 'rgba(255, 255, 255, 0.35)',
 
-    // Accent & Interactive - Electric Blue brand color
-    accent: '#3B82F6',
-    accentHover: '#60A5FA',
-    accentLight: 'rgba(59, 130, 246, 0.12)',
+    // Accent & Interactive — Chronos Blue (#2E94FF)
+    accent: '#2E94FF',
+    accentHover: '#5AADFF',
+    accentLight: 'rgba(46, 148, 255, 0.12)',
 
-    // Task Elements - Electric Blue brand color
-    taskBarPrimary: '#3B82F6',
-    taskBarProgress: '#2563EB',
+    // Task Elements — Chronos blue execution bars
+    taskBarPrimary: '#2E94FF',
+    taskBarProgress: '#5AADFF',
     taskBarHandle: '#FFFFFF',
 
-    // Dependencies & Critical Path
-    // v0.17.361: Solid colors for better visibility
-    dependency: '#9CA3AF',
-    dependencyHover: '#60A5FA',  // v0.17.450: Bright blue hover for better visibility
+    // Dependencies & Critical Path — Softer Tailwind red
+    dependency: '#444444',
+    dependencyHover: '#FFFFFF',
     criticalPath: '#EF4444',
-    criticalPathLight: 'rgba(239, 68, 68, 0.12)',
+    criticalPathLight: 'rgba(239, 68, 68, 0.15)',
 
-    // Special Elements - v0.17.180: Exact ClickUp "Today" line color
-    today: '#D21E24',  // Exact ClickUp red
-    todayLight: 'rgba(210, 30, 36, 0.12)',
-    milestone: '#F59E0B',
-    milestoneLight: 'rgba(245, 158, 11, 0.1)',
+    // Special Elements — Softer red today marker
+    today: '#EF4444',
+    todayLight: 'rgba(239, 68, 68, 0.08)',
+    milestone: '#FFFFFF',
+    milestoneLight: 'rgba(255, 255, 255, 0.1)',
 
     // Status Colors
-    statusTodo: '#64748B',  // Slate 500
-    statusInProgress: '#3B82F6',
+    statusTodo: '#666666',
+    statusInProgress: '#2E94FF',
     statusCompleted: '#10B981',
 
     // Hover & Focus States
-    hoverBg: 'rgba(255, 255, 255, 0.06)',
-    focusRing: '#3B82F6',
+    hoverBg: 'rgba(255, 255, 255, 0.04)',
+    focusRing: '#2E94FF',
+
+    // Chronos V2 additions
+    dotGrid: 'rgba(255, 255, 255, 0.05)',
+    glassHeader: '#0A0A0A',
+    glassToolbar: 'rgba(0, 0, 0, 0.4)',
+    forecastHud: 'rgba(15, 15, 15, 0.9)',
+    neonRedGlow: '0 0 8px rgba(239, 68, 68, 0.25)',
+    executionBarBg: 'rgba(46, 148, 255, 0.12)',
   },
   
   light: {
@@ -69,19 +75,19 @@ export const themes: Record<string, GanttTheme> = {
     textTertiary: '#64748B',  // Slate 500 - for metadata
 
     // Accent & Interactive
-    accent: '#2563EB',
+    accent: '#2E94FF',
     accentHover: '#1D4ED8',
     accentLight: 'rgba(37, 99, 235, 0.08)',
 
     // Task Elements
-    taskBarPrimary: '#2563EB',
+    taskBarPrimary: '#2E94FF',
     taskBarProgress: '#1E40AF',
     taskBarHandle: '#FFFFFF',
 
     // Dependencies & Critical Path
     // v0.17.361: Solid colors for better visibility
     dependency: '#6B7280',
-    dependencyHover: '#3B82F6',  // v0.17.450: Bright blue hover for better visibility
+    dependencyHover: '#2E94FF',  // v0.17.450: Bright blue hover for better visibility
     criticalPath: '#DC2626',
     criticalPathLight: 'rgba(220, 38, 38, 0.1)',
 
@@ -93,14 +99,22 @@ export const themes: Record<string, GanttTheme> = {
 
     // Status Colors
     statusTodo: '#64748B',  // Slate 500
-    statusInProgress: '#2563EB',
+    statusInProgress: '#2E94FF',
     statusCompleted: '#059669',
 
     // Hover & Focus States
     hoverBg: 'rgba(0, 0, 0, 0.04)',
-    focusRing: '#2563EB',
+    focusRing: '#2E94FF',
+
+    // Chronos V2 additions (light-mode equivalents)
+    dotGrid: 'rgba(0, 0, 0, 0.04)',
+    glassHeader: '#F8FAFC',
+    glassToolbar: 'rgba(255, 255, 255, 0.85)',
+    forecastHud: 'rgba(248, 250, 252, 0.95)',
+    neonRedGlow: '0 0 10px rgba(220, 38, 38, 0.3)',
+    executionBarBg: 'rgba(37, 99, 235, 0.28)',
   },
-  
+
   neutral: {
     // Backgrounds
     // v0.17.71: Improved contrast and visual breathing
@@ -149,5 +163,13 @@ export const themes: Record<string, GanttTheme> = {
     // Hover & Focus States
     hoverBg: 'rgba(0, 0, 0, 0.035)',
     focusRing: '#292524',
+
+    // Chronos V2 additions (neutral-mode equivalents)
+    dotGrid: 'rgba(0, 0, 0, 0.03)',
+    glassHeader: '#F5F5F4',
+    glassToolbar: 'rgba(250, 250, 249, 0.85)',
+    forecastHud: 'rgba(245, 245, 244, 0.95)',
+    neonRedGlow: '0 0 10px rgba(68, 64, 60, 0.3)',
+    executionBarBg: 'rgba(41, 37, 36, 0.25)',
   },
 };

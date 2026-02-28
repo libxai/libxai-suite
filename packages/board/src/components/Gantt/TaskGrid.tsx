@@ -217,15 +217,24 @@ export function TaskGrid({
     enableKeyboard: true,
   });
 
-  const flattenTasks = (tasks: Task[], level = 0): Array<{ task: Task; level: number }> => {
+  const flattenTasks = (tasks: Task[], level = 0, parentWbs = ''): Array<{ task: Task; level: number }> => {
     const result: Array<{ task: Task; level: number }> = [];
 
     // Sort by position to maintain creation order
     const sortedTasks = [...tasks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
-    for (const task of sortedTasks) {
+    for (let i = 0; i < sortedTasks.length; i++) {
+      const task = sortedTasks[i]!;
+      // Generate WBS code: "1.0", "1.1", "1.1.1", etc.
+      const seq = i + 1;
+      const wbsCode = parentWbs
+        ? `${parentWbs}.${seq}`         // Child: "1.1", "1.1.1"
+        : `${seq}.0`;                    // Root: "1.0", "2.0"
+      task.wbsCode = wbsCode;
       result.push({ task, level });
       if (task.subtasks && task.subtasks.length > 0 && task.isExpanded) {
-        result.push(...flattenTasks(task.subtasks, level + 1));
+        // Children use parent's seq (without .0) as prefix
+        const childPrefix = parentWbs ? `${parentWbs}.${seq}` : `${seq}`;
+        result.push(...flattenTasks(task.subtasks, level + 1, childPrefix));
       }
     }
 
@@ -459,6 +468,9 @@ export function TaskGrid({
 
   // Render cell content based on column type
   const renderCellContent = (column: GanttColumn, task: Task, level: number) => {
+    // Leaf Node Rule: parent tasks with children are read-only containers
+    const isParentTask = task.subtasks && task.subtasks.length > 0;
+
     switch (column.id) {
       case 'name':
         const isEditing = editingTaskId === task.id;
@@ -498,19 +510,8 @@ export function TaskGrid({
                 )}
               </button>
             ) : (
-              /* v0.17.183: Color dot in same position as chevron for perfect alignment */
-              <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
-                <div
-                  className="w-3 h-3 rounded-full border"
-                  style={{
-                    backgroundColor: task.color || '#3B82F6',
-                    opacity: task.parentId ? 0.6 : 1, // Subtasks more transparent
-                    borderColor: task.isMilestone ? theme.accent : 'transparent',
-                    borderWidth: task.isMilestone ? '2px' : '0px',
-                  }}
-                  title={task.isMilestone ? 'Milestone' : task.parentId ? 'Subtask' : 'Task'}
-                />
-              </div>
+              /* v2.2.0: Removed color dot — spacer keeps alignment with chevron */
+              <div className="w-5 h-5 flex-shrink-0" />
             )}
 
             {/* Task Name or Input */}
@@ -545,29 +546,43 @@ export function TaskGrid({
                   className="flex-1"
                   style={{
                     // v0.17.72: Enhanced visual hierarchy - Root tasks (level 0) are always "phases"
-                    // Root tasks (no parentId): Pure primary color, heavier weight - even without children
-                    // Subtasks (has parentId): Secondary color, lighter weight
-                    // This ensures master tasks look prominent even before adding children
+                    display: 'inline-flex',
+                    alignItems: 'baseline',
+                    gap: '6px',
+                    overflow: 'hidden',
                     color: !task.parentId
-                      ? theme.textPrimary  // Root/Master: Brightest (#FFFFFF dark / #0F172A light)
-                      : theme.textSecondary,  // Subtasks: Muted (#CBD5E1 dark / #334155 light)
+                      ? theme.textPrimary
+                      : theme.textSecondary,
                     fontFamily: 'Inter, sans-serif',
                     fontSize: !task.parentId
-                      ? '14px'  // Root/Master: Slightly larger
-                      : '13px',  // Subtasks: Normal size
-                    // v0.17.72: Font weight based on hierarchy level, not children count
+                      ? '14px'
+                      : '13px',
                     fontWeight: task.isMilestone
-                      ? 600  // Milestones: Semibold (most important)
+                      ? 600
                       : !task.parentId
-                        ? 600  // Root/Master: Semibold - always "jump" to view
-                        : 400,  // Subtasks: Normal weight
+                        ? 600
+                        : 400,
                     letterSpacing: !task.parentId
-                      ? '-0.01em'  // Root/Master: Tighter tracking for headers
+                      ? '-0.01em'
                       : '0',
                   }}
-                  title={task.name} // v0.13.8: Show full name on hover tooltip
+                  title={task.name}
                 >
-                  {task.name}
+                  {task.wbsCode && (
+                    <span style={{
+                      color: theme.textTertiary,
+                      fontFamily: "'JetBrains Mono', monospace",
+                      fontSize: '11px',
+                      fontWeight: 500,
+                      opacity: 0.65,
+                      flexShrink: 0,
+                    }}>
+                      {task.wbsCode}
+                    </span>
+                  )}
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {task.name}
+                  </span>
                 </span>
 
                 {/* Hover Action Buttons */}
@@ -629,8 +644,14 @@ export function TaskGrid({
             <button
               type="button"
               className="flex items-center gap-1.5 px-2 py-1 rounded text-xs transition-colors hover:bg-white/5"
-              style={{ color: theme.textSecondary }}
+              style={{
+                color: theme.textSecondary,
+                opacity: isParentTask ? 0.5 : 1,
+                cursor: isParentTask ? 'default' : 'pointer',
+              }}
+              title={isParentTask ? 'Auto-calculated from subtasks' : undefined}
               onClick={(e) => {
+                if (isParentTask) return; // Parent dates are read-only (roll-up)
                 if (isDatePickerOpen) {
                   setDatePickerState(null);
                 } else {
@@ -646,6 +667,7 @@ export function TaskGrid({
             >
               <Calendar className="w-3 h-3" style={{ color: theme.textTertiary }} />
               <span>{formatDisplayDate(dateValue)}</span>
+              {isParentTask && <span style={{ fontSize: '9px', color: theme.textTertiary, marginLeft: '2px' }}>▼</span>}
             </button>
 
             {/* Date Picker Popover - Using Portal to render outside overflow:hidden containers */}
@@ -765,8 +787,8 @@ export function TaskGrid({
                               className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] transition-colors"
                               style={{
                                 color: !d.isCurrentMonth ? theme.textTertiary : isSelected ? '#FFF' : theme.textPrimary,
-                                backgroundColor: isSelected ? '#3B82F6' : 'transparent',
-                                boxShadow: isToday && !isSelected ? 'inset 0 0 0 1px #3B82F6' : 'none',
+                                backgroundColor: isSelected ? '#2E94FF' : 'transparent',
+                                boxShadow: isToday && !isSelected ? 'inset 0 0 0 1px #2E94FF' : 'none',
                               }}
                               onClick={() => {
                                 onTaskUpdate?.(task.id, { [dateField]: d.date });
@@ -804,6 +826,14 @@ export function TaskGrid({
         );
       
       case 'assignees':
+        // Parent tasks: no assignees (read-only container)
+        if (isParentTask) {
+          return (
+            <div className="flex items-center justify-center w-full" style={{ opacity: 0.4 }}>
+              <span className="text-xs" style={{ color: theme.textTertiary }}>—</span>
+            </div>
+          );
+        }
         const taskAssignedUsers: User[] = availableUsers.filter(user =>
           task.assignees?.some(a => a.name === user.name || a.initials === user.initials)
         );
@@ -830,8 +860,17 @@ export function TaskGrid({
             />
           </div>
         );
-      
+
       case 'status':
+        // Parent tasks: show rolled-up status (read-only)
+        if (isParentTask) {
+          const statusLabel = task.progress === 100 ? '✓' : task.progress > 0 ? '◐' : '○';
+          return (
+            <div className="flex items-center justify-center w-full" style={{ opacity: 0.5 }}>
+              <span className="text-xs" style={{ color: theme.textTertiary }}>{statusLabel}</span>
+            </div>
+          );
+        }
         return (
           <div
             className="flex items-center justify-center w-full"
@@ -848,10 +887,10 @@ export function TaskGrid({
             />
           </div>
         );
-      
+
       case 'progress':
         return (
-          <div className="flex items-center justify-center gap-2 w-full">
+          <div className="flex items-center justify-center gap-2 w-full" style={{ opacity: isParentTask ? 0.6 : 1 }}>
             <div className="flex-1 h-1.5 rounded-full overflow-hidden max-w-[60px]" style={{ backgroundColor: theme.bgSecondary }}>
               <div
                 className="h-full rounded-full transition-all"
@@ -1099,7 +1138,7 @@ export function TaskGrid({
       <div
         className="sticky top-0 z-10 flex items-center"
         style={{
-          backgroundColor: theme.bgGrid,
+          backgroundColor: theme.glassHeader || theme.bgSecondary,
           height: `${HEADER_HEIGHT}px`,
           paddingLeft: '3px',
           borderBottom: `1px solid ${theme.border}`,
@@ -1213,7 +1252,7 @@ export function TaskGrid({
             position: 'sticky',
             right: 0,
             height: '100%',
-            backgroundColor: theme.bgGrid,
+            backgroundColor: theme.glassHeader || theme.bgSecondary,
             zIndex: 5,
           }}
         >

@@ -59,6 +59,11 @@ export function KanbanBoard({
   onDiscardTimer,
   // v1.4.11: Governance v2.0 - Financial blur
   blurFinancials = false,
+  // v2.0.0: Kanban RBAC
+  sidePanel,
+  renderColumnMetrics,
+  // v2.1.0: Suppress internal TaskDetailModal
+  suppressDetailModal = false,
 }: KanbanBoardProps & { children?: React.ReactNode }) {
   const [dragState, setDragState] = useDragState()
 
@@ -314,11 +319,13 @@ export function KanbanBoard({
   // v0.17.254: Also call onTaskOpen to load comments
   const handleCardClick = useCallback(
     (card: typeof board.cards[0]) => {
-      setSelectedCard(card)
+      if (!suppressDetailModal) {
+        setSelectedCard(card)
+      }
       onCardClick?.(card)
       onTaskOpen?.(card.id)
     },
-    [onCardClick, onTaskOpen]
+    [onCardClick, onTaskOpen, suppressDetailModal]
   )
 
   // Handle card update from modal
@@ -357,68 +364,80 @@ export function KanbanBoard({
 
   return (
     <KanbanThemeProvider themeName={themeName}>
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCorners}
-        onDragStart={handleDragStart}
-        onDragOver={handleDragOver}
-        onDragEnd={handleDragEnd}
-      >
-        <div
-          ref={boardRef}
-          className={cn('asakaa-board', themeClass, className)}
-          style={{ ...style, cursor: isPanning ? 'grabbing' : undefined }}
-          data-theme={themeName}
+      <div className={cn('flex h-full overflow-hidden', sidePanel ? 'flex-row' : '')}>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCorners}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDragEnd={handleDragEnd}
         >
-          {board.columns
-            .sort((a, b) => a.position - b.position)
-            .map((column) => {
-              const cards = cardsByColumn.get(column.id) || []
+          <div
+            ref={boardRef}
+            className={cn('asakaa-board', sidePanel ? 'flex-1' : '', themeClass, className)}
+            style={{ ...style, cursor: isPanning ? 'grabbing' : undefined }}
+            data-theme={themeName}
+          >
+            {board.columns
+              .sort((a, b) => a.position - b.position)
+              .map((column) => {
+                const cards = cardsByColumn.get(column.id) || []
 
-              // v0.17.55: Check if column is deletable (not a default column)
-              const isDeletable = !DEFAULT_COLUMN_IDS.includes(column.id)
+                // v0.17.55: Check if column is deletable (not a default column)
+                const isDeletable = !DEFAULT_COLUMN_IDS.includes(column.id)
 
-              return (
-                <Column
-                  key={column.id}
-                  column={column}
-                  cards={cards}
-                  renderCard={renderProps?.renderCard}
-                  renderColumn={renderProps?.renderColumn}
-                  renderHeader={renderProps?.renderColumnHeader}
-                  renderEmptyState={renderProps?.renderEmptyState}
-                  onCardClick={handleCardClick}
-                  onCardUpdate={handleCardUpdate}
-                  onColumnRename={handleColumnRename}
-                  onColumnDelete={handleColumnDelete}
-                  isDeletable={isDeletable}
-                  availableUsers={availableUsers}
-                  allCards={board.cards}
-                  enableVirtualization={config?.enableVirtualization}
-                  cardHeight={config?.cardHeight}
-                />
-              )
-            })}
-          {children}
-        </div>
+                const columnFooter = renderProps?.renderColumnFooter?.(column)
 
-        <DragOverlay>
-          {dragState.draggedCardId ? (
-            <Card
-              card={
-                board.cards.find((c) => c.id === dragState.draggedCardId)!
-              }
-              render={renderProps?.renderCardOverlay || renderProps?.renderCard}
-              disableDrag
-              className="opacity-90 rotate-3 shadow-2xl"
-            />
-          ) : null}
-        </DragOverlay>
-      </DndContext>
+                return (
+                  <div key={column.id} className="asakaa-column-wrapper">
+                    <Column
+                      column={column}
+                      cards={cards}
+                      renderCard={renderProps?.renderCard}
+                      renderColumn={renderProps?.renderColumn}
+                      renderHeader={renderProps?.renderColumnHeader}
+                      renderEmptyState={renderProps?.renderEmptyState}
+                      renderMetrics={renderColumnMetrics ? (col, crds) => renderColumnMetrics(col, crds) : undefined}
+                      onCardClick={handleCardClick}
+                      onCardUpdate={handleCardUpdate}
+                      onColumnRename={callbacks.onColumnUpdate ? handleColumnRename : undefined}
+                      onColumnDelete={callbacks.onColumnDelete ? handleColumnDelete : undefined}
+                      isDeletable={isDeletable}
+                      locale={config?.locale === 'es' ? 'es' : 'en'}
+                      availableUsers={availableUsers}
+                      allCards={board.cards}
+                      enableVirtualization={config?.enableVirtualization}
+                      cardHeight={config?.cardHeight}
+                    />
+                    {columnFooter}
+                  </div>
+                )
+              })}
+            {children}
+          </div>
+
+          <DragOverlay>
+            {dragState.draggedCardId ? (
+              <Card
+                card={
+                  board.cards.find((c) => c.id === dragState.draggedCardId)!
+                }
+                render={renderProps?.renderCardOverlay || renderProps?.renderCard}
+                disableDrag
+                className="opacity-90 rotate-3 shadow-2xl"
+              />
+            ) : null}
+          </DragOverlay>
+        </DndContext>
+
+        {/* v2.0.0: Side panel */}
+        {sidePanel}
+      </div>
 
       {/* Task Detail Modal - same as Calendar */}
       {/* v0.17.254: Added comments support */}
-      <TaskDetailModal
+      {/* v2.1.0: Suppress when consumer provides own drawer */}
+      {!suppressDetailModal && <TaskDetailModal
         task={selectedCard}
         isOpen={!!selectedCard}
         onClose={() => setSelectedCard(null)}
@@ -451,7 +470,7 @@ export function KanbanBoard({
         onTimerDiscard={onDiscardTimer}
         // v1.4.11: Governance v2.0 - Financial blur
         blurFinancials={blurFinancials}
-      />
+      />}
     </KanbanThemeProvider>
   )
 }

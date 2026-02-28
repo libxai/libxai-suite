@@ -7,6 +7,23 @@
 import { useState, useRef, useEffect } from 'react'
 import { Portal } from '../Portal'
 
+const i18n = {
+  en: {
+    renameColumn: 'Rename Column',
+    rename: 'Rename',
+    delete: 'Delete',
+    columnName: 'Column name',
+    columnOptions: 'Column options',
+  },
+  es: {
+    renameColumn: 'Renombrar Columna',
+    rename: 'Renombrar',
+    delete: 'Eliminar',
+    columnName: 'Nombre de columna',
+    columnOptions: 'Opciones de columna',
+  },
+} as const
+
 export interface ColumnMenuProps {
   /** Current column title */
   columnTitle: string
@@ -18,6 +35,8 @@ export interface ColumnMenuProps {
   isDeletable?: boolean
   /** Custom className */
   className?: string
+  /** Locale for translations */
+  locale?: 'en' | 'es'
 }
 
 export function ColumnMenu({
@@ -26,7 +45,9 @@ export function ColumnMenu({
   onDelete,
   isDeletable = false,
   className,
+  locale = 'en',
 }: ColumnMenuProps) {
+  const t = i18n[locale] || i18n.en
   const [isOpen, setIsOpen] = useState(false)
   const [isRenaming, setIsRenaming] = useState(false)
   const [newTitle, setNewTitle] = useState(columnTitle)
@@ -122,8 +143,8 @@ export function ColumnMenu({
         ref={buttonRef}
         onClick={() => setIsOpen(!isOpen)}
         className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-white/10"
-        title="Column options"
-        aria-label="Column menu"
+        title={t.columnOptions}
+        aria-label={t.columnOptions}
       >
         <svg
           width="16"
@@ -157,7 +178,7 @@ export function ColumnMenu({
               // Rename input
               <div className="p-3">
                 <label className="text-xs font-bold text-white/80 uppercase tracking-wider block mb-2">
-                  Rename Column
+                  {t.renameColumn}
                 </label>
                 <input
                   ref={inputRef}
@@ -167,7 +188,7 @@ export function ColumnMenu({
                   onKeyDown={handleRenameKeyDown}
                   onBlur={handleRenameSubmit}
                   className="w-full px-3 py-2 rounded-lg text-sm bg-white/5 border border-white/20 text-white placeholder-white/50 outline-none focus:border-blue-500/50 transition-all"
-                  placeholder="Column name"
+                  placeholder={t.columnName}
                   maxLength={50}
                 />
               </div>
@@ -193,7 +214,7 @@ export function ColumnMenu({
                       strokeLinejoin="round"
                     />
                   </svg>
-                  <span className="font-medium">Rename</span>
+                  <span className="font-medium">{t.rename}</span>
                 </button>
 
                 {/* v0.17.55: Delete option - only for custom columns */}
@@ -228,7 +249,7 @@ export function ColumnMenu({
                           strokeLinecap="round"
                         />
                       </svg>
-                      <span className="font-medium">Delete</span>
+                      <span className="font-medium">{t.delete}</span>
                     </button>
                   </>
                 )}

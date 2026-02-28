@@ -8,7 +8,7 @@
  */
 
 import { useState, useRef, useEffect } from 'react';
-import { Clock } from 'lucide-react';
+import { Clock, DollarSign } from 'lucide-react';
 import { cn } from '../../../utils';
 import { useSaveFlash } from '../../../hooks/useMicroInteractions';
 
@@ -28,6 +28,10 @@ interface TimeCellProps {
    * When true, shows a blurred placeholder instead of the actual value
    */
   isBlurred?: boolean;
+  /** Display mode: 'hours' shows Xh Ym, 'financial' shows $X (minutes/60 × hourlyRate) */
+  lens?: 'hours' | 'financial';
+  /** Rate used to convert hours → dollars when lens='financial' */
+  hourlyRate?: number;
 }
 
 /**
@@ -113,6 +117,8 @@ export function TimeCell({
   disabled = false,
   enableSaveFlash = true,
   isBlurred = false,
+  lens = 'hours',
+  hourlyRate = 0,
 }: TimeCellProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState('');
@@ -121,7 +127,10 @@ export function TimeCell({
   // Micro-interaction: flash green on save
   const { isFlashing, triggerFlash } = useSaveFlash();
 
-  const formattedValue = formatTime(value, locale);
+  const isFin = lens === 'financial' && hourlyRate > 0;
+  const formattedValue = isFin && value
+    ? `$${Math.round((value / 60) * hourlyRate).toLocaleString('en-US')}`
+    : formatTime(value, locale);
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -174,11 +183,11 @@ export function TimeCell({
         className="flex items-center gap-1.5"
         title={locale === 'es' ? 'No tienes permisos para ver este dato' : 'You don\'t have permission to view this data'}
       >
-        <Clock className={cn('w-3.5 h-3.5 flex-shrink-0', isDark ? 'text-[#6B7280]' : 'text-gray-400')} />
+        <Clock className={cn('w-3.5 h-3.5 flex-shrink-0', isDark ? 'text-white/30' : 'text-gray-400')} />
         <span
           className={cn(
             'text-sm select-none blur-[4px] opacity-60 pointer-events-none',
-            isDark ? 'text-[#94A3B8]' : 'text-gray-500'
+            isDark ? 'text-white/60' : 'text-gray-500'
           )}
           aria-hidden="true"
         >
@@ -188,17 +197,19 @@ export function TimeCell({
     );
   }
 
+  const ValueIcon = isFin ? DollarSign : Clock;
+
   // Read-only mode (no onChange provided)
   if (disabled || !onChange) {
     return (
       <div className="flex items-center gap-1.5">
         {value != null && value > 0 && (
-          <Clock className={cn('w-3.5 h-3.5 flex-shrink-0', isDark ? 'text-[#6B7280]' : 'text-gray-400')} />
+          <ValueIcon className={cn('w-3.5 h-3.5 flex-shrink-0', isDark ? 'text-white/30' : 'text-gray-400')} />
         )}
         <span className={cn(
-          'text-sm',
-          isDark ? 'text-[#94A3B8]' : 'text-gray-500',
-          (!value || value === 0) && (isDark ? 'text-[#6B7280]' : 'text-gray-400')
+          'text-sm font-mono',
+          isDark ? 'text-white/60' : 'text-gray-500',
+          (!value || value === 0) && (isDark ? 'text-white/30' : 'text-gray-400')
         )}>
           {formattedValue}
         </span>
@@ -221,8 +232,8 @@ export function TimeCell({
         className={cn(
           'w-full px-2 py-1 text-sm rounded border outline-none',
           isDark
-            ? 'bg-white/5 border-[#3B82F6] text-white placeholder:text-[#6B7280]'
-            : 'bg-white border-[#3B82F6] text-gray-900 placeholder:text-gray-400'
+            ? 'bg-white/[0.03] border-[#007BFF] text-white placeholder:text-white/30'
+            : 'bg-white border-[#007BFF] text-gray-900 placeholder:text-gray-400'
         )}
       />
     );
@@ -236,19 +247,19 @@ export function TimeCell({
         setIsEditing(true);
       }}
       className={cn(
-        'flex items-center gap-1 text-sm text-left w-full px-1.5 py-1 rounded transition-all duration-300 overflow-hidden',
-        isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100',
+        'flex items-center gap-1 text-sm text-left w-full px-1.5 py-1 rounded transition-[background-color] duration-300 overflow-hidden',
+        isDark ? 'hover:bg-white/[0.05]' : 'hover:bg-gray-100',
         value != null && value > 0
-          ? (isDark ? 'text-[#94A3B8]' : 'text-gray-600')
-          : (isDark ? 'text-[#6B7280]' : 'text-gray-400'),
+          ? (isDark ? 'text-white/60' : 'text-gray-600')
+          : (isDark ? 'text-white/30' : 'text-gray-400'),
         // Flash animation
         isFlashing && (isDark ? 'bg-green-500/30' : 'bg-green-500/20')
       )}
     >
       {value != null && value > 0 && (
-        <Clock className={cn('w-3 h-3 flex-shrink-0', isDark ? 'text-[#6B7280]' : 'text-gray-400')} />
+        <ValueIcon className={cn('w-3 h-3 flex-shrink-0', isDark ? 'text-white/30' : 'text-gray-400')} />
       )}
-      <span className="truncate">{formattedValue}</span>
+      <span className="truncate font-mono">{formattedValue}</span>
     </button>
   );
 }

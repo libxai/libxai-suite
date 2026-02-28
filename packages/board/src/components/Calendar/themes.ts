@@ -1,44 +1,53 @@
 /**
- * CalendarBoard Themes
- * @version 0.17.0
+ * CalendarBoard Themes — Chronos V2.0
+ * @version 2.0.0
  */
 
 import type { CalendarTheme } from './types';
 
 /**
- * Dark theme for CalendarBoard
+ * Dark theme — Chronos V2.0 Design Language
+ * Ultra-dark (#050505) with #222 grid borders, glass elements, and neon accents
  */
 export const darkTheme: CalendarTheme = {
   // Backgrounds
-  bgPrimary: '#0d1117',
-  bgSecondary: '#161b22',
-  bgHover: '#21262d',
-  bgToday: '#1f6feb20',
-  bgWeekend: '#161b2280',
-  bgOtherMonth: '#0d111750',
+  bgPrimary: '#050505',
+  bgSecondary: '#080808',
+  bgHover: 'rgba(255, 255, 255, 0.02)',
+  bgToday: 'rgba(0, 127, 255, 0.08)',
+  bgWeekend: '#050505',
+  bgOtherMonth: '#080808',
 
   // Borders
-  border: '#30363d',
-  borderLight: '#21262d',
+  border: '#222222',
+  borderLight: '#1a1a1a',
 
   // Text
-  textPrimary: '#c9d1d9',
-  textSecondary: '#8b949e',
-  textMuted: '#6e7681',
-  textToday: '#58a6ff',
+  textPrimary: 'rgba(255, 255, 255, 0.90)',
+  textSecondary: 'rgba(255, 255, 255, 0.60)',
+  textMuted: 'rgba(255, 255, 255, 0.30)',
+  textToday: '#007FFF',
 
   // Accent colors
-  accent: '#58a6ff',
-  accentHover: '#79b8ff',
-  accentLight: '#58a6ff20',
+  accent: '#007FFF',
+  accentHover: '#3399FF',
+  accentLight: 'rgba(0, 127, 255, 0.15)',
 
   // Status colors
-  statusTodo: '#8b949e',
-  statusInProgress: '#f0883e',
-  statusCompleted: '#3fb950',
+  statusTodo: 'rgba(255, 255, 255, 0.40)',
+  statusInProgress: '#007FFF',
+  statusCompleted: '#34D399',
 
   // Interactive
-  focusRing: '#58a6ff',
+  focusRing: '#007FFF',
+
+  // Chronos V2.0 extended tokens
+  glass: 'rgba(20, 20, 20, 0.6)',
+  glassBorder: 'rgba(255, 255, 255, 0.08)',
+  glassHover: 'rgba(255, 255, 255, 0.05)',
+  neonRed: '#FF2E2E',
+  glowBlue: '0 0 10px rgba(0, 127, 255, 0.3)',
+  glowRed: '0 0 10px rgba(255, 46, 46, 0.4)',
 };
 
 /**
@@ -75,6 +84,14 @@ export const lightTheme: CalendarTheme = {
 
   // Interactive
   focusRing: '#0969da',
+
+  // Extended tokens (light variants)
+  glass: 'rgba(255, 255, 255, 0.8)',
+  glassBorder: 'rgba(0, 0, 0, 0.08)',
+  glassHover: 'rgba(0, 0, 0, 0.04)',
+  neonRed: '#DC2626',
+  glowBlue: '0 0 10px rgba(0, 127, 255, 0.15)',
+  glowRed: '0 0 10px rgba(220, 38, 38, 0.2)',
 };
 
 /**
@@ -111,6 +128,14 @@ export const neutralTheme: CalendarTheme = {
 
   // Interactive
   focusRing: '#6366f1',
+
+  // Extended tokens
+  glass: 'rgba(26, 26, 46, 0.6)',
+  glassBorder: 'rgba(255, 255, 255, 0.06)',
+  glassHover: 'rgba(255, 255, 255, 0.04)',
+  neonRed: '#EF4444',
+  glowBlue: '0 0 10px rgba(99, 102, 241, 0.3)',
+  glowRed: '0 0 10px rgba(239, 68, 68, 0.3)',
 };
 
 /**

@@ -198,7 +198,7 @@ export function CardDetailModal({
                       : currentCard.priority === 'HIGH'
                       ? '#F59E0B'
                       : currentCard.priority === 'MEDIUM'
-                      ? '#3B82F6'
+                      ? '#2E94FF'
                       : '#6B7280',
                 }}
               />
@@ -494,7 +494,7 @@ export function CardDetailModal({
                               : currentCard.priority === 'HIGH'
                               ? '#F59E0B'
                               : currentCard.priority === 'MEDIUM'
-                              ? '#3B82F6'
+                              ? '#2E94FF'
                               : '#6B7280',
                         }}
                       />

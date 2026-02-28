@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 export interface TaskSegment {
   startDate: Date;
   endDate: Date;
@@ -60,6 +62,23 @@ export interface Task {
   parentId?: string;  // ID of parent task (undefined for root-level tasks)
   level?: number;     // Indentation level (0 for root, 1 for first level children, etc.)
   position?: number;  // Position within its level/parent
+
+  // v2.0.0: Chronos Interactive Time Manager fields (computed by app)
+  wbsCode?: string;           // "1.1.1" — WBS code from hierarchy position
+  taskCode?: string;           // "TK-102" — Sequential task identifier
+  scheduleVariance?: number;   // Days: negative = delay, positive = ahead
+  blockers?: Array<{ type: string; id: string; severity: 'critical' | 'warning' | 'info' }>;
+  teamLoad?: { percentage: number; label: string };
+
+  // v1.2.0: Three-tier time tracking (from DB)
+  effortMinutes?: number;       // Technical effort estimate
+  timeLoggedMinutes?: number;   // Auto-calculated logged time
+  soldEffortMinutes?: number;   // Client-facing quoted effort
+
+  // v3.0.0: Baseline comparison (Oracle view)
+  baselineStartDate?: Date;     // Planned start from selected baseline snapshot
+  baselineEndDate?: Date;       // Planned end from selected baseline snapshot
+  baselineProgress?: number;    // Planned progress from baseline snapshot
 }
 
 export type TimeScale = 'day' | 'week' | 'month';
@@ -136,6 +155,14 @@ export interface GanttTheme {
   // Hover & Focus States
   hoverBg: string;
   focusRing: string;
+
+  // Chronos V2 (optional — only set in dark theme)
+  dotGrid?: string;
+  glassHeader?: string;
+  glassToolbar?: string;
+  forecastHud?: string;
+  neonRedGlow?: string;
+  executionBarBg?: string;
 }
 
 /**
@@ -240,6 +267,8 @@ export interface GanttPermissions {
   canExport?: boolean;
   canToggleExpansion?: boolean;
   canPerformAction?: (task: Task, action: 'create' | 'update' | 'delete' | 'assign' | 'progress') => boolean;
+  /** v4.1.0: Per-task edit check — when provided, each task bar uses this to determine read-only state */
+  canEditTask?: (task: Task) => boolean;
 }
 
 /**
@@ -372,12 +401,26 @@ export interface AICommandResult {
   error?: string;
 }
 
+/**
+ * v3.1.0: Project forecast metrics for the Forecast HUD panel
+ * Computed by the consumer app and passed through GanttConfig
+ */
+export interface ProjectForecast {
+  expectedFinish?: Date | null;
+  delayDays?: number | null;
+  confidencePercent?: number | null;
+  costAtCompletion?: number | null;
+  budgetVariancePercent?: number | null;
+  currency?: string;
+}
+
 export interface GanttConfig {
   theme?: Theme;
   timeScale?: TimeScale;
   rowDensity?: RowDensity; // Row height density (default: 'comfortable')
   showThemeSelector?: boolean; // Show theme selector in toolbar (default: true)
   showExportButton?: boolean; // v0.12.0: Show export dropdown in toolbar (default: true)
+  projectName?: string; // Used for export filenames
   availableUsers?: Array<{ id: string; name: string; initials: string; color: string }>; // Available users for assignment
 
   /**
@@ -406,6 +449,9 @@ export interface GanttConfig {
   // v0.17.300: Task filter in toolbar
   taskFilter?: TaskFilterType;
   onTaskFilterChange?: (filter: TaskFilterType) => void;
+
+  /** Render custom content on the right side of toolbar (e.g. lens toggle) */
+  toolbarRightContent?: ReactNode;
 
   // v0.8.0: Customizable templates (similar to DHTMLX gantt.templates.*)
   templates?: GanttTemplates;
@@ -482,8 +528,65 @@ export interface GanttConfig {
    */
   autoExpandSubtasks?: boolean;
 
+  /**
+   * Show task name labels inside task bars
+   * @default true
+   */
+  showTaskBarLabels?: boolean;
+
+  /**
+   * Show/hide critical path highlighting (red border + glow on critical tasks)
+   * @default true
+   */
+  showCriticalPath?: boolean;
+  onShowCriticalPathChange?: (show: boolean) => void;
+
+  /**
+   * Show/hide dependency connector arrows between tasks
+   * @default true
+   */
+  showDependencies?: boolean;
+  onShowDependenciesChange?: (show: boolean) => void;
+
+  /**
+   * Highlight weekend columns with shading/hatch pattern
+   * @default true
+   */
+  highlightWeekends?: boolean;
+  onHighlightWeekendsChange?: (show: boolean) => void;
+
+  /**
+   * v3.0.0: Show baseline ghost bars behind actual bars (Oracle view)
+   * When true, tasks with baselineStartDate/baselineEndDate show a dashed outline behind the actual bar
+   * @default false
+   */
+  showBaseline?: boolean;
+
+  /**
+   * v3.0.0: Gantt view mode — Execution (actual) vs Oracle (baseline comparison)
+   * Controls the Execution/Oracle toggle in the Chronos toolbar
+   * @default 'execution'
+   */
+  viewMode?: 'execution' | 'oracle';
+  onViewModeChange?: (mode: 'execution' | 'oracle') => void;
+
+  /**
+   * v3.1.0: Project forecast data for the Forecast HUD panel in Chronos toolbar
+   * When provided, replaces hardcoded placeholder values with real metrics
+   */
+  projectForecast?: ProjectForecast;
+
+  /**
+   * Callback for "Copy Snapshot Link" in the Share dropdown
+   * When provided, shows the option in the export/share menu
+   */
+  onCopySnapshotLink?: () => void;
+
   // ==================== UI Events ====================
   onThemeChange?: (theme: Theme) => void; // v0.9.0: Theme change event
+  onTimeScaleChange?: (timeScale: TimeScale) => void; // v1.5.0: TimeScale change event
+  onZoomChange?: (zoom: number) => void; // v1.5.0: Zoom change event
+  onDateRangeChange?: (startDate: Date, endDate: Date) => void; // v1.5.1: Expose computed date range
 
   // ==================== Basic Events ====================
   onTaskClick?: (task: Task) => void;

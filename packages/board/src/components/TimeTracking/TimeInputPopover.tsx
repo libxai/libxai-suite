@@ -1,52 +1,31 @@
 /**
- * TimeInputPopover - Compact popover for entering time values
- * v1.3.0: Extracted from TaskDetailModal for reuse in ListView
- *
- * Used for:
- * - Logging time from list view column
- * - Setting estimates
- * - Setting quoted time
+ * TimeInputPopover - Chronos V2 micro-popover for time entry
+ * Glass morphism design matching ListView Chronos style
  */
 
 import { useState, useRef, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { Clock, X } from 'lucide-react';
 import { cn } from '../../utils';
 
 export interface TimeInputPopoverProps {
-  /** Mode determines the title and behavior */
   mode: 'estimate' | 'quoted' | 'log';
-  /** Locale for translations */
   locale: 'en' | 'es';
-  /** Dark mode */
   isDark: boolean;
-  /** Current value in minutes (for estimate/quoted modes) */
   currentValue?: number | null;
-  /** Called when user saves the value */
   onSave: (minutes: number | null, note?: string) => Promise<void>;
-  /** Called when popover should close */
   onClose: () => void;
-  /** Additional class names */
   className?: string;
 }
 
-/**
- * Parse duration string to minutes
- * Supports: "2h 30m", "2h", "30m", "2:30", "150"
- */
 function parseDurationToMinutes(input: string): number | null {
   const trimmed = input.trim().toLowerCase();
+  if (!trimmed || trimmed === '-') return null;
 
-  if (!trimmed || trimmed === '-') {
-    return null;
-  }
-
-  // Format: "2:30" (hours:minutes)
   if (trimmed.includes(':')) {
     const [hours, minutes] = trimmed.split(':').map(Number);
     return (hours || 0) * 60 + (minutes || 0);
   }
 
-  // Format: "2h 30m" or "2h" or "30m"
   const hourMatch = trimmed.match(/(\d+(?:\.\d+)?)\s*h/);
   const minuteMatch = trimmed.match(/(\d+)\s*m/);
 
@@ -56,25 +35,16 @@ function parseDurationToMinutes(input: string): number | null {
     return Math.round(hours * 60) + minutes;
   }
 
-  // Format: plain number (assume HOURS, not minutes)
-  // e.g., "100" = 100 hours = 6000 minutes
   const plainNumber = parseFloat(trimmed);
-  if (!isNaN(plainNumber)) {
-    return Math.round(plainNumber * 60);
-  }
+  if (!isNaN(plainNumber)) return Math.round(plainNumber * 60);
 
   return null;
 }
 
-/**
- * Format minutes as duration string (e.g., "2h 30m")
- */
 function formatMinutesToDuration(minutes: number | null | undefined): string {
   if (!minutes || minutes === 0) return '';
-
   const hours = Math.floor(minutes / 60);
   const remainingMinutes = minutes % 60;
-
   if (hours === 0) return `${remainingMinutes}m`;
   if (remainingMinutes === 0) return `${hours}h`;
   return `${hours}h ${remainingMinutes}m`;
@@ -94,7 +64,6 @@ export function TimeInputPopover({
   const [isSaving, setIsSaving] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Focus input on mount
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
@@ -117,123 +86,154 @@ export function TimeInputPopover({
       e.preventDefault();
       handleSave();
     }
-    if (e.key === 'Escape') {
-      onClose();
-    }
+    if (e.key === 'Escape') onClose();
   };
 
   const titles = {
-    estimate: locale === 'es' ? 'Duración estimada' : 'Estimated duration',
-    quoted: locale === 'es' ? 'Tiempo ofertado' : 'Quoted time',
-    log: locale === 'es' ? 'Registrar tiempo' : 'Log time',
+    estimate: locale === 'es' ? 'Estimación' : 'Estimate',
+    quoted: locale === 'es' ? 'T. Ofertado' : 'Quoted',
+    log: locale === 'es' ? 'Registrar' : 'Log Time',
   };
 
-  const placeholders = {
-    estimate: locale === 'es' ? '8 (=8h)' : '8 (=8h)',
-    quoted: locale === 'es' ? '8 (=8h)' : '8 (=8h)',
-    log: locale === 'es' ? '8 (=8h)' : '8 (=8h)',
-  };
+  const isEs = locale === 'es';
 
   return (
     <div
-      className={cn(
-        "w-64 p-3 rounded-lg shadow-xl border",
-        isDark ? "bg-[#1F2937] border-[#374151]" : "bg-white border-gray-200",
-        className
-      )}
+      className={cn("w-56", className)}
+      style={{
+        background: isDark ? 'rgba(10, 10, 10, 0.95)' : '#FFFFFF',
+        border: isDark ? '1px solid rgba(255,255,255,0.10)' : '1px solid #E5E7EB',
+        borderRadius: '8px',
+        boxShadow: isDark
+          ? '0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05)'
+          : '0 8px 32px rgba(0,0,0,0.12)',
+        backdropFilter: 'blur(16px)',
+      }}
       onClick={(e) => e.stopPropagation()}
     >
-      {/* Header - Compact */}
-      <div className="flex items-center justify-between mb-3">
-        <span className={cn("text-sm font-medium", isDark ? "text-white" : "text-gray-900")}>
-          {titles[mode]}
-        </span>
+      {/* Header */}
+      <div
+        className="flex items-center justify-between px-3 py-2"
+        style={{
+          borderBottom: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid #F3F4F6',
+        }}
+      >
+        <div className="flex items-center gap-1.5">
+          <Clock
+            className="w-3 h-3"
+            style={{ color: isDark ? '#007FFF' : '#2E94FF' }}
+          />
+          <span
+            className="font-mono uppercase tracking-wider"
+            style={{
+              fontSize: '10px',
+              fontWeight: 600,
+              color: isDark ? 'rgba(255,255,255,0.5)' : '#6B7280',
+            }}
+          >
+            {titles[mode]}
+          </span>
+        </div>
         <button
           type="button"
           onClick={onClose}
-          className={cn(
-            "p-1 rounded transition-colors",
-            isDark ? "hover:bg-white/10 text-gray-400" : "hover:bg-gray-100 text-gray-500"
-          )}
+          className="p-0.5 rounded transition-colors"
+          style={{ color: isDark ? 'rgba(255,255,255,0.3)' : '#9CA3AF' }}
         >
-          <X className="w-3.5 h-3.5" />
+          <X className="w-3 h-3" />
         </button>
       </div>
 
-      {/* Duration Input - Compact Style */}
-      <div className="mb-3">
+      {/* Body */}
+      <div className="p-3 space-y-2">
+        {/* Duration Input */}
         <input
           ref={inputRef}
           type="text"
           value={durationInput}
           onChange={(e) => setDurationInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={placeholders[mode]}
-          className={cn(
-            "w-full px-3 py-2 text-sm rounded-lg border transition-all",
-            "focus:outline-none focus:ring-2 focus:ring-blue-500/50",
-            isDark
-              ? "bg-[#374151] border-[#4B5563] text-white placeholder:text-gray-500"
-              : "bg-gray-100 border-gray-200 text-gray-900 placeholder:text-gray-400"
-          )}
+          placeholder="2h 30m"
+          className="w-full font-mono outline-none"
+          style={{
+            fontSize: '13px',
+            fontWeight: 700,
+            padding: '6px 10px',
+            borderRadius: '4px',
+            border: isDark ? '1px solid #333' : '1px solid #E5E7EB',
+            background: isDark ? '#1A1A1A' : '#F9FAFB',
+            color: isDark ? '#FFFFFF' : '#111827',
+          }}
         />
-        <p className={cn("text-xs mt-1", isDark ? "text-gray-500" : "text-gray-400")}>
-          {locale === 'es' ? 'Ej: 8 (=8h), 1h 30m, 45m, 2:30' : 'e.g. 8 (=8h), 1h 30m, 45m, 2:30'}
+        <p
+          className="font-mono"
+          style={{
+            fontSize: '9px',
+            color: isDark ? 'rgba(255,255,255,0.25)' : '#9CA3AF',
+            letterSpacing: '0.02em',
+          }}
+        >
+          {isEs ? '8=8h · 1h 30m · 45m · 2:30' : '8=8h · 1h 30m · 45m · 2:30'}
         </p>
-      </div>
 
-      {/* Note field only for log mode */}
-      {mode === 'log' && (
-        <div className="mb-3">
+        {/* Note field for log mode */}
+        {mode === 'log' && (
           <input
             type="text"
             value={note}
             onChange={(e) => setNote(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={locale === 'es' ? 'Comentario (opcional)' : 'Comment (optional)'}
-            className={cn(
-              "w-full px-3 py-2 text-sm rounded-lg border transition-all",
-              "focus:outline-none focus:ring-2 focus:ring-blue-500/50",
-              isDark
-                ? "bg-[#374151] border-[#4B5563] text-white placeholder:text-gray-500"
-                : "bg-gray-100 border-gray-200 text-gray-900 placeholder:text-gray-400"
-            )}
+            placeholder={isEs ? 'Nota (opcional)' : 'Note (optional)'}
+            className="w-full outline-none"
+            style={{
+              fontSize: '11px',
+              padding: '5px 10px',
+              borderRadius: '4px',
+              border: isDark ? '1px solid #333' : '1px solid #E5E7EB',
+              background: isDark ? '#1A1A1A' : '#F9FAFB',
+              color: isDark ? 'rgba(255,255,255,0.7)' : '#374151',
+            }}
           />
-        </div>
-      )}
-
-      {/* Action Button - Single button, full width */}
-      <button
-        type="button"
-        onClick={handleSave}
-        disabled={isSaving || !durationInput.trim()}
-        className={cn(
-          "w-full py-2 px-3 text-sm font-medium rounded-lg transition-colors",
-          "bg-blue-600 hover:bg-blue-700 text-white",
-          "disabled:opacity-50 disabled:cursor-not-allowed"
         )}
-      >
-        {isSaving
-          ? (locale === 'es' ? 'Guardando...' : 'Saving...')
-          : (locale === 'es' ? 'Guardar' : 'Save')}
-      </button>
 
-      {/* Clear button only for estimate/quoted modes with existing value */}
-      {currentValue && mode !== 'log' && (
+        {/* Save Button */}
         <button
           type="button"
-          onClick={handleClear}
-          disabled={isSaving}
-          className={cn(
-            "w-full mt-2 py-1.5 px-3 text-xs font-medium rounded-lg transition-colors",
-            isDark
-              ? "text-gray-400 hover:text-red-400 hover:bg-red-500/10"
-              : "text-gray-500 hover:text-red-600 hover:bg-red-50"
-          )}
+          onClick={handleSave}
+          disabled={isSaving || !durationInput.trim()}
+          className="w-full font-mono uppercase tracking-wider transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+          style={{
+            fontSize: '10px',
+            fontWeight: 600,
+            padding: '6px 0',
+            borderRadius: '4px',
+            border: isDark ? '1px solid rgba(0,127,255,0.3)' : '1px solid #2E94FF',
+            background: isDark ? 'rgba(0,127,255,0.15)' : '#2E94FF',
+            color: isDark ? '#007FFF' : '#FFFFFF',
+          }}
         >
-          {locale === 'es' ? 'Quitar valor' : 'Clear value'}
+          {isSaving
+            ? (isEs ? 'Guardando...' : 'Saving...')
+            : (isEs ? 'Registrar' : 'Save')}
         </button>
-      )}
+
+        {/* Clear button for estimate/quoted */}
+        {currentValue && mode !== 'log' && (
+          <button
+            type="button"
+            onClick={handleClear}
+            disabled={isSaving}
+            className="w-full font-mono uppercase tracking-wider transition-colors"
+            style={{
+              fontSize: '9px',
+              padding: '4px 0',
+              color: isDark ? 'rgba(255,255,255,0.3)' : '#9CA3AF',
+            }}
+          >
+            {isEs ? 'Quitar' : 'Clear'}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

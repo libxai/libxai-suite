@@ -21,16 +21,16 @@ interface KanbanToolbarTheme {
 
 // Default themes
 const darkTheme: KanbanToolbarTheme = {
-  bgGrid: '#0F1117',
-  bgSecondary: '#1A1D25',
-  border: 'rgba(255, 255, 255, 0.1)',
+  bgGrid: '#050505',
+  bgSecondary: '#0A0A0A',
+  border: 'rgba(255, 255, 255, 0.08)',
   borderLight: 'rgba(255, 255, 255, 0.05)',
-  textPrimary: '#E5E7EB',
-  textSecondary: '#9CA3AF',
-  textTertiary: '#6B7280',
-  accent: '#3B82F6',
-  accentLight: 'rgba(59, 130, 246, 0.15)',
-  hoverBg: 'rgba(255, 255, 255, 0.05)',
+  textPrimary: 'rgba(255, 255, 255, 0.92)',
+  textSecondary: 'rgba(255, 255, 255, 0.60)',
+  textTertiary: 'rgba(255, 255, 255, 0.35)',
+  accent: '#007FFF',
+  accentLight: 'rgba(0, 127, 255, 0.15)',
+  hoverBg: 'rgba(255, 255, 255, 0.04)',
 };
 
 const lightTheme: KanbanToolbarTheme = {
@@ -41,7 +41,7 @@ const lightTheme: KanbanToolbarTheme = {
   textPrimary: '#111827',
   textSecondary: '#6B7280',
   textTertiary: '#9CA3AF',
-  accent: '#3B82F6',
+  accent: '#2E94FF',
   accentLight: 'rgba(59, 130, 246, 0.1)',
   hoverBg: 'rgba(0, 0, 0, 0.05)',
 };
@@ -97,6 +97,8 @@ export interface KanbanToolbarProps {
   onExportExcel?: () => Promise<void>;
   // Custom translations
   translations?: Partial<KanbanToolbarI18n>;
+  /** Render custom content on the right side of toolbar (e.g. lens toggle) */
+  toolbarRightContent?: React.ReactNode;
 }
 
 // Column Selector Dropdown
@@ -137,15 +139,15 @@ function ColumnSelector({ columns, onSelect, theme, t, createTaskLabel }: Column
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-all"
         style={{
-          background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)',
+          background: 'linear-gradient(135deg, #007FFF 0%, #0055CC 100%)',
           color: '#FFFFFF',
           fontFamily: 'Inter, sans-serif',
           fontWeight: 500,
-          boxShadow: '0 2px 8px rgba(59, 130, 246, 0.3)',
+          boxShadow: '0 2px 8px rgba(0, 127, 255, 0.3)',
         }}
         whileHover={{
           scale: 1.02,
-          boxShadow: '0 4px 12px rgba(59, 130, 246, 0.4)',
+          boxShadow: '0 4px 12px rgba(0, 127, 255, 0.4)',
         }}
         whileTap={{ scale: 0.98 }}
       >
@@ -410,15 +412,15 @@ function SimpleCreateButton({ onClick, label }: SimpleCreateButtonProps) {
       onClick={onClick}
       className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-all"
       style={{
-        background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)',
+        background: 'linear-gradient(135deg, #007FFF 0%, #0055CC 100%)',
         color: '#FFFFFF',
         fontFamily: 'Inter, sans-serif',
         fontWeight: 500,
-        boxShadow: '0 2px 8px rgba(59, 130, 246, 0.3)',
+        boxShadow: '0 2px 8px rgba(0, 127, 255, 0.3)',
       }}
       whileHover={{
         scale: 1.02,
-        boxShadow: '0 4px 12px rgba(59, 130, 246, 0.4)',
+        boxShadow: '0 4px 12px rgba(0, 127, 255, 0.4)',
       }}
       whileTap={{ scale: 0.98 }}
     >
@@ -439,6 +441,7 @@ export function KanbanToolbar({
   onExportJSON,
   onExportExcel,
   translations,
+  toolbarRightContent,
 }: KanbanToolbarProps) {
   const themeStyles = theme === 'dark' ? darkTheme : lightTheme;
   const t: KanbanToolbarI18n = {
@@ -458,8 +461,14 @@ export function KanbanToolbar({
         borderColor: themeStyles.border,
       }}
     >
-      {/* Right Section - Create Task + Export */}
+      {/* Right Section - Custom content + Create Task + Export */}
       <div className="flex items-center gap-3">
+        {toolbarRightContent && (
+          <>
+            {toolbarRightContent}
+            <div className="w-px h-5" style={{ backgroundColor: themeStyles.borderLight }} />
+          </>
+        )}
         {hasExport && (
           <>
             <ExportDropdown

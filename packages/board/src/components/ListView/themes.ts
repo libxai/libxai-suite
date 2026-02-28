@@ -1,44 +1,52 @@
 /**
  * ListView Themes
- * @version 0.17.0
+ * @version 2.0.0 — Chronos V2.0 visual language
  */
 
 import type { ListViewTheme } from './types';
 
 /**
- * Dark theme for ListView
+ * Dark theme for ListView — Chronos V2.0
  */
 export const darkTheme: ListViewTheme = {
   // Backgrounds
-  bgPrimary: '#0d1117',
-  bgSecondary: '#161b22',
-  bgHover: '#21262d',
-  bgSelected: '#1f6feb20',
-  bgAlternate: '#0d111780',
+  bgPrimary: '#0D0D0D',
+  bgSecondary: '#141414',
+  bgHover: 'rgba(255,255,255,0.05)',
+  bgSelected: '#0D131E',
+  bgAlternate: '#141414',
 
   // Borders
-  border: '#30363d',
-  borderLight: '#21262d',
+  border: '#222222',
+  borderLight: '#1A1A1A',
 
   // Text
-  textPrimary: '#c9d1d9',
-  textSecondary: '#8b949e',
-  textMuted: '#6e7681',
+  textPrimary: 'rgba(255,255,255,0.9)',
+  textSecondary: 'rgba(255,255,255,0.6)',
+  textMuted: 'rgba(255,255,255,0.3)',
 
   // Accent colors
-  accent: '#58a6ff',
-  accentHover: '#79b8ff',
-  accentLight: '#58a6ff20',
+  accent: '#007BFF',
+  accentHover: '#2979FF',
+  accentLight: 'rgba(0,123,255,0.15)',
 
   // Status colors
-  statusTodo: '#8b949e',
-  statusInProgress: '#f0883e',
-  statusCompleted: '#3fb950',
+  statusTodo: 'rgba(255,255,255,0.4)',
+  statusInProgress: '#007BFF',
+  statusCompleted: '#34D399',
 
   // Interactive
-  focusRing: '#58a6ff',
-  checkboxBg: '#21262d',
-  checkboxChecked: '#58a6ff',
+  focusRing: '#007BFF',
+  checkboxBg: '#1A1A1A',
+  checkboxChecked: '#007BFF',
+
+  // Chronos V2.0 extended tokens
+  bgGroupHeader: '#222222',
+  headerBg: '#1A1A1A',
+  neonRed: '#FF453A',
+  neonGreen: '#32D74B',
+  neonAmber: '#FFD60A',
+  neonBlue: '#0A84FF',
 };
 
 /**
@@ -75,6 +83,14 @@ export const lightTheme: ListViewTheme = {
   focusRing: '#0969da',
   checkboxBg: '#ffffff',
   checkboxChecked: '#0969da',
+
+  // Chronos V2.0 extended tokens
+  bgGroupHeader: '#F3F4F6',
+  headerBg: '#F9FAFB',
+  neonRed: '#DC2626',
+  neonGreen: '#16A34A',
+  neonAmber: '#D97706',
+  neonBlue: '#2E94FF',
 };
 
 /**
@@ -111,6 +127,14 @@ export const neutralTheme: ListViewTheme = {
   focusRing: '#6366f1',
   checkboxBg: '#1f3460',
   checkboxChecked: '#6366f1',
+
+  // Chronos V2.0 extended tokens
+  bgGroupHeader: '#1f3460',
+  headerBg: '#16213e',
+  neonRed: '#EF4444',
+  neonGreen: '#34D399',
+  neonAmber: '#FBBF24',
+  neonBlue: '#6366F1',
 };
 
 /**

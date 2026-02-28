@@ -18,12 +18,20 @@ interface TimelineProps {
   locale?: string; // v0.17.400: Locale for date formatting (e.g., 'en', 'es')
   templates: Required<GanttTemplates>; // v0.8.0
   dependencyLineStyle?: DependencyLineStyle; // v0.17.310: Dependency line style
+  showTaskBarLabels?: boolean;
   onTaskClick?: (task: Task) => void;
   onTaskDblClick?: (task: Task) => void; // v0.8.0
   onTaskContextMenu?: (task: Task, event: React.MouseEvent) => void; // v0.8.0
   onTaskDateChange?: (task: Task, newStart: Date, newEnd: Date) => void;
   onDependencyCreate?: (fromTask: Task, toTaskId: string) => void;
   onDependencyDelete?: (taskId: string, dependencyId: string) => void;
+  /** v3.0.0: Show baseline ghost bars behind actual bars (Oracle view) */
+  showBaseline?: boolean;
+  showCriticalPath?: boolean;
+  showDependencies?: boolean;
+  highlightWeekends?: boolean;
+  /** v4.1.0: Per-task edit check — returns false for read-only bars */
+  canEditTask?: (task: Task) => boolean;
 }
 
 export interface TaskPosition {
@@ -45,20 +53,32 @@ export function Timeline({
   locale = 'en', // v0.17.400: Default to English
   templates,
   dependencyLineStyle = 'curved', // v0.17.310
+  showTaskBarLabels = true,
   onTaskClick,
   onTaskDblClick, // v0.8.0
   onTaskContextMenu, // v0.8.0
   onTaskDateChange,
   onDependencyCreate,
   onDependencyDelete,
+  showBaseline,
+  showCriticalPath = true,
+  showDependencies = true,
+  highlightWeekends = true,
+  canEditTask,
 }: TimelineProps) {
   const HEADER_HEIGHT = 48; // Must match TaskGrid's HEADER_HEIGHT for alignment
 
   // v0.17.400: Get i18n translations
   const t = useGanttI18n();
 
+  // v1.4.28: Ref to content SVG for viewport-aware tooltip positioning
+  const contentSvgRef = useRef<SVGSVGElement>(null);
+
   // v0.13.0: State for dependency cascade preview
   const [cascadePreviews, setCascadePreviews] = useState<DependentTaskPreview[]>([]);
+
+  // v1.5.0: Track drag offset so dependency lines follow the dragged bar in real-time
+  const [dragOffset, setDragOffset] = useState<{ taskId: string; daysDelta: number } | null>(null);
 
   // v0.17.76: State for active tooltip - rendered in top layer for proper z-order
   const [activeTooltip, setActiveTooltip] = useState<TaskTooltipData | null>(null);
@@ -279,7 +299,8 @@ export function Timeline({
     const rangeStart = startDate.getTime();
 
     const daysFromStart = (taskStart - rangeStart) / (1000 * 60 * 60 * 24);
-    const duration = (taskEnd - taskStart) / (1000 * 60 * 60 * 24);
+    // +1 so the end-date day is fully included (e.g. 16→28 feb = 13 columns, not 12)
+    const duration = (taskEnd - taskStart) / (1000 * 60 * 60 * 24) + 1;
 
     const x = daysFromStart * dayWidth * zoom;
     // Minimum width: allow 1 day minimum, but ensure at least 40px for visibility
@@ -297,20 +318,30 @@ export function Timeline({
       .map((task) => {
         const { x, width } = getTaskPosition(task);
         const actualIndex = flatTasks.findIndex(t => t.id === task.id);
-        const y = actualIndex * ROW_HEIGHT + 14; // v1.4.4: Adjusted for 24px bar height
+        const y = actualIndex * ROW_HEIGHT + (ROW_HEIGHT - 18) / 2; // v1.4.29: Centered for 18px bar
         return {
           id: task.id,
           x,
           y,
           width,
-          height: 24, // v1.4.4: TaskBar height reduced from 32
+          height: 18, // v1.4.29: Slimmer elegant bars
         };
       });
   }, [flatTasks, getTaskPosition]);
 
   // v0.13.0: Handle drag move for dependency cascade preview
+  // v1.5.0: Also store drag offset so dependency lines follow in real-time
   const handleTaskDragMove = useCallback((taskId: string, daysDelta: number, isDragging: boolean) => {
-    if (!isDragging || daysDelta === 0) {
+    if (!isDragging) {
+      setCascadePreviews([]);
+      setDragOffset(null);
+      return;
+    }
+
+    // Store drag offset for dependency line adjustment
+    setDragOffset({ taskId, daysDelta });
+
+    if (daysDelta === 0) {
       setCascadePreviews([]);
       return;
     }
@@ -329,6 +360,27 @@ export function Timeline({
 
     setCascadePreviews(previews);
   }, [tasks, flatTasks, startDate, dayWidth, zoom, ROW_HEIGHT, HEADER_HEIGHT]);
+
+  // v1.5.0: Get drag-adjusted position for dependency line endpoints
+  // During drag, offsets the dragged task and its cascade dependents
+  const getDragAdjustedPosition = useCallback((taskId: string, pos: { x: number; width: number }) => {
+    if (!dragOffset) return pos;
+    const scaledDayWidth = dayWidth * zoom;
+    const pixelDelta = dragOffset.daysDelta * scaledDayWidth;
+
+    // Dragged task — offset by daysDelta
+    if (taskId === dragOffset.taskId) {
+      return { x: pos.x + pixelDelta, width: pos.width };
+    }
+
+    // Dependent task with cascade preview — use preview position
+    const preview = cascadePreviews.find(p => p.taskId === taskId);
+    if (preview) {
+      return { x: preview.previewX, width: preview.width };
+    }
+
+    return pos;
+  }, [dragOffset, cascadePreviews, dayWidth, zoom]);
 
   // Generate timeline headers
   // v0.17.400: Use locale for date formatting (e.g., 'es' -> 'Dic 22', 'en' -> 'Dec 22')
@@ -388,15 +440,16 @@ export function Timeline({
       style={{ backgroundColor: theme.bgPrimary }}
     >
       {/* v0.13.7: Sticky Header - stays visible during vertical scroll */}
+      {/* Chronos V2: Frosted glass header */}
       <div
         style={{
           position: 'sticky',
           top: 0,
           zIndex: 10,
-          backgroundColor: theme.bgGrid,
+          backgroundColor: theme.glassHeader || theme.bgSecondary,
           flexShrink: 0,
           height: `${HEADER_HEIGHT}px`,
-          borderBottom: `1px solid ${theme.border}`,
+          borderBottom: `1px solid ${theme.borderLight}`,
           boxSizing: 'border-box', // Border included in height
         }}
       >
@@ -405,13 +458,13 @@ export function Timeline({
           height={HEADER_HEIGHT - 1} // -1 for border
           style={{ display: 'block' }}
         >
-          {/* Header Background */}
+          {/* Header Background — opaque to prevent task bars bleeding through */}
           <rect
             x={0}
             y={0}
             width={Math.max(timelineWidth, 1000)}
             height={HEADER_HEIGHT}
-            fill={theme.bgGrid}
+            fill={theme.glassHeader || theme.bgSecondary}
           />
 
           {/* Header Grid Lines and Text */}
@@ -445,9 +498,22 @@ export function Timeline({
             </g>
           ))}
 
-          {/* Today marker in header */}
+          {/* Today marker in header — Chronos V2: Badge instead of circle */}
           {todayX >= 0 && todayX <= timelineWidth && (
-            <circle cx={todayX} cy={HEADER_HEIGHT - 10} r={6} fill={theme.today} opacity={1} />
+            <g>
+              {/* Neon glow circle */}
+              <circle cx={todayX} cy={HEADER_HEIGHT - 10} r={4} fill={theme.today} opacity={1} />
+              {theme.neonRedGlow && (
+                <circle cx={todayX} cy={HEADER_HEIGHT - 10} r={6} fill="none" stroke={theme.today} strokeWidth={1} opacity={0.3} />
+              )}
+              {/* TODAY badge */}
+              {theme.neonRedGlow && (
+                <g transform={`translate(${todayX - 18}, 2)`}>
+                  <rect x={0} y={0} width={36} height={14} rx={2} fill="rgba(0,0,0,0.8)" stroke={theme.today} strokeWidth={0.5} opacity={0.8} />
+                  <text x={18} y={10} textAnchor="middle" fill={theme.today} fontSize="7" fontFamily="'JetBrains Mono', monospace" fontWeight="700" letterSpacing="0.1em">{t.labels.today.toUpperCase()}</text>
+                </g>
+              )}
+            </g>
           )}
         </svg>
       </div>
@@ -456,6 +522,7 @@ export function Timeline({
       {/* v0.17.31: Added overflow:visible to allow tooltips to render above the header */}
       {/* v0.17.452: Added onMouseMove to detect when mouse leaves dependency lines (fast movement fix) */}
       <svg
+        ref={contentSvgRef}
         width={Math.max(timelineWidth, 1000)}
         height={contentHeight}
         style={{ display: 'block', flexShrink: 0, overflow: 'visible' }}
@@ -470,6 +537,19 @@ export function Timeline({
           <pattern id="diagonal-stripes" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
             <line x1="0" y1="0" x2="0" y2="8" stroke={theme.border} strokeWidth="2" />
           </pattern>
+
+          {/* Chronos V2: Weekend hatched pattern — diagonal toward right */}
+          <pattern id="weekend-hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="8" stroke={(theme.bgPrimary || '').charAt(1) === '0' ? 'rgba(255,255,255,0.055)' : 'rgba(0,0,0,0.04)'} strokeWidth="4" />
+          </pattern>
+
+          {/* v1.4.29: Diagonal stripes for remaining (no-progress) area of task bars */}
+          <pattern id="bar-remaining-hatch" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            {/* Stripe 1: colored band */}
+            <rect x="0" y="0" width="5" height="10" fill="#2E94FF" opacity="0.18" />
+            {/* Stripe 2: gray band */}
+            <rect x="5" y="0" width="5" height="10" fill="#94A3B8" opacity="0.12" />
+          </pattern>
         </defs>
 
         {/* Full SVG Background - v0.17.220: Matches TaskGrid bgPrimary for alignment */}
@@ -481,60 +561,73 @@ export function Timeline({
           fill={theme.bgPrimary}
         />
 
-        {/* Grid Lines and Weekend Backgrounds - v0.13.7: Adjusted Y positions (no header offset) */}
-        {headers.map((header, index) => {
+        {/* Weekend backgrounds removed — only hatch overlay after row backgrounds */}
+
+        {/* Row Backgrounds - v0.17.220: Alternating rows matching TaskGrid */}
+        {flatTasks.map((task, index) => (
+          <rect
+            key={`row-bg-${task.id}`}
+            x={0}
+            y={index * ROW_HEIGHT}
+            width={Math.max(timelineWidth, 1000)}
+            height={ROW_HEIGHT}
+            fill={index % 2 === 0 ? theme.bgPrimary : theme.bgGrid}
+            opacity={1}
+            style={{ pointerEvents: 'none' }}
+          />
+        ))}
+
+        {/* v1.4.29: Grid lines rendered AFTER row backgrounds so they are never covered */}
+        {/* Vertical column grid lines */}
+        {headers.map((header, index) =>
+          index > 0 ? (
+            <line
+              key={`vgrid-${index}`}
+              x1={header.x}
+              y1={0}
+              x2={header.x}
+              y2={flatTasks.length * ROW_HEIGHT}
+              stroke={theme.borderLight}
+              strokeWidth={1}
+              shapeRendering="crispEdges"
+              opacity={theme.neonRedGlow ? 1 : 0.1}
+            />
+          ) : null
+        )}
+
+        {/* Weekend overlays — subtle gray tint + diagonal hatch */}
+        {highlightWeekends && headers.map((header, index) => {
           const nextX = headers[index + 1]?.x || timelineWidth;
           const isWeekendDay = isWeekend(header.date);
 
-          return (
-            <g key={index}>
-              {/* Weekend background - subtle highlight */}
-              {isWeekendDay && (
-                <rect
-                  x={header.x}
-                  y={0}
-                  width={nextX - header.x}
-                  height={flatTasks.length * ROW_HEIGHT}
-                  fill={theme.bgWeekend}
-                  opacity={1}
-                />
-              )}
-
-              {/* Grid line - skip first line since TaskGrid border serves as divider */}
-              {index > 0 && (
-                <line
-                  x1={header.x}
-                  y1={0}
-                  x2={header.x}
-                  y2={flatTasks.length * ROW_HEIGHT}
-                  stroke={theme.border}
-                  strokeWidth={1}
-                  opacity={0.1}
-                />
-              )}
+          return isWeekendDay ? (
+            <g key={`we-overlay-${index}`}>
+              <rect
+                x={header.x}
+                y={0}
+                width={nextX - header.x}
+                height={flatTasks.length * ROW_HEIGHT}
+                fill={(theme.bgPrimary || '').charAt(1) === '0' ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)'}
+                style={{ pointerEvents: 'none' }}
+              />
+              <rect
+                x={header.x}
+                y={0}
+                width={nextX - header.x}
+                height={flatTasks.length * ROW_HEIGHT}
+                fill="url(#weekend-hatch)"
+                style={{ pointerEvents: 'none' }}
+              />
             </g>
-          );
+          ) : null;
         })}
 
-        {/* Row Backgrounds with Click-to-Create functionality - v0.13.7: Adjusted Y positions */}
-        {/* v0.17.220: Aligned row colors with TaskGrid - same alternating pattern for visual consistency */}
+        {/* Row interactions: Click-to-Create functionality */}
         {flatTasks.map((task, index) => {
           const hasTaskBar = task.startDate && task.endDate;
 
           return (
             <g key={`row-group-${task.id}`}>
-              {/* Background stripe - alternating rows matching TaskGrid colors for perfect alignment */}
-              <rect
-                key={`row-${task.id}`}
-                x={0}
-                y={index * ROW_HEIGHT}
-                width={timelineWidth}
-                height={ROW_HEIGHT}
-                fill={index % 2 === 0 ? theme.bgPrimary : theme.bgGrid}
-                opacity={1}
-                style={{ pointerEvents: 'none' }}
-              />
-
               {/* Clickable area for tasks without dates - v1.4.19: ClickUp-style with moving indicator */}
               {!hasTaskBar && (
                 <>
@@ -646,7 +739,7 @@ export function Timeline({
           }
 
           const { x, width } = getTaskPosition(task);
-          const y = index * ROW_HEIGHT + 14; // v1.4.4: Adjusted for 24px bar height
+          const y = index * ROW_HEIGHT + (ROW_HEIGHT - 18) / 2; // v1.4.29: Centered for 18px bar
 
           // Container phase (has subtasks): render as bracket bar
           const isContainer = task.subtasks && task.subtasks.length > 0 && !task.isMilestone;
@@ -665,13 +758,12 @@ export function Timeline({
           }
 
           if (isContainer) {
-            // v1.5.0: Summary bar — thin bar with end caps (MS Project / Chronos style)
-            // Parent tasks show a slim summary line spanning all subtask dates
-            const summaryH = 8;
-            const summaryY = y + 10; // Centered vertically in the row
-            const capSize = 5;       // Triangle cap size at each end
-            const barColor = theme.taskBarPrimary;
-            const progressW = width * (task.progress / 100);
+            // v2.2.0: Forecast Oracle summary bar — dark solid line + downward bracket caps
+            const barH = 2;
+            const barY = y + (ROW_HEIGHT - 18) / 2 + 8; // Centered within row
+            const capW = 1.5;   // Bracket vertical stroke width
+            const capDrop = 6;  // How far down the bracket drops below the bar
+            const barColor = 'rgba(255,255,255,0.25)';
 
             return (
               <g
@@ -686,10 +778,10 @@ export function Timeline({
                   handleTooltipChange({
                     task,
                     x,
-                    y: summaryY,
+                    y: barY,
                     width,
-                    height: summaryH,
-                    showBelow: summaryY < 100,
+                    height: barH,
+                    showBelow: barY < 100,
                   });
                 }}
                 onMouseLeave={() => handleTooltipChange(null)}
@@ -704,58 +796,30 @@ export function Timeline({
                   fill="transparent"
                   style={{ pointerEvents: 'all' }}
                 />
-                {/* Background bar (track) */}
+                {/* Solid horizontal bar */}
                 <rect
                   x={x}
-                  y={summaryY}
+                  y={barY}
                   width={width}
-                  height={summaryH}
+                  height={barH}
                   fill={barColor}
-                  opacity={0.35}
-                  rx={2}
                 />
-                {/* Progress fill */}
-                {task.progress > 0 && (
-                  <rect
-                    x={x}
-                    y={summaryY}
-                    width={progressW}
-                    height={summaryH}
-                    fill={barColor}
-                    opacity={1}
-                    rx={2}
-                    style={{ pointerEvents: 'none' }}
-                  />
-                )}
-                {/* Left end cap — downward triangle */}
-                <path
-                  d={`M ${x} ${summaryY} L ${x + capSize} ${summaryY} L ${x} ${summaryY + summaryH + capSize} Z`}
+                {/* Left bracket — vertical drop ⌐ */}
+                <rect
+                  x={x}
+                  y={barY}
+                  width={capW}
+                  height={barH + capDrop}
                   fill={barColor}
-                  opacity={0.9}
                 />
-                {/* Right end cap — downward triangle */}
-                <path
-                  d={`M ${x + width - capSize} ${summaryY} L ${x + width} ${summaryY} L ${x + width} ${summaryY + summaryH + capSize} Z`}
+                {/* Right bracket — vertical drop (mirrored) */}
+                <rect
+                  x={x + width - capW}
+                  y={barY}
+                  width={capW}
+                  height={barH + capDrop}
                   fill={barColor}
-                  opacity={0.9}
                 />
-                {/* Task name text */}
-                {width > 60 && (
-                  <text
-                    x={x + 12}
-                    y={summaryY + summaryH / 2}
-                    dominantBaseline="middle"
-                    fill={theme.textPrimary}
-                    fontSize="12"
-                    fontWeight="600"
-                    fontFamily="Inter, sans-serif"
-                    style={{ pointerEvents: 'none', userSelect: 'none' }}
-                  >
-                    {task.name.length > Math.floor(width / 8)
-                      ? `${task.name.substring(0, Math.floor(width / 8))}...`
-                      : task.name}
-                  </text>
-                )}
               </g>
             );
           }
@@ -779,13 +843,17 @@ export function Timeline({
               allTaskPositions={taskPositions}
               onDragMove={handleTaskDragMove} // v0.13.0
               onHoverChange={handleTooltipChange} // v0.17.76: Top-layer tooltip
+              showBaseline={showBaseline} // v3.0.0: Baseline overlay
+              showTaskBarLabels={showTaskBarLabels}
+              showCriticalPath={showCriticalPath}
+              readOnly={canEditTask ? !canEditTask(task) : false}
             />
           );
         })}
 
         {/* v0.17.363: SINGLE dependency layer - rendered AFTER tasks for proper z-order */}
         {/* v0.17.451: Base layer only - hover overlay rendered separately at end */}
-        {flatTasks.map((task, toIndex) => {
+        {showDependencies && flatTasks.map((task, toIndex) => {
           if (!task.dependencies || task.dependencies.length === 0) return null;
           if (!task.startDate || !task.endDate) return null;
 
@@ -795,8 +863,9 @@ export function Timeline({
             if (!depTask.startDate || !depTask.endDate) return null;
 
             const fromIndex = flatTasks.findIndex((t) => t.id === depId);
-            const fromPos = getTaskPosition(depTask);
-            const toPos = getTaskPosition(task);
+            // v1.5.0: Use drag-adjusted positions so lines follow during drag
+            const fromPos = getDragAdjustedPosition(depTask.id, getTaskPosition(depTask));
+            const toPos = getDragAdjustedPosition(task.id, getTaskPosition(task));
 
             const exitX = fromPos.x + fromPos.width;
             const exitY = fromIndex * ROW_HEIGHT + 26;
@@ -847,24 +916,24 @@ export function Timeline({
             key={`cascade-preview-${preview.taskId}`}
             style={{ pointerEvents: 'none' }}
           >
-            {/* Ghost bar at exact preview position - v0.13.7: Y adjusted (subtract HEADER_HEIGHT) */}
+            {/* Ghost bar at exact preview position - matched to actual bar height (18px) */}
             <rect
               x={preview.previewX}
               y={preview.y - HEADER_HEIGHT}
               width={preview.width}
-              height={32}
-              rx={8}
+              height={18}
+              rx={6}
               fill={preview.color || theme.accent}
-              opacity={0.3}
+              opacity={0.15}
               stroke={theme.accent}
-              strokeWidth={2}
-              strokeDasharray="4 2"
+              strokeWidth={1}
+              strokeDasharray="4 3"
             />
             {/* Days delta label */}
             {Math.abs(preview.daysDelta) > 0 && (
               <text
                 x={preview.previewX + preview.width / 2}
-                y={preview.y - HEADER_HEIGHT + 16}
+                y={preview.y - HEADER_HEIGHT + 9}
                 textAnchor="middle"
                 dominantBaseline="middle"
                 fill={theme.accent}
@@ -880,7 +949,7 @@ export function Timeline({
         ))}
 
         {/* v0.17.451: Dependency hover overlay - rendered LAST to appear on top of all lines */}
-        {hoveredDepLine && (
+        {showDependencies && hoveredDepLine && (
           <DependencyLine
             key={`${hoveredDepLine.key}-hover-overlay`}
             x1={hoveredDepLine.exitX}
@@ -909,30 +978,45 @@ export function Timeline({
           />
         )}
 
-        {/* v0.17.179: Today Line - Thinner like ClickUp (1px) */}
+        {/* v0.17.179: Today Line — Chronos V2: Neon red with glow */}
         {todayX >= 0 && todayX <= timelineWidth && (
-          <line
-            x1={todayX}
-            y1={0}
-            x2={todayX}
-            y2={contentHeight}
-            stroke={theme.today}
-            strokeWidth={1}
-            opacity={1}
-            style={{ pointerEvents: 'none' }}
-          />
+          <g style={{ pointerEvents: 'none' }}>
+            {/* Glow effect (wider, transparent) */}
+            {theme.neonRedGlow && (
+              <line
+                x1={todayX}
+                y1={0}
+                x2={todayX}
+                y2={contentHeight}
+                stroke={theme.today}
+                strokeWidth={6}
+                opacity={0.15}
+              />
+            )}
+            {/* Sharp line */}
+            <line
+              x1={todayX}
+              y1={0}
+              x2={todayX}
+              y2={contentHeight}
+              stroke={theme.today}
+              strokeWidth={1}
+              opacity={1}
+            />
+          </g>
         )}
 
-        {/* v0.17.76: Tooltip layer - rendered last to ensure it's always on top */}
-        {/* v1.2.0: Pass locale for i18n support */}
-        {activeTooltip && (
-          <TaskTooltip
-            tooltipData={activeTooltip}
-            theme={theme}
-            locale={locale === 'es' ? 'es' : 'en'}
-          />
-        )}
       </svg>
+
+      {/* v1.4.28: Tooltip rendered via portal to document.body — never clipped by scroll containers */}
+      {activeTooltip && (
+        <TaskTooltip
+          tooltipData={activeTooltip}
+          theme={theme}
+          locale={locale === 'es' ? 'es' : 'en'}
+          svgRef={contentSvgRef}
+        />
+      )}
     </div>
   );
 }

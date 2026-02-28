@@ -263,7 +263,7 @@ export function DependenciesSelector({
         task.id.toLowerCase().includes(searchQuery.toLowerCase())
     )
 
-  const linkColor = dependencies.length > 0 ? '#3B82F6' : '#BDC3C7'
+  const linkColor = dependencies.length > 0 ? '#2E94FF' : '#BDC3C7'
 
   return (
     <div className={`relative ${className || ''}`}>

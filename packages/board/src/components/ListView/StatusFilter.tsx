@@ -81,7 +81,7 @@ export function StatusFilter({
   }, [isOpen]);
 
   const options: Array<{ value: StatusFilterValue; label: string; icon: React.ReactNode; color: string }> = [
-    { value: 'all', label: t.showAll, icon: <div className="w-4 h-4 rounded-full border-2 border-[#3B82F6] bg-[#3B82F6]" />, color: 'text-[#3B82F6]' },
+    { value: 'all', label: t.showAll, icon: <div className="w-4 h-4 rounded-full border-2 border-[#007BFF] bg-[#007BFF]" />, color: 'text-[#007BFF]' },
     { value: 'completed', label: t.completed, icon: <CheckCircle2 className="w-4 h-4" />, color: 'text-green-500' },
     { value: 'in-progress', label: t.inProgress, icon: <PlayCircle className="w-4 h-4" />, color: 'text-blue-500' },
     { value: 'todo', label: t.toDo, icon: <Circle className="w-4 h-4" />, color: 'text-gray-400' },
@@ -103,10 +103,10 @@ export function StatusFilter({
         className={cn(
           'flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border',
           isDark
-            ? 'border-white/10 hover:bg-white/10 text-white'
+            ? 'border-[#222] hover:bg-white/[0.05] text-white'
             : 'border-gray-200 hover:bg-gray-100 text-gray-700',
-          hasActiveFilter && (isDark ? 'bg-[#3B82F6]/20 border-[#3B82F6]/50 text-[#3B82F6]' : 'bg-blue-50 border-blue-200 text-blue-600'),
-          isOpen && (isDark ? 'bg-white/10' : 'bg-gray-100')
+          hasActiveFilter && (isDark ? 'bg-[#007BFF]/20 border-[#007BFF]/50 text-[#007BFF]' : 'bg-blue-50 border-blue-200 text-blue-600'),
+          isOpen && (isDark ? 'bg-white/[0.05]' : 'bg-gray-100')
         )}
       >
         <Filter className="w-4 h-4" />
@@ -114,7 +114,7 @@ export function StatusFilter({
         {hasActiveFilter && (
           <span className={cn(
             'w-2 h-2 rounded-full',
-            isDark ? 'bg-[#3B82F6]' : 'bg-blue-500'
+            isDark ? 'bg-[#007BFF]' : 'bg-blue-500'
           )} />
         )}
       </button>
@@ -124,17 +124,17 @@ export function StatusFilter({
         <div
           className={cn(
             'absolute left-0 top-full mt-2 w-72 rounded-lg shadow-xl border z-50',
-            isDark ? 'bg-[#0F1117] border-white/10' : 'bg-white border-gray-200'
+            isDark ? 'bg-[#0D0D0D] border-[#222]' : 'bg-white border-gray-200'
           )}
         >
           {/* Header */}
           <div className={cn(
             'px-4 py-3 border-b',
-            isDark ? 'border-white/10' : 'border-gray-200'
+            isDark ? 'border-[#222]' : 'border-gray-200'
           )}>
             <span className={cn(
               'text-xs font-medium uppercase tracking-wider',
-              isDark ? 'text-[#6B7280]' : 'text-gray-400'
+              isDark ? 'text-white/30' : 'text-gray-400'
             )}>
               {t.filterByStatus}
             </span>
@@ -150,7 +150,7 @@ export function StatusFilter({
               const getIcon = () => {
                 if (option.value === 'all') {
                   return isSelected
-                    ? <div className="w-4 h-4 rounded-full border-2 border-[#3B82F6] bg-[#3B82F6]" />
+                    ? <div className="w-4 h-4 rounded-full border-2 border-[#007BFF] bg-[#007BFF]" />
                     : <div className="w-4 h-4 rounded-full border-2 border-gray-400" />;
                 }
                 return option.icon;
@@ -166,8 +166,8 @@ export function StatusFilter({
                   }}
                   className={cn(
                     'w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors',
-                    isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100',
-                    isSelected && (isDark ? 'bg-white/5' : 'bg-gray-50')
+                    isDark ? 'hover:bg-white/[0.05]' : 'hover:bg-gray-100',
+                    isSelected && (isDark ? 'bg-white/[0.03]' : 'bg-gray-50')
                   )}
                 >
                   <span className={cn(isSelected ? option.color : 'text-gray-400', 'flex-shrink-0')}>
@@ -180,7 +180,7 @@ export function StatusFilter({
                     {option.label}
                   </span>
                   {isSelected && (
-                    <Check className={cn('w-4 h-4 flex-shrink-0', isDark ? 'text-[#3B82F6]' : 'text-blue-500')} />
+                    <Check className={cn('w-4 h-4 flex-shrink-0', isDark ? 'text-[#007BFF]' : 'text-blue-500')} />
                   )}
                 </button>
               );
@@ -190,7 +190,7 @@ export function StatusFilter({
           {/* Separator */}
           <div className={cn(
             'my-2 mx-4 h-px',
-            isDark ? 'bg-white/10' : 'bg-gray-200'
+            isDark ? 'bg-white/[0.05]' : 'bg-gray-200'
           )} />
 
           {/* Hide Completed Toggle */}
@@ -206,15 +206,15 @@ export function StatusFilter({
               }}
               className={cn(
                 'w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors',
-                isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100',
-                hideCompleted && (isDark ? 'bg-white/5' : 'bg-gray-50')
+                isDark ? 'hover:bg-white/[0.05]' : 'hover:bg-gray-100',
+                hideCompleted && (isDark ? 'bg-white/[0.03]' : 'bg-gray-50')
               )}
             >
               <EyeOff className={cn(
                 'w-4 h-4 flex-shrink-0',
                 hideCompleted
-                  ? (isDark ? 'text-[#3B82F6]' : 'text-blue-500')
-                  : (isDark ? 'text-[#6B7280]' : 'text-gray-400')
+                  ? (isDark ? 'text-[#007BFF]' : 'text-blue-500')
+                  : (isDark ? 'text-white/30' : 'text-gray-400')
               )} />
               <span className={cn(
                 'flex-1 text-left whitespace-nowrap',
@@ -223,7 +223,7 @@ export function StatusFilter({
                 {t.hideCompleted}
               </span>
               {hideCompleted && (
-                <Check className={cn('w-4 h-4 flex-shrink-0', isDark ? 'text-[#3B82F6]' : 'text-blue-500')} />
+                <Check className={cn('w-4 h-4 flex-shrink-0', isDark ? 'text-[#007BFF]' : 'text-blue-500')} />
               )}
             </button>
           </div>

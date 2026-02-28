@@ -205,8 +205,8 @@ export function DateRangePicker({
       : endDateValue;
     return (
       <div className="flex items-center gap-2">
-        <Calendar className={cn('w-4 h-4', isDark ? 'text-[#6B7280]' : 'text-gray-400')} />
-        <span className={cn('text-sm', isDark ? 'text-[#94A3B8]' : 'text-gray-500')}>
+        <Calendar className={cn('w-4 h-4', isDark ? 'text-white/30' : 'text-gray-400')} />
+        <span className={cn('text-sm', isDark ? 'text-white/60' : 'text-gray-500')}>
           {formatDate(displayDate)}
         </span>
       </div>
@@ -232,11 +232,11 @@ export function DateRangePicker({
         }}
         className={cn(
           'flex items-center gap-2 px-2 py-1 rounded transition-colors',
-          isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100'
+          isDark ? 'hover:bg-white/[0.05]' : 'hover:bg-gray-100'
         )}
       >
-        <Calendar className={cn('w-4 h-4', isDark ? 'text-[#6B7280]' : 'text-gray-400')} />
-        <span className={cn('text-sm', isDark ? 'text-[#94A3B8]' : 'text-gray-500')}>
+        <Calendar className={cn('w-4 h-4', isDark ? 'text-white/30' : 'text-gray-400')} />
+        <span className={cn('text-sm', isDark ? 'text-white/60' : 'text-gray-500')}>
           {formatDate(displayDate)}
         </span>
       </button>
@@ -248,30 +248,30 @@ export function DateRangePicker({
           <div
             className={cn(
               'absolute z-50 top-full left-0 mt-1 rounded-xl shadow-2xl overflow-hidden flex',
-              isDark ? 'bg-[#1A1D25] border border-white/10' : 'bg-white border border-gray-200'
+              isDark ? 'bg-[#1A1A1A] border border-[#222]' : 'bg-white border border-gray-200'
             )}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Quick Options - Left Side */}
-            <div className={cn('w-44 py-2 border-r', isDark ? 'border-white/10' : 'border-gray-200')}>
+            <div className={cn('w-44 py-2 border-r', isDark ? 'border-[#222]' : 'border-gray-200')}>
               {getQuickOptions().map((option, i) => (
                 <button
                   key={i}
                   className={cn(
                     'w-full flex items-center justify-between px-3 py-2 text-sm transition-colors',
-                    isDark ? 'hover:bg-white/5 text-white' : 'hover:bg-gray-50 text-gray-900'
+                    isDark ? 'hover:bg-white/[0.05] text-white' : 'hover:bg-gray-50 text-gray-900'
                   )}
                   onClick={() => handleDateSelect(option.date)}
                 >
                   <span>{option.label}</span>
-                  <span className={cn('text-xs', isDark ? 'text-[#6B7280]' : 'text-gray-400')}>
+                  <span className={cn('text-xs', isDark ? 'text-white/30' : 'text-gray-400')}>
                     {option.display}
                   </span>
                 </button>
               ))}
 
               {/* Clear date button */}
-              <div className={cn('border-t mt-2 pt-2', isDark ? 'border-white/10' : 'border-gray-200')}>
+              <div className={cn('border-t mt-2 pt-2', isDark ? 'border-[#222]' : 'border-gray-200')}>
                 <button
                   onClick={() => {
                     if (singleDateMode) {
@@ -287,7 +287,7 @@ export function DateRangePicker({
                   }}
                   className={cn(
                     'w-full flex items-center justify-between px-3 py-2 text-sm transition-colors',
-                    isDark ? 'hover:bg-white/5 text-red-400' : 'hover:bg-gray-50 text-red-500'
+                    isDark ? 'hover:bg-white/[0.05] text-red-400' : 'hover:bg-gray-50 text-red-500'
                   )}
                 >
                   <span>{locale === 'es' ? 'Quitar fecha' : 'Clear date'}</span>
@@ -300,7 +300,7 @@ export function DateRangePicker({
             <div className="p-4">
               {/* Selection indicator (only in range mode) */}
               {!singleDateMode && (
-                <div className={cn('text-xs mb-3 px-2 py-1 rounded', isDark ? 'bg-white/5 text-[#9CA3AF]' : 'bg-gray-100 text-gray-600')}>
+                <div className={cn('text-xs mb-3 px-2 py-1 rounded', isDark ? 'bg-white/[0.03] text-white/60' : 'bg-gray-100 text-gray-600')}>
                   {selectingField === 'start'
                     ? (locale === 'es' ? '📅 Selecciona fecha de inicio' : '📅 Select start date')
                     : (locale === 'es' ? '📅 Selecciona fecha de fin' : '📅 Select end date')}
@@ -317,20 +317,20 @@ export function DateRangePicker({
                     onClick={() => setViewMonth(new Date())}
                     className={cn(
                       'p-1 rounded text-sm transition-colors',
-                      isDark ? 'hover:bg-white/10 text-white' : 'hover:bg-gray-100 text-gray-700'
+                      isDark ? 'hover:bg-white/[0.05] text-white' : 'hover:bg-gray-100 text-gray-700'
                     )}
                   >
                     {locale === 'es' ? 'Hoy' : 'Today'}
                   </button>
                   <button
                     onClick={() => setViewMonth(new Date(viewMonth.getFullYear(), viewMonth.getMonth() - 1))}
-                    className={cn('p-1 rounded', isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100')}
+                    className={cn('p-1 rounded', isDark ? 'hover:bg-white/[0.05]' : 'hover:bg-gray-100')}
                   >
                     <ChevronLeft className={cn('w-4 h-4', isDark ? 'text-white' : 'text-gray-600')} />
                   </button>
                   <button
                     onClick={() => setViewMonth(new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1))}
-                    className={cn('p-1 rounded', isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100')}
+                    className={cn('p-1 rounded', isDark ? 'hover:bg-white/[0.05]' : 'hover:bg-gray-100')}
                   >
                     <ChevronRight className={cn('w-4 h-4', isDark ? 'text-white' : 'text-gray-600')} />
                   </button>
@@ -345,7 +345,7 @@ export function DateRangePicker({
                 ).map((day) => (
                   <div
                     key={day}
-                    className={cn('w-8 h-8 flex items-center justify-center text-xs', isDark ? 'text-[#6B7280]' : 'text-gray-400')}
+                    className={cn('w-8 h-8 flex items-center justify-center text-xs', isDark ? 'text-white/30' : 'text-gray-400')}
                   >
                     {day}
                   </div>
@@ -368,13 +368,13 @@ export function DateRangePicker({
                       onClick={() => handleDateSelect(new Date(d.date))}
                       className={cn(
                         'w-8 h-8 rounded-full flex items-center justify-center text-sm transition-colors',
-                        !d.isCurrentMonth && (isDark ? 'text-[#4B5563]' : 'text-gray-300'),
+                        !d.isCurrentMonth && (isDark ? 'text-white/20' : 'text-gray-300'),
                         d.isCurrentMonth && (isDark ? 'text-white' : 'text-gray-900'),
-                        isToday && 'ring-2 ring-[#3B82F6]',
-                        isStartDate && 'bg-[#3B82F6] text-white',
+                        isToday && 'ring-2 ring-[#007BFF]',
+                        isStartDate && 'bg-[#007BFF] text-white',
                         isEndDate && !isStartDate && 'bg-[#7C3AED] text-white',
                         isInRange && !isSelected && (isDark ? 'bg-[#7C3AED]/20' : 'bg-purple-100'),
-                        !isSelected && (isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100')
+                        !isSelected && (isDark ? 'hover:bg-white/[0.05]' : 'hover:bg-gray-100')
                       )}
                     >
                       {d.date.getDate()}

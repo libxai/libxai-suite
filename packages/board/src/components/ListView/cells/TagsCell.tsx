@@ -18,7 +18,7 @@ export function TagsCell({
 }: TagsCellProps) {
   if (value.length === 0) {
     return (
-      <span className={cn('text-sm', isDark ? 'text-[#6B7280]' : 'text-gray-400')}>
+      <span className={cn('text-sm', isDark ? 'text-white/30' : 'text-gray-400')}>
         -
       </span>
     );
@@ -32,10 +32,10 @@ export function TagsCell({
       {visibleTags.map((tag) => (
         <span
           key={tag.id}
-          className="inline-flex items-center px-2 py-0.5 text-xs rounded-full"
+          className="inline-flex items-center px-2 py-0.5 text-[9px] font-mono uppercase tracking-wide rounded"
           style={{
-            backgroundColor: tag.color ? `${tag.color}20` : isDark ? 'rgba(255,255,255,0.1)' : '#F3F4F6',
-            color: tag.color || (isDark ? '#9CA3AF' : '#6B7280'),
+            backgroundColor: tag.color ? `${tag.color}20` : isDark ? 'rgba(255,255,255,0.05)' : '#F3F4F6',
+            color: tag.color || (isDark ? 'rgba(255,255,255,0.5)' : '#6B7280'),
           }}
         >
           {tag.name}
@@ -45,7 +45,7 @@ export function TagsCell({
         <span
           className={cn(
             'inline-flex items-center px-2 py-0.5 text-xs rounded-full',
-            isDark ? 'bg-white/10 text-[#9CA3AF]' : 'bg-gray-100 text-gray-500'
+            isDark ? 'bg-white/[0.05] text-white/60' : 'bg-gray-100 text-gray-500'
           )}
         >
           +{remainingCount}

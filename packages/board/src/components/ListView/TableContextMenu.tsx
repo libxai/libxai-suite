@@ -17,6 +17,9 @@ import {
   ArrowUp,
   ArrowDown,
   ChevronRight,
+  Clock,
+  AlertTriangle,
+  Link2,
 } from 'lucide-react';
 import { cn } from '../../utils';
 import type { Task } from '../Gantt/types';
@@ -65,6 +68,10 @@ interface TableContextMenuProps {
   onColumnSort?: (columnId: string, direction: 'asc' | 'desc') => void;
   // Users for assignment
   availableUsers?: AvailableUser[];
+  // v2.1.0: RBAC context menu actions
+  onOpenTimeLog?: (task: Task) => void;
+  onReportBlocker?: (task: Task) => void;
+  onCopyTaskLink?: (task: Task) => void;
 }
 
 interface MenuItem {
@@ -89,6 +96,9 @@ export function TableContextMenu({
   onColumnHide,
   onColumnSort,
   availableUsers = [],
+  onOpenTimeLog,
+  onReportBlocker,
+  onCopyTaskLink,
 }: TableContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const t = locale === 'es' ? translations.es : translations.en;
@@ -254,6 +264,45 @@ export function TableContextMenu({
       }
     }
 
+    // v2.1.0: Log Time
+    if (onOpenTimeLog) {
+      items.push({
+        id: 'log-time',
+        label: t.logTime,
+        icon: <Clock className="w-4 h-4" />,
+        onClick: () => {
+          onOpenTimeLog(state.task!);
+          onClose();
+        },
+      });
+    }
+
+    // v2.1.0: Report Blocker
+    if (onReportBlocker) {
+      items.push({
+        id: 'report-blocker',
+        label: t.reportBlocker,
+        icon: <AlertTriangle className="w-4 h-4" />,
+        onClick: () => {
+          onReportBlocker(state.task!);
+          onClose();
+        },
+      });
+    }
+
+    // v2.1.0: Copy Link
+    if (onCopyTaskLink) {
+      items.push({
+        id: 'copy-link',
+        label: t.copyLink,
+        icon: <Link2 className="w-4 h-4" />,
+        onClick: () => {
+          onCopyTaskLink(state.task!);
+          onClose();
+        },
+      });
+    }
+
     items.push({ id: 'sep2', label: '', icon: null, separator: true });
 
     // Duplicate
@@ -346,7 +395,7 @@ export function TableContextMenu({
       style={menuStyle}
       className={cn(
         'py-1 rounded-lg shadow-xl border min-w-[180px]',
-        isDark ? 'bg-[#0F1117] border-white/10' : 'bg-white border-gray-200'
+        isDark ? 'bg-[#0D0D0D] border-[#222]' : 'bg-white border-gray-200'
       )}
     >
       {menuItems.map((item) => {
@@ -354,7 +403,7 @@ export function TableContextMenu({
           return (
             <div
               key={item.id}
-              className={cn('my-1 h-px', isDark ? 'bg-white/10' : 'bg-gray-200')}
+              className={cn('my-1 h-px', isDark ? 'bg-white/[0.05]' : 'bg-gray-200')}
             />
           );
         }
@@ -375,13 +424,13 @@ export function TableContextMenu({
             onClick={item.onClick}
             className={cn(
               'w-full flex items-center gap-3 px-3 py-2 text-sm transition-colors',
-              isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100',
+              isDark ? 'hover:bg-white/[0.05]' : 'hover:bg-gray-100',
               item.danger
                 ? 'text-red-500 hover:text-red-600'
                 : isDark ? 'text-white' : 'text-gray-700'
             )}
           >
-            <span className={cn(item.danger ? 'text-red-500' : isDark ? 'text-[#9CA3AF]' : 'text-gray-400')}>
+            <span className={cn(item.danger ? 'text-red-500' : isDark ? 'text-white/60' : 'text-gray-400')}>
               {item.icon}
             </span>
             {item.label}
@@ -415,21 +464,21 @@ function SubmenuItem({ item, isDark }: { item: MenuItem; isDark: boolean }) {
       <button
         className={cn(
           'w-full flex items-center gap-3 px-3 py-2 text-sm transition-colors',
-          isDark ? 'hover:bg-white/10 text-white' : 'hover:bg-gray-100 text-gray-700'
+          isDark ? 'hover:bg-white/[0.05] text-white' : 'hover:bg-gray-100 text-gray-700'
         )}
       >
-        <span className={isDark ? 'text-[#9CA3AF]' : 'text-gray-400'}>
+        <span className={isDark ? 'text-white/60' : 'text-gray-400'}>
           {item.icon}
         </span>
         <span className="flex-1">{item.label}</span>
-        <ChevronRight className={cn('w-4 h-4', isDark ? 'text-[#6B7280]' : 'text-gray-400')} />
+        <ChevronRight className={cn('w-4 h-4', isDark ? 'text-white/30' : 'text-gray-400')} />
       </button>
 
       {isOpen && item.submenu && (
         <div
           className={cn(
             'absolute left-full top-0 ml-1 py-1 rounded-lg shadow-xl border min-w-[160px]',
-            isDark ? 'bg-[#0F1117] border-white/10' : 'bg-white border-gray-200'
+            isDark ? 'bg-[#0D0D0D] border-[#222]' : 'bg-white border-gray-200'
           )}
         >
           {item.submenu.map((subItem) => (
@@ -438,10 +487,10 @@ function SubmenuItem({ item, isDark }: { item: MenuItem; isDark: boolean }) {
               onClick={subItem.onClick}
               className={cn(
                 'w-full flex items-center gap-3 px-3 py-2 text-sm transition-colors',
-                isDark ? 'hover:bg-white/10 text-white' : 'hover:bg-gray-100 text-gray-700'
+                isDark ? 'hover:bg-white/[0.05] text-white' : 'hover:bg-gray-100 text-gray-700'
               )}
             >
-              <span className={isDark ? 'text-[#9CA3AF]' : 'text-gray-400'}>
+              <span className={isDark ? 'text-white/60' : 'text-gray-400'}>
                 {subItem.icon}
               </span>
               {subItem.label}
@@ -472,6 +521,9 @@ const translations = {
     sortAsc: 'Sort A → Z',
     sortDesc: 'Sort Z → A',
     hideColumn: 'Hide column',
+    logTime: 'Log Time',
+    reportBlocker: 'Report Blocker',
+    copyLink: 'Copy Link',
   },
   es: {
     edit: 'Editar',
@@ -490,5 +542,8 @@ const translations = {
     sortAsc: 'Ordenar A → Z',
     sortDesc: 'Ordenar Z → A',
     hideColumn: 'Ocultar columna',
+    logTime: 'Registrar Tiempo',
+    reportBlocker: 'Reportar Bloqueante',
+    copyLink: 'Copiar Enlace',
   },
 };

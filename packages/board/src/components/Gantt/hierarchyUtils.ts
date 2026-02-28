@@ -314,7 +314,7 @@ export function createTask(
     status: 'todo',
     startDate: today,
     endDate: weekFromNow,
-    color: '#6366F1', // v0.11.0: Default blue pastel color
+    color: '#2E94FF', // v1.4.29: Default Chronos Blue
   };
 
   const insertTask = (tasks: Task[]): boolean => {
@@ -420,7 +420,7 @@ export function createSubtask(
     status: 'todo',
     startDate: new Date(startDate), // Clone to avoid reference issues
     endDate: new Date(endDate),     // Clone to avoid reference issues
-    color: parentTask?.color || '#3B82F6', // v0.16.7: Inherit parent color (default: electric blue)
+    color: parentTask?.color || '#2E94FF', // v0.16.7: Inherit parent color (default: electric blue)
     position: subtaskCount, // Ensure position is at the end
     parentId: parentTaskId, // Link to parent for proper hierarchy
   };
@@ -563,4 +563,50 @@ export function canReparent(
   };
 
   return !isDescendant(task, newParentId);
+}
+
+/**
+ * Roll-up parent dates and progress from children (Leaf Node Rule).
+ * Parent tasks with subtasks become read-only containers:
+ * - startDate = min(children startDates)
+ * - endDate = max(children endDates)
+ * - progress = average(children progress)
+ * Recurses bottom-up so grandparents also roll up correctly.
+ */
+export function rollUpParentDates(tasks: Task[]): Task[] {
+  return tasks.map(task => {
+    if (!task.subtasks || task.subtasks.length === 0) return task;
+
+    // First, recurse into children so nested parents roll up first
+    const updatedSubtasks = rollUpParentDates(task.subtasks);
+
+    // Collect dates and progress from all children
+    const childDates = updatedSubtasks.reduce<{ starts: number[]; ends: number[]; progresses: number[] }>(
+      (acc, child) => {
+        if (child.startDate) acc.starts.push(new Date(child.startDate).getTime());
+        if (child.endDate) acc.ends.push(new Date(child.endDate).getTime());
+        acc.progresses.push(child.progress ?? 0);
+        return acc;
+      },
+      { starts: [], ends: [], progresses: [] }
+    );
+
+    const rolledStart = childDates.starts.length > 0
+      ? new Date(Math.min(...childDates.starts))
+      : task.startDate;
+    const rolledEnd = childDates.ends.length > 0
+      ? new Date(Math.max(...childDates.ends))
+      : task.endDate;
+    const rolledProgress = childDates.progresses.length > 0
+      ? Math.round(childDates.progresses.reduce((a, b) => a + b, 0) / childDates.progresses.length)
+      : task.progress;
+
+    return {
+      ...task,
+      subtasks: updatedSubtasks,
+      startDate: rolledStart,
+      endDate: rolledEnd,
+      progress: rolledProgress,
+    };
+  });
 }

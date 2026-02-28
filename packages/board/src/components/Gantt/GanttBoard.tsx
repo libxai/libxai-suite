@@ -19,7 +19,7 @@ import { mergeTranslations, GanttTranslations } from './i18n'; // v0.15.0: i18n
 import { GanttBoardRef } from './GanttBoardRef';
 import { ganttUtils } from './ganttUtils';
 import { mergeTemplates } from './defaultTemplates';
-import html2canvas from 'html2canvas';
+import { toPng } from 'html-to-image';
 import {
   indentTasks,
   outdentTasks,
@@ -32,6 +32,7 @@ import {
   createSubtask,
   reparentTask,
   findTask,
+  rollUpParentDates,
 } from './hierarchyUtils';
 
 interface GanttBoardProps {
@@ -40,17 +41,17 @@ interface GanttBoardProps {
   onTasksChange?: (tasks: Task[]) => void;
 }
 
-// v0.17.71: Increased row heights for better "breathing" - less Excel, more SaaS
+// v1.4.29: Slimmer rows for elegant Chronos look
 const getRowHeight = (density: RowDensity): number => {
   switch (density) {
     case 'compact':
-      return 44;  // Was 40 - still compact but not cramped
+      return 36;
     case 'comfortable':
-      return 52;  // Was 48 - default: luxurious spacing like Linear
+      return 42;
     case 'spacious':
-      return 60;  // Was 56 - generous for touch/accessibility
-    default:
       return 52;
+    default:
+      return 42;
   }
 };
 
@@ -64,6 +65,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     rowDensity: initialRowDensity = 'comfortable',
     showThemeSelector = true,
     showExportButton = true, // v0.12.0: Show export dropdown in toolbar
+    projectName,
     availableUsers = [],
     templates,
     enableAutoCriticalPath = true, // v0.11.1: Allow disabling automatic CPM calculation
@@ -81,6 +83,14 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     // v0.17.300: Task filter
     taskFilter: externalTaskFilter,
     onTaskFilterChange: externalOnTaskFilterChange,
+    // Custom toolbar content
+    toolbarRightContent,
+    // v3.0.0: Baseline & WBS
+    showBaseline: configShowBaseline,
+    viewMode: configViewMode,
+    onViewModeChange: configOnViewModeChange,
+    // v3.1.0: Forecast HUD
+    projectForecast,
     // UI events
     onThemeChange, // v0.9.0
     // Basic events
@@ -106,6 +116,8 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     onAfterTaskDelete,
     // v1.4.10: Permissions
     permissions,
+    // Share dropdown
+    onCopySnapshotLink,
   } = config;
 
   // Try to get global theme from ThemeProvider (will return undefined if not in ThemeProvider)
@@ -118,6 +130,46 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   const [timeScale, setTimeScale] = useState<TimeScale>(initialTimeScale);
   const [rowDensity, setRowDensity] = useState<RowDensity>(initialRowDensity);
   const [zoom, setZoom] = useState(1);
+
+  // v3.0.0: WBS Level selector state
+  const [wbsLevel, setWbsLevel] = useState<number | 'all'>('all');
+
+  // v3.0.0: Execution/Oracle view mode (controlled or internal)
+  const [internalViewMode, setInternalViewMode] = useState<'execution' | 'oracle'>(configViewMode || 'execution');
+  const viewMode = configViewMode ?? internalViewMode;
+  const handleViewModeChange = useCallback((mode: 'execution' | 'oracle') => {
+    setInternalViewMode(mode);
+    configOnViewModeChange?.(mode);
+  }, [configOnViewModeChange]);
+
+  // v3.0.0: Derive showBaseline from config or viewMode
+  const showBaseline = configShowBaseline ?? (viewMode === 'oracle');
+
+  // View Options state (eye icon dropdown)
+  const [showCriticalPath, setShowCriticalPath] = useState(config.showCriticalPath !== false);
+  const [showDependencies, setShowDependencies] = useState(config.showDependencies !== false);
+  const [highlightWeekends, setHighlightWeekends] = useState(config.highlightWeekends !== false);
+
+  const handleShowCriticalPathChange = useCallback((show: boolean) => {
+    setShowCriticalPath(show);
+    config.onShowCriticalPathChange?.(show);
+  }, [config.onShowCriticalPathChange]);
+  const handleShowDependenciesChange = useCallback((show: boolean) => {
+    setShowDependencies(show);
+    config.onShowDependenciesChange?.(show);
+  }, [config.onShowDependenciesChange]);
+  const handleHighlightWeekendsChange = useCallback((show: boolean) => {
+    setHighlightWeekends(show);
+    config.onHighlightWeekendsChange?.(show);
+  }, [config.onHighlightWeekendsChange]);
+
+  // v1.5.0: Notify consumer of timeScale/zoom changes
+  useEffect(() => { config.onTimeScaleChange?.(timeScale); }, [timeScale]);
+  useEffect(() => { config.onZoomChange?.(zoom); }, [zoom]);
+
+  // v1.5.1: Ref to avoid stale closure in useEffect below
+  const onDateRangeChangeRef = useRef(config.onDateRangeChange);
+  onDateRangeChangeRef.current = config.onDateRangeChange;
 
   // v0.18.0: Filter persistence helpers
   const getFilterStorageKey = useCallback(() => {
@@ -247,6 +299,20 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     clearHistory,
   } = useUndoRedo<Task[]>(tasks, 50);
 
+  // v3.0.0: Compute max WBS depth from task tree
+  const maxWbsDepth = useMemo(() => {
+    const getMaxDepth = (tasks: Task[], depth = 0): number => {
+      let max = depth;
+      for (const task of tasks) {
+        if (task.subtasks?.length) {
+          max = Math.max(max, getMaxDepth(task.subtasks, depth + 1));
+        }
+      }
+      return max;
+    };
+    return getMaxDepth(localTasks) + 1; // +1 because level 1 = depth 0
+  }, [localTasks]);
+
   // v0.17.163: Track expanded states separately to preserve them across task reloads
   // This ref stores the isExpanded state for each task ID, updated whenever tasks are toggled
   // v0.17.181: Initialize from localStorage if persistExpandedState is enabled
@@ -300,9 +366,41 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   // This prevents the parent's stale tasks prop from overwriting localTasks after reparent/move/indent.
   const skipSyncCountRef = useRef(0);
 
+  // Ref to always have the latest localTasks (avoids stale closures in dependency handlers)
+  const localTasksRef = useRef(localTasks);
+  useEffect(() => { localTasksRef.current = localTasks; }, [localTasks]);
+
   // v0.18.13: Also suppress onTasksChange for internal hierarchy ops (reparent/move/indent/outdent).
   // These operations have their own dedicated callbacks; onTasksChange is for date/property edits only.
   const skipOnTasksChangeRef = useRef(false);
+
+
+  // v3.0.0: WBS Level change handler — collapses tree to specified depth
+  // Placed after expandedStatesRef, saveExpandedStatesToStorage, skipSyncCountRef to avoid TDZ
+  const handleWbsLevelChange = useCallback((level: number | 'all') => {
+    setWbsLevel(level);
+    // Skip next useEffect([tasks]) sync so it doesn't re-apply old expandedStatesRef
+    skipSyncCountRef.current += 1;
+    setLocalTasks((prev: Task[]) => {
+      const apply = (tasks: Task[], depth = 0): Task[] =>
+        tasks.map((t: Task) => {
+          const expanded = level === 'all' || depth < (level as number) - 1;
+          // Update expandedStatesRef so useEffect([tasks]) sync doesn't override
+          if (t.subtasks?.length) {
+            expandedStatesRef.current.set(t.id, expanded);
+          }
+          return {
+            ...t,
+            isExpanded: expanded,
+            subtasks: t.subtasks ? apply(t.subtasks, depth + 1) : undefined,
+          };
+        });
+      const result = apply(prev);
+      // Persist to localStorage
+      saveExpandedStatesToStorage();
+      return result;
+    });
+  }, [setLocalTasks, saveExpandedStatesToStorage]);
 
   // Sync parent tasks prop changes to local state (e.g., after external DB operations)
   // v0.17.163: Preserve isExpanded state using ref to prevent subtasks from auto-expanding
@@ -346,8 +444,9 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     };
 
     // If we have preserved states, apply them; otherwise just use tasks as-is
+    // Apply roll-up on initial load so parent dates/progress reflect children
     if (expandedStatesRef.current.size > 0) {
-      setLocalTasks(applyExpandedState(tasks));
+      setLocalTasks(rollUpParentDates(applyExpandedState(tasks)));
     } else {
       // Still deduplicate even without preserved states
       const dedupeAll = (taskList: Task[]): Task[] => {
@@ -358,7 +457,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
           return task;
         });
       };
-      setLocalTasks(dedupeAll(tasks));
+      setLocalTasks(rollUpParentDates(dedupeAll(tasks)));
     }
   }, [tasks, setLocalTasks]);
 
@@ -703,11 +802,11 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
 
     // ==================== Hierarchy Methods ====================
     indentTask: (taskId: string) => {
-      setLocalTasks((prev) => indentTasks(prev, [taskId]));
+      setLocalTasks((prev) => rollUpParentDates(indentTasks(prev, [taskId])));
     },
 
     outdentTask: (taskId: string) => {
-      setLocalTasks((prev) => outdentTasks(prev, [taskId]));
+      setLocalTasks((prev) => rollUpParentDates(outdentTasks(prev, [taskId])));
     },
 
     moveTask: (taskId: string, direction: 'up' | 'down') => {
@@ -728,8 +827,8 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         }
       }
 
-      // Only update state if not cancelled
-      setLocalTasks(newTasks);
+      // Only update state if not cancelled — apply roll-up to recalculate parent
+      setLocalTasks(rollUpParentDates(newTasks));
 
       // v0.8.0: After event (non-cancelable)
       if (onAfterTaskAdd) {
@@ -818,6 +917,11 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       });
     },
 
+    // v3.0.0: Collapse to a specific WBS level
+    collapseToLevel: (level: number | 'all') => {
+      handleWbsLevelChange(level);
+    },
+
     // ==================== Undo/Redo ====================
     undo,
     redo,
@@ -833,7 +937,9 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       }
 
       const ganttContainer = ganttContainerRef.current;
-      const gridScroll = gridScrollRef.current.querySelector('.gantt-grid-scroll') as HTMLElement;
+      const gridWrapper = gridScrollRef.current;
+      const gridScroll = (gridScrollInnerRef.current ||
+        gridWrapper.querySelector('.gantt-grid-scroll')) as HTMLElement | null;
       const timelineScroll = timelineScrollRef.current;
 
       // Store original state
@@ -841,47 +947,46 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       const originalTimelineScrollTop = timelineScroll.scrollTop;
       const originalOverflow = ganttContainer.style.overflow;
       const originalHeight = ganttContainer.style.height;
+      const originalWrapperOverflow = gridWrapper.style.overflow;
 
       try {
         // Calculate full content dimensions
-        const taskGridContent = gridScroll?.querySelector('.gantt-taskgrid-content') as HTMLElement;
-        const timelineSvg = timelineScroll.querySelector('svg') as SVGElement;
+        const taskGridContent = gridScroll?.querySelector('.gantt-taskgrid-content') as HTMLElement | null;
+        const timelineSvg = timelineScroll.querySelector('svg') as SVGElement | null;
         const gridContentHeight = taskGridContent?.scrollHeight || gridScroll?.scrollHeight || 600;
         const timelineContentHeight = timelineSvg?.getBoundingClientRect().height || timelineScroll.scrollHeight;
-        const toolbar = ganttContainer.querySelector('[class*="h-12"]') as HTMLElement;
+        const toolbar = ganttContainer.querySelector('[style*="z-index: 100"]') as HTMLElement | null;
         const toolbarHeight = toolbar?.offsetHeight || 48;
         const totalHeight = toolbarHeight + Math.max(gridContentHeight, timelineContentHeight) + 20;
 
-        // Reset scroll and expand
+        // Reset scroll and expand; remove overflow:clip from wrapper
         if (gridScroll) gridScroll.scrollTop = 0;
         timelineScroll.scrollTop = 0;
         ganttContainer.style.overflow = 'visible';
         ganttContainer.style.height = `${totalHeight}px`;
+        gridWrapper.style.overflow = 'visible';
 
         await new Promise(resolve => setTimeout(resolve, 100));
 
-        const canvas = await html2canvas(ganttContainer, {
+        const dataUrl = await toPng(ganttContainer, {
           backgroundColor: theme.bgPrimary,
-          scale: 2,
-          logging: false,
-          useCORS: true,
-          ignoreElements: (element) => {
-            const style = window.getComputedStyle(element);
+          pixelRatio: 2,
+          filter: (node) => {
+            if (!(node instanceof Element)) return true;
+            const style = window.getComputedStyle(node);
             const zIndex = parseInt(style.zIndex, 10);
-            return (!isNaN(zIndex) && zIndex >= 50) || style.position === 'fixed';
+            return (isNaN(zIndex) || zIndex < 50) && style.position !== 'fixed';
           },
         });
 
-        return new Promise<Blob>((resolve, reject) => {
-          canvas.toBlob((blob) => {
-            if (blob) resolve(blob);
-            else reject(new Error('Failed to create blob from canvas'));
-          }, 'image/png');
-        });
+        // Convert dataUrl to Blob
+        const res = await fetch(dataUrl);
+        return await res.blob();
       } finally {
         // Restore original state
         ganttContainer.style.overflow = originalOverflow;
         ganttContainer.style.height = originalHeight;
+        gridWrapper.style.overflow = originalWrapperOverflow;
         if (gridScroll) gridScroll.scrollTop = originalGridScrollTop;
         timelineScroll.scrollTop = originalTimelineScrollTop;
       }
@@ -1018,7 +1123,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     if (taskIds.length === 0) return;
     skipSyncCountRef.current += 1;
     skipOnTasksChangeRef.current = true;
-    setLocalTasks((prev) => indentTasks(prev, taskIds));
+    setLocalTasks((prev) => rollUpParentDates(indentTasks(prev, taskIds)));
     config.onTaskIndent?.(taskIds[0]!);
   }, [config]);
 
@@ -1026,7 +1131,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     if (taskIds.length === 0) return;
     skipSyncCountRef.current += 1;
     skipOnTasksChangeRef.current = true;
-    setLocalTasks((prev) => outdentTasks(prev, taskIds));
+    setLocalTasks((prev) => rollUpParentDates(outdentTasks(prev, taskIds)));
     config.onTaskOutdent?.(taskIds[0]!);
   }, [config]);
 
@@ -1034,7 +1139,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   const handleTaskReparent = useCallback((taskId: string, newParentId: string | null, position?: number) => {
     skipSyncCountRef.current += 1;
     skipOnTasksChangeRef.current = true;
-    setLocalTasks((prev) => reparentTask(prev, taskId, newParentId, position));
+    setLocalTasks((prev) => rollUpParentDates(reparentTask(prev, taskId, newParentId, position)));
     config.onTaskReparent?.(taskId, newParentId, position);
   }, [config]);
 
@@ -1072,7 +1177,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       config.onMultiTaskDelete(allowedTaskIds);
     } else {
       // Fallback: update local state and call individual delete handlers
-      setLocalTasks((prev) => deleteTasks(prev, allowedTaskIds));
+      setLocalTasks((prev) => rollUpParentDates(deleteTasks(prev, allowedTaskIds)));
       allowedTaskIds.forEach(id => config.onTaskDelete?.(id));
     }
 
@@ -1179,6 +1284,9 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     // Then, auto-schedule all dependent tasks (cascade effect)
     // v0.13.3: Pass daysDelta to preserve relative gaps between tasks
     updatedTasks = ganttUtils.autoScheduleDependents(updatedTasks, task.id, daysDelta);
+
+    // Roll-up: recalculate parent dates/progress from children
+    updatedTasks = rollUpParentDates(updatedTasks);
 
     setLocalTasks(updatedTasks);
 
@@ -1287,10 +1395,10 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   }, []);
 
   // Handle dependency creation (memoized)
+  // Uses functional setter to avoid stale closure issues when creating multiple dependencies quickly
   const handleDependencyCreate = useCallback((fromTask: Task, toTaskId: string) => {
-    // Check for circular dependency
-    if (wouldCreateCircularDependency(fromTask.id, toTaskId, localTasks)) {
-      // Show error feedback - you could integrate a toast notification here
+    // Use ref for circular check so we always have the latest state
+    if (wouldCreateCircularDependency(fromTask.id, toTaskId, localTasksRef.current)) {
       console.warn('Cannot create dependency: would create a circular dependency');
       alert('Cannot create this dependency: it would create a circular dependency chain.\n\nTask dependencies must flow in one direction only.');
       return;
@@ -1300,7 +1408,6 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       return tasks.map((t) => {
         if (t.id === toTaskId) {
           const dependencies = t.dependencies || [];
-          // Avoid duplicate dependencies
           if (!dependencies.includes(fromTask.id)) {
             return { ...t, dependencies: [...dependencies, fromTask.id] };
           }
@@ -1311,9 +1418,11 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         return t;
       });
     };
-    setLocalTasks(updateTaskDependencies(localTasks));
+    // Functional setter ensures we always operate on the latest state
+    skipSyncCountRef.current += 1;
+    setLocalTasks((prev) => updateTaskDependencies(prev));
     onDependencyCreate?.(fromTask.id, toTaskId);
-  }, [localTasks, onDependencyCreate, wouldCreateCircularDependency]);
+  }, [onDependencyCreate, wouldCreateCircularDependency]);
 
   // Handle dependency deletion (memoized)
   const handleDependencyDelete = useCallback((taskId: string, dependencyId: string) => {
@@ -1329,9 +1438,10 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         return t;
       });
     };
-    setLocalTasks(removeTaskDependency(localTasks));
+    skipSyncCountRef.current += 1;
+    setLocalTasks((prev) => removeTaskDependency(prev));
     onDependencyDelete?.(taskId, dependencyId);
-  }, [localTasks, onDependencyDelete]);
+  }, [onDependencyDelete]);
 
   // Calculate date range (memoized)
   const { startDate, endDate } = useMemo(() => {
@@ -1358,6 +1468,11 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
 
     return { startDate: minDate, endDate: maxDate };
   }, [localTasks, timeScale]);
+
+  // v1.5.1: Notify consumer of computed date range
+  useEffect(() => {
+    onDateRangeChangeRef.current?.(startDate, endDate);
+  }, [startDate, endDate]);
 
   // Handlers (future implementation - currently unused but kept for future features)
   // TODO: Implement zoom controls in toolbar
@@ -1389,7 +1504,10 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     await new Promise(resolve => setTimeout(resolve, 200));
 
     const ganttContainer = ganttContainerRef.current;
-    const gridScroll = gridScrollRef.current.querySelector('.gantt-grid-scroll') as HTMLElement;
+    // gridScrollRef points to the flex wrapper (overflow:clip); gridScrollInner is the actual scrollable panel
+    const gridWrapper = gridScrollRef.current;
+    const gridScroll = (gridScrollInnerRef.current ||
+      gridWrapper.querySelector('.gantt-grid-scroll')) as HTMLElement | null;
     const timelineScroll = timelineScrollRef.current;
 
     // Store original scroll positions and dimensions
@@ -1401,6 +1519,8 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     const originalHeight = ganttContainer.style.height;
     const originalGridOverflow = gridScroll?.style.overflow || '';
     const originalTimelineOverflow = timelineScroll.style.overflow;
+    // Fix: also save/restore the wrapper's overflow:clip so content isn't clipped during capture
+    const originalWrapperOverflow = gridWrapper.style.overflow;
 
     // Store original dimensions for restoration
     const originalContainerWidth = ganttContainer.style.width;
@@ -1408,8 +1528,8 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
 
     try {
       // Calculate full content dimensions
-      const taskGridContent = gridScroll?.querySelector('.gantt-taskgrid-content') as HTMLElement;
-      const timelineSvg = timelineScroll.querySelector('svg') as SVGElement;
+      const taskGridContent = gridScroll?.querySelector('.gantt-taskgrid-content') as HTMLElement | null;
+      const timelineSvg = timelineScroll.querySelector('svg') as SVGElement | null;
 
       // v0.17.226: Get height from SVG attribute for accurate full height
       const svgHeight = timelineSvg?.getAttribute('height')
@@ -1425,7 +1545,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         : timelineSvg?.getBoundingClientRect().width || timelineScroll.scrollWidth;
 
       // Get toolbar height (to include it)
-      const toolbar = ganttContainer.querySelector('[class*="h-12"]') as HTMLElement;
+      const toolbar = ganttContainer.querySelector('[style*="z-index: 100"]') as HTMLElement | null;
       const toolbarHeight = toolbar?.offsetHeight || 48;
 
       // v0.17.226: Calculate total height with extra padding to ensure all content is captured
@@ -1433,7 +1553,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       const totalHeight = toolbarHeight + contentHeight + 50; // +50 extra padding for safety
 
       // v0.17.225: Calculate total width = grid width + timeline SVG full width + separator
-      const gridWidth = gridScroll?.offsetWidth || 300;
+      const gridWidth = gridScroll?.offsetWidth || gridWrapper.offsetWidth || 300;
       const totalWidth = gridWidth + timelineSvgWidth + 10; // +10 for separator and padding
 
       // Reset scroll positions to capture from the beginning
@@ -1444,10 +1564,12 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       timelineScroll.scrollTop = 0;
       timelineScroll.scrollLeft = 0;
 
-      // Temporarily expand container to show all content
+      // Temporarily expand containers to show all content
+      // Fix: remove overflow:clip from wrapper so html2canvas can see the full content
       ganttContainer.style.overflow = 'visible';
       ganttContainer.style.height = `${totalHeight}px`;
       ganttContainer.style.width = `${totalWidth}px`;
+      gridWrapper.style.overflow = 'visible';
       if (gridScroll) {
         gridScroll.style.overflow = 'visible';
         gridScroll.style.height = `${contentHeight + 50}px`;
@@ -1459,39 +1581,27 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       // Wait for DOM to update
       await new Promise(resolve => setTimeout(resolve, 150));
 
-      // Capture with html2canvas
-      const canvas = await html2canvas(ganttContainer, {
+      // Capture with html-to-image (handles SVGs correctly unlike html2canvas)
+      const dataUrl = await toPng(ganttContainer, {
         backgroundColor: theme.bgPrimary,
-        scale: 2,
-        logging: false,
-        useCORS: true,
-        allowTaint: true,
+        pixelRatio: 2,
         width: totalWidth,
         height: totalHeight,
-        windowWidth: totalWidth + 100,
-        windowHeight: totalHeight + 100,
-        scrollX: 0,
-        scrollY: 0,
-        // Ignore dropdown menus and modals
-        ignoreElements: (element) => {
-          // Ignore elements with z-index >= 50 (dropdowns, modals)
-          const style = window.getComputedStyle(element);
+        skipFonts: false,
+        filter: (node) => {
+          if (!(node instanceof Element)) return true;
+          const style = window.getComputedStyle(node);
           const zIndex = parseInt(style.zIndex, 10);
-          if (!isNaN(zIndex) && zIndex >= 50) {
-            return true;
-          }
-          // Ignore elements with position fixed (modals, overlays)
-          if (style.position === 'fixed') {
-            return true;
-          }
-          return false;
+          if (!isNaN(zIndex) && zIndex >= 50) return false;
+          if (style.position === 'fixed') return false;
+          return true;
         },
       });
 
       // Create download link
       const link = document.createElement('a');
       link.download = `gantt-chart-${new Date().toISOString().slice(0, 10)}.png`;
-      link.href = canvas.toDataURL('image/png');
+      link.href = dataUrl;
       link.click();
 
     } finally {
@@ -1499,6 +1609,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       ganttContainer.style.overflow = originalOverflow;
       ganttContainer.style.height = originalHeight;
       ganttContainer.style.width = originalContainerWidth;
+      gridWrapper.style.overflow = originalWrapperOverflow;
       if (gridScroll) {
         gridScroll.style.overflow = originalGridOverflow;
         gridScroll.style.height = '';
@@ -1518,8 +1629,12 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   }, [localTasks]);
 
   const handleExportExcel = useCallback(async () => {
-    await ganttUtils.exportToExcel(localTasks);
-  }, [localTasks]);
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const ts = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`;
+    const name = projectName ? projectName.replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ _-]/g, '') : 'Project';
+    await ganttUtils.exportToExcel(localTasks, `${name}_${ts}.xlsx`);
+  }, [localTasks, projectName]);
 
   const handleExportCSV = useCallback(() => {
     const csv = ganttUtils.exportToCSV(localTasks);
@@ -1707,6 +1822,11 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         backgroundColor: theme.bgPrimary,
         fontFamily: 'Inter, sans-serif',
         minHeight: 0, // Critical for flex children to shrink
+        // Chronos V2: Dot-grid background pattern
+        ...(theme.dotGrid && {
+          backgroundImage: `radial-gradient(circle, ${theme.dotGrid} 1px, transparent 1px)`,
+          backgroundSize: '24px 24px',
+        }),
         // v0.9.1: Prevent browser auto-scroll when disableScrollSync is enabled
         ...(config.disableScrollSync && {
           scrollBehavior: 'auto',
@@ -1714,7 +1834,8 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         }),
       }}
     >
-      {/* Toolbar */}
+      {/* Toolbar — z-index ensures dropdowns render above the overflow:clip grid below */}
+      <div style={{ position: 'relative', zIndex: 100 }}>
       <GanttToolbar
         theme={theme}
         timeScale={timeScale}
@@ -1737,6 +1858,17 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         // v0.18.0: Hide completed toggle
         hideCompleted={hideCompleted}
         onHideCompletedChange={setHideCompleted}
+        // Custom toolbar content
+        toolbarRightContent={toolbarRightContent}
+        // v3.0.0: WBS Level selector
+        wbsLevel={wbsLevel}
+        onWbsLevelChange={handleWbsLevelChange}
+        maxWbsDepth={maxWbsDepth}
+        // v3.0.0: Execution/Oracle view mode
+        viewMode={viewMode}
+        onViewModeChange={handleViewModeChange}
+        // v3.1.0: Forecast HUD
+        projectForecast={projectForecast}
         // v0.12.0: Export handlers
         onExportPNG={showExportButton ? handleExportPNG : undefined}
         onExportPDF={showExportButton ? handleExportPDF : undefined}
@@ -1744,7 +1876,21 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         onExportCSV={showExportButton ? handleExportCSV : undefined}
         onExportJSON={showExportButton ? handleExportJSON : undefined}
         onExportMSProject={showExportButton ? handleExportMSProject : undefined}
+        // View Options (eye icon)
+        showCriticalPath={showCriticalPath}
+        onShowCriticalPathChange={handleShowCriticalPathChange}
+        showDependencies={showDependencies}
+        onShowDependenciesChange={handleShowDependenciesChange}
+        highlightWeekends={highlightWeekends}
+        onHighlightWeekendsChange={handleHighlightWeekendsChange}
+        showBaseline={showBaseline}
+        onShowBaselineChange={(show) => {
+          if (show && viewMode !== 'oracle') handleViewModeChange('oracle');
+          if (!show && viewMode === 'oracle') handleViewModeChange('execution');
+        }}
+        onCopySnapshotLink={onCopySnapshotLink}
       />
+      </div>
 
       {/* Main Content - v0.13.9: TaskGrid has no scroll, Timeline has the unified vertical scroll */}
       {/* v0.17.31: Changed to clip to allow tooltips to render above header */}
@@ -1752,6 +1898,8 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         ref={gridScrollRef}
         className="flex-1 flex min-h-0"
         style={{
+          position: 'relative',
+          zIndex: 1, // Below toolbar (z-index: 100) so dropdowns render on top
           overflow: 'clip',
           overflowClipMargin: '100px', // Allow tooltip to overflow above
         }}
@@ -1840,12 +1988,18 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
             locale={locale} // v0.17.400: Pass locale for date formatting
             templates={mergedTemplates}
             dependencyLineStyle={config?.dependencyLineStyle} // v0.17.310
+            showTaskBarLabels={config?.showTaskBarLabels !== false} // default true
             onTaskClick={onTaskClick}
             onTaskDblClick={handleTaskDblClickInternal} // v0.10.0: Use internal handler that opens modal
             onTaskContextMenu={handleTaskContextMenu} // v0.8.0: Now uses our handler for Split feature
             onTaskDateChange={handleTaskDateChange}
             onDependencyCreate={handleDependencyCreate}
             onDependencyDelete={handleDependencyDelete}
+            showBaseline={showBaseline}
+            showCriticalPath={showCriticalPath}
+            showDependencies={showDependencies}
+            highlightWeekends={highlightWeekends}
+            canEditTask={permissions?.canEditTask}
           />
         </div>
       </div>
