@@ -365,9 +365,14 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   // This prevents the parent's stale tasks prop from overwriting localTasks after reparent/move/indent.
   const skipSyncCountRef = useRef(0);
 
+  // Ref to always have the latest localTasks (avoids stale closures in dependency handlers)
+  const localTasksRef = useRef(localTasks);
+  useEffect(() => { localTasksRef.current = localTasks; }, [localTasks]);
+
   // v0.18.13: Also suppress onTasksChange for internal hierarchy ops (reparent/move/indent/outdent).
   // These operations have their own dedicated callbacks; onTasksChange is for date/property edits only.
   const skipOnTasksChangeRef = useRef(false);
+
 
   // v3.0.0: WBS Level change handler — collapses tree to specified depth
   // Placed after expandedStatesRef, saveExpandedStatesToStorage, skipSyncCountRef to avoid TDZ
@@ -1389,10 +1394,10 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   }, []);
 
   // Handle dependency creation (memoized)
+  // Uses functional setter to avoid stale closure issues when creating multiple dependencies quickly
   const handleDependencyCreate = useCallback((fromTask: Task, toTaskId: string) => {
-    // Check for circular dependency
-    if (wouldCreateCircularDependency(fromTask.id, toTaskId, localTasks)) {
-      // Show error feedback - you could integrate a toast notification here
+    // Use ref for circular check so we always have the latest state
+    if (wouldCreateCircularDependency(fromTask.id, toTaskId, localTasksRef.current)) {
       console.warn('Cannot create dependency: would create a circular dependency');
       alert('Cannot create this dependency: it would create a circular dependency chain.\n\nTask dependencies must flow in one direction only.');
       return;
@@ -1402,7 +1407,6 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       return tasks.map((t) => {
         if (t.id === toTaskId) {
           const dependencies = t.dependencies || [];
-          // Avoid duplicate dependencies
           if (!dependencies.includes(fromTask.id)) {
             return { ...t, dependencies: [...dependencies, fromTask.id] };
           }
@@ -1413,12 +1417,11 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         return t;
       });
     };
-    // Skip next sync from parent props — the dependency lives in localTasks now,
-    // and the parent's tasks prop won't have it until the next DB reload.
+    // Functional setter ensures we always operate on the latest state
     skipSyncCountRef.current += 1;
-    setLocalTasks(updateTaskDependencies(localTasks));
+    setLocalTasks((prev) => updateTaskDependencies(prev));
     onDependencyCreate?.(fromTask.id, toTaskId);
-  }, [localTasks, onDependencyCreate, wouldCreateCircularDependency]);
+  }, [onDependencyCreate, wouldCreateCircularDependency]);
 
   // Handle dependency deletion (memoized)
   const handleDependencyDelete = useCallback((taskId: string, dependencyId: string) => {
@@ -1434,11 +1437,10 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         return t;
       });
     };
-    // Skip next sync from parent props — same pattern as dependency create
     skipSyncCountRef.current += 1;
-    setLocalTasks(removeTaskDependency(localTasks));
+    setLocalTasks((prev) => removeTaskDependency(prev));
     onDependencyDelete?.(taskId, dependencyId);
-  }, [localTasks, onDependencyDelete]);
+  }, [onDependencyDelete]);
 
   // Calculate date range (memoized)
   const { startDate, endDate } = useMemo(() => {
