@@ -71,6 +71,8 @@ export interface GanttTranslations {
     delayLabel: string;
     earlyLabel: string;
     onTimeLabel: string;
+    budgetOver: string;
+    budgetUnder: string;
     baselines: string;
     visibility: string;
     share: string;
@@ -244,6 +246,8 @@ export const en: GanttTranslations = {
     delayLabel: 'Delay',
     earlyLabel: 'Early',
     onTimeLabel: 'On Time',
+    budgetOver: 'Over',
+    budgetUnder: 'Under',
     baselines: 'Baselines',
     visibility: 'Visibility',
     share: 'Share',
@@ -411,6 +415,8 @@ export const es: GanttTranslations = {
     delayLabel: 'Retraso',
     earlyLabel: 'Adelanto',
     onTimeLabel: 'A Tiempo',
+    budgetOver: 'Excedido',
+    budgetUnder: 'Bajo',
     baselines: 'Líneas Base',
     visibility: 'Visibilidad',
     share: 'Compartir',

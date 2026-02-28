@@ -1257,7 +1257,7 @@ function ForecastHUD({ theme, forecast }: { theme: any; forecast?: ProjectForeca
   const variance = forecast?.budgetVariancePercent;
   const hasVariance = variance != null && variance !== 0;
   const varianceLabel = variance != null
-    ? (variance > 0 ? `+${variance.toFixed(0)}% Over` : `${variance.toFixed(0)}% Under`)
+    ? (variance > 0 ? `+${variance.toFixed(0)}% ${t.toolbar.budgetOver}` : `${variance.toFixed(0)}% ${t.toolbar.budgetUnder}`)
     : null;
   const varianceColor = variance != null && variance > 0
     ? { bg: isDark ? 'rgba(239,68,68,0.15)' : 'rgba(220,38,38,0.1)', text: isDark ? '#EF4444' : '#DC2626' }

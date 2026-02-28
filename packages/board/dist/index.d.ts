@@ -3514,6 +3514,8 @@ interface GanttTranslations {
         delayLabel: string;
         earlyLabel: string;
         onTimeLabel: string;
+        budgetOver: string;
+        budgetUnder: string;
         baselines: string;
         visibility: string;
         share: string;
