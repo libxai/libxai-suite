@@ -296,7 +296,8 @@ export function Timeline({
     const rangeStart = startDate.getTime();
 
     const daysFromStart = (taskStart - rangeStart) / (1000 * 60 * 60 * 24);
-    const duration = (taskEnd - taskStart) / (1000 * 60 * 60 * 24);
+    // +1 so the end-date day is fully included (e.g. 16→28 feb = 13 columns, not 12)
+    const duration = (taskEnd - taskStart) / (1000 * 60 * 60 * 24) + 1;
 
     const x = daysFromStart * dayWidth * zoom;
     // Minimum width: allow 1 day minimum, but ensure at least 40px for visibility

@@ -102,7 +102,14 @@ export function TaskBar({
   const isSummaryTask = task.subtasks && task.subtasks.length > 0;
 
   // Detect task states for neutral theme visualization
-  const isOverdue = task.endDate && task.endDate < new Date() && task.progress < 100;
+  // Compare date-only: task is overdue only AFTER endDate day has fully passed (midnight)
+  const isOverdue = task.endDate && (() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const end = new Date(task.endDate!);
+    end.setHours(0, 0, 0, 0);
+    return end < today;
+  })() && task.progress < 100;
   const isAtRisk = showCriticalPath && task.isCriticalPath;  // Critical path tasks are "at risk"
   const isNeutralTheme = theme.name === 'neutral' || theme.today === '#1C1917';  // Detect neutral theme
   // v0.17.41: Detect completed tasks for strikethrough styling
@@ -501,8 +508,10 @@ export function TaskBar({
         }
       } else if (dragMode === 'resize-end') {
         // Change end date, keep start date
+        // Subtract 1 day because visual width includes +1 for inclusive end-date rendering
         newStartDate = task.startDate!;
         newEndDate = pixelToDate(ghostX + ghostWidth);
+        newEndDate.setDate(newEndDate.getDate() - 1);
 
         // Validate: end date must be after or equal to start date (allow same-day tasks)
         if (newEndDate < newStartDate) {
