@@ -1413,6 +1413,9 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         return t;
       });
     };
+    // Skip next sync from parent props — the dependency lives in localTasks now,
+    // and the parent's tasks prop won't have it until the next DB reload.
+    skipSyncCountRef.current += 1;
     setLocalTasks(updateTaskDependencies(localTasks));
     onDependencyCreate?.(fromTask.id, toTaskId);
   }, [localTasks, onDependencyCreate, wouldCreateCircularDependency]);
@@ -1431,6 +1434,8 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         return t;
       });
     };
+    // Skip next sync from parent props — same pattern as dependency create
+    skipSyncCountRef.current += 1;
     setLocalTasks(removeTaskDependency(localTasks));
     onDependencyDelete?.(taskId, dependencyId);
   }, [localTasks, onDependencyDelete]);
