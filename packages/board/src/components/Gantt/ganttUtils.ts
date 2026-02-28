@@ -573,18 +573,33 @@ export const ganttUtils = {
    * @param filename - Optional filename (default: 'gantt-chart.xlsx')
    * @returns Promise<void>
    */
-  exportToExcel: async (tasks: Task[], filename = 'gantt-chart.xlsx'): Promise<void> => {
+  exportToExcel: async (tasks: Task[], filename?: string): Promise<void> => {
     const XLSX = await import('xlsx');
     const flat = ganttUtils.flattenTasks(tasks);
 
-    // Prepare data
+    // Build WBS codes for human-readable hierarchy
+    const wbsMap = new Map<string, string>();
+    const buildWbs = (list: Task[], prefix = '') => {
+      const sorted = [...list].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+      sorted.forEach((task, idx) => {
+        const wbs = prefix ? `${prefix}.${idx + 1}` : `${idx + 1}`;
+        wbsMap.set(task.id, wbs);
+        if (task.subtasks?.length) buildWbs(task.subtasks, wbs);
+      });
+    };
+    buildWbs(tasks);
+
+    // Prepare data — no internal IDs, include hours
     const data = flat.map(task => {
       const duration = task.startDate && task.endDate
         ? ganttUtils.calculateDuration(task.startDate, task.endDate)
         : 0;
+      const effort = (task as any).effortMinutes;
+      const logged = (task as any).timeLoggedMinutes;
+      const sold = (task as any).soldEffortMinutes;
 
       return {
-        'Task ID': task.id,
+        'WBS': wbsMap.get(task.id) || '',
         'Task Name': task.name,
         'Start Date': task.startDate ? ganttUtils.formatDate(task.startDate) : '',
         'End Date': task.endDate ? ganttUtils.formatDate(task.endDate) : '',
@@ -592,10 +607,10 @@ export const ganttUtils = {
         'Progress (%)': task.progress,
         'Status': task.status || '',
         'Assignees': task.assignees?.map(a => a.name).join(', ') || '',
-        'Dependencies': task.dependencies?.join(', ') || '',
+        'Estimated (h)': typeof effort === 'number' ? +(effort / 60).toFixed(1) : '',
+        'Logged (h)': typeof logged === 'number' ? +(logged / 60).toFixed(1) : '',
+        'Quoted (h)': typeof sold === 'number' ? +(sold / 60).toFixed(1) : '',
         'Is Milestone': task.isMilestone ? 'Yes' : 'No',
-        'Parent ID': task.parentId || '',
-        'Level': task.level || 0,
       };
     });
 
@@ -604,7 +619,7 @@ export const ganttUtils = {
 
     // Set column widths
     const columnWidths = [
-      { wch: 15 }, // Task ID
+      { wch: 10 }, // WBS
       { wch: 40 }, // Task Name
       { wch: 12 }, // Start Date
       { wch: 12 }, // End Date
@@ -612,16 +627,24 @@ export const ganttUtils = {
       { wch: 12 }, // Progress
       { wch: 15 }, // Status
       { wch: 30 }, // Assignees
-      { wch: 20 }, // Dependencies
+      { wch: 14 }, // Estimated
+      { wch: 12 }, // Logged
+      { wch: 12 }, // Quoted
       { wch: 12 }, // Is Milestone
-      { wch: 15 }, // Parent ID
-      { wch: 8 },  // Level
     ];
     worksheet['!cols'] = columnWidths;
 
     // Create workbook
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Gantt Tasks');
+
+    // Generate filename with project name + timestamp
+    if (!filename) {
+      const now = new Date();
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const ts = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`;
+      filename = `Project_${ts}.xlsx`;
+    }
 
     // Save the file
     XLSX.writeFile(workbook, filename);

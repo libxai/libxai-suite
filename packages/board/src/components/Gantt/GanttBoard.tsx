@@ -65,6 +65,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     rowDensity: initialRowDensity = 'comfortable',
     showThemeSelector = true,
     showExportButton = true, // v0.12.0: Show export dropdown in toolbar
+    projectName,
     availableUsers = [],
     templates,
     enableAutoCriticalPath = true, // v0.11.1: Allow disabling automatic CPM calculation
@@ -1628,8 +1629,12 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   }, [localTasks]);
 
   const handleExportExcel = useCallback(async () => {
-    await ganttUtils.exportToExcel(localTasks);
-  }, [localTasks]);
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const ts = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`;
+    const name = projectName ? projectName.replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ _-]/g, '') : 'Project';
+    await ganttUtils.exportToExcel(localTasks, `${name}_${ts}.xlsx`);
+  }, [localTasks, projectName]);
 
   const handleExportCSV = useCallback(() => {
     const csv = ganttUtils.exportToCSV(localTasks);

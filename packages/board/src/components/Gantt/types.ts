@@ -420,6 +420,7 @@ export interface GanttConfig {
   rowDensity?: RowDensity; // Row height density (default: 'comfortable')
   showThemeSelector?: boolean; // Show theme selector in toolbar (default: true)
   showExportButton?: boolean; // v0.12.0: Show export dropdown in toolbar (default: true)
+  projectName?: string; // Used for export filenames
   availableUsers?: Array<{ id: string; name: string; initials: string; color: string }>; // Available users for assignment
 
   /**

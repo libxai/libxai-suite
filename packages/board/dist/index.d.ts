@@ -363,6 +363,7 @@ interface GanttConfig {
     rowDensity?: RowDensity;
     showThemeSelector?: boolean;
     showExportButton?: boolean;
+    projectName?: string;
     availableUsers?: Array<{
         id: string;
         name: string;

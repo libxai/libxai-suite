@@ -9218,6 +9218,11 @@ body {
 }
 
 
+.w-\[220px\] {
+  width: 220px;
+}
+
+
 .w-\[280px\] {
   width: 280px;
 }
@@ -13314,6 +13319,15 @@ body {
 
   .lg\:inset-12 {
     inset: 3rem;
+  }
+}
+
+
+@media (min-width: 1280px) {
+
+
+  .xl\:w-\[280px\] {
+    width: 280px;
   }
 }
 
