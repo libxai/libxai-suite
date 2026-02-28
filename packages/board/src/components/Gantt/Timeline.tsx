@@ -77,6 +77,9 @@ export function Timeline({
   // v0.13.0: State for dependency cascade preview
   const [cascadePreviews, setCascadePreviews] = useState<DependentTaskPreview[]>([]);
 
+  // v1.5.0: Track drag offset so dependency lines follow the dragged bar in real-time
+  const [dragOffset, setDragOffset] = useState<{ taskId: string; daysDelta: number } | null>(null);
+
   // v0.17.76: State for active tooltip - rendered in top layer for proper z-order
   const [activeTooltip, setActiveTooltip] = useState<TaskTooltipData | null>(null);
 
@@ -327,8 +330,18 @@ export function Timeline({
   }, [flatTasks, getTaskPosition]);
 
   // v0.13.0: Handle drag move for dependency cascade preview
+  // v1.5.0: Also store drag offset so dependency lines follow in real-time
   const handleTaskDragMove = useCallback((taskId: string, daysDelta: number, isDragging: boolean) => {
-    if (!isDragging || daysDelta === 0) {
+    if (!isDragging) {
+      setCascadePreviews([]);
+      setDragOffset(null);
+      return;
+    }
+
+    // Store drag offset for dependency line adjustment
+    setDragOffset({ taskId, daysDelta });
+
+    if (daysDelta === 0) {
       setCascadePreviews([]);
       return;
     }
@@ -347,6 +360,27 @@ export function Timeline({
 
     setCascadePreviews(previews);
   }, [tasks, flatTasks, startDate, dayWidth, zoom, ROW_HEIGHT, HEADER_HEIGHT]);
+
+  // v1.5.0: Get drag-adjusted position for dependency line endpoints
+  // During drag, offsets the dragged task and its cascade dependents
+  const getDragAdjustedPosition = useCallback((taskId: string, pos: { x: number; width: number }) => {
+    if (!dragOffset) return pos;
+    const scaledDayWidth = dayWidth * zoom;
+    const pixelDelta = dragOffset.daysDelta * scaledDayWidth;
+
+    // Dragged task — offset by daysDelta
+    if (taskId === dragOffset.taskId) {
+      return { x: pos.x + pixelDelta, width: pos.width };
+    }
+
+    // Dependent task with cascade preview — use preview position
+    const preview = cascadePreviews.find(p => p.taskId === taskId);
+    if (preview) {
+      return { x: preview.previewX, width: preview.width };
+    }
+
+    return pos;
+  }, [dragOffset, cascadePreviews, dayWidth, zoom]);
 
   // Generate timeline headers
   // v0.17.400: Use locale for date formatting (e.g., 'es' -> 'Dic 22', 'en' -> 'Dec 22')
@@ -829,8 +863,9 @@ export function Timeline({
             if (!depTask.startDate || !depTask.endDate) return null;
 
             const fromIndex = flatTasks.findIndex((t) => t.id === depId);
-            const fromPos = getTaskPosition(depTask);
-            const toPos = getTaskPosition(task);
+            // v1.5.0: Use drag-adjusted positions so lines follow during drag
+            const fromPos = getDragAdjustedPosition(depTask.id, getTaskPosition(depTask));
+            const toPos = getDragAdjustedPosition(task.id, getTaskPosition(task));
 
             const exitX = fromPos.x + fromPos.width;
             const exitY = fromIndex * ROW_HEIGHT + 26;
