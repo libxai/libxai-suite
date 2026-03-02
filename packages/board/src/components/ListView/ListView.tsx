@@ -16,6 +16,7 @@ import {
   Plus,
   FolderOpen,
   Folder,
+  PanelRight,
 } from 'lucide-react';
 import type { Task } from '../Gantt/types';
 import type {
@@ -127,6 +128,33 @@ function countResourceConflicts(task: Task): number {
 }
 
 /**
+ * Sum timeLoggedMinutes and effortMinutes recursively across all subtasks of a group.
+ * Returns { spent, allocated } in minutes.
+ */
+function calculateGroupHours(task: Task): { spent: number; allocated: number } {
+  if (!task.subtasks?.length) return { spent: 0, allocated: 0 };
+  let spent = 0;
+  let allocated = 0;
+  for (const sub of task.subtasks) {
+    spent += (sub as any).timeLoggedMinutes ?? 0;
+    allocated += (sub as any).effortMinutes ?? 0;
+    if (sub.subtasks?.length) {
+      const nested = calculateGroupHours(sub);
+      spent += nested.spent;
+      allocated += nested.allocated;
+    }
+  }
+  return { spent, allocated };
+}
+
+function formatGroupHours(minutes: number): string {
+  if (minutes <= 0) return '0h';
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return m > 0 ? `${h}h ${m}m` : `${h}h`;
+}
+
+/**
  * Main ListView Component
  */
 export function ListView({
@@ -163,6 +191,8 @@ export function ListView({
     // v2.3.0: Financial lens
     lens = 'hours',
     hourlyRate = 0,
+    // v2.3.2: Aggregate child hours into parent hoursBar cell
+    aggregateParentHours = false,
   } = config;
 
   const t = mergeListViewTranslations(locale, customTranslations);
@@ -188,7 +218,39 @@ export function ListView({
     return { statusFilter: 'all' as StatusFilterValue, hideCompleted: false };
   }, [persistFilter]);
 
+  // Calculate total project hours from all tasks (flat sum of leaf nodes to avoid double counting)
+  const projectTotalHours = useMemo(() => {
+    function sumLeaves(taskList: Task[]): { spent: number; allocated: number } {
+      let spent = 0; let allocated = 0;
+      for (const t of taskList) {
+        if (t.subtasks && t.subtasks.length > 0) {
+          const nested = sumLeaves(t.subtasks);
+          spent += nested.spent; allocated += nested.allocated;
+        } else {
+          spent += (t as any).timeLoggedMinutes ?? 0;
+          allocated += (t as any).effortMinutes ?? 0;
+        }
+      }
+      return { spent, allocated };
+    }
+    return sumLeaves(tasks);
+  }, [tasks]);
+
+  // Merge project total into healthSidebar data so sidebar can display it
+  const healthSidebarWithTotal = useMemo(() => {
+    if (!healthSidebar?.enabled || !healthSidebar.data) return healthSidebar;
+    return {
+      ...healthSidebar,
+      data: {
+        ...healthSidebar.data,
+        totalHoursSpentMinutes: projectTotalHours.spent,
+        totalHoursAllocatedMinutes: projectTotalHours.allocated,
+      },
+    };
+  }, [healthSidebar, projectTotalHours]);
+
   // State
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [sortField, setSortField] = useState<SortField>('startDate');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [searchQuery, setSearchQuery] = useState('');
@@ -706,7 +768,23 @@ export function ListView({
           />
         );
 
-      case 'hoursBar':
+      case 'hoursBar': {
+        // If aggregateParentHours enabled and task has children, show sum of descendants
+        if (aggregateParentHours && (task as any).hasChildren) {
+          const { spent, allocated } = calculateGroupHours(task);
+          const isOver = spent > allocated && allocated > 0;
+          return (
+            <span className={cn('text-[11px] font-mono', isDark ? 'text-white/50' : 'text-gray-500')}>
+              <span className={cn('font-bold', isOver ? 'text-[#FF453A]' : isDark ? 'text-white/80' : 'text-gray-800')}>
+                {formatGroupHours(spent)}
+              </span>
+              {' / '}
+              <span className={isDark ? 'text-white/60' : 'text-gray-600'}>
+                {formatGroupHours(allocated)}
+              </span>
+            </span>
+          );
+        }
         return (
           <HoursBarCell
             task={task}
@@ -721,6 +799,7 @@ export function ListView({
             hourlyRate={hourlyRate}
           />
         );
+      }
 
       case 'teamLoad':
         return (
@@ -742,7 +821,7 @@ export function ListView({
       default:
         return <span className={cn("text-sm", isDark ? "text-white/60" : "text-gray-500")}>-</span>;
     }
-  }, [callbacks, isDark, locale, availableUsers, t]);
+  }, [callbacks, isDark, locale, availableUsers, t, aggregateParentHours]);
 
   // Get column label with translations
   const getColumnLabel = useCallback((column: TableColumn): string => {
@@ -905,6 +984,22 @@ export function ListView({
             <div className="flex items-center gap-2">
               {toolbarRightContent}
             </div>
+          )}
+
+          {/* v2.3.1: Reopen health sidebar button — visible only when sidebar is enabled and closed */}
+          {healthSidebarWithTotal?.enabled && healthSidebarWithTotal.data && !sidebarOpen && (
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className={cn(
+                'flex items-center justify-center w-8 h-8 rounded-lg border transition-colors',
+                isDark
+                  ? 'border-[#333] text-white/40 hover:text-white/70 hover:bg-white/[0.05]'
+                  : 'border-gray-200 text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+              )}
+              title={locale === 'es' ? 'Abrir panel de salud' : 'Open health panel'}
+            >
+              <PanelRight className="w-4 h-4" />
+            </button>
           )}
 
           {/* Create Task Button - v0.18.0: Same style as GanttToolbar */}
@@ -1078,12 +1173,29 @@ export function ListView({
                       {/* Spacer */}
                       <div className="flex-1" />
 
-                      {/* Group metrics: Avg SPI + Resource Conflicts */}
+                      {/* Group metrics: Hours total + Avg SPI + Resource Conflicts */}
                       {(() => {
                         const spi = calculateGroupSPI(task);
                         const conflicts = countResourceConflicts(task);
+                        const { spent, allocated } = calculateGroupHours(task);
+                        const hasHours = spent > 0 || allocated > 0;
+                        const isOver = spent > allocated && allocated > 0;
                         return (
                           <div className="flex items-center gap-3 flex-shrink-0">
+                            {/* Hours total */}
+                            {hasHours && (
+                              <span className={cn("text-[10px] font-mono", isDark ? "text-white/50" : "text-gray-500")}>
+                                {locale === 'es' ? 'Total:' : 'Total:'}
+                                {' '}
+                                <span className={cn("font-bold", isOver ? "text-[#FF453A]" : isDark ? "text-white/80" : "text-gray-800")}>
+                                  {formatGroupHours(spent)}
+                                </span>
+                                {' / '}
+                                <span className={isDark ? "text-white/60" : "text-gray-600"}>
+                                  {formatGroupHours(allocated)}
+                                </span>
+                              </span>
+                            )}
                             {spi !== null && (
                               <span className={cn(
                                 "text-[10px] font-mono",
@@ -1229,12 +1341,13 @@ export function ListView({
         </div>
       </div>
 
-      {/* v2.0.0: Project Health Sidebar */}
-      {healthSidebar?.enabled && healthSidebar.data && (
+      {/* v2.0.0: Project Health Sidebar — v2.3.1: toggle open/close */}
+      {healthSidebarWithTotal?.enabled && healthSidebarWithTotal.data && sidebarOpen && (
         <ProjectHealthSidebar
-          data={healthSidebar.data}
+          data={healthSidebarWithTotal.data}
           isDark={isDark}
           locale={locale}
+          onClose={() => setSidebarOpen(false)}
         />
       )}
       </div>

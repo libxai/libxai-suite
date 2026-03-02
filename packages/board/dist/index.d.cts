@@ -3835,6 +3835,9 @@ interface ProjectHealthData {
         color: string;
         utilizationPercent: number;
     }>;
+    /** Total hours for the whole project (spent / allocated in minutes) */
+    totalHoursSpentMinutes?: number;
+    totalHoursAllocatedMinutes?: number;
 }
 /**
  * ListView configuration
@@ -3887,6 +3890,8 @@ interface ListViewConfig {
         enabled: boolean;
         data: ProjectHealthData;
     };
+    /** Aggregate child hours into parent row hoursBar cell (default: false) */
+    aggregateParentHours?: boolean;
     /**
      * Configuration for blurring financial data based on user permissions
      * When enabled, financial columns (soldEffortMinutes, quotedTime) will be blurred
