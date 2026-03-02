@@ -9,7 +9,7 @@ import { useGanttI18n } from './GanttI18nContext'; // v0.15.0: i18n
  * v3.0.1: Hook to position dropdown menus via portal at document.body.
  * Escapes overflow:clip and stacking context issues.
  */
-function useDropdownPortal(triggerRef: React.RefObject<HTMLElement | null>, isOpen: boolean, align: 'left' | 'right' = 'left') {
+function useDropdownPortal(triggerRef: React.RefObject<HTMLElement | null>, isOpen: boolean, align: 'left' | 'right' = 'left', dropdownWidth = 208) {
   const [pos, setPos] = useState({ top: 0, left: 0 });
 
   useEffect(() => {
@@ -19,12 +19,18 @@ function useDropdownPortal(triggerRef: React.RefObject<HTMLElement | null>, isOp
     let left: number;
     if (align === 'right') {
       // Right-align: dropdown's right edge = trigger's right edge
-      left = rect.right;
+      left = rect.right - dropdownWidth;
     } else {
       left = rect.left;
     }
+    // Clamp so dropdown never overflows right edge of viewport
+    const PADDING = 8;
+    if (left + dropdownWidth > window.innerWidth - PADDING) {
+      left = window.innerWidth - PADDING - dropdownWidth;
+    }
+    if (left < PADDING) left = PADDING;
     setPos({ top, left });
-  }, [isOpen, align, triggerRef]);
+  }, [isOpen, align, triggerRef, dropdownWidth]);
 
   return pos;
 }
@@ -1399,7 +1405,7 @@ function ViewOptionsDropdown({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const t = useGanttI18n();
-  const portalPos = useDropdownPortal(triggerRef, isOpen, 'left');
+  const portalPos = useDropdownPortal(triggerRef, isOpen, 'right', 208);
   const isDark = theme.bgPrimary === '#050505' || (theme.bgPrimary || '').charAt(1) === '0';
 
   useEffect(() => {
