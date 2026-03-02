@@ -113,7 +113,7 @@ export function ExportDropdown({ theme, onExportPNG, onExportPDF, onExportExcel,
   const triggerRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const t = useGanttI18n(); // v0.15.0: i18n
-  const portalPos = useDropdownPortal(triggerRef, isOpen, 'right');
+  const portalPos = useDropdownPortal(triggerRef, isOpen, 'right', 176);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -234,7 +234,7 @@ export function ExportDropdown({ theme, onExportPNG, onExportPDF, onExportExcel,
             className="fixed w-44 rounded-xl overflow-hidden"
             style={{
               top: portalPos.top,
-              left: portalPos.left - 176, // w-44 = 11rem = 176px, right-aligned
+              left: portalPos.left,
               zIndex: 99999,
               backgroundColor: theme.bgPrimary === '#050505' ? 'rgba(10, 10, 10, 0.95)' : theme.bgSecondary,
               border: `1px solid ${theme.bgPrimary === '#050505' ? 'rgba(255,255,255,0.08)' : theme.border}`,
@@ -327,7 +327,7 @@ function ShareExportDropdown({ theme, onExportPNG, onExportPDF, onExportExcel, o
   const triggerRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const t = useGanttI18n();
-  const portalPos = useDropdownPortal(triggerRef, isOpen, 'right');
+  const portalPos = useDropdownPortal(triggerRef, isOpen, 'right', 224);
   const isDark = theme.bgPrimary === '#050505' || (theme.bgPrimary || '').charAt(1) === '0';
   const isEs = t.toolbar.visibility === 'Visibilidad';
 
@@ -400,7 +400,7 @@ function ShareExportDropdown({ theme, onExportPNG, onExportPDF, onExportExcel, o
               className="fixed w-56 rounded-xl overflow-hidden"
               style={{
                 top: portalPos.top,
-                left: portalPos.left - 224, // w-56 = 14rem = 224px, right-aligned
+                left: portalPos.left,
                 zIndex: 99999,
                 backgroundColor: isDark ? 'rgba(10, 10, 10, 0.95)' : theme.bgSecondary || '#F8FAFC',
                 border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : theme.border || '#CBD5E1'}`,
