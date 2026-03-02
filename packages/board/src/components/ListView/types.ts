@@ -250,6 +250,9 @@ export interface ProjectHealthData {
   scheduleVarianceDays?: number;
   scheduleVarianceLabel?: string;
   teams?: Array<{ name: string; color: string; utilizationPercent: number }>;
+  /** Total hours for the whole project (spent / allocated in minutes) */
+  totalHoursSpentMinutes?: number;
+  totalHoursAllocatedMinutes?: number;
 }
 
 /**
@@ -308,6 +311,8 @@ export interface ListViewConfig {
   // v2.0.0: Chronos project health sidebar
   /** Configuration for project health sidebar panel */
   healthSidebar?: { enabled: boolean; data: ProjectHealthData };
+  /** Aggregate child hours into parent row hoursBar cell (default: false) */
+  aggregateParentHours?: boolean;
 
   // v1.4.9: Governance v2.0 - Financial data blur
   /**

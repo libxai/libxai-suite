@@ -13138,6 +13138,11 @@ body {
 }
 
 
+.hover\:text-white\/60:hover {
+  color: rgb(255 255 255 / 0.6);
+}
+
+
 .hover\:text-white\/70:hover {
   color: rgb(255 255 255 / 0.7);
 }
