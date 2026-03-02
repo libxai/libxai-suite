@@ -1163,7 +1163,7 @@ export function ListView({
                           {task.wbsCode}
                         </span>
                       )}
-                      <span className={cn("text-xs font-bold font-mono uppercase tracking-wide truncate", isDark ? "text-gray-200" : "text-gray-800")}>
+                      <span className={cn("text-[10px] font-semibold font-mono uppercase tracking-wide truncate", isDark ? "text-gray-200" : "text-gray-800")}>
                         {task.name}
                       </span>
                       <span className={cn("text-[10px] font-mono px-2 py-0.5 rounded-full flex-shrink-0", isDark ? "text-white/30 bg-white/[0.05]" : "text-gray-500 bg-gray-200")}>
