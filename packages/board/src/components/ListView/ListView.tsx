@@ -251,7 +251,7 @@ export function ListView({
 
   // State
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [sortField, setSortField] = useState<SortField>('startDate');
+  const [sortField, setSortField] = useState<SortField>('position');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilterValue>(() => loadPersistedFilter().statusFilter);
@@ -476,6 +476,10 @@ export function ListView({
           const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3, none: 4 };
           aVal = priorityOrder[a.priority as keyof typeof priorityOrder] ?? 4;
           bVal = priorityOrder[b.priority as keyof typeof priorityOrder] ?? 4;
+          break;
+        case 'position':
+          aVal = (a as any).position ?? 0;
+          bVal = (b as any).position ?? 0;
           break;
         default:
           return 0;
