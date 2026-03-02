@@ -2811,7 +2811,7 @@ interface TimelineProps {
     showTaskBarLabels?: boolean;
     onTaskClick?: (task: Task) => void;
     onTaskDblClick?: (task: Task) => void;
-    onTaskContextMenu?: (task: Task, event: React.MouseEvent) => void;
+    onTaskContextMenu?: (task: Task, event: React__default.MouseEvent) => void;
     onTaskDateChange?: (task: Task, newStart: Date, newEnd: Date) => void;
     onDependencyCreate?: (fromTask: Task, toTaskId: string) => void;
     onDependencyDelete?: (taskId: string, dependencyId: string) => void;
@@ -2843,6 +2843,9 @@ interface TaskTooltipData {
     width: number;
     height: number;
     showBelow: boolean;
+    /** Viewport mouse position — tooltip follows cursor for fluid UX */
+    mouseX: number;
+    mouseY: number;
 }
 interface TaskBarProps {
     task: Task;

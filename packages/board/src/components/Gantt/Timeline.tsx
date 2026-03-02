@@ -1,4 +1,4 @@
-import { useMemo, useCallback, useState, useRef } from 'react';
+import React, { useMemo, useCallback, useState, useRef } from 'react';
 import { TimeScale, Task, GanttTemplates, DependentTaskPreview, DependencyLineStyle } from './types';
 import { TaskBar, TaskTooltipData } from './TaskBar';
 import { TaskTooltip } from './TaskTooltip';
@@ -774,7 +774,7 @@ export function Timeline({
                   e.stopPropagation();
                   onTaskContextMenu?.(task, e as unknown as React.MouseEvent);
                 }}
-                onMouseEnter={() => {
+                onMouseMove={(e) => {
                   handleTooltipChange({
                     task,
                     x,
@@ -782,6 +782,8 @@ export function Timeline({
                     width,
                     height: barH,
                     showBelow: barY < 100,
+                    mouseX: e.clientX,
+                    mouseY: e.clientY,
                   });
                 }}
                 onMouseLeave={() => handleTooltipChange(null)}
@@ -1014,7 +1016,6 @@ export function Timeline({
           tooltipData={activeTooltip}
           theme={theme}
           locale={locale === 'es' ? 'es' : 'en'}
-          svgRef={contentSvgRef}
         />
       )}
     </div>

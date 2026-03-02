@@ -1,16 +1,17 @@
 /**
- * TaskTooltip - v1.4.28
+ * TaskTooltip - v1.5.3
  *
  * Renders task tooltips as a fixed-position HTML overlay via React Portal.
- * This ensures tooltips are NEVER clipped by any scroll container or SVG boundary.
+ * Tooltip follows the mouse cursor for fluid, professional UX (Linear/ClickUp style).
  *
+ * v1.5.3: Tooltip follows mouse cursor instead of being anchored to bar position.
+ *         Appears above-right of cursor, flips left/below when near screen edges.
  * v1.4.28: Complete rewrite — switched from SVG <g> to HTML <div> with position:fixed
- *          rendered via createPortal to document.body. Viewport-aware: automatically
- *          flips above/below and clamps horizontally so it never overflows the screen.
+ *          rendered via createPortal to document.body.
  * v1.2.0: Added three-tier time tracking display (effortMinutes, timeLoggedMinutes, soldEffortMinutes)
  */
 
-import { useLayoutEffect, useState, type RefObject } from 'react';
+import { useLayoutEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Task } from './types';
 
@@ -21,62 +22,58 @@ export interface TaskTooltipData {
   width: number;
   height: number;
   showBelow: boolean;
+  /** Viewport mouse position — tooltip follows cursor for fluid UX */
+  mouseX: number;
+  mouseY: number;
 }
 
 interface TaskTooltipProps {
   tooltipData: TaskTooltipData | null;
   theme: any;
   locale?: 'en' | 'es';
-  /** Ref to the content SVG — used to convert SVG coords to screen coords */
-  svgRef?: RefObject<SVGSVGElement>;
 }
 
 const TOOLTIP_WIDTH = 260;
-const TOOLTIP_GAP = 10;
 const SCREEN_PADDING = 8;
+const CURSOR_OFFSET_X = 16;  // px to the right of cursor
+const CURSOR_OFFSET_Y = -12; // px above cursor (negative = up)
 
-export function TaskTooltip({ tooltipData, theme, locale = 'en', svgRef }: TaskTooltipProps) {
+export function TaskTooltip({ tooltipData, theme, locale = 'en' }: TaskTooltipProps) {
   const [pos, setPos] = useState<{ left: number; top: number; showBelow: boolean } | null>(null);
 
   useLayoutEffect(() => {
-    if (!tooltipData || !svgRef?.current) {
+    if (!tooltipData) {
       setPos(null);
       return;
     }
 
-    const svg = svgRef.current;
-    const svgRect = svg.getBoundingClientRect();
-    const { x, y, width, height, task } = tooltipData;
-
-    // Check if task has time tracking data to determine tooltip height
+    const { task, mouseX, mouseY } = tooltipData;
     const hasTimeData = task.effortMinutes != null || task.timeLoggedMinutes != null || task.soldEffortMinutes != null;
     const tooltipH = hasTimeData ? 155 : 105;
 
-    // Convert SVG coords to screen coords
-    const barScreenLeft = svgRect.left + x;
-    const barScreenTop = svgRect.top + y;
-    const barScreenBottom = barScreenTop + height;
-    const barCenterX = barScreenLeft + width / 2;
+    // Start above-right of cursor
+    let left = mouseX + CURSOR_OFFSET_X;
+    let top = mouseY + CURSOR_OFFSET_Y - tooltipH;
 
-    // Decide above vs below
-    const spaceAbove = barScreenTop - SCREEN_PADDING;
-    const spaceBelow = window.innerHeight - barScreenBottom - SCREEN_PADDING;
-    const showBelow = spaceAbove < tooltipH + TOOLTIP_GAP ? true : spaceBelow < tooltipH + TOOLTIP_GAP ? false : false; // prefer above
-
-    // Y position
-    const top = showBelow
-      ? barScreenBottom + TOOLTIP_GAP
-      : barScreenTop - TOOLTIP_GAP - tooltipH;
-
-    // X position — centered on bar, clamped to screen
-    let left = barCenterX - TOOLTIP_WIDTH / 2;
-    if (left < SCREEN_PADDING) left = SCREEN_PADDING;
+    // Flip left if overflows right edge
     if (left + TOOLTIP_WIDTH > window.innerWidth - SCREEN_PADDING) {
-      left = window.innerWidth - SCREEN_PADDING - TOOLTIP_WIDTH;
+      left = mouseX - TOOLTIP_WIDTH - CURSOR_OFFSET_X;
+    }
+    // Clamp left edge
+    if (left < SCREEN_PADDING) left = SCREEN_PADDING;
+
+    // Flip below cursor if overflows top edge
+    const showBelow = top < SCREEN_PADDING;
+    if (showBelow) {
+      top = mouseY + 20;
+    }
+    // Clamp bottom edge
+    if (top + tooltipH > window.innerHeight - SCREEN_PADDING) {
+      top = window.innerHeight - SCREEN_PADDING - tooltipH;
     }
 
     setPos({ left, top, showBelow });
-  }, [tooltipData, svgRef]);
+  }, [tooltipData]);
 
   if (!tooltipData || !pos) return null;
 
@@ -95,7 +92,6 @@ export function TaskTooltip({ tooltipData, theme, locale = 'en', svgRef }: TaskT
     quoted: locale === 'es' ? 'Ofertado' : 'Quoted',
   };
 
-  // Format helpers
   const formatDate = (date: Date) =>
     date.toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
@@ -131,7 +127,7 @@ export function TaskTooltip({ tooltipData, theme, locale = 'en', svgRef }: TaskT
         zIndex: 99999,
         pointerEvents: 'none',
         fontFamily: 'Inter, system-ui, sans-serif',
-        animation: 'gantt-tooltip-fade 0.15s ease-out',
+        animation: 'gantt-tooltip-fade 0.12s ease-out',
       }}
     >
       <div
@@ -191,10 +187,10 @@ export function TaskTooltip({ tooltipData, theme, locale = 'en', svgRef }: TaskT
         )}
       </div>
 
-      {/* CSS animation injected once */}
+      {/* CSS animation */}
       <style>{`
         @keyframes gantt-tooltip-fade {
-          from { opacity: 0; transform: translateY(${pos.showBelow ? '-6px' : '6px'}); }
+          from { opacity: 0; transform: translateY(${pos.showBelow ? '-4px' : '4px'}); }
           to { opacity: 1; transform: translateY(0); }
         }
       `}</style>

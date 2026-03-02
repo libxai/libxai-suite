@@ -12,6 +12,9 @@ export interface TaskTooltipData {
   width: number;
   height: number;
   showBelow: boolean;
+  /** Viewport mouse position — tooltip follows cursor for fluid UX */
+  mouseX: number;
+  mouseY: number;
 }
 
 interface TaskBarProps {
@@ -158,22 +161,10 @@ export function TaskBar({
   // v0.17.76: Notify parent of hover state changes for top-layer tooltip rendering
   // This ensures tooltips always appear above all task bars (SVG z-order fix)
   useEffect(() => {
-    if (onHoverChange) {
-      if (isHovered && !isDragging && !task.segments) {
-        const showBelow = y < 100; // Same threshold as internal tooltip logic
-        onHoverChange({
-          task,
-          x, // Use base x since tooltip hidden during drag anyway
-          y,
-          width, // Use base width since tooltip hidden during drag anyway
-          height,
-          showBelow,
-        });
-      } else {
-        onHoverChange(null);
-      }
+    if (onHoverChange && (!isHovered || isDragging || task.segments)) {
+      onHoverChange(null);
     }
-  }, [isHovered, isDragging, task, x, y, width, height, onHoverChange]);
+  }, [isHovered, isDragging, task.segments, onHoverChange]);
 
   // Format date for tooltip
   const formatDate = (date: Date) => {
@@ -608,6 +599,20 @@ export function TaskBar({
         onContextMenu?.(task, e as any);
       }}
       onMouseEnter={() => !isDragging && setIsHovered(true)}
+      onMouseMove={(e) => {
+        if (onHoverChange && isHovered && !isDragging && !task.segments) {
+          onHoverChange({
+            task,
+            x,
+            y,
+            width,
+            height,
+            showBelow: false,
+            mouseX: e.clientX,
+            mouseY: e.clientY,
+          });
+        }
+      }}
       onMouseLeave={() => {
         if (!isDragging) {
           setIsHovered(false);
@@ -876,7 +881,7 @@ export function TaskBar({
             data-task-class={customClass}
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{
-              opacity: isDragging && !isConnecting ? 0.15 : 1,
+              opacity: isDragging && !isConnecting ? 0.15 : task.parentId ? 0.6 : 1,
               scale: isHovered && !isDragging ? 1.01 : 1,
             }}
             transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
