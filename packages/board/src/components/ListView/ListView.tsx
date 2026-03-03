@@ -131,20 +131,26 @@ function countResourceConflicts(task: Task): number {
  * Sum timeLoggedMinutes and effortMinutes recursively across all subtasks of a group.
  * Returns { spent, allocated } in minutes.
  */
-function calculateGroupHours(task: Task): { spent: number; allocated: number } {
-  if (!task.subtasks?.length) return { spent: 0, allocated: 0 };
+function calculateGroupHours(task: Task): { spent: number; allocated: number; quoted: number } {
+  if (!task.subtasks?.length) return { spent: 0, allocated: 0, quoted: 0 };
   let spent = 0;
   let allocated = 0;
+  let quoted = 0;
   for (const sub of task.subtasks) {
-    spent += (sub as any).timeLoggedMinutes ?? 0;
-    allocated += (sub as any).effortMinutes ?? 0;
     if (sub.subtasks?.length) {
+      // Sub is itself a group — recurse, don't double-count its own values
       const nested = calculateGroupHours(sub);
       spent += nested.spent;
       allocated += nested.allocated;
+      quoted += nested.quoted;
+    } else {
+      // Leaf task — sum directly
+      spent += (sub as any).timeLoggedMinutes ?? 0;
+      allocated += (sub as any).effortMinutes ?? 0;
+      quoted += (sub as any).soldEffortMinutes ?? 0;
     }
   }
-  return { spent, allocated };
+  return { spent, allocated, quoted };
 }
 
 function formatGroupHours(minutes: number): string {
@@ -478,9 +484,9 @@ export function ListView({
           bVal = priorityOrder[b.priority as keyof typeof priorityOrder] ?? 4;
           break;
         case 'position':
-          aVal = (a as any).position ?? 0;
-          bVal = (b as any).position ?? 0;
-          break;
+          // Position order is already correct from flattenTasksWithLevel (hierarchy preserved).
+          // Sorting the flat array by position would mix parent/child levels — skip sort.
+          return 0;
         default:
           return 0;
       }
@@ -707,6 +713,10 @@ export function ListView({
 
       // v1.2.0: New time tracking columns
       case 'effortMinutes': {
+        if (aggregateParentHours && task.subtasks && task.subtasks.length > 0) {
+          const { allocated } = calculateGroupHours(task);
+return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={hourlyRate} />;
+        }
         const isCompleted = task.status === 'completed' || task.progress === 100;
         return (
           <TimeCell
@@ -722,6 +732,10 @@ export function ListView({
       }
 
       case 'timeLoggedMinutes': {
+        if (aggregateParentHours && task.subtasks && task.subtasks.length > 0) {
+          const { spent } = calculateGroupHours(task);
+          return <TimeCell value={spent > 0 ? spent : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={hourlyRate} />;
+        }
         const isCompleted = task.status === 'completed' || task.progress === 100;
         return (
           <TimeCell
@@ -741,6 +755,11 @@ export function ListView({
       }
 
       case 'soldEffortMinutes': {
+        if (aggregateParentHours && task.subtasks && task.subtasks.length > 0) {
+          const { quoted } = calculateGroupHours(task);
+          const shouldBlurSold = financialBlur?.enabled && (!financialBlur.columns || financialBlur.columns.includes('soldEffortMinutes'));
+          return <TimeCell value={quoted > 0 ? quoted : undefined} isDark={isDark} locale={locale} disabled isBlurred={shouldBlurSold} lens={lens} hourlyRate={hourlyRate} />;
+        }
         const isCompleted = task.status === 'completed' || task.progress === 100;
         // v1.4.9: Governance v2.0 - Check if this column should be blurred
         const shouldBlurSold = financialBlur?.enabled && (
@@ -775,17 +794,29 @@ export function ListView({
       case 'hoursBar': {
         // If aggregateParentHours enabled and task has children, show sum of descendants
         if (aggregateParentHours && (task as any).hasChildren) {
-          const { spent, allocated } = calculateGroupHours(task);
+          const { spent, allocated, quoted } = calculateGroupHours(task);
           const isOver = spent > allocated && allocated > 0;
           return (
-            <span className={cn('text-[11px] font-mono', isDark ? 'text-white/50' : 'text-gray-500')}>
+            <span className={cn('text-[11px] font-mono flex items-center gap-1.5', isDark ? 'text-white/50' : 'text-gray-500')}>
               <span className={cn('font-bold', isOver ? 'text-[#FF453A]' : isDark ? 'text-white/80' : 'text-gray-800')}>
                 {formatGroupHours(spent)}
               </span>
-              {' / '}
-              <span className={isDark ? 'text-white/60' : 'text-gray-600'}>
-                {formatGroupHours(allocated)}
-              </span>
+              {allocated > 0 && (
+                <>
+                  {' / '}
+                  <span className={isDark ? 'text-white/60' : 'text-gray-600'}>
+                    {formatGroupHours(allocated)}
+                  </span>
+                </>
+              )}
+              {quoted > 0 && (
+                <>
+                  {' / '}
+                  <span className={isDark ? 'text-amber-400/70' : 'text-amber-600'}>
+                    {formatGroupHours(quoted)}
+                  </span>
+                </>
+              )}
             </span>
           );
         }
@@ -1130,8 +1161,12 @@ export function ListView({
               const isGroupHeader = task.hasChildren && task.level === 0;
               const subtaskCount = task.subtasks?.length || 0;
 
-              // Chronos V2.0: WBS Group Header Row
+              // Chronos V2.0: WBS Group Header Row — uses same column grid as normal rows
               if (isGroupHeader) {
+                const { spent, allocated, quoted } = calculateGroupHours(task);
+                const spi = calculateGroupSPI(task);
+                const conflicts = countResourceConflicts(task);
+                const isOver = spent > allocated && allocated > 0;
                 return (
                   <motion.div
                     key={task.id}
@@ -1142,90 +1177,64 @@ export function ListView({
                     className={cn("flex items-center border-y cursor-pointer", isDark ? "border-[#222] bg-[#222]" : "border-gray-200 bg-gray-100")}
                     onClick={() => toggleExpand(task.id)}
                   >
-                    <div className="flex items-center gap-3 px-4 py-2.5 w-full">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleExpand(task.id);
-                        }}
-                        className={cn("p-0.5 rounded flex-shrink-0", isDark ? "hover:bg-white/[0.05]" : "hover:bg-gray-200")}
+                    {visibleColumns.map((column) => (
+                      <div
+                        key={column.id}
+                        className="flex items-center px-4 py-2.5"
+                        style={{ width: columnWidthPercent[column.id], minWidth: column.minWidth }}
                       >
-                        {isExpanded ? (
-                          <ChevronDown className={cn("w-4 h-4", isDark ? "text-white/40" : "text-gray-500")} />
-                        ) : (
-                          <ChevronRight className={cn("w-4 h-4", isDark ? "text-white/40" : "text-gray-500")} />
-                        )}
-                      </button>
-                      {isExpanded ? (
-                        <FolderOpen className="w-4 h-4 flex-shrink-0" style={{ color: isDark ? '#FFD60A' : '#B45309' }} />
-                      ) : (
-                        <Folder className="w-4 h-4 flex-shrink-0" style={{ color: isDark ? '#FFD60A' : '#B45309' }} />
-                      )}
-                      {/* WBS code prefix */}
-                      {task.wbsCode && (
-                        <span className="text-[10px] font-mono flex-shrink-0" style={{ color: isDark ? '#FFD60A' : '#B45309' }}>
-                          {task.wbsCode}
-                        </span>
-                      )}
-                      <span className={cn("text-[10px] font-semibold font-mono uppercase tracking-wide truncate", isDark ? "text-gray-200" : "text-gray-800")}>
-                        {task.name}
-                      </span>
-                      <span className={cn("text-[10px] font-mono px-2 py-0.5 rounded-full flex-shrink-0", isDark ? "text-white/30 bg-white/[0.05]" : "text-gray-500 bg-gray-200")}>
-                        ({subtaskCount} {locale === 'es' ? (subtaskCount === 1 ? 'Tarea' : 'Tareas') : (subtaskCount === 1 ? 'Item' : 'Items')})
-                      </span>
-
-                      {/* Spacer */}
-                      <div className="flex-1" />
-
-                      {/* Group metrics: Hours total + Avg SPI + Resource Conflicts */}
-                      {(() => {
-                        const spi = calculateGroupSPI(task);
-                        const conflicts = countResourceConflicts(task);
-                        const { spent, allocated } = calculateGroupHours(task);
-                        const hasHours = spent > 0 || allocated > 0;
-                        const isOver = spent > allocated && allocated > 0;
-                        return (
-                          <div className="flex items-center gap-3 flex-shrink-0">
-                            {/* Hours total */}
-                            {hasHours && (
-                              <span className={cn("text-[10px] font-mono", isDark ? "text-white/50" : "text-gray-500")}>
-                                {locale === 'es' ? 'Total:' : 'Total:'}
-                                {' '}
-                                <span className={cn("font-bold", isOver ? "text-[#FF453A]" : isDark ? "text-white/80" : "text-gray-800")}>
-                                  {formatGroupHours(spent)}
-                                </span>
-                                {' / '}
-                                <span className={isDark ? "text-white/60" : "text-gray-600"}>
-                                  {formatGroupHours(allocated)}
-                                </span>
+                        {column.type === 'name' ? (
+                          // Name cell — folder icon + wbs + name + count + SPI + conflicts
+                          <div className="flex items-center gap-2 min-w-0 w-full">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); toggleExpand(task.id); }}
+                              className={cn("p-0.5 rounded flex-shrink-0", isDark ? "hover:bg-white/[0.05]" : "hover:bg-gray-200")}
+                            >
+                              {isExpanded
+                                ? <ChevronDown className={cn("w-4 h-4", isDark ? "text-white/40" : "text-gray-500")} />
+                                : <ChevronRight className={cn("w-4 h-4", isDark ? "text-white/40" : "text-gray-500")} />}
+                            </button>
+                            {isExpanded
+                              ? <FolderOpen className="w-4 h-4 flex-shrink-0" style={{ color: isDark ? '#FFD60A' : '#B45309' }} />
+                              : <Folder className="w-4 h-4 flex-shrink-0" style={{ color: isDark ? '#FFD60A' : '#B45309' }} />}
+                            {task.wbsCode && (
+                              <span className="text-[10px] font-mono flex-shrink-0" style={{ color: isDark ? '#FFD60A' : '#B45309' }}>
+                                {task.wbsCode}
                               </span>
                             )}
+                            <span className={cn("text-[10px] font-semibold font-mono uppercase tracking-wide truncate", isDark ? "text-gray-200" : "text-gray-800")}>
+                              {task.name}
+                            </span>
+                            <span className={cn("text-[10px] font-mono px-2 py-0.5 rounded-full flex-shrink-0", isDark ? "text-white/30 bg-white/[0.05]" : "text-gray-500 bg-gray-200")}>
+                              ({subtaskCount} {locale === 'es' ? (subtaskCount === 1 ? 'Tarea' : 'Tareas') : (subtaskCount === 1 ? 'Item' : 'Items')})
+                            </span>
+                            {/* SPI + conflicts after name */}
                             {spi !== null && (
-                              <span className={cn(
-                                "text-[10px] font-mono",
-                                spi >= 1 ? "text-[#32D74B]" : spi >= 0.8 ? "text-[#FFD60A]" : "text-[#FF453A]"
-                              )}>
+                              <span className={cn("text-[10px] font-mono flex-shrink-0", spi >= 1 ? "text-[#32D74B]" : spi >= 0.8 ? "text-[#FFD60A]" : "text-[#FF453A]")}>
                                 Avg SPI: {spi.toFixed(2)}
                               </span>
                             )}
                             {conflicts > 0 && (
-                              <span className="text-[10px] font-mono text-[#FF453A]">
-                                {locale === 'es' ? 'Conflicto Recurso' : 'Resource Conflict'}: {conflicts}
-                              </span>
-                            )}
-                            {/* Progress summary */}
-                            {task.progress != null && task.progress > 0 && (
-                              <span className={cn(
-                                "text-[10px] font-mono",
-                                task.progress === 100 ? "text-[#32D74B]" : "text-[#007BFF]"
-                              )}>
-                                {task.progress}%
+                              <span className="text-[10px] font-mono text-[#FF453A] flex-shrink-0">
+                                {locale === 'es' ? 'Conflicto' : 'Conflict'}: {conflicts}
                               </span>
                             )}
                           </div>
-                        );
-                      })()}
-                    </div>
+                        ) : column.type === 'timeLoggedMinutes' ? (
+                          spent > 0
+                            ? <span className={cn("text-[11px] font-mono font-bold", isOver ? "text-[#FF453A]" : isDark ? "text-white/80" : "text-gray-800")}>{formatGroupHours(spent)}</span>
+                            : null
+                        ) : column.type === 'soldEffortMinutes' ? (
+                          quoted > 0
+                            ? <span className={cn("text-[11px] font-mono", isDark ? "text-white/60" : "text-gray-600")}>{formatGroupHours(quoted)}</span>
+                            : null
+                        ) : column.type === 'effortMinutes' ? (
+                          allocated > 0
+                            ? <span className={cn("text-[11px] font-mono", isDark ? "text-white/60" : "text-gray-600")}>{formatGroupHours(allocated)}</span>
+                            : null
+                        ) : null}
+                      </div>
+                    ))}
                   </motion.div>
                 );
               }
