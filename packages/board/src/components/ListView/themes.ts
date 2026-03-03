@@ -43,10 +43,10 @@ export const darkTheme: ListViewTheme = {
   // Chronos V2.0 extended tokens
   bgGroupHeader: '#222222',
   headerBg: '#1A1A1A',
-  neonRed: '#FF453A',
-  neonGreen: '#32D74B',
+  neonRed: '#FF2D20',
+  neonGreen: '#3BF06E',
   neonAmber: '#FFD60A',
-  neonBlue: '#0A84FF',
+  neonBlue: '#3B9EFF',
 };
 
 /**

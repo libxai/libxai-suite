@@ -18,9 +18,9 @@ interface BlockersCellProps {
 }
 
 const SEVERITY_STYLES = {
-  critical: 'bg-[#FF453A]/15 text-[#FF453A]',
+  critical: 'bg-[#FF2D20]/15 text-[#FF2D20]',
   warning: 'bg-[#FFD60A]/15 text-[#FFD60A]',
-  info: 'bg-[#007BFF]/15 text-[#007BFF]',
+  info: 'bg-[#3B9EFF]/15 text-[#3B9EFF]',
 };
 
 export function BlockersCell({

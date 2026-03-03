@@ -42,7 +42,7 @@ export function ScheduleVarianceCell({
 
     if (scheduleVariance === 0) {
       return (
-        <span className="font-mono" style={{ fontSize: '10px', color: '#007BFF' }}>
+        <span className="font-mono" style={{ fontSize: '10px', color: '#3B9EFF', fontWeight: 600 }}>
           {isEs ? 'En Tiempo' : 'On Track'}
         </span>
       );
@@ -50,14 +50,14 @@ export function ScheduleVarianceCell({
 
     if (scheduleVariance > 0) {
       return (
-        <span className="font-mono" style={{ fontSize: '10px', color: '#32D74B' }}>
+        <span className="font-mono" style={{ fontSize: '10px', color: '#3BF06E', fontWeight: 600 }}>
           +{scheduleVariance}d {isEs ? 'Adelante' : 'Early'}
         </span>
       );
     }
 
     return (
-      <span className="font-mono" style={{ fontSize: '10px', color: '#FF453A' }}>
+      <span className="font-mono" style={{ fontSize: '10px', color: '#FF2D20', fontWeight: 600 }}>
         {scheduleVariance}d {isEs ? 'Atraso' : 'Delay'}
       </span>
     );

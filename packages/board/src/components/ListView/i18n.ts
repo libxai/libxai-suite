@@ -24,7 +24,7 @@ export const en: ListViewTranslations = {
     estimatedTime: 'Estimated',
     // v1.1.0: Quoted time column
     quotedTime: 'Quoted',
-    elapsedTime: 'Time Spent',
+    elapsedTime: 'Executed',
     tags: 'Tags',
     // v2.0.0: Chronos columns
     scheduleVariance: 'Sched / Var',
@@ -104,7 +104,7 @@ export const es: ListViewTranslations = {
     estimatedTime: 'Estimado',
     // v1.1.0: Quoted time column
     quotedTime: 'Ofertado',
-    elapsedTime: 'Tiempo',
+    elapsedTime: 'Ejecutado',
     tags: 'Etiquetas',
     // v2.0.0: Chronos columns
     scheduleVariance: 'Prog / Var',

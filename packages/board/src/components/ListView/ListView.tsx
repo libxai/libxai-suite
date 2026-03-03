@@ -873,11 +873,11 @@ return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} l
       estimatedTime: (t.columns as any).estimatedTime || (locale === 'es' ? 'Estimado' : 'Estimated'),
       // v1.1.0: Quoted time column
       quotedTime: (t.columns as any).quotedTime || (locale === 'es' ? 'Ofertado' : 'Quoted'),
-      elapsedTime: (t.columns as any).elapsedTime || (locale === 'es' ? 'Tiempo' : 'Time Spent'),
-      // v1.2.0: New time tracking columns
-      effortMinutes: (t.columns as any).effortMinutes || (locale === 'es' ? 'Estimado' : 'Estimated'),
-      timeLoggedMinutes: (t.columns as any).timeLoggedMinutes || (locale === 'es' ? 'Tiempo' : 'Time Logged'),
+      elapsedTime: (t.columns as any).elapsedTime || (locale === 'es' ? 'Ejecutado' : 'Executed'),
+      // v1.2.0: New time tracking columns — order: Quoted → Estimated → Executed
       soldEffortMinutes: (t.columns as any).soldEffortMinutes || (locale === 'es' ? 'Ofertado' : 'Quoted'),
+      effortMinutes: (t.columns as any).effortMinutes || (locale === 'es' ? 'Estimado' : 'Estimated'),
+      timeLoggedMinutes: (t.columns as any).timeLoggedMinutes || (locale === 'es' ? 'Ejecutado' : 'Executed'),
       // v2.0.0: Chronos columns
       scheduleVariance: (t.columns as any).scheduleVariance || (locale === 'es' ? 'Prog / Var' : 'Sched / Var'),
       hoursBar: (t.columns as any).hoursBar || (locale === 'es' ? 'Horas (Usado / Asignado)' : 'Hours (Spent / Allocated)'),
@@ -977,17 +977,7 @@ return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} l
       {/* Toolbar */}
       <div className={cn("flex-shrink-0 px-6 py-4 border-b", isDark ? "border-[#222]" : "border-gray-200")}>
         <div className="flex items-center gap-4">
-          {/* Status Filter */}
-          <StatusFilter
-            value={statusFilter}
-            hideCompleted={hideCompleted}
-            onChange={setStatusFilter}
-            onHideCompletedChange={setHideCompleted}
-            isDark={isDark}
-            locale={locale}
-          />
-
-          {/* Task count - next to filters */}
+          {/* Task count */}
           <div className={cn("text-sm", isDark ? "text-white/60" : "text-gray-600")}>
             {displayTasks.length} {t.pagination.tasks}
           </div>
@@ -1020,6 +1010,16 @@ return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} l
               {toolbarRightContent}
             </div>
           )}
+
+          {/* Status Filter - Right side (matching Gantt toolbar position) */}
+          <StatusFilter
+            value={statusFilter}
+            hideCompleted={hideCompleted}
+            onChange={setStatusFilter}
+            onHideCompletedChange={setHideCompleted}
+            isDark={isDark}
+            locale={locale}
+          />
 
           {/* v2.3.1: Reopen health sidebar button — visible only when sidebar is enabled and closed */}
           {healthSidebarWithTotal?.enabled && healthSidebarWithTotal.data && !sidebarOpen && (
@@ -1166,7 +1166,6 @@ return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} l
                 const { spent, allocated, quoted } = calculateGroupHours(task);
                 const spi = calculateGroupSPI(task);
                 const conflicts = countResourceConflicts(task);
-                const isOver = spent > allocated && allocated > 0;
                 return (
                   <motion.div
                     key={task.id}
@@ -1202,7 +1201,7 @@ return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} l
                                 {task.wbsCode}
                               </span>
                             )}
-                            <span className={cn("text-[10px] font-semibold font-mono uppercase tracking-wide truncate", isDark ? "text-gray-200" : "text-gray-800")}>
+                            <span title={task.name} className={cn("text-[11px] font-semibold uppercase tracking-wide truncate", isDark ? "text-white" : "text-gray-800")} style={{ fontFamily: 'Inter, system-ui, sans-serif', WebkitFontSmoothing: 'antialiased', MozOsxFontSmoothing: 'grayscale' }}>
                               {task.name}
                             </span>
                             <span className={cn("text-[10px] font-mono px-2 py-0.5 rounded-full flex-shrink-0", isDark ? "text-white/30 bg-white/[0.05]" : "text-gray-500 bg-gray-200")}>
@@ -1221,17 +1220,11 @@ return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} l
                             )}
                           </div>
                         ) : column.type === 'timeLoggedMinutes' ? (
-                          spent > 0
-                            ? <span className={cn("text-[11px] font-mono font-bold", isOver ? "text-[#FF453A]" : isDark ? "text-white/80" : "text-gray-800")}>{formatGroupHours(spent)}</span>
-                            : null
+                          <TimeCell value={spent > 0 ? spent : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={hourlyRate} />
                         ) : column.type === 'soldEffortMinutes' ? (
-                          quoted > 0
-                            ? <span className={cn("text-[11px] font-mono", isDark ? "text-white/60" : "text-gray-600")}>{formatGroupHours(quoted)}</span>
-                            : null
+                          <TimeCell value={quoted > 0 ? quoted : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={hourlyRate} />
                         ) : column.type === 'effortMinutes' ? (
-                          allocated > 0
-                            ? <span className={cn("text-[11px] font-mono", isDark ? "text-white/60" : "text-gray-600")}>{formatGroupHours(allocated)}</span>
-                            : null
+                          <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={hourlyRate} />
                         ) : null}
                       </div>
                     ))}

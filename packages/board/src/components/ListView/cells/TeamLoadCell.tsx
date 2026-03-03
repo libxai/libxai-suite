@@ -31,10 +31,10 @@ export function TeamLoadCell({
 
   // Badge color by utilization
   const badgeColor = loadPercent >= 100
-    ? 'bg-[#FF453A]/15 text-[#FF453A]'   // over-utilized
+    ? 'bg-[#FF2D20]/15 text-[#FF2D20]'   // over-utilized
     : loadPercent >= 80
       ? 'bg-[#FFD60A]/15 text-[#FFD60A]'  // heavy
-      : 'bg-[#32D74B]/15 text-[#32D74B]'; // healthy
+      : 'bg-[#3BF06E]/15 text-[#3BF06E]'; // healthy
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>

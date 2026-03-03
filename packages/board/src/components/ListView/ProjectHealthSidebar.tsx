@@ -63,7 +63,7 @@ export function ProjectHealthSidebar({
         const allocated = data.totalHoursAllocatedMinutes ?? 0;
         const pct = allocated > 0 ? Math.min(Math.round((spent / allocated) * 100), 100) : 0;
         const isOver = spent > allocated && allocated > 0;
-        const barColor = isOver ? '#FF453A' : pct >= 80 ? '#FFD60A' : '#32D74B';
+        const barColor = isOver ? '#FF2D20' : pct >= 80 ? '#FFD60A' : '#3BF06E';
         return (
           <div className={cn('px-5 py-4 border-b', isDark ? 'border-[#222]' : 'border-gray-200')}>
             <h4 className={cn('text-[10px] font-mono uppercase tracking-wider mb-3', isDark ? 'text-white/40' : 'text-gray-500')}>
@@ -74,7 +74,7 @@ export function ProjectHealthSidebar({
                 <span className={cn('text-xs', isDark ? 'text-white/60' : 'text-gray-600')}>
                   {isEs ? 'Usado' : 'Spent'}
                 </span>
-                <span className={cn('text-[11px] font-mono font-bold', isOver ? 'text-[#FF453A]' : isDark ? 'text-white/80' : 'text-gray-800')}>
+                <span className={cn('text-[11px] font-mono font-bold', isOver ? 'text-[#FF2D20]' : isDark ? 'text-white/80' : 'text-gray-800')}>
                   {fmtMinutes(spent)}
                 </span>
               </div>
@@ -118,8 +118,8 @@ export function ProjectHealthSidebar({
                 <span className={cn(
                   'px-2 py-0.5 rounded text-[11px] font-mono font-bold',
                   data.openRFIs > 0
-                    ? 'bg-[#FF453A]/15 text-[#FF453A]'
-                    : 'bg-[#32D74B]/15 text-[#32D74B]'
+                    ? 'bg-[#FF2D20]/15 text-[#FF2D20]'
+                    : 'bg-[#3BF06E]/15 text-[#3BF06E]'
                 )}>
                   {data.openRFIs}
                 </span>
@@ -132,7 +132,7 @@ export function ProjectHealthSidebar({
                 </span>
                 <span className={cn(
                   'text-[11px] font-mono font-bold',
-                  data.submittalsApprovalPercent >= 80 ? 'text-[#32D74B]' : 'text-[#FFD60A]'
+                  data.submittalsApprovalPercent >= 80 ? 'text-[#3BF06E]' : 'text-[#FFD60A]'
                 )}>
                   {data.submittalsApprovalPercent}%
                 </span>
@@ -167,9 +167,9 @@ export function ProjectHealthSidebar({
           return (
             <div className={cn(
               'px-3 py-2 rounded-lg text-center font-mono text-sm font-bold',
-              isAhead && 'bg-[#32D74B]/15 text-[#32D74B]',
-              isBehind && 'bg-[#FF453A]/15 text-[#FF453A]',
-              !isAhead && !isBehind && 'bg-[#007BFF]/15 text-[#007BFF]'
+              isAhead && 'bg-[#3BF06E]/15 text-[#3BF06E]',
+              isBehind && 'bg-[#FF2D20]/15 text-[#FF2D20]',
+              !isAhead && !isBehind && 'bg-[#3B9EFF]/15 text-[#3B9EFF]'
             )}>
               {label}
             </div>
@@ -191,10 +191,10 @@ export function ProjectHealthSidebar({
           <div className="space-y-3">
             {data.teams.map((team, i) => {
               const barColor = team.utilizationPercent >= 100
-                ? '#FF453A'
+                ? '#FF2D20'
                 : team.utilizationPercent >= 80
                   ? '#FFD60A'
-                  : team.color || '#32D74B';
+                  : team.color || '#3BF06E';
 
               return (
                 <div key={`${team.name}-${i}`}>

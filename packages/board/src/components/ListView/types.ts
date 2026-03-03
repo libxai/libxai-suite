@@ -563,10 +563,10 @@ export const DEFAULT_TABLE_COLUMNS: TableColumn[] = [
   { id: 'endDate', type: 'endDate', label: 'End Date', width: 120, visible: true, sortable: true, resizable: true },
   { id: 'progress', type: 'progress', label: 'Progress', width: 100, visible: true, sortable: true, resizable: true },
   { id: 'tags', type: 'tags', label: 'Tags', width: 150, visible: false, sortable: false, resizable: true },
-  // v1.2.0: Three-tier time tracking columns (replaces old estimatedTime/quotedTime/elapsedTime)
-  { id: 'effortMinutes', type: 'effortMinutes', label: 'Estimated', width: 100, visible: false, sortable: true, resizable: true },
-  { id: 'timeLoggedMinutes', type: 'timeLoggedMinutes', label: 'Time Logged', width: 100, visible: false, sortable: true, resizable: true },
+  // v1.2.0: Three-tier time tracking columns — order: Quoted → Estimated → Executed
   { id: 'soldEffortMinutes', type: 'soldEffortMinutes', label: 'Quoted', width: 100, visible: false, sortable: true, resizable: true },
+  { id: 'effortMinutes', type: 'effortMinutes', label: 'Estimated', width: 100, visible: false, sortable: true, resizable: true },
+  { id: 'timeLoggedMinutes', type: 'timeLoggedMinutes', label: 'Executed', width: 100, visible: false, sortable: true, resizable: true },
   // v2.0.0: Chronos Interactive Time Manager columns
   { id: 'scheduleVariance', type: 'scheduleVariance', label: 'Sched / Var', width: 180, visible: false, sortable: true, resizable: true },
   { id: 'hoursBar', type: 'hoursBar', label: 'Hours', width: 200, visible: false, sortable: true, resizable: true },

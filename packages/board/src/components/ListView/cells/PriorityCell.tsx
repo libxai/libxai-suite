@@ -15,10 +15,10 @@ interface PriorityCellProps {
 }
 
 const PRIORITY_OPTIONS = [
-  { value: 'urgent', label: { en: 'Urgent', es: 'Urgente' }, color: 'text-[#FF453A]', bg: 'bg-[#FF453A]' },
-  { value: 'high', label: { en: 'High', es: 'Alta' }, color: 'text-[#FF453A]', bg: 'bg-[#FF453A]' },
+  { value: 'urgent', label: { en: 'Urgent', es: 'Urgente' }, color: 'text-[#FF2D20]', bg: 'bg-[#FF2D20]' },
+  { value: 'high', label: { en: 'High', es: 'Alta' }, color: 'text-[#FF2D20]', bg: 'bg-[#FF2D20]' },
   { value: 'medium', label: { en: 'Medium', es: 'Media' }, color: 'text-[#FFD60A]', bg: 'bg-[#FFD60A]' },
-  { value: 'low', label: { en: 'Low', es: 'Baja' }, color: 'text-[#007BFF]', bg: 'bg-[#007BFF]' },
+  { value: 'low', label: { en: 'Low', es: 'Baja' }, color: 'text-[#3B9EFF]', bg: 'bg-[#3B9EFF]' },
   { value: 'none', label: { en: 'None', es: 'Ninguna' }, color: 'text-gray-400', bg: 'bg-gray-400' },
 ];
 

@@ -59,7 +59,7 @@ export function ProgressCell({
       className={cn(
         "flex items-center gap-2 w-full rounded px-1 py-0.5 transition-[background-color] duration-300",
         // Flash animation
-        isFlashing && (isDark ? 'bg-[#32D74B]/30' : 'bg-[#32D74B]/20')
+        isFlashing && (isDark ? 'bg-[#3BF06E]/30' : 'bg-[#3BF06E]/20')
       )}
     >
       <div
@@ -73,7 +73,7 @@ export function ProgressCell({
         <div
           className={cn(
             'h-full rounded-full transition-[width]',
-            displayPercent === 100 ? 'bg-[#32D74B]' : 'bg-[#007BFF]',
+            displayPercent === 100 ? 'bg-[#3BF06E]' : 'bg-[#3B9EFF]',
             isAnimating && 'transition-none'
           )}
           style={{ width: `${displayPercent}%` }}

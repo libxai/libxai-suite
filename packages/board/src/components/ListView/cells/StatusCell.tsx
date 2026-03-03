@@ -22,8 +22,8 @@ interface StatusCellProps {
 // Only 3 options shown in dropdown
 const STATUS_OPTIONS = [
   { value: 'todo', icon: Circle, color: 'text-gray-400' },
-  { value: 'in-progress', icon: PlayCircle, color: 'text-[#007BFF]' },
-  { value: 'completed', icon: CheckCircle2, color: 'text-[#32D74B]' },
+  { value: 'in-progress', icon: PlayCircle, color: 'text-[#3B9EFF]' },
+  { value: 'completed', icon: CheckCircle2, color: 'text-[#3BF06E]' },
 ];
 
 // Normalize status value to handle different formats
