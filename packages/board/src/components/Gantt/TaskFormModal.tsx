@@ -328,8 +328,8 @@ export function TaskFormModal({
   // Pill button base style — glass surface for dark, solid for light
   const isDarkTheme = theme === 'dark'
   const pillStyle = {
-    backgroundColor: isDarkTheme ? 'rgba(255, 255, 255, 0.04)' : themeColors.bgSecondary,
-    border: `1px solid ${isDarkTheme ? 'rgba(255, 255, 255, 0.08)' : themeColors.borderLight}`,
+    backgroundColor: isDarkTheme ? '#141414' : themeColors.bgSecondary,
+    border: `1px solid ${isDarkTheme ? '#262626' : themeColors.borderLight}`,
     color: themeColors.textPrimary,
   }
 
@@ -363,7 +363,7 @@ export function TaskFormModal({
               className="w-full max-w-xl rounded-xl pointer-events-auto overflow-hidden"
               data-theme={theme}
               style={{
-                backgroundColor: isDarkTheme ? 'rgba(10, 10, 10, 0.97)' : themeColors.bgPrimary,
+                backgroundColor: isDarkTheme ? '#0a0a0a' : themeColors.bgPrimary,
                 backdropFilter: isDarkTheme ? 'blur(16px)' : undefined,
                 WebkitBackdropFilter: isDarkTheme ? 'blur(16px)' : undefined,
                 border: `1px solid ${themeColors.border}`,
@@ -480,9 +480,9 @@ export function TaskFormModal({
                             exit={{ opacity: 0, y: -5 }}
                             className="absolute left-0 top-full mt-1 z-50 min-w-[140px] rounded-lg overflow-hidden"
                             style={{
-                              backgroundColor: isDarkTheme ? 'rgba(17, 17, 17, 0.98)' : themeColors.bgPrimary,
+                              backgroundColor: isDarkTheme ? '#0a0a0a' : themeColors.bgPrimary,
                               backdropFilter: isDarkTheme ? 'blur(16px)' : undefined,
-                              border: `1px solid ${isDarkTheme ? 'rgba(255, 255, 255, 0.10)' : themeColors.border}`,
+                              border: `1px solid ${isDarkTheme ? '#262626' : themeColors.border}`,
                               boxShadow: isDarkTheme ? '0 8px 24px rgba(0, 0, 0, 0.5)' : '0 8px 24px rgba(0, 0, 0, 0.12)',
                             }}
                           >
@@ -528,9 +528,9 @@ export function TaskFormModal({
                             exit={{ opacity: 0, y: -5 }}
                             className="absolute left-0 top-full mt-1 z-50 min-w-[130px] rounded-lg overflow-hidden"
                             style={{
-                              backgroundColor: isDarkTheme ? 'rgba(17, 17, 17, 0.98)' : themeColors.bgPrimary,
+                              backgroundColor: isDarkTheme ? '#0a0a0a' : themeColors.bgPrimary,
                               backdropFilter: isDarkTheme ? 'blur(16px)' : undefined,
-                              border: `1px solid ${isDarkTheme ? 'rgba(255, 255, 255, 0.10)' : themeColors.border}`,
+                              border: `1px solid ${isDarkTheme ? '#262626' : themeColors.border}`,
                               boxShadow: isDarkTheme ? '0 8px 24px rgba(0, 0, 0, 0.5)' : '0 8px 24px rgba(0, 0, 0, 0.12)',
                             }}
                           >
@@ -598,9 +598,9 @@ export function TaskFormModal({
                               exit={{ opacity: 0, y: -5 }}
                               className="absolute left-0 top-full mt-1 z-50 min-w-[180px] max-h-[200px] overflow-y-auto rounded-lg"
                               style={{
-                                backgroundColor: isDarkTheme ? 'rgba(17, 17, 17, 0.98)' : themeColors.bgPrimary,
+                                backgroundColor: isDarkTheme ? '#0a0a0a' : themeColors.bgPrimary,
                                 backdropFilter: isDarkTheme ? 'blur(16px)' : undefined,
-                                border: `1px solid ${isDarkTheme ? 'rgba(255, 255, 255, 0.10)' : themeColors.border}`,
+                                border: `1px solid ${isDarkTheme ? '#262626' : themeColors.border}`,
                                 boxShadow: isDarkTheme ? '0 8px 24px rgba(0, 0, 0, 0.5)' : '0 8px 24px rgba(0, 0, 0, 0.12)',
                               }}
                             >
@@ -693,9 +693,9 @@ export function TaskFormModal({
                                 top: `${colorPickerPosition.top}px`,
                                 left: `${colorPickerPosition.left}px`,
                                 zIndex: 99999,
-                                backgroundColor: isDarkTheme ? 'rgba(17, 17, 17, 0.98)' : themeColors.bgPrimary,
+                                backgroundColor: isDarkTheme ? '#0a0a0a' : themeColors.bgPrimary,
                                 backdropFilter: isDarkTheme ? 'blur(16px)' : undefined,
-                                border: `1px solid ${isDarkTheme ? 'rgba(255, 255, 255, 0.10)' : themeColors.border}`,
+                                border: `1px solid ${isDarkTheme ? '#262626' : themeColors.border}`,
                                 boxShadow: isDarkTheme ? '0 8px 24px rgba(0, 0, 0, 0.5)' : '0 4px 20px rgba(0, 0, 0, 0.25)',
                               }}
                               onClick={(e) => e.stopPropagation()}
@@ -849,15 +849,14 @@ export function TaskFormModal({
                                 top: `${datePickerPosition.top}px`,
                                 left: `${datePickerPosition.left}px`,
                                 zIndex: 99999,
-                                backgroundColor: isDarkTheme ? 'rgba(17, 17, 17, 0.98)' : themeColors.bgPrimary,
-                                backdropFilter: isDarkTheme ? 'blur(16px)' : undefined,
-                                border: `1px solid ${isDarkTheme ? 'rgba(255, 255, 255, 0.10)' : themeColors.border}`,
-                                boxShadow: isDarkTheme ? '0 8px 24px rgba(0, 0, 0, 0.5)' : '0 8px 24px rgba(0, 0, 0, 0.12)',
+                                backgroundColor: isDarkTheme ? '#0a0a0a' : themeColors.bgPrimary,
+                                border: `1px solid ${isDarkTheme ? '#262626' : themeColors.border}`,
+                                boxShadow: isDarkTheme ? '0 8px 32px rgba(0, 0, 0, 0.6)' : '0 8px 24px rgba(0, 0, 0, 0.12)',
                               }}
                               onClick={(e) => e.stopPropagation()}
                             >
                               {/* Quick Options */}
-                              <div className="w-40 py-2" style={{ borderRight: `1px solid ${isDarkTheme ? 'rgba(255, 255, 255, 0.10)' : themeColors.border}` }}>
+                              <div className="w-40 py-2" style={{ borderRight: `1px solid ${isDarkTheme ? '#262626' : themeColors.border}` }}>
                                 {(() => {
                                   const today = new Date()
                                   const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1)
@@ -1237,9 +1236,9 @@ export function TaskFormModal({
                                         exit={{ opacity: 0, y: -5 }}
                                         className="absolute left-0 top-full mt-1 z-50 rounded-lg overflow-hidden min-w-[280px] max-h-[280px]"
                                         style={{
-                                          backgroundColor: isDarkTheme ? 'rgba(17, 17, 17, 0.98)' : themeColors.bgPrimary,
+                                          backgroundColor: isDarkTheme ? '#0a0a0a' : themeColors.bgPrimary,
                                           backdropFilter: isDarkTheme ? 'blur(16px)' : undefined,
-                                          border: `1px solid ${isDarkTheme ? 'rgba(255, 255, 255, 0.10)' : themeColors.border}`,
+                                          border: `1px solid ${isDarkTheme ? '#262626' : themeColors.border}`,
                                           boxShadow: isDarkTheme ? '0 8px 24px rgba(0, 0, 0, 0.5)' : '0 8px 24px rgba(0, 0, 0, 0.12)',
                                         }}
                                       >
