@@ -98,6 +98,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     onTaskDblClick, // v0.8.0
     onTaskContextMenu, // v0.8.0
     onTaskUpdate,
+    onDependentTasksScheduled, // v2.2.0
     onProgressChange, // v0.8.0
     // v0.16.0: Context menu action callbacks
     onTaskEdit,
@@ -1283,6 +1284,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
 
     // Then, auto-schedule all dependent tasks (cascade effect)
     // v0.13.3: Pass daysDelta to preserve relative gaps between tasks
+    const tasksBeforeCascade = updatedTasks;
     updatedTasks = ganttUtils.autoScheduleDependents(updatedTasks, task.id, daysDelta);
 
     // Roll-up: recalculate parent dates/progress from children
@@ -1301,7 +1303,27 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       // Normal case: task already had dates, use onTaskUpdate for drag operations
       onTaskUpdate?.(updatedTask);
     }
-  }, [localTasks, onTaskUpdate, config]);
+
+    // v2.2.0: Notify consumer about all dependent tasks that were rescheduled
+    if (onDependentTasksScheduled && daysDelta !== 0) {
+      const flatBefore = ganttUtils.flattenTasks(tasksBeforeCascade);
+      const flatAfter = ganttUtils.flattenTasks(updatedTasks);
+      const changed: Task[] = [];
+      for (const after of flatAfter) {
+        if (after.id === task.id) continue; // skip the dragged task itself
+        const before = flatBefore.find(b => b.id === after.id);
+        if (!before) continue;
+        const startChanged = after.startDate?.getTime() !== before.startDate?.getTime();
+        const endChanged = after.endDate?.getTime() !== before.endDate?.getTime();
+        if (startChanged || endChanged) {
+          changed.push(after);
+        }
+      }
+      if (changed.length > 0) {
+        onDependentTasksScheduled(changed);
+      }
+    }
+  }, [localTasks, onTaskUpdate, onDependentTasksScheduled, config]);
 
   // 🚀 KILLER FEATURE #3: Handle context menu for Split task
   // This is BETTER than DHTMLX - they don't have a built-in split task feature

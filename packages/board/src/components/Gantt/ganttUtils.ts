@@ -1092,7 +1092,11 @@ export const ganttUtils = {
    * @param daysDelta - Optional: days the parent moved (for preserving relative gaps)
    * @returns Updated tasks with rescheduled dependencies
    */
-  autoScheduleDependents: (tasks: Task[], changedTaskId: string, daysDelta?: number): Task[] => {
+  autoScheduleDependents: (tasks: Task[], changedTaskId: string, daysDelta?: number, _visited?: Set<string>): Task[] => {
+    const visited = _visited || new Set<string>();
+    if (visited.has(changedTaskId)) return tasks; // prevent cycles & double-moves
+    visited.add(changedTaskId);
+
     const changedTask = ganttUtils.findTaskById(tasks, changedTaskId);
     if (!changedTask || !changedTask.endDate) return tasks;
 
@@ -1103,6 +1107,7 @@ export const ganttUtils = {
 
     // For each dependent, shift by the same daysDelta (preserves relative gap)
     for (const dependent of dependents) {
+      if (visited.has(dependent.id)) continue; // already scheduled by another path
       if (!dependent.startDate || !dependent.endDate) continue;
 
       // Calculate duration of dependent task
@@ -1118,6 +1123,16 @@ export const ganttUtils = {
         // Legacy behavior: New start date = changed task end date + 1 day
         newStartDate = new Date(changedTask.endDate);
         newStartDate.setDate(newStartDate.getDate() + 1);
+      }
+
+      // v2.2.0: Ensure dependent doesn't start before its predecessor ends
+      if (daysDelta !== undefined) {
+        const predecessorEnd = new Date(changedTask.endDate);
+        const minStart = new Date(predecessorEnd);
+        minStart.setDate(minStart.getDate() + 1);
+        if (newStartDate < minStart) {
+          newStartDate = minStart;
+        }
       }
 
       // Calculate new end date based on duration
@@ -1138,8 +1153,8 @@ export const ganttUtils = {
 
       updatedTasks = updateTaskRec(updatedTasks);
 
-      // Recursively update dependents of this task (pass same delta)
-      updatedTasks = ganttUtils.autoScheduleDependents(updatedTasks, dependent.id, daysDelta);
+      // Recursively update dependents of this task (pass same delta, share visited set)
+      updatedTasks = ganttUtils.autoScheduleDependents(updatedTasks, dependent.id, daysDelta, visited);
     }
 
     return updatedTasks;

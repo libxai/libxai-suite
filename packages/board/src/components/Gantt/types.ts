@@ -593,6 +593,8 @@ export interface GanttConfig {
   onTaskDblClick?: (task: Task) => void; // v0.8.0: Double-click event
   onTaskContextMenu?: (task: Task, event: React.MouseEvent) => void; // v0.8.0: Right-click event
   onTaskUpdate?: (task: Task) => void;
+  /** v2.2.0: Called after drag with all dependent tasks that were rescheduled by cascade */
+  onDependentTasksScheduled?: (tasks: Task[]) => void;
   onTaskDateChange?: (task: Task, startDate: Date, endDate: Date) => void;
   onProgressChange?: (taskId: string, oldProgress: number, newProgress: number) => void; // v0.8.0: Progress change event
 
