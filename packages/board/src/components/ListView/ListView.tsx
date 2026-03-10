@@ -17,6 +17,7 @@ import {
   FolderOpen,
   Folder,
   PanelRight,
+  GripVertical,
 } from 'lucide-react';
 import type { Task } from '../Gantt/types';
 import type {
@@ -278,6 +279,10 @@ export function ListView({
   const [resizeStartWidth, setResizeStartWidth] = useState(0);
   const tableRef = useRef<HTMLDivElement>(null);
 
+  // v2.4.0: Column drag-and-drop reorder state
+  const [dragColumnId, setDragColumnId] = useState<string | null>(null);
+  const [dragOverColumnId, setDragOverColumnId] = useState<string | null>(null);
+
   // Sync columns with prop changes
   useEffect(() => {
     if (tableColumns) {
@@ -410,6 +415,58 @@ export function ListView({
       document.removeEventListener('mouseup', handleMouseUp);
     };
   }, [resizingColumn, resizeStartX, resizeStartWidth, columns, callbacks]);
+
+  // v2.4.0: Column drag-and-drop reorder handlers
+  const handleColumnDragStart = useCallback((e: React.DragEvent, columnId: string) => {
+    // Never allow dragging the name column
+    if (columnId === 'name') { e.preventDefault(); return; }
+    setDragColumnId(columnId);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', columnId);
+    // Make the drag image semi-transparent
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.style.opacity = '0.5';
+    }
+  }, []);
+
+  const handleColumnDragEnd = useCallback((e: React.DragEvent) => {
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.style.opacity = '1';
+    }
+    setDragColumnId(null);
+    setDragOverColumnId(null);
+  }, []);
+
+  const handleColumnDragOver = useCallback((e: React.DragEvent, columnId: string) => {
+    e.preventDefault();
+    // Don't allow dropping on the name column
+    if (columnId === 'name') return;
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverColumnId(columnId);
+  }, []);
+
+  const handleColumnDragLeave = useCallback(() => {
+    setDragOverColumnId(null);
+  }, []);
+
+  const handleColumnDrop = useCallback((e: React.DragEvent, targetColumnId: string) => {
+    e.preventDefault();
+    if (!dragColumnId || dragColumnId === targetColumnId || targetColumnId === 'name') return;
+
+    const newColumns = [...columns];
+    const fromIndex = newColumns.findIndex(c => c.id === dragColumnId);
+    const toIndex = newColumns.findIndex(c => c.id === targetColumnId);
+    if (fromIndex === -1 || toIndex === -1) return;
+
+    // Remove from old position and insert at new
+    const removed = newColumns.splice(fromIndex, 1);
+    if (!removed[0]) return;
+    newColumns.splice(toIndex, 0, removed[0]);
+
+    handleColumnsChange(newColumns);
+    setDragColumnId(null);
+    setDragOverColumnId(null);
+  }, [dragColumnId, columns, handleColumnsChange]);
 
   // Custom field creation
   const handleCreateCustomField = useCallback(async (field: Omit<CustomFieldDefinition, 'id' | 'projectId'>) => {
@@ -1074,18 +1131,40 @@ return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} l
               isDark ? "border-[#222] bg-[#1A1A1A] font-mono" : "border-gray-200 bg-gray-50"
             )}
           >
-            {visibleColumns.map((column) => (
+            {visibleColumns.map((column) => {
+              const isDraggable = column.id !== 'name';
+              const isDragOver = dragOverColumnId === column.id && dragColumnId !== column.id;
+              return (
               <div
                 key={column.id}
                 className={cn(
-                  "relative flex items-center gap-2 px-4 py-2",
-                  isDark ? "text-white/60" : "text-gray-500"
+                  "relative flex items-center gap-2 px-4 py-2 transition-all duration-150 group",
+                  isDark ? "text-white/60" : "text-gray-500",
+                  isDraggable && "cursor-grab",
+                  dragColumnId === column.id && "opacity-50",
+                  isDragOver && (isDark
+                    ? "bg-[#007BFF]/20 border-l-2 border-l-[#007BFF]"
+                    : "bg-blue-50 border-l-2 border-l-blue-400")
                 )}
                 style={{ width: columnWidthPercent[column.id], minWidth: column.minWidth }}
+                draggable={isDraggable}
+                onDragStart={isDraggable ? (e) => handleColumnDragStart(e, column.id) : undefined}
+                onDragEnd={isDraggable ? handleColumnDragEnd : undefined}
+                onDragOver={isDraggable ? (e) => handleColumnDragOver(e, column.id) : undefined}
+                onDragLeave={isDraggable ? handleColumnDragLeave : undefined}
+                onDrop={isDraggable ? (e) => handleColumnDrop(e, column.id) : undefined}
                 onContextMenu={(e) => handleContextMenu(e, undefined, column.id)}
               >
+                {/* v2.4.0: Drag grip indicator for reorderable columns */}
+                {isDraggable && (
+                  <GripVertical className={cn(
+                    "w-3 h-3 flex-shrink-0 transition-opacity",
+                    isDark ? "text-white/20 group-hover:text-white/50" : "text-gray-300 group-hover:text-gray-500"
+                  )} />
+                )}
                 {column.sortable ? (
                   <button
+                    draggable={false}
                     onClick={() => handleSort(column.id)}
                     className="flex items-center gap-1 hover:text-[#007BFF]"
                   >
@@ -1096,7 +1175,7 @@ return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} l
                     )} />
                   </button>
                 ) : (
-                  <span>{getColumnLabel(column)}</span>
+                  <span draggable={false}>{getColumnLabel(column)}</span>
                 )}
 
                 {/* Resize handle */}
@@ -1111,7 +1190,8 @@ return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} l
                   />
                 )}
               </div>
-            ))}
+              );
+            })}
 
             {/* Add column button */}
             {allowColumnCustomization && (
