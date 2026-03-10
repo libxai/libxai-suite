@@ -335,6 +335,10 @@ export interface ListViewConfig {
   lens?: 'hours' | 'financial';
   /** Hourly rate for converting hours → dollars when lens='financial' */
   hourlyRate?: number;
+
+  // v2.4.0: Project totals sticky footer row
+  /** Show a sticky "TOTAL PROJECT" row at the bottom of the list */
+  showProjectTotals?: boolean;
 }
 
 /**

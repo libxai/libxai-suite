@@ -10001,6 +10001,12 @@ body {
 }
 
 
+.border-\[\#2A2A3A\] {
+  --tw-border-opacity: 1;
+  border-color: rgb(42 42 58 / var(--tw-border-opacity, 1));
+}
+
+
 .border-\[\#2E94FF\] {
   --tw-border-opacity: 1;
   border-color: rgb(46 148 255 / var(--tw-border-opacity, 1));
@@ -11177,6 +11183,11 @@ body {
 }
 
 
+.text-\[12px\] {
+  font-size: 12px;
+}
+
+
 .text-\[13px\] {
   font-size: 13px;
 }
@@ -11219,6 +11230,11 @@ body {
 .text-xs {
   font-size: 0.75rem;
   line-height: 1rem;
+}
+
+
+.font-black {
+  font-weight: 900;
 }
 
 

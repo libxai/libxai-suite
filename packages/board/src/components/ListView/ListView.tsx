@@ -200,6 +200,8 @@ export function ListView({
     hourlyRate = 0,
     // v2.3.2: Aggregate child hours into parent hoursBar cell
     aggregateParentHours = false,
+    // v2.4.0: Project totals sticky footer
+    showProjectTotals = false,
   } = config;
 
   const t = mergeListViewTranslations(locale, customTranslations);
@@ -227,18 +229,19 @@ export function ListView({
 
   // Calculate total project hours from all tasks (flat sum of leaf nodes to avoid double counting)
   const projectTotalHours = useMemo(() => {
-    function sumLeaves(taskList: Task[]): { spent: number; allocated: number } {
-      let spent = 0; let allocated = 0;
+    function sumLeaves(taskList: Task[]): { spent: number; allocated: number; quoted: number } {
+      let spent = 0; let allocated = 0; let quoted = 0;
       for (const t of taskList) {
         if (t.subtasks && t.subtasks.length > 0) {
           const nested = sumLeaves(t.subtasks);
-          spent += nested.spent; allocated += nested.allocated;
+          spent += nested.spent; allocated += nested.allocated; quoted += nested.quoted;
         } else {
           spent += (t as any).timeLoggedMinutes ?? 0;
           allocated += (t as any).effortMinutes ?? 0;
+          quoted += (t as any).soldEffortMinutes ?? 0;
         }
       }
-      return { spent, allocated };
+      return { spent, allocated, quoted };
     }
     return sumLeaves(tasks);
   }, [tasks]);
@@ -1415,6 +1418,101 @@ return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} l
               );
             })}
           </AnimatePresence>
+
+          {/* v2.4.0: Project Totals Sticky Footer */}
+          {showProjectTotals && displayTasks.length > 0 && (() => {
+            const { spent, allocated, quoted } = projectTotalHours;
+            const varianceMinutes = allocated - spent;
+            const isOver = varianceMinutes < 0;
+            const varianceLabel = isOver
+              ? `+${formatGroupHours(Math.abs(varianceMinutes))} ${locale === 'es' ? 'EXCEDIDO' : 'OVER'}`
+              : `-${formatGroupHours(varianceMinutes)} ${locale === 'es' ? 'AHORRADO' : 'SAVED'}`;
+            const isFinancial = lens === 'financial' && hourlyRate > 0;
+            const formatValue = (mins: number) => {
+              if (isFinancial) {
+                const dollars = (mins / 60) * hourlyRate;
+                return `$${dollars.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+              }
+              return formatGroupHours(mins);
+            };
+            const varianceDollars = isFinancial ? Math.abs(varianceMinutes / 60 * hourlyRate) : 0;
+            const varianceLabelFinancial = isFinancial
+              ? `${isOver ? '+' : '-'}$${varianceDollars.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} ${isOver ? (locale === 'es' ? 'EXCEDIDO' : 'OVER') : (locale === 'es' ? 'AHORRADO' : 'SAVED')}`
+              : varianceLabel;
+
+            return (
+              <div
+                className={cn(
+                  "flex items-center sticky bottom-0 z-10",
+                  isDark
+                    ? "border-t border-[#2A2A3A]"
+                    : "border-t border-gray-300"
+                )}
+                style={{
+                  backgroundColor: isDark ? 'rgba(13, 17, 23, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+                  backdropFilter: 'blur(8px)',
+                  WebkitBackdropFilter: 'blur(8px)',
+                }}
+              >
+                {visibleColumns.map((column) => (
+                  <div
+                    key={column.id}
+                    className="flex items-center px-4 py-3"
+                    style={{ width: columnWidthPercent[column.id], minWidth: column.minWidth }}
+                  >
+                    {column.type === 'name' ? (
+                      <span className={cn(
+                        "text-[11px] font-black uppercase tracking-widest",
+                        isDark ? "text-white" : "text-gray-900"
+                      )} style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                        {locale === 'es' ? 'TOTAL PROYECTO' : 'TOTAL PROJECT'}
+                      </span>
+                    ) : column.type === 'hoursBar' ? (
+                      <div className="flex items-center gap-2 w-full">
+                        <span className={cn("text-[12px] font-bold", isDark ? "text-white" : "text-gray-900")}
+                          style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                          {formatValue(spent)}
+                        </span>
+                        <span className={cn("text-[11px]", isDark ? "text-white/40" : "text-gray-400")}>/</span>
+                        <span className={cn("text-[11px]", isDark ? "text-white/50" : "text-gray-500")}
+                          style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                          {formatValue(allocated)}
+                        </span>
+                        {allocated > 0 && (
+                          <span className={cn(
+                            "text-[10px] font-semibold ml-1",
+                            isOver ? "text-[#FF453A]" : "text-[#32D74B]"
+                          )} style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                            {isFinancial ? varianceLabelFinancial : varianceLabel}
+                          </span>
+                        )}
+                      </div>
+                    ) : column.type === 'soldEffortMinutes' ? (
+                      <span className={cn("text-[12px] font-bold", isDark ? "text-white" : "text-gray-900")}
+                        style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                        {quoted > 0 ? formatValue(quoted) : '–'}
+                      </span>
+                    ) : column.type === 'effortMinutes' ? (
+                      <span className={cn("text-[12px] font-bold", isDark ? "text-white" : "text-gray-900")}
+                        style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                        {allocated > 0 ? formatValue(allocated) : '–'}
+                      </span>
+                    ) : column.type === 'timeLoggedMinutes' ? (
+                      <span className={cn("text-[12px] font-bold", isDark ? "text-white" : "text-gray-900")}
+                        style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                        {spent > 0 ? formatValue(spent) : '–'}
+                      </span>
+                    ) : (
+                      <span className={cn("text-[11px]", isDark ? "text-white/30" : "text-gray-300")}>–</span>
+                    )}
+                  </div>
+                ))}
+                {allowColumnCustomization && (
+                  <div className="w-12 flex-shrink-0" />
+                )}
+              </div>
+            );
+          })()}
 
           {/* Empty search state */}
           {displayTasks.length === 0 && searchQuery && (
