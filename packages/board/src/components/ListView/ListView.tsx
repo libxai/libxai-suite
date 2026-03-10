@@ -1305,7 +1305,10 @@ return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} l
                           <TimeCell value={quoted > 0 ? quoted : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={hourlyRate} />
                         ) : column.type === 'effortMinutes' ? (
                           <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={hourlyRate} />
-                        ) : null}
+                        ) : (
+                          // v2.4.0: Render remaining column types (scheduleVariance, hoursBar, teamLoad, blockers, etc.)
+                          renderCell(task, column)
+                        )}
                       </div>
                     ))}
                   </motion.div>
