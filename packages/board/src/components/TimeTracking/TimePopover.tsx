@@ -11,6 +11,7 @@
 
 import React, { useState, useRef, useEffect } from 'react'
 import { cn } from '../../utils'
+import { preprocessFormulaInput } from '../../utils/formulaEval'
 import type { TimeEntry, TimeLogInput, TimeTrackingSummary } from '../../types'
 
 export interface TimePopoverProps {
@@ -46,7 +47,8 @@ export interface TimePopoverProps {
  * Parse duration string to minutes
  */
 function parseDuration(input: string): number {
-  const trimmed = input.trim().toLowerCase()
+  const processed = preprocessFormulaInput(input)
+  const trimmed = processed.trim().toLowerCase()
 
   // Format: "2:30" (hours:minutes)
   if (trimmed.includes(':')) {

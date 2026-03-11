@@ -6,6 +6,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Clock, X } from 'lucide-react';
 import { cn } from '../../utils';
+import { preprocessFormulaInput } from '../../utils/formulaEval';
 
 export interface TimeInputPopoverProps {
   mode: 'estimate' | 'quoted' | 'log';
@@ -18,7 +19,8 @@ export interface TimeInputPopoverProps {
 }
 
 function parseDurationToMinutes(input: string): number | null {
-  const trimmed = input.trim().toLowerCase();
+  const processed = preprocessFormulaInput(input);
+  const trimmed = processed.trim().toLowerCase();
   if (!trimmed || trimmed === '-') return null;
 
   if (trimmed.includes(':')) {
@@ -173,7 +175,7 @@ export function TimeInputPopover({
             letterSpacing: '0.02em',
           }}
         >
-          {isEs ? '8=8h · 1h 30m · 45m · 2:30' : '8=8h · 1h 30m · 45m · 2:30'}
+          {isEs ? '8=8h · 1h 30m · 45m · =8*9' : '8=8h · 1h 30m · 45m · =8*9'}
         </p>
 
         {/* Note field for log mode */}

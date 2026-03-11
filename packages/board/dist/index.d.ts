@@ -506,6 +506,8 @@ interface GanttConfig {
     onTaskDblClick?: (task: Task) => void;
     onTaskContextMenu?: (task: Task, event: React.MouseEvent) => void;
     onTaskUpdate?: (task: Task) => void;
+    /** v2.2.0: Called after drag with all dependent tasks that were rescheduled by cascade */
+    onDependentTasksScheduled?: (tasks: Task[]) => void;
     onTaskDateChange?: (task: Task, startDate: Date, endDate: Date) => void;
     onProgressChange?: (taskId: string, oldProgress: number, newProgress: number) => void;
     /**
@@ -3368,7 +3370,7 @@ declare const ganttUtils: {
      * @param daysDelta - Optional: days the parent moved (for preserving relative gaps)
      * @returns Updated tasks with rescheduled dependencies
      */
-    autoScheduleDependents: (tasks: Task[], changedTaskId: string, daysDelta?: number) => Task[];
+    autoScheduleDependents: (tasks: Task[], changedTaskId: string, daysDelta?: number, _visited?: Set<string>) => Task[];
     /**
      * v0.13.0: Calculate cascade preview positions for dependent tasks during drag
      * v0.13.3: FIXED - Preview shows ONLY actual movement needed (keeps same relative gap)
