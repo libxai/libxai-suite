@@ -824,44 +824,95 @@ export function TaskBar({
 
       {/* Main Task Bar - Background */}
       {!task.segments && isChronos && isSummaryTask && (() => {
-        /* Chronos V2: Summary tasks — thin line with bracket endpoints (Forecast Oracle style) */
-        const barH = 6;
-        const barY = y + (height - barH) / 2;
-        const bracketH = 14;
-        const bracketY = y + (height - bracketH) / 2;
-        const bracketW = 2;
+        /* Chronos V2: Master/Summary bars — 8px progress bar with SPI-colored fill */
+        const masterH = 8;
+        const masterY = y + (height - masterH) / 2;
+        const masterR = 4; // border-radius
+
+        // Calculate SPI (Schedule Performance Index) for color
+        const progress = task.progress || 0;
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+
+        const hasStarted = task.startDate && now >= task.startDate;
+        const isOverduePhase = task.endDate && (() => {
+          const end = new Date(task.endDate!);
+          end.setHours(0, 0, 0, 0);
+          return now > end;
+        })();
+        const isFuturePhase = task.startDate && now < task.startDate;
+
+        let spi = 1.0;
+        if (hasStarted && task.startDate && task.endDate && !isFuturePhase) {
+          const start = new Date(task.startDate);
+          start.setHours(0, 0, 0, 0);
+          const end = new Date(task.endDate);
+          end.setHours(0, 0, 0, 0);
+          const totalDays = Math.max(1, (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+          const elapsedDays = Math.min((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24), totalDays);
+          const timelinePct = (elapsedDays / totalDays) * 100;
+          spi = timelinePct > 0 ? progress / timelinePct : 1.0;
+        }
+
+        // Color by SPI health
+        let fillColor: string;
+        if (progress >= 100) {
+          fillColor = '#00E5CC'; // Completed = cyan
+        } else if (isFuturePhase) {
+          fillColor = '#4B5563'; // Not started = gray
+        } else if (isOverduePhase && progress < 100) {
+          fillColor = '#EF4444'; // Overdue = red
+        } else if (spi >= 0.95) {
+          fillColor = '#22C55E'; // On track = green
+        } else if (spi >= 0.80) {
+          fillColor = '#F59E0B'; // At risk = amber
+        } else {
+          fillColor = '#EF4444'; // Critical = red
+        }
+
+        const fillWidth = Math.max((progress / 100) * displayWidth, progress > 0 ? masterR * 2 : 0);
+        const showPctOnBar = displayWidth > 100 && progress > 0;
+
         return (
           <g
             data-task-class={customClass}
             style={{ cursor: 'default', pointerEvents: 'all' }}
           >
-            {/* Thin horizontal line spanning the full duration */}
+            {/* Ghost background — full duration */}
             <rect
               x={displayX}
-              y={barY}
+              y={masterY}
               width={displayWidth}
-              height={barH}
-              rx={1}
-              fill="rgba(255,255,255,0.12)"
+              height={masterH}
+              rx={masterR}
+              fill="rgba(255,255,255,0.10)"
             />
-            {/* Left bracket — vertical tick */}
-            <rect
-              x={displayX}
-              y={bracketY}
-              width={bracketW}
-              height={bracketH}
-              rx={0.5}
-              fill="rgba(255,255,255,0.45)"
-            />
-            {/* Right bracket — vertical tick */}
-            <rect
-              x={displayX + displayWidth - bracketW}
-              y={bracketY}
-              width={bracketW}
-              height={bracketH}
-              rx={0.5}
-              fill="rgba(255,255,255,0.45)"
-            />
+            {/* Progress fill — SPI-colored */}
+            {progress > 0 && (
+              <rect
+                x={displayX}
+                y={masterY}
+                width={fillWidth}
+                height={masterH}
+                rx={masterR}
+                fill={fillColor}
+              />
+            )}
+            {/* Percentage label on bar (only if wide enough) */}
+            {showPctOnBar && (
+              <text
+                x={displayX + fillWidth + 6}
+                y={masterY + masterH / 2}
+                dominantBaseline="central"
+                fill="rgba(255,255,255,0.7)"
+                fontSize="9"
+                fontWeight="700"
+                fontFamily="'JetBrains Mono', monospace"
+                style={{ pointerEvents: 'none', userSelect: 'none' }}
+              >
+                {Math.round(progress)}%
+              </text>
+            )}
           </g>
         );
       })()}
@@ -939,10 +990,9 @@ export function TaskBar({
         />
       )}
 
-      {/* Progress Fill */}
-      {!task.segments && task.progress > 0 && (
-        isChronos && isSummaryTask ? (
-          /* Chronos summary: no progress fill (outline only) */
+      {/* Progress Fill (non-summary tasks only — summary has its own fill above) */}
+      {!task.segments && task.progress > 0 && !isSummaryTask && (
+        isChronos && false ? (
           null
         ) : (
           <rect

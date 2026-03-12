@@ -583,6 +583,19 @@ export function TaskGrid({
                   <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {task.name}
                   </span>
+                  {/* v5.0.0: Master/summary tasks show progress percentage */}
+                  {task.subtasks && task.subtasks.length > 0 && (
+                    <span style={{
+                      color: '#6B7280',
+                      fontFamily: "'JetBrains Mono', monospace",
+                      fontSize: '12px',
+                      fontWeight: 400,
+                      flexShrink: 0,
+                      whiteSpace: 'nowrap',
+                    }}>
+                      · {Math.round(task.progress || 0)}%
+                    </span>
+                  )}
                 </span>
 
                 {/* Hover Action Buttons */}

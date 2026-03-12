@@ -758,12 +758,54 @@ export function Timeline({
           }
 
           if (isContainer) {
-            // v2.2.0: Forecast Oracle summary bar — dark solid line + downward bracket caps
-            const barH = 2;
-            const barY = y + (ROW_HEIGHT - 18) / 2 + 8; // Centered within row
-            const capW = 1.5;   // Bracket vertical stroke width
-            const capDrop = 6;  // How far down the bracket drops below the bar
-            const barColor = 'rgba(255,255,255,0.25)';
+            // v5.0.0: Master/Summary bars — 8px progress bar with SPI-colored fill
+            const isDarkTheme = !theme.bgPrimary || theme.bgPrimary.startsWith('#0') || theme.bgPrimary.startsWith('#1');
+            const masterH = 8;
+            const masterY = y + (ROW_HEIGHT - 18) / 2 + (18 - masterH) / 2;
+            const masterR = 4;
+
+            // Calculate SPI for color
+            const progress = task.progress || 0;
+            const now = new Date();
+            now.setHours(0, 0, 0, 0);
+
+            const hasStarted = task.startDate && now >= task.startDate;
+            const isOverduePhase = task.endDate && (() => {
+              const end = new Date(task.endDate!);
+              end.setHours(0, 0, 0, 0);
+              return now > end;
+            })();
+            const isFuturePhase = task.startDate && now < task.startDate;
+
+            let spi = 1.0;
+            if (hasStarted && task.startDate && task.endDate && !isFuturePhase) {
+              const start = new Date(task.startDate);
+              start.setHours(0, 0, 0, 0);
+              const end = new Date(task.endDate);
+              end.setHours(0, 0, 0, 0);
+              const totalDays = Math.max(1, (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+              const elapsedDays = Math.min((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24), totalDays);
+              const timelinePct = (elapsedDays / totalDays) * 100;
+              spi = timelinePct > 0 ? progress / timelinePct : 1.0;
+            }
+
+            let fillColor: string;
+            if (progress >= 100) {
+              fillColor = '#00E5CC';
+            } else if (isFuturePhase) {
+              fillColor = '#4B5563';
+            } else if (isOverduePhase && progress < 100) {
+              fillColor = '#EF4444';
+            } else if (spi >= 0.95) {
+              fillColor = '#22C55E';
+            } else if (spi >= 0.80) {
+              fillColor = '#F59E0B';
+            } else {
+              fillColor = '#EF4444';
+            }
+
+            const fillWidth = Math.max((progress / 100) * width, progress > 0 ? masterR * 2 : 0);
+            const showPctOnBar = width > 100 && progress > 0;
 
             return (
               <g
@@ -778,10 +820,10 @@ export function Timeline({
                   handleTooltipChange({
                     task,
                     x,
-                    y: barY,
+                    y: masterY,
                     width,
-                    height: barH,
-                    showBelow: barY < 100,
+                    height: masterH,
+                    showBelow: masterY < 100,
                     mouseX: e.clientX,
                     mouseY: e.clientY,
                   });
@@ -798,30 +840,41 @@ export function Timeline({
                   fill="transparent"
                   style={{ pointerEvents: 'all' }}
                 />
-                {/* Solid horizontal bar */}
+                {/* Ghost background — full duration */}
                 <rect
                   x={x}
-                  y={barY}
+                  y={masterY}
                   width={width}
-                  height={barH}
-                  fill={barColor}
+                  height={masterH}
+                  rx={masterR}
+                  fill={isDarkTheme ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.08)"}
                 />
-                {/* Left bracket — vertical drop ⌐ */}
-                <rect
-                  x={x}
-                  y={barY}
-                  width={capW}
-                  height={barH + capDrop}
-                  fill={barColor}
-                />
-                {/* Right bracket — vertical drop (mirrored) */}
-                <rect
-                  x={x + width - capW}
-                  y={barY}
-                  width={capW}
-                  height={barH + capDrop}
-                  fill={barColor}
-                />
+                {/* Progress fill — SPI-colored */}
+                {progress > 0 && (
+                  <rect
+                    x={x}
+                    y={masterY}
+                    width={fillWidth}
+                    height={masterH}
+                    rx={masterR}
+                    fill={fillColor}
+                  />
+                )}
+                {/* Percentage label on bar (only if wide enough) */}
+                {showPctOnBar && (
+                  <text
+                    x={x + fillWidth + 6}
+                    y={masterY + masterH / 2}
+                    dominantBaseline="central"
+                    fill={isDarkTheme ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.55)"}
+                    fontSize="9"
+                    fontWeight="700"
+                    fontFamily="'JetBrains Mono', monospace"
+                    style={{ pointerEvents: 'none', userSelect: 'none' }}
+                  >
+                    {Math.round(progress)}%
+                  </text>
+                )}
               </g>
             );
           }

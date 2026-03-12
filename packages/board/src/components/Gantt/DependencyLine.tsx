@@ -82,8 +82,11 @@ export function DependencyLine({
   const midX = x1 + dx / 2;
   turnX = midX; // Default for delete button positioning
 
+  // v5.0.0: Rounded corner radius for squared dependency lines
+  const R = 8;
+
   if (lineStyle === 'squared') {
-    // Squared style - clean right angles that avoid task bars
+    // Squared style with rounded corners (8px radius at each turn)
     if (isSameRow) {
       path = `M ${x1} ${y1} L ${x2} ${y2}`;
     } else if (isBackward) {
@@ -92,18 +95,27 @@ export function DependencyLine({
       const secondTurnX = x2 - OFFSET;
       const bridgeY = goingDown ? y1 + 20 : y1 - 20;
       turnX = secondTurnX;
+      const dY1 = goingDown ? 1 : -1; // direction sign for vertical movement
 
       path = `M ${x1} ${y1} ` +
-             `L ${firstTurnX} ${y1} ` +
-             `L ${firstTurnX} ${bridgeY} ` +
-             `L ${secondTurnX} ${bridgeY} ` +
-             `L ${secondTurnX} ${y2} ` +
+             `L ${firstTurnX - R} ${y1} ` +
+             `Q ${firstTurnX} ${y1} ${firstTurnX} ${y1 + dY1 * R} ` +
+             `L ${firstTurnX} ${bridgeY - dY1 * R} ` +
+             `Q ${firstTurnX} ${bridgeY} ${firstTurnX - R} ${bridgeY} ` +
+             `L ${secondTurnX + R} ${bridgeY} ` +
+             `Q ${secondTurnX} ${bridgeY} ${secondTurnX} ${bridgeY + dY1 * R} ` +
+             `L ${secondTurnX} ${y2 - dY1 * R} ` +
+             `Q ${secondTurnX} ${y2} ${secondTurnX + R} ${y2} ` +
              `L ${x2} ${y2}`;
     } else {
       turnX = x2 - OFFSET;
+      const dY1 = goingDown ? 1 : -1;
+
       path = `M ${x1} ${y1} ` +
-             `L ${turnX} ${y1} ` +
-             `L ${turnX} ${y2} ` +
+             `L ${turnX - R} ${y1} ` +
+             `Q ${turnX} ${y1} ${turnX} ${y1 + dY1 * R} ` +
+             `L ${turnX} ${y2 - dY1 * R} ` +
+             `Q ${turnX} ${y2} ${turnX + R} ${y2} ` +
              `L ${x2} ${y2}`;
     }
   } else {
@@ -112,13 +124,16 @@ export function DependencyLine({
     path = `M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}`;
   }
 
-  // Arrow marker at the end - ALWAYS points RIGHT (entering from left)
-  const arrowSize = 5;
-  const arrowPath = `M ${x2} ${y2} L ${x2 - arrowSize} ${y2 - arrowSize * 0.5} M ${x2} ${y2} L ${x2 - arrowSize} ${y2 + arrowSize * 0.5}`;
+  // v5.0.0: Arrow marker — filled triangle 6x5px pointing RIGHT
+  const arrowW = 6;
+  const arrowH = 5;
+  const arrowPath = `M ${x2} ${y2} L ${x2 - arrowW} ${y2 - arrowH / 2} L ${x2 - arrowW} ${y2 + arrowH / 2} Z`;
 
-  // Dependencies are always gray - critical path only affects TASK BARS, not dependency lines
-  const lineColor = theme.dependency;
-  const hoverColor = theme.dependencyHover || lineColor;
+  // v5.0.0: Dependencies ALWAYS neutral — never inherit task state color
+  // Detect dark vs light theme via bgPrimary luminance
+  const isDarkTheme = !theme.bgPrimary || theme.bgPrimary.startsWith('#0') || theme.bgPrimary.startsWith('#1');
+  const lineColor = isDarkTheme ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.20)';
+  const hoverColor = theme.dependencyHover || (isDarkTheme ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.45)');
 
   // Delete button colors
   const deleteColor = '#f87171';
@@ -343,13 +358,11 @@ export function DependencyLine({
           style={{ pointerEvents: 'none' }}
         />
 
-        {/* Arrow head */}
+        {/* Arrow head — filled triangle */}
         <path
           d={arrowPath}
-          fill="none"
-          stroke={hoverColor}
-          strokeWidth={2.5}
-          strokeLinecap="round"
+          fill={hoverColor}
+          stroke="none"
           opacity={0.9}
           style={{ pointerEvents: 'none' }}
         />
@@ -408,22 +421,20 @@ export function DependencyLine({
           opacity={0.12}
           style={{ pointerEvents: 'none' }}
         />
-        {/* Main highlighted line - same width as base */}
+        {/* Main highlighted line */}
         <path
           d={path}
           fill="none"
           stroke={hoverColor}
-          strokeWidth={2}
+          strokeWidth={1.5}
           strokeLinecap="round"
           style={{ pointerEvents: 'none' }}
         />
-        {/* Highlighted arrow */}
+        {/* Highlighted arrow — filled triangle */}
         <path
           d={arrowPath}
-          fill="none"
-          stroke={hoverColor}
-          strokeWidth={2}
-          strokeLinecap="round"
+          fill={hoverColor}
+          stroke="none"
           style={{ pointerEvents: 'none' }}
         />
         {/* Highlighted dot - slightly larger */}
@@ -459,12 +470,12 @@ export function DependencyLine({
         style={{ cursor: onDelete ? 'pointer' : 'default' }}
       />
 
-      {/* Main dependency line - base layer (always gray) */}
+      {/* Main dependency line - base layer (always neutral gray, 1px) */}
       <motion.path
         d={path}
         fill="none"
         stroke={lineColor}
-        strokeWidth={2}
+        strokeWidth={1}
         strokeLinecap="round"
         initial={{ pathLength: 0, opacity: 0 }}
         animate={{ pathLength: 1, opacity: 1 }}
@@ -475,13 +486,11 @@ export function DependencyLine({
         style={{ pointerEvents: 'none' }}
       />
 
-      {/* Arrow head - base layer */}
+      {/* Arrow head - filled triangle */}
       <motion.path
         d={arrowPath}
-        fill="none"
-        stroke={lineColor}
-        strokeWidth={2}
-        strokeLinecap="round"
+        fill={lineColor}
+        stroke="none"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.2, delay: 0.3 }}
