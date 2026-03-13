@@ -94,6 +94,8 @@ interface GanttToolbarProps {
   onShowBaselineChange?: (show: boolean) => void;
   // Share dropdown
   onCopySnapshotLink?: () => void;
+  // v5.1.0: Disable CPM toggle when no dependencies
+  hasDependencies?: boolean;
 }
 
 // Export Dropdown Component
@@ -1386,6 +1388,8 @@ interface ViewOptionsDropdownProps {
   onShowDependenciesChange?: (show: boolean) => void;
   rowDensity: RowDensity;
   onRowDensityChange: (density: RowDensity) => void;
+  // v5.1.0: Disable critical path toggle when no dependencies exist
+  hasDependencies?: boolean;
 }
 
 function ViewOptionsDropdown({
@@ -1400,6 +1404,7 @@ function ViewOptionsDropdown({
   onShowDependenciesChange,
   rowDensity,
   onRowDensityChange,
+  hasDependencies = true,
 }: ViewOptionsDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -1423,11 +1428,12 @@ function ViewOptionsDropdown({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
 
+  const isSpanish = t.toolbar.visibility === 'Visibilidad';
   const toggleOptions = [
-    { key: 'criticalPath', label: t.toolbar.visibility === 'Visibilidad' ? 'Ruta Crítica' : 'Critical Path', icon: Zap, active: showCriticalPath, onChange: onShowCriticalPathChange },
-    { key: 'baselines', label: t.toolbar.visibility === 'Visibilidad' ? 'Líneas Base' : 'Baselines', icon: Layers, active: showBaseline, onChange: onShowBaselineChange },
-    { key: 'weekends', label: t.toolbar.visibility === 'Visibilidad' ? 'Fines de Semana' : 'Weekends', icon: CalendarDays, active: highlightWeekends, onChange: onHighlightWeekendsChange },
-    { key: 'dependencies', label: t.toolbar.visibility === 'Visibilidad' ? 'Dependencias' : 'Dependencies', icon: GitBranch, active: showDependencies, onChange: onShowDependenciesChange },
+    { key: 'criticalPath', label: isSpanish ? 'Ruta Crítica' : 'Critical Path', icon: Zap, active: showCriticalPath, onChange: onShowCriticalPathChange, disabled: !hasDependencies, tooltip: !hasDependencies ? (isSpanish ? 'Agrega dependencias entre tareas para ver la ruta crítica' : 'Add dependencies between tasks to see the critical path') : undefined },
+    { key: 'baselines', label: isSpanish ? 'Líneas Base' : 'Baselines', icon: Layers, active: showBaseline, onChange: onShowBaselineChange },
+    { key: 'weekends', label: isSpanish ? 'Fines de Semana' : 'Weekends', icon: CalendarDays, active: highlightWeekends, onChange: onHighlightWeekendsChange },
+    { key: 'dependencies', label: isSpanish ? 'Dependencias' : 'Dependencies', icon: GitBranch, active: showDependencies, onChange: onShowDependenciesChange },
   ];
 
   const densityOptions: { value: RowDensity; label: string }[] = [
@@ -1486,21 +1492,27 @@ function ViewOptionsDropdown({
               <div className="py-0.5">
                 {toggleOptions.map((option, index) => {
                   const Icon = option.icon;
+                  const isDisabled = (option as any).disabled;
+                  const tooltipText = (option as any).tooltip;
                   return (
                     <motion.button
                       key={option.key}
-                      onClick={() => option.onChange?.(!option.active)}
+                      onClick={() => !isDisabled && option.onChange?.(!option.active)}
                       className="w-full flex items-center gap-2.5 px-3 py-2 text-[11px] transition-colors"
-                      style={{ color: isDark ? 'rgba(255,255,255,0.85)' : '#111827' }}
-                      whileHover={{ backgroundColor: theme.hoverBg }}
+                      style={{
+                        color: isDisabled ? (isDark ? 'rgba(255,255,255,0.3)' : '#9CA3AF') : (isDark ? 'rgba(255,255,255,0.85)' : '#111827'),
+                        cursor: isDisabled ? 'not-allowed' : 'pointer',
+                      }}
+                      whileHover={isDisabled ? {} : { backgroundColor: theme.hoverBg }}
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: index * 0.03 }}
+                      title={tooltipText}
                     >
                       <Icon className="w-3.5 h-3.5 flex-shrink-0"
-                        style={{ color: option.active ? theme.accent || '#2E94FF' : theme.textTertiary }} />
+                        style={{ color: isDisabled ? (isDark ? 'rgba(255,255,255,0.2)' : '#D1D5DB') : (option.active ? theme.accent || '#2E94FF' : theme.textTertiary) }} />
                       <span className="flex-1 text-left">{option.label}</span>
-                      {option.active && <Check className="w-3.5 h-3.5" style={{ color: theme.accent || '#2E94FF' }} />}
+                      {option.active && !isDisabled && <Check className="w-3.5 h-3.5" style={{ color: theme.accent || '#2E94FF' }} />}
                     </motion.button>
                   );
                 })}
@@ -1591,6 +1603,7 @@ export function GanttToolbar({
   showBaseline = false,
   onShowBaselineChange,
   onCopySnapshotLink,
+  hasDependencies = true, // v5.1.0
 }: GanttToolbarProps) {
   const t = useGanttI18n(); // v0.15.0: i18n
   const hasExport = onExportPNG || onExportPDF || onExportExcel || onExportCSV || onExportJSON || onExportMSProject;
@@ -1773,6 +1786,7 @@ export function GanttToolbar({
               onShowDependenciesChange={onShowDependenciesChange}
               rowDensity={rowDensity}
               onRowDensityChange={onRowDensityChange}
+              hasDependencies={hasDependencies}
             />
 
             {/* Share & Export Dropdown */}

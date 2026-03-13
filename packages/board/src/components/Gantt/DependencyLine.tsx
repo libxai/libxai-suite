@@ -31,6 +31,12 @@ interface DependencyLineProps {
   onHoverChange?: (isHovered: boolean) => void;
   // v0.17.451: Only render the hover overlay (for top-layer)
   hoverOverlayOnly?: boolean;
+  // v5.1.0: CPM — override line/arrow color for critical dependencies
+  colorOverride?: string;
+  // v5.1.0: CPM — override stroke width
+  strokeWidthOverride?: number;
+  // v5.1.0: CPM — glow filter for critical deps
+  glowFilter?: string;
 }
 
 /**
@@ -59,6 +65,9 @@ export function DependencyLine({
   isHoverLayer = false,
   onHoverChange,
   hoverOverlayOnly = false,
+  colorOverride,
+  strokeWidthOverride,
+  glowFilter,
 }: DependencyLineProps) {
   // v0.17.451: Local hover state only used for tracking, actual rendering done via Timeline
   const [, setIsLocalHovered] = useState(false);
@@ -130,9 +139,10 @@ export function DependencyLine({
   const arrowPath = `M ${x2} ${y2} L ${x2 - arrowW} ${y2 - arrowH / 2} L ${x2 - arrowW} ${y2 + arrowH / 2} Z`;
 
   // v5.0.0: Dependencies ALWAYS neutral — never inherit task state color
-  // Detect dark vs light theme via bgPrimary luminance
+  // v5.1.0: CPM can override color for critical dependencies
   const isDarkTheme = !theme.bgPrimary || theme.bgPrimary.startsWith('#0') || theme.bgPrimary.startsWith('#1');
-  const lineColor = isDarkTheme ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.20)';
+  const lineColor = colorOverride || (isDarkTheme ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.20)');
+  const baseStrokeWidth = strokeWidthOverride || 1;
   const hoverColor = theme.dependencyHover || (isDarkTheme ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.45)');
 
   // Delete button colors
@@ -470,12 +480,12 @@ export function DependencyLine({
         style={{ cursor: onDelete ? 'pointer' : 'default' }}
       />
 
-      {/* Main dependency line - base layer (always neutral gray, 1px) */}
+      {/* Main dependency line - base layer */}
       <motion.path
         d={path}
         fill="none"
         stroke={lineColor}
-        strokeWidth={1}
+        strokeWidth={baseStrokeWidth}
         strokeLinecap="round"
         initial={{ pathLength: 0, opacity: 0 }}
         animate={{ pathLength: 1, opacity: 1 }}
@@ -483,7 +493,7 @@ export function DependencyLine({
           pathLength: { duration: 0.5, ease: 'easeInOut' },
           opacity: { duration: 0.2 },
         }}
-        style={{ pointerEvents: 'none' }}
+        style={{ pointerEvents: 'none', filter: glowFilter || 'none' }}
       />
 
       {/* Arrow head - filled triangle */}

@@ -46,6 +46,8 @@ interface TaskGridProps {
   onTaskReparent?: (taskId: string, newParentId: string | null, position?: number) => void;
   // v0.18.15: Scroll container ref for auto-scroll during drag
   scrollContainerRef?: React.RefObject<HTMLElement>;
+  // v5.1.0: CPM visual state
+  showCriticalPath?: boolean;
 }
 
 export function TaskGrid({
@@ -75,6 +77,7 @@ export function TaskGrid({
   onDeleteRequest, // v0.17.34
   onTaskReparent, // v0.17.68
   scrollContainerRef, // v0.18.15
+  showCriticalPath = false, // v5.1.0
 }: TaskGridProps) {
   // v0.16.2: Get translations from context
   const translations = useContext(GanttI18nContext);
@@ -594,6 +597,33 @@ export function TaskGrid({
                       whiteSpace: 'nowrap',
                     }}>
                       · {Math.round(task.progress || 0)}%
+                    </span>
+                  )}
+                  {/* v5.1.0: CPM — critical dot + float indicator */}
+                  {showCriticalPath && task.isCriticalPath && (
+                    <span style={{
+                      display: 'inline-block',
+                      width: '6px',
+                      height: '6px',
+                      borderRadius: '50%',
+                      backgroundColor: '#EF4444',
+                      flexShrink: 0,
+                      marginLeft: '2px',
+                    }} />
+                  )}
+                  {showCriticalPath && task.cpmData && (
+                    <span style={{
+                      color: task.cpmData.totalFloat <= 0 ? '#EF4444'
+                        : task.cpmData.totalFloat <= 5 ? '#F59E0B'
+                        : '#6B7280',
+                      fontFamily: "'JetBrains Mono', monospace",
+                      fontSize: '10px',
+                      fontWeight: 500,
+                      flexShrink: 0,
+                      whiteSpace: 'nowrap',
+                      marginLeft: '4px',
+                    }}>
+                      TF: {Math.round(task.cpmData.totalFloat)}d
                     </span>
                   )}
                 </span>
@@ -1370,6 +1400,9 @@ export function TaskGrid({
                 : showDropChild
                   ? `${theme.accent}15`
                   : (index % 2 === 0 ? theme.bgPrimary : theme.bgGrid),
+              // v5.1.0: CPM opacity — non-critical tasks fade
+              opacity: showCriticalPath ? (task.isCriticalPath ? 1.0 : 0.4) : undefined,
+              transition: 'opacity 300ms ease',
               ...dropStyles,
             }}
             onMouseEnter={() => setHoveredTaskId(task.id)}

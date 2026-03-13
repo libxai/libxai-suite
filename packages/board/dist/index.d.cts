@@ -38,6 +38,15 @@ interface Task {
     isExpanded?: boolean;
     isMilestone?: boolean;
     isCriticalPath?: boolean;
+    cpmData?: {
+        earlyStart: number;
+        earlyFinish: number;
+        lateStart: number;
+        lateFinish: number;
+        totalFloat: number;
+        freeFloat: number;
+        isCritical: boolean;
+    };
     color?: string;
     priority?: 'low' | 'medium' | 'high' | 'urgent';
     tags?: TaskTag[];
@@ -2752,12 +2761,13 @@ interface GanttToolbarProps {
     showBaseline?: boolean;
     onShowBaselineChange?: (show: boolean) => void;
     onCopySnapshotLink?: () => void;
+    hasDependencies?: boolean;
 }
 declare function GanttToolbar({ theme, timeScale, onTimeScaleChange, zoom, onZoomChange, currentTheme, onThemeChange, rowDensity, onRowDensityChange, showThemeSelector, // v0.17.29: Default to false - themes should be in app settings
 showCreateTaskButton, createTaskLabel, // v0.15.0: Will use translations if not provided
 onCreateTask, taskFilter, // v0.17.300: Task filter
 onTaskFilterChange, hideCompleted, // v0.18.0: Hide completed toggle
-onHideCompletedChange, toolbarRightContent, wbsLevel, onWbsLevelChange, maxWbsDepth, viewMode, onViewModeChange, projectForecast, onExportPNG, onExportPDF, onExportExcel, onExportCSV, onExportJSON, onExportMSProject, showCriticalPath, onShowCriticalPathChange, showDependencies, onShowDependenciesChange, highlightWeekends, onHighlightWeekendsChange, showBaseline, onShowBaselineChange, onCopySnapshotLink, }: GanttToolbarProps): react_jsx_runtime.JSX.Element;
+onHideCompletedChange, toolbarRightContent, wbsLevel, onWbsLevelChange, maxWbsDepth, viewMode, onViewModeChange, projectForecast, onExportPNG, onExportPDF, onExportExcel, onExportCSV, onExportJSON, onExportMSProject, showCriticalPath, onShowCriticalPathChange, showDependencies, onShowDependenciesChange, highlightWeekends, onHighlightWeekendsChange, showBaseline, onShowBaselineChange, onCopySnapshotLink, hasDependencies, }: GanttToolbarProps): react_jsx_runtime.JSX.Element;
 
 interface TaskGridProps {
     tasks: Task[];
@@ -2791,13 +2801,15 @@ interface TaskGridProps {
     onDeleteRequest?: (taskId: string, taskName: string) => void;
     onTaskReparent?: (taskId: string, newParentId: string | null, position?: number) => void;
     scrollContainerRef?: React.RefObject<HTMLElement>;
+    showCriticalPath?: boolean;
 }
 declare function TaskGrid({ tasks, theme, rowHeight: ROW_HEIGHT, availableUsers, templates: _templates, // TODO: Use templates for custom rendering
 onTaskClick, onTaskDblClick, // v0.8.0
 onTaskContextMenu, // v0.8.0
 onTaskToggle, scrollTop: _scrollTop, columns, onToggleColumn, onColumnResize, onTaskUpdate, onTaskIndent, onTaskOutdent, onTaskMove, onMultiTaskDelete, onTaskDuplicate, onTaskCreate, onTaskRename, onCreateSubtask, onOpenTaskModal, onDeleteRequest, // v0.17.34
 onTaskReparent, // v0.17.68
-scrollContainerRef, }: TaskGridProps): react_jsx_runtime.JSX.Element;
+scrollContainerRef, // v0.18.15
+showCriticalPath, }: TaskGridProps): react_jsx_runtime.JSX.Element;
 
 interface TimelineProps {
     tasks: Task[];
@@ -2889,6 +2901,9 @@ interface DependencyLineProps {
     isHoverLayer?: boolean;
     onHoverChange?: (isHovered: boolean) => void;
     hoverOverlayOnly?: boolean;
+    colorOverride?: string;
+    strokeWidthOverride?: number;
+    glowFilter?: string;
 }
 /**
  * v0.17.364: TRUE ClickUp-style dependency line routing
@@ -2908,7 +2923,7 @@ interface DependencyLineProps {
  *   The vertical segment must still be LEFT of destination: turnX = x2 - OFFSET
  *   Path: right → horizontal past source → down/up → LEFT back to destination
  */
-declare function DependencyLine({ x1, y1, x2, y2, theme, onDelete, lineStyle, isHoverLayer, onHoverChange, hoverOverlayOnly, }: DependencyLineProps): react_jsx_runtime.JSX.Element;
+declare function DependencyLine({ x1, y1, x2, y2, theme, onDelete, lineStyle, isHoverLayer, onHoverChange, hoverOverlayOnly, colorOverride, strokeWidthOverride, glowFilter, }: DependencyLineProps): react_jsx_runtime.JSX.Element;
 
 interface MilestoneProps {
     task: Task;
@@ -3348,6 +3363,19 @@ declare const ganttUtils: {
      * @returns Array of task IDs on the critical path
      */
     calculateCriticalPath: (tasks: Task[]) => string[];
+    /**
+     * v5.1.0: Full CPM calculation — returns ES/EF/LS/LF/TF/FF per task
+     * Used by GanttBoard to enrich tasks with cpmData for visual rendering
+     */
+    calculateCriticalPathFull: (tasks: Task[]) => Map<string, {
+        earlyStart: number;
+        earlyFinish: number;
+        lateStart: number;
+        lateFinish: number;
+        totalFloat: number;
+        freeFloat: number;
+        isCritical: boolean;
+    }>;
     /**
      * Calculate slack (float) time for a task
      * @param tasks - All tasks

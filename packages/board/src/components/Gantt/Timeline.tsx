@@ -807,6 +807,10 @@ export function Timeline({
             const fillWidth = Math.max((progress / 100) * width, progress > 0 ? masterR * 2 : 0);
             const showPctOnBar = width > 100 && progress > 0;
 
+            // v5.1.0: CPM — master bar is critical if isCriticalPath is set (from GanttBoard)
+            const masterIsCritical = task.isCriticalPath;
+            const masterCpmOpacity = showCriticalPath ? (masterIsCritical ? 1.0 : 0.25) : 1.0;
+
             return (
               <g
                 key={task.id}
@@ -829,7 +833,7 @@ export function Timeline({
                   });
                 }}
                 onMouseLeave={() => handleTooltipChange(null)}
-                style={{ cursor: 'default' }}
+                style={{ cursor: 'default', opacity: masterCpmOpacity, transition: 'opacity 300ms ease' }}
               >
                 {/* Invisible hover area — full row height for easy targeting */}
                 <rect
@@ -858,6 +862,20 @@ export function Timeline({
                     height={masterH}
                     rx={masterR}
                     fill={fillColor}
+                  />
+                )}
+                {/* v5.1.0: CPM critical border + glow on master bar */}
+                {showCriticalPath && masterIsCritical && (
+                  <rect
+                    x={x}
+                    y={masterY}
+                    width={width}
+                    height={masterH}
+                    rx={masterR}
+                    fill="none"
+                    stroke="#EF4444"
+                    strokeWidth={2}
+                    style={{ pointerEvents: 'none', filter: 'drop-shadow(0 0 6px rgba(239, 68, 68, 0.4))' }}
                   />
                 )}
                 {/* Percentage label on bar (only if wide enough) */}
@@ -932,6 +950,18 @@ export function Timeline({
             // v0.17.452: Skip rendering if this dependency was deleted locally
             if (deletedDeps.has(lineKey)) return null;
 
+            // v5.1.0: CPM — critical deps in red, non-critical almost invisible
+            const bothCritical = showCriticalPath && task.isCriticalPath && depTask.isCriticalPath;
+            const cpmColorOverride = showCriticalPath
+              ? (bothCritical ? '#EF4444' : 'rgba(255,255,255,0.10)')
+              : undefined;
+            const cpmStrokeWidth = showCriticalPath
+              ? (bothCritical ? 2 : 1)
+              : undefined;
+            const cpmGlow = bothCritical
+              ? 'drop-shadow(0 0 4px rgba(239, 68, 68, 0.3))'
+              : undefined;
+
             return (
               <DependencyLine
                 key={lineKey}
@@ -941,6 +971,9 @@ export function Timeline({
                 y2={enterY}
                 theme={theme}
                 lineStyle={dependencyLineStyle}
+                colorOverride={cpmColorOverride}
+                strokeWidthOverride={cpmStrokeWidth}
+                glowFilter={cpmGlow}
                 onDelete={() => onDependencyDelete?.(task.id, depId)}
                 onHoverChange={(isHovered) => {
                   // v0.17.452: Update ref for fast mouse movement detection
