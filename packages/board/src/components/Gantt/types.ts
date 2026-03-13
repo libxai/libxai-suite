@@ -46,6 +46,17 @@ export interface Task {
   isMilestone?: boolean;
   isCriticalPath?: boolean;
 
+  // v5.1.0: CPM data — populated when enableAutoCriticalPath is on
+  cpmData?: {
+    earlyStart: number;    // ES — earliest start (days from project start)
+    earlyFinish: number;   // EF — earliest finish
+    lateStart: number;     // LS — latest start without delaying project
+    lateFinish: number;    // LF — latest finish without delaying project
+    totalFloat: number;    // TF — how much task can slip (LS - ES)
+    freeFloat: number;     // FF — how much task can slip without affecting successor
+    isCritical: boolean;   // TF <= 0
+  };
+
   // v0.11.0: Custom task colors - pastel colors for visual organization
   color?: string; // Hex color (e.g., '#6366F1') - subtasks inherit parent color with reduced opacity
 

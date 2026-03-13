@@ -604,26 +604,38 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   }, [templates]);
 
   // 🚀 KILLER FEATURE #1: Calculate Critical Path (auto-updates when tasks change)
-  // This is BETTER than DHTMLX - we recalculate CPM automatically on every change
-  // v0.11.1: Can be disabled via enableAutoCriticalPath prop to preserve custom colors
+  // v5.1.0: Full CPM data (ES/EF/LS/LF/TF/FF) per task for visual rendering
   const tasksWithCriticalPath = useMemo(() => {
-    // If auto critical path is disabled, return tasks as-is (preserve custom colors)
     if (!enableAutoCriticalPath) {
       return localTasks;
     }
 
-    const criticalPathIds = ganttUtils.calculateCriticalPath(localTasks);
+    const cpmMap = ganttUtils.calculateCriticalPathFull(localTasks);
 
     const markCritical = (tasks: Task[]): Task[] => {
-      return tasks.map(task => ({
-        ...task,
-        isCriticalPath: criticalPathIds.includes(task.id),
-        subtasks: task.subtasks ? markCritical(task.subtasks) : undefined,
-      }));
+      return tasks.map(task => {
+        const cpm = cpmMap.get(task.id);
+        const enrichedSubtasks = task.subtasks ? markCritical(task.subtasks) : undefined;
+        // Master bar is critical if ANY child is critical
+        const hasCriticalChild = enrichedSubtasks?.some(s => s.isCriticalPath || (s.subtasks && s.subtasks.some(ss => ss.isCriticalPath))) || false;
+        const isCritical = cpm ? cpm.isCritical : hasCriticalChild;
+        return {
+          ...task,
+          isCriticalPath: isCritical,
+          cpmData: cpm || undefined,
+          subtasks: enrichedSubtasks,
+        };
+      });
     };
 
     return markCritical(localTasks);
   }, [localTasks, enableAutoCriticalPath]);
+
+  // v5.1.0: Check if any task has dependencies (for disabling CPM button)
+  const hasDependencies = useMemo(() => {
+    const flat = ganttUtils.flattenTasks(localTasks);
+    return flat.some(t => t.dependencies && t.dependencies.length > 0);
+  }, [localTasks]);
 
   // v0.17.300: Filter tasks based on taskFilter state
   // v0.18.0: Added hideCompleted filter
@@ -1911,6 +1923,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
           if (!show && viewMode === 'oracle') handleViewModeChange('execution');
         }}
         onCopySnapshotLink={onCopySnapshotLink}
+        hasDependencies={hasDependencies}
       />
       </div>
 
@@ -1946,6 +1959,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
             rowHeight={rowHeight}
             availableUsers={availableUsers}
             templates={mergedTemplates}
+            showCriticalPath={showCriticalPath}
             onTaskClick={onTaskClick}
             onTaskDblClick={handleTaskDblClickInternal} // v0.10.0: Use internal handler that opens modal
             onTaskContextMenu={onTaskContextMenu} // v0.8.0

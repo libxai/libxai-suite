@@ -1029,6 +1029,138 @@ export const ganttUtils = {
   },
 
   /**
+   * v5.1.0: Full CPM calculation — returns ES/EF/LS/LF/TF/FF per task
+   * Used by GanttBoard to enrich tasks with cpmData for visual rendering
+   */
+  calculateCriticalPathFull: (tasks: Task[]): Map<string, { earlyStart: number; earlyFinish: number; lateStart: number; lateFinish: number; totalFloat: number; freeFloat: number; isCritical: boolean }> => {
+    const result = new Map<string, { earlyStart: number; earlyFinish: number; lateStart: number; lateFinish: number; totalFloat: number; freeFloat: number; isCritical: boolean }>();
+    const flat = ganttUtils.flattenTasks(tasks);
+    const tasksWithDates = flat.filter(t => t.startDate && t.endDate);
+
+    if (tasksWithDates.length === 0) return result;
+
+    // Build adjacency: predecessors and successors
+    const taskMap = new Map(tasksWithDates.map(t => [t.id, t]));
+    const successorsOf = new Map<string, string[]>();
+    for (const t of tasksWithDates) {
+      if (!successorsOf.has(t.id)) successorsOf.set(t.id, []);
+    }
+    for (const t of tasksWithDates) {
+      if (t.dependencies) {
+        for (const depId of t.dependencies) {
+          if (taskMap.has(depId)) {
+            const list = successorsOf.get(depId);
+            if (list) list.push(t.id);
+          }
+        }
+      }
+    }
+
+    // --- Forward Pass (Kahn's topological sort) ---
+    const inDegree = new Map<string, number>();
+    for (const t of tasksWithDates) {
+      inDegree.set(t.id, 0);
+    }
+    for (const t of tasksWithDates) {
+      if (t.dependencies) {
+        for (const depId of t.dependencies) {
+          if (taskMap.has(depId)) {
+            inDegree.set(t.id, (inDegree.get(t.id) || 0) + 1);
+          }
+        }
+      }
+    }
+
+    const earlyDates = new Map<string, { es: number; ef: number }>();
+    const topoOrder: string[] = [];
+    const queue: string[] = [];
+
+    for (const t of tasksWithDates) {
+      if ((inDegree.get(t.id) || 0) === 0) queue.push(t.id);
+    }
+
+    while (queue.length > 0) {
+      const id = queue.shift()!;
+      topoOrder.push(id);
+      const task = taskMap.get(id);
+      if (!task || !task.startDate || !task.endDate) continue;
+      const duration = ganttUtils.calculateDuration(task.startDate, task.endDate);
+
+      // ES = max(EF of all predecessors), default 0
+      let es = 0;
+      if (task.dependencies) {
+        for (const depId of task.dependencies) {
+          const depEarly = earlyDates.get(depId);
+          if (depEarly) es = Math.max(es, depEarly.ef);
+        }
+      }
+      earlyDates.set(id, { es, ef: es + duration });
+
+      // Decrement in-degree of successors
+      const succs = successorsOf.get(id) || [];
+      for (const succId of succs) {
+        const deg = (inDegree.get(succId) || 1) - 1;
+        inDegree.set(succId, deg);
+        if (deg === 0) queue.push(succId);
+      }
+    }
+
+    // Cycle detection: if topoOrder < tasksWithDates, there's a cycle — return empty
+    if (topoOrder.length < tasksWithDates.length) return result;
+
+    const projectEnd = Math.max(...Array.from(earlyDates.values()).map(d => d.ef));
+
+    // --- Backward Pass (reverse topological order) ---
+    const lateDates = new Map<string, { ls: number; lf: number }>();
+
+    for (let i = topoOrder.length - 1; i >= 0; i--) {
+      const id = topoOrder[i];
+      if (!id) continue;
+      const task = taskMap.get(id);
+      if (!task || !task.startDate || !task.endDate) continue;
+      const duration = ganttUtils.calculateDuration(task.startDate, task.endDate);
+      const succs = successorsOf.get(id) || [];
+
+      let lf = projectEnd;
+      if (succs.length > 0) {
+        for (const succId of succs) {
+          const succLate = lateDates.get(succId);
+          if (succLate) lf = Math.min(lf, succLate.ls);
+        }
+      }
+      lateDates.set(id, { ls: lf - duration, lf });
+    }
+
+    // --- Calculate Float ---
+    for (const id of topoOrder) {
+      const early = earlyDates.get(id)!;
+      const late = lateDates.get(id)!;
+      const totalFloat = late.ls - early.es;
+
+      // Free Float = min(ES of successors) - EF of this task
+      const succs = successorsOf.get(id) || [];
+      let freeFloat: number;
+      if (succs.length > 0) {
+        freeFloat = Math.min(...succs.map(s => earlyDates.get(s)!.es)) - early.ef;
+      } else {
+        freeFloat = projectEnd - early.ef;
+      }
+
+      result.set(id, {
+        earlyStart: early.es,
+        earlyFinish: early.ef,
+        lateStart: late.ls,
+        lateFinish: late.lf,
+        totalFloat: Math.round(totalFloat * 100) / 100,
+        freeFloat: Math.max(0, Math.round(freeFloat * 100) / 100),
+        isCritical: totalFloat <= 0.01,
+      });
+    }
+
+    return result;
+  },
+
+  /**
    * Calculate slack (float) time for a task
    * @param tasks - All tasks
    * @param taskId - Task ID to calculate slack for

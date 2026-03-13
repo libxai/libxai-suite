@@ -576,10 +576,14 @@ export function TaskBar({
   // Link button is at x + width + 10 with radius 10, so we need to extend hover area
   const linkButtonExtension = 24; // Extra width to include Link button area
 
+  // v5.1.0: CPM opacity — non-critical tasks fade when showCriticalPath is on
+  const cpmOpacity = showCriticalPath ? (task.isCriticalPath ? 1.0 : 0.25) : 1.0;
+
   return (
     <g
       ref={svgRef}
       data-task-bar="true"
+      style={{ opacity: cpmOpacity, transition: 'opacity 300ms ease' }}
       onClick={() => {
         // v2.3.0: Only fire click if no real drag movement occurred
         if (!isDragging && !hasDraggedRef.current) {
