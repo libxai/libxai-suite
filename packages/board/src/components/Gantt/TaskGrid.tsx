@@ -583,6 +583,18 @@ export function TaskGrid({
                       {task.wbsCode}
                     </span>
                   )}
+                  {/* v5.2.0: Estrella de Reconocimiento */}
+                  {(task as any).isHighlighted && task.status === 'completed' && (
+                    <span
+                      title="★"
+                      style={{
+                        color: '#F59E0B',
+                        fontSize: '10px',
+                        flexShrink: 0,
+                        lineHeight: 1,
+                      }}
+                    >★</span>
+                  )}
                   <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {task.name}
                   </span>

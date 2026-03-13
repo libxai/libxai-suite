@@ -72,6 +72,7 @@ interface Task {
     baselineStartDate?: Date;
     baselineEndDate?: Date;
     baselineProgress?: number;
+    isHighlighted?: boolean;
 }
 type TimeScale = 'day' | 'week' | 'month';
 type Theme$1 = 'dark' | 'light' | 'neutral';
