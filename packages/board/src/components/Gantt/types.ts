@@ -90,6 +90,9 @@ export interface Task {
   baselineStartDate?: Date;     // Planned start from selected baseline snapshot
   baselineEndDate?: Date;       // Planned end from selected baseline snapshot
   baselineProgress?: number;    // Planned progress from baseline snapshot
+
+  // v5.2.0: Estrella de Reconocimiento
+  isHighlighted?: boolean;
 }
 
 export type TimeScale = 'day' | 'week' | 'month';
