@@ -18,6 +18,7 @@ import {
   Folder,
   PanelRight,
   GripVertical,
+  Layers,
 } from 'lucide-react';
 import type { Task } from '../Gantt/types';
 import type {
@@ -275,6 +276,69 @@ export function ListView({
     y: 0,
     type: 'task',
   });
+
+  // v2.5.0: WBS Level filter (same as Gantt)
+  const [wbsLevel, setWbsLevel] = useState<number | 'all'>('all');
+  const [wbsDropdownOpen, setWbsDropdownOpen] = useState(false);
+  const wbsTriggerRef = useRef<HTMLButtonElement>(null);
+  const wbsDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Calculate max depth from task tree
+  const maxWbsDepth = useMemo(() => {
+    let max = 0;
+    function walk(taskList: Task[], depth: number) {
+      for (const t of taskList) {
+        if (depth > max) max = depth;
+        if (t.subtasks?.length) walk(t.subtasks, depth + 1);
+      }
+    }
+    walk(tasks, 1);
+    return max;
+  }, [tasks]);
+
+  // Close WBS dropdown on outside click
+  useEffect(() => {
+    if (!wbsDropdownOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (wbsTriggerRef.current?.contains(e.target as Node)) return;
+      if (wbsDropdownRef.current?.contains(e.target as Node)) return;
+      setWbsDropdownOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [wbsDropdownOpen]);
+
+  // When wbsLevel changes, trigger expand/collapse via callbacks
+  useEffect(() => {
+    if (wbsLevel === 'all') {
+      // Expand all
+      function expandAll(taskList: Task[]) {
+        for (const t of taskList) {
+          if (t.subtasks?.length) {
+            if (t.isExpanded === false) callbacks.onTaskToggleExpand?.(t.id);
+            expandAll(t.subtasks);
+          }
+        }
+      }
+      expandAll(tasks);
+    } else {
+      // Expand only up to the selected level, collapse deeper
+      function setLevel(taskList: Task[], depth: number) {
+        for (const t of taskList) {
+          if (t.subtasks?.length) {
+            const shouldExpand = depth < (wbsLevel as number);
+            const isCurrentlyExpanded = t.isExpanded !== false;
+            if (shouldExpand !== isCurrentlyExpanded) {
+              callbacks.onTaskToggleExpand?.(t.id);
+            }
+            setLevel(t.subtasks, depth + 1);
+          }
+        }
+      }
+      setLevel(tasks, 1);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wbsLevel]);
 
   // Column resize state
   const [resizingColumn, setResizingColumn] = useState<string | null>(null);
@@ -1071,6 +1135,67 @@ return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} l
             </div>
           )}
 
+          {/* v2.5.0: WBS Level filter (same as Gantt) */}
+          {showHierarchy && maxWbsDepth > 1 && (
+            <div className="relative">
+              <button
+                ref={wbsTriggerRef}
+                onClick={() => setWbsDropdownOpen(!wbsDropdownOpen)}
+                className={cn(
+                  'flex items-center gap-1.5 px-2 py-1.5 rounded-lg border transition-colors text-[11px] font-medium',
+                  isDark
+                    ? wbsDropdownOpen
+                      ? 'bg-blue-500/10 border-blue-500/40 text-blue-400'
+                      : 'bg-white/[0.03] border-[#333] text-white/50 hover:text-white/70 hover:bg-white/[0.05]'
+                    : wbsDropdownOpen
+                      ? 'bg-blue-50 border-blue-300 text-blue-600'
+                      : 'bg-gray-100 border-gray-200 text-gray-500 hover:text-gray-700 hover:bg-gray-200'
+                )}
+                style={{ fontFamily: "'JetBrains Mono', monospace" }}
+              >
+                <Layers className="w-3.5 h-3.5" />
+                {wbsLevel === 'all' ? (locale === 'es' ? 'Todos' : 'All') : `L${wbsLevel}`}
+              </button>
+              {wbsDropdownOpen && (
+                <div
+                  ref={wbsDropdownRef}
+                  className={cn(
+                    'absolute top-full mt-1 right-0 w-24 rounded-lg border overflow-hidden z-50 shadow-lg',
+                    isDark
+                      ? 'bg-[#1A1A1A] border-[#333]'
+                      : 'bg-white border-gray-200'
+                  )}
+                >
+                  {[
+                    { value: 'all' as const, label: locale === 'es' ? 'Todos' : 'All' },
+                    ...Array.from({ length: Math.min(maxWbsDepth, 5) }, (_, i) => ({
+                      value: (i + 1) as number,
+                      label: `L${i + 1}`,
+                    })),
+                  ].map(opt => (
+                    <button
+                      key={String(opt.value)}
+                      onClick={() => { setWbsLevel(opt.value); setWbsDropdownOpen(false); }}
+                      className={cn(
+                        'w-full px-3 py-2 text-left text-xs transition-colors flex items-center justify-between',
+                        isDark
+                          ? wbsLevel === opt.value
+                            ? 'bg-blue-500/10 text-blue-400'
+                            : 'text-white/60 hover:bg-white/[0.05] hover:text-white/80'
+                          : wbsLevel === opt.value
+                            ? 'bg-blue-50 text-blue-600'
+                            : 'text-gray-600 hover:bg-gray-100'
+                      )}
+                    >
+                      <span>{opt.label}</span>
+                      {wbsLevel === opt.value && <span className="text-blue-400">✓</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Status Filter - Right side (matching Gantt toolbar position) */}
           <StatusFilter
             value={statusFilter}
@@ -1257,7 +1382,7 @@ return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} l
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.15, delay: animationDelay }}
                     className={cn("flex items-center border-y cursor-pointer", isDark ? "border-[#222] bg-[#222]" : "border-gray-200 bg-gray-100")}
-                    onClick={() => toggleExpand(task.id)}
+                    onClick={() => callbacks.onTaskClick?.(task)}
                   >
                     {visibleColumns.map((column) => (
                       <div
@@ -1276,9 +1401,11 @@ return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} l
                                 ? <ChevronDown className={cn("w-4 h-4", isDark ? "text-white/40" : "text-gray-500")} />
                                 : <ChevronRight className={cn("w-4 h-4", isDark ? "text-white/40" : "text-gray-500")} />}
                             </button>
-                            {isExpanded
-                              ? <FolderOpen className="w-4 h-4 flex-shrink-0" style={{ color: isDark ? '#FFD60A' : '#B45309' }} />
-                              : <Folder className="w-4 h-4 flex-shrink-0" style={{ color: isDark ? '#FFD60A' : '#B45309' }} />}
+                            <span onClick={(e) => { e.stopPropagation(); toggleExpand(task.id); }} className="flex-shrink-0 cursor-pointer">
+                              {isExpanded
+                                ? <FolderOpen className="w-4 h-4" style={{ color: isDark ? '#FFD60A' : '#B45309' }} />
+                                : <Folder className="w-4 h-4" style={{ color: isDark ? '#FFD60A' : '#B45309' }} />}
+                            </span>
                             {task.wbsCode && (
                               <span className="text-[10px] font-mono flex-shrink-0" style={{ color: isDark ? '#FFD60A' : '#B45309' }}>
                                 {task.wbsCode}

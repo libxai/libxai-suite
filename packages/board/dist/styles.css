@@ -10064,6 +10064,11 @@ body {
 }
 
 
+.border-blue-500\/40 {
+  border-color: rgb(59 130 246 / 0.4);
+}
+
+
 .border-blue-500\/50 {
   border-color: rgb(59 130 246 / 0.5);
 }
@@ -13108,6 +13113,11 @@ body {
 }
 
 
+.hover\:bg-white\/\[0\.08\]:hover {
+  background-color: rgb(255 255 255 / 0.08);
+}
+
+
 .hover\:bg-opacity-10:hover {
   --tw-bg-opacity: 0.1;
 }
@@ -13263,6 +13273,12 @@ body {
 
 .focus\:border-\[var\(--focus-border\)\]:focus {
   border-color: var(--focus-border);
+}
+
+
+.focus\:border-blue-400:focus {
+  --tw-border-opacity: 1;
+  border-color: rgb(96 165 250 / var(--tw-border-opacity, 1));
 }
 
 
