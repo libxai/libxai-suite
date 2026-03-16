@@ -678,16 +678,37 @@ export function ListView({
           />
         );
 
-      case 'assignees':
+      case 'assignees': {
+        const isParent = (task as any).hasChildren;
+        // Parent tasks: show rollup of unique assignees from subtasks
+        let assigneesValue = task.assignees || [];
+        if (isParent && task.subtasks?.length) {
+          const uniqueMap = new Map<string, typeof assigneesValue[0]>();
+          // Include parent's own assignees first
+          (task.assignees || []).forEach(a => uniqueMap.set(a.name, a));
+          // Then add from subtasks
+          const collectAssignees = (subs: typeof task.subtasks) => {
+            (subs || []).forEach(sub => {
+              (sub.assignees || []).forEach(a => {
+                if (!uniqueMap.has(a.name)) uniqueMap.set(a.name, a);
+              });
+              if (sub.subtasks?.length) collectAssignees(sub.subtasks);
+            });
+          };
+          collectAssignees(task.subtasks);
+          assigneesValue = Array.from(uniqueMap.values());
+        }
         return (
           <AssigneesCell
-            value={task.assignees || []}
+            value={assigneesValue}
             availableUsers={availableUsers}
             onChange={(assignees) => handleUpdate({ assignees })}
             isDark={isDark}
             locale={locale}
+            disabled={isParent}
           />
         );
+      }
 
       case 'startDate':
         return (
@@ -904,7 +925,11 @@ return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} l
       }
 
       // v2.0.0: Chronos Interactive Time Manager columns
-      case 'scheduleVariance':
+      case 'scheduleVariance': {
+        const effortMins = (task as any).effortMinutes || 0;
+        const soldMins = (task as any).soldEffortMinutes || 0;
+        const loggedMins = (task as any).timeLoggedMinutes || 0;
+        const hasTime = effortMins > 0 || soldMins > 0 || loggedMins > 0;
         return (
           <ScheduleVarianceCell
             startDate={task.startDate}
@@ -912,8 +937,10 @@ return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} l
             scheduleVariance={task.scheduleVariance}
             isDark={isDark}
             locale={locale}
+            hasTimeAllocated={hasTime}
           />
         );
+      }
 
       case 'hoursBar': {
         // If aggregateParentHours enabled and task has children, show sum of descendants
