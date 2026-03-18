@@ -992,6 +992,7 @@ return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} l
           <TeamLoadCell
             task={task}
             isDark={isDark}
+            locale={locale}
           />
         );
 
@@ -1539,8 +1540,9 @@ return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} l
                             {/* Line 2: Task name */}
                             <span className={cn(
                               "truncate font-bold text-[13px]",
-                              isDark ? "text-white" : "text-gray-900",
-                              task.progress === 100 && (isDark ? "line-through text-white/30" : "line-through text-gray-400")
+                              task.progress === 100
+                                ? (isDark ? "line-through text-white/50" : "line-through text-gray-400")
+                                : (isDark ? "text-white" : "text-gray-900")
                             )}>
                               {task.name}
                             </span>
