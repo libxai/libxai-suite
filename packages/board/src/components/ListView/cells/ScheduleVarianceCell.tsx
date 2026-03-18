@@ -11,6 +11,8 @@ interface ScheduleVarianceCellProps {
   scheduleVariance?: number; // days: negative = delay, positive = ahead
   isDark: boolean;
   locale?: string;
+  /** Whether the task has any time allocated (estimated or quoted hours) */
+  hasTimeAllocated?: boolean;
 }
 
 export function ScheduleVarianceCell({
@@ -19,6 +21,7 @@ export function ScheduleVarianceCell({
   scheduleVariance,
   isDark,
   locale = 'en',
+  hasTimeAllocated = true,
 }: ScheduleVarianceCellProps) {
   if (!startDate && !endDate) {
     return (
@@ -41,6 +44,14 @@ export function ScheduleVarianceCell({
     const isEs = locale === 'es';
 
     if (scheduleVariance === 0) {
+      // If no hours allocated, show "Tiempo no asignado" instead of "En Tiempo"
+      if (!hasTimeAllocated) {
+        return (
+          <span className="font-mono" style={{ fontSize: '10px', color: isDark ? 'rgba(255,255,255,0.3)' : '#94A3B8', fontWeight: 500 }}>
+            {isEs ? 'Tiempo no asignado' : 'No time allocated'}
+          </span>
+        );
+      }
       return (
         <span className="font-mono" style={{ fontSize: '10px', color: '#3B9EFF', fontWeight: 600 }}>
           {isEs ? 'En Tiempo' : 'On Track'}

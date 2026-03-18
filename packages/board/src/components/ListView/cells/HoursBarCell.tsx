@@ -39,7 +39,7 @@ export function HoursBarCell({
   onLogTime,
   onEstimateUpdate,
   onSoldEffortUpdate,
-  showSoldEffort,
+  // showSoldEffort — no longer used (Ofertado line removed, now optional column)
   onOpenTimeLog,
   lens = 'hours',
   hourlyRate = 0,
@@ -60,16 +60,12 @@ export function HoursBarCell({
   const soldMinutes = (task as any).soldEffortMinutes || 0;
   const spentHours = Math.round((spentMinutes / 60) * 10) / 10;
   const allocatedHours = Math.round((allocatedMinutes / 60) * 10) / 10;
-  const soldHours = Math.round((soldMinutes / 60) * 10) / 10;
 
   const percentage = allocatedMinutes > 0 ? (spentMinutes / allocatedMinutes) * 100 : 0;
   const overHours = percentage > 100 ? Math.round(((spentMinutes - allocatedMinutes) / 60) * 10) / 10 : 0;
 
-  const barColor = percentage > 100
-    ? '#FF2D20'
-    : percentage >= 80
-      ? '#FFD60A'
-      : '#3BF06E';
+  // Bar color: cyan normal, red if exceeds (spec: simplified 2-tier)
+  const barColor = percentage > 100 ? '#EF4444' : '#00E5CC';
 
   // Close menu/popover on click outside
   useEffect(() => {
@@ -267,8 +263,11 @@ export function HoursBarCell({
             </span>
           )}
           {overHours > 0 && (
-            <span className="font-mono" style={{ fontSize: 10, color: '#FF2D20' }}>
-              +{fmt(overHours)} {isEs ? 'Exceso' : 'Over'}
+            <span
+              className="font-mono px-1.5 py-0.5 rounded"
+              style={{ fontSize: 10, color: '#EF4444', backgroundColor: 'rgba(239,68,68,0.15)' }}
+            >
+              +{fmt(overHours)} Over
             </span>
           )}
         </div>
@@ -280,17 +279,7 @@ export function HoursBarCell({
           </div>
         )}
 
-        {/* T. Ofertado line (if exists + user has financial access via callback or showSoldEffort) */}
-        {soldMinutes > 0 && (onSoldEffortUpdate || showSoldEffort) && (
-          <div className="flex items-center gap-1" style={{ marginTop: 1 }}>
-            <span className="font-mono" style={{ fontSize: 9, color: isDark ? 'rgba(255,255,255,0.25)' : '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              {isEs ? 'Ofertado' : 'Quoted'}:
-            </span>
-            <span className="font-mono" style={{ fontSize: 10, color: isDark ? 'rgba(255,255,255,0.4)' : '#6B7280' }}>
-              {fmt(soldHours)}
-            </span>
-          </div>
-        )}
+        {/* T. Ofertado line removed — now an optional column (Cambio 2 spec) */}
       </div>
 
       {/* + Log button — ghost icon, visible only on row hover */}
