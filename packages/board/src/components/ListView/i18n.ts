@@ -109,7 +109,7 @@ export const es: ListViewTranslations = {
     // v2.0.0: Chronos columns
     scheduleVariance: 'Prog / Var',
     hoursBar: 'Horas (Usado / Asignado)',
-    teamLoad: 'Carga Equipo',
+    teamLoad: 'Equipo',
     blockers: 'Bloqueantes',
   },
 
