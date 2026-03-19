@@ -1033,7 +1033,7 @@ return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} l
       // v2.0.0: Chronos columns
       scheduleVariance: (t.columns as any).scheduleVariance || (locale === 'es' ? 'Prog / Var' : 'Sched / Var'),
       hoursBar: (t.columns as any).hoursBar || (locale === 'es' ? 'Horas (Usado / Asignado)' : 'Hours (Spent / Allocated)'),
-      teamLoad: (t.columns as any).teamLoad || (locale === 'es' ? 'Carga Equipo' : 'Team Load'),
+      teamLoad: (t.columns as any).teamLoad || (locale === 'es' ? 'Equipo' : 'Team'),
       blockers: (t.columns as any).blockers || (locale === 'es' ? 'Bloqueantes' : 'Blockers'),
     };
     const label = labelMap[column.type] || column.label;
