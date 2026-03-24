@@ -74,7 +74,7 @@ const COLUMN_ICONS: Record<ColumnType, React.ReactNode> = {
 };
 
 // Standard fields that are always available
-const STANDARD_COLUMNS: ColumnType[] = ['name', 'status', 'priority', 'assignees', 'startDate', 'endDate', 'progress', 'tags', 'effortMinutes', 'timeLoggedMinutes', 'soldEffortMinutes'];
+const STANDARD_COLUMNS: ColumnType[] = ['name', 'status', 'priority', 'assignees', 'startDate', 'endDate', 'progress', 'tags', 'effortMinutes', 'timeLoggedMinutes', 'soldEffortMinutes', 'weight'];
 
 export function ColumnSelector({
   isOpen,
@@ -150,7 +150,7 @@ export function ColumnSelector({
   if (!isOpen) return null;
 
   const getColumnLabel = (type: ColumnType): string => {
-    return t.columns[type] || type;
+    return (t.columns as any)[type] || type;
   };
 
   const toggleColumnVisibility = (columnId: string) => {
@@ -471,6 +471,7 @@ const translations = {
       date: 'Date',
       dropdown: 'Dropdown',
       checkbox: 'Checkbox',
+      weight: 'Weight',
     } as Record<ColumnType, string>,
   },
   es: {
@@ -500,6 +501,7 @@ const translations = {
       date: 'Fecha',
       dropdown: 'Lista',
       checkbox: 'Casilla',
+      weight: 'Peso',
     } as Record<ColumnType, string>,
   },
 };
