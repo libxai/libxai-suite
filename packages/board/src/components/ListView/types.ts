@@ -41,6 +41,8 @@ export type ColumnType =
   | 'hoursBar'            // Visual hours bar (spent/allocated) + Log button
   | 'teamLoad'            // Avatar + team name + load badge
   | 'blockers'            // Blocker badges (RFI, Pending, etc.)
+  // v2.1.0: Weight column for weighted progress
+  | 'weight'              // Task weight percentage (for weighted project progress)
   // Custom field types
   | 'text'           // Custom text field
   | 'number'         // Custom number field
@@ -366,6 +368,7 @@ export interface ListViewTranslations {
     hoursBar?: string;
     teamLoad?: string;
     blockers?: string;
+    weight?: string;
   };
 
   // Toolbar
@@ -576,6 +579,8 @@ export const DEFAULT_TABLE_COLUMNS: TableColumn[] = [
   { id: 'hoursBar', type: 'hoursBar', label: 'Hours', width: 200, visible: false, sortable: true, resizable: true },
   { id: 'teamLoad', type: 'teamLoad', label: 'Team Load', width: 160, visible: false, sortable: true, resizable: true },
   { id: 'blockers', type: 'blockers', label: 'Blockers', width: 150, visible: false, sortable: false, resizable: true },
+  // v2.1.0: Weight column
+  { id: 'weight', type: 'weight', label: 'Weight', width: 80, visible: false, sortable: true, resizable: true },
 ];
 
 /**
@@ -600,6 +605,8 @@ export const STANDARD_FIELDS: Array<{ type: ColumnType; labelKey: string; icon: 
   { type: 'hoursBar', labelKey: 'columns.hoursBar', icon: 'BarChart3' },
   { type: 'teamLoad', labelKey: 'columns.teamLoad', icon: 'Users' },
   { type: 'blockers', labelKey: 'columns.blockers', icon: 'AlertTriangle' },
+  // v2.1.0: Weight
+  { type: 'weight', labelKey: 'columns.weight', icon: 'Scale' },
 ];
 
 /**

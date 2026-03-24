@@ -64,6 +64,7 @@ const COLUMN_ICONS: Record<ColumnType, React.ReactNode> = {
   hoursBar: <BarChart3 className="w-4 h-4" />,
   teamLoad: <Users className="w-4 h-4" />,
   blockers: <AlertTriangle className="w-4 h-4" />,
+  weight: <BarChart className="w-4 h-4" />,
   // Custom field types
   text: <Type className="w-4 h-4" />,
   number: <Hash className="w-4 h-4" />,

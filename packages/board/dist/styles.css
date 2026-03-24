@@ -9098,6 +9098,11 @@ body {
 }
 
 
+.w-14 {
+  width: 3.5rem;
+}
+
+
 .w-16 {
   width: 4rem;
 }
@@ -9986,6 +9991,11 @@ body {
 
 .border-\[\#007FFF\]\/20 {
   border-color: rgb(0 127 255 / 0.2);
+}
+
+
+.border-\[\#00E5CC\]\/50 {
+  border-color: rgb(0 229 204 / 0.5);
 }
 
 
@@ -11357,6 +11367,12 @@ body {
 }
 
 
+.text-\[\#22C55E\] {
+  --tw-text-opacity: 1;
+  color: rgb(34 197 94 / var(--tw-text-opacity, 1));
+}
+
+
 .text-\[\#2E94FF\] {
   --tw-text-opacity: 1;
   color: rgb(46 148 255 / var(--tw-text-opacity, 1));
@@ -11414,6 +11430,12 @@ body {
 .text-\[\#E5E7EB\] {
   --tw-text-opacity: 1;
   color: rgb(229 231 235 / var(--tw-text-opacity, 1));
+}
+
+
+.text-\[\#EF4444\] {
+  --tw-text-opacity: 1;
+  color: rgb(239 68 68 / var(--tw-text-opacity, 1));
 }
 
 

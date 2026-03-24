@@ -3704,7 +3704,7 @@ type SortDirection = 'asc' | 'desc';
  * - v1.2.0: effortMinutes, timeLoggedMinutes, soldEffortMinutes
  * - Custom: text, number, date, dropdown, checkbox
  */
-type ColumnType = 'name' | 'status' | 'priority' | 'assignees' | 'startDate' | 'endDate' | 'progress' | 'tags' | 'estimatedTime' | 'quotedTime' | 'elapsedTime' | 'effortMinutes' | 'timeLoggedMinutes' | 'soldEffortMinutes' | 'scheduleVariance' | 'hoursBar' | 'teamLoad' | 'blockers' | 'text' | 'number' | 'date' | 'dropdown' | 'checkbox';
+type ColumnType = 'name' | 'status' | 'priority' | 'assignees' | 'startDate' | 'endDate' | 'progress' | 'tags' | 'estimatedTime' | 'quotedTime' | 'elapsedTime' | 'effortMinutes' | 'timeLoggedMinutes' | 'soldEffortMinutes' | 'scheduleVariance' | 'hoursBar' | 'teamLoad' | 'blockers' | 'weight' | 'text' | 'number' | 'date' | 'dropdown' | 'checkbox';
 /**
  * Table column configuration for dynamic columns
  */
@@ -3966,6 +3966,7 @@ interface ListViewTranslations {
         hoursBar?: string;
         teamLoad?: string;
         blockers?: string;
+        weight?: string;
     };
     toolbar: {
         search: string;

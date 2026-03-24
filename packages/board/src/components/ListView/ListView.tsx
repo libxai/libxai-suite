@@ -163,6 +163,54 @@ function formatGroupHours(minutes: number): string {
 }
 
 /**
+ * Inline weight cell — click to edit, Enter/blur to save
+ */
+function WeightCellInline({ value, onChange, isDark }: { value: number; onChange: (v: number) => void; isDark: boolean }) {
+  const [editing, setEditing] = useState(false);
+  const [editVal, setEditVal] = useState(String(value || ''));
+
+  if (editing) {
+    return (
+      <input
+        autoFocus
+        type="text"
+        inputMode="decimal"
+        value={editVal}
+        onChange={(e) => setEditVal(e.target.value.replace(/[^0-9.]/g, ''))}
+        onBlur={() => {
+          const parsed = parseFloat(editVal);
+          if (!isNaN(parsed) && parsed >= 0 && parsed <= 100) onChange(parsed);
+          else if (editVal === '') onChange(0);
+          setEditing(false);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+          if (e.key === 'Escape') { setEditVal(String(value || '')); setEditing(false); }
+        }}
+        className={cn(
+          "w-14 text-xs text-right font-mono px-1 py-0.5 rounded border outline-none",
+          isDark ? "bg-white/5 border-[#00E5CC]/50 text-white" : "bg-gray-50 border-blue-400 text-gray-900"
+        )}
+        style={{ fontFamily: 'JetBrains Mono, monospace' }}
+      />
+    );
+  }
+
+  return (
+    <button
+      onClick={() => { setEditVal(String(value || '')); setEditing(true); }}
+      className={cn(
+        "text-xs font-mono cursor-pointer hover:underline",
+        value > 0 ? (isDark ? "text-white/80" : "text-gray-700") : (isDark ? "text-white/30" : "text-gray-300")
+      )}
+      style={{ fontFamily: 'JetBrains Mono, monospace' }}
+    >
+      {value > 0 ? `${value}%` : '—'}
+    </button>
+  );
+}
+
+/**
  * Main ListView Component
  */
 export function ListView({
@@ -1005,6 +1053,27 @@ return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} l
           />
         );
 
+      case 'weight': {
+        // Parent tasks: show sum of children weights (read-only)
+        if ((task as any).hasChildren && task.subtasks?.length) {
+          const childSum = task.subtasks.reduce((sum: number, sub: any) => sum + (sub.weight || 0), 0);
+          return (
+            <span className={cn("text-xs font-mono", childSum > 0 ? (isDark ? "text-white/50" : "text-gray-400") : (isDark ? "text-white/30" : "text-gray-300"))}>
+              {childSum > 0 ? `${Number(childSum.toFixed(2))}%` : '—'}
+            </span>
+          );
+        }
+        // Leaf tasks: inline editable
+        const weightVal = (task as any).weight || 0;
+        return (
+          <WeightCellInline
+            value={weightVal}
+            onChange={(v) => handleUpdate({ weight: v } as any)}
+            isDark={isDark}
+          />
+        );
+      }
+
       default:
         return <span className={cn("text-sm", isDark ? "text-white/60" : "text-gray-500")}>-</span>;
     }
@@ -1035,6 +1104,7 @@ return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} l
       hoursBar: (t.columns as any).hoursBar || (locale === 'es' ? 'Horas (Usado / Asignado)' : 'Hours (Spent / Allocated)'),
       teamLoad: (t.columns as any).teamLoad || (locale === 'es' ? 'Equipo' : 'Team'),
       blockers: (t.columns as any).blockers || (locale === 'es' ? 'Bloqueantes' : 'Blockers'),
+      weight: (t.columns as any).weight || (locale === 'es' ? 'Peso' : 'Weight'),
     };
     const label = labelMap[column.type] || column.label;
     // Ensure we always return a string to prevent React error #310
@@ -1658,7 +1728,21 @@ return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} l
                         style={{ fontFamily: 'JetBrains Mono, monospace' }}>
                         {spent > 0 ? formatValue(spent) : '–'}
                       </span>
-                    ) : (
+                    ) : column.type === 'weight' ? (() => {
+                      const allTasks = tasks || [];
+                      const flatAll: any[] = [];
+                      const flatten = (list: any[]) => { for (const t of list) { flatAll.push(t); if (t.subtasks?.length) flatten(t.subtasks); } };
+                      flatten(allTasks);
+                      const leafTasks = flatAll.filter((t: any) => !t.subtasks?.length || t.subtasks.length === 0);
+                      const totalWeight = leafTasks.reduce((sum: number, t: any) => sum + (t.weight || 0), 0);
+                      const isValid = Math.abs(totalWeight - 100) < 0.1;
+                      return (
+                        <span className={cn("text-[12px] font-bold font-mono", isValid ? (isDark ? "text-[#22C55E]" : "text-green-600") : "text-[#EF4444]")}
+                          style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                          {Number(totalWeight.toFixed(1))}%
+                        </span>
+                      );
+                    })() : (
                       <span className={cn("text-[11px]", isDark ? "text-white/30" : "text-gray-300")}>–</span>
                     )}
                   </div>
