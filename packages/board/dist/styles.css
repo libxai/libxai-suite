@@ -11361,6 +11361,12 @@ body {
 }
 
 
+.text-\[\#00E5CC\] {
+  --tw-text-opacity: 1;
+  color: rgb(0 229 204 / var(--tw-text-opacity, 1));
+}
+
+
 .text-\[\#1264FF\] {
   --tw-text-opacity: 1;
   color: rgb(18 100 255 / var(--tw-text-opacity, 1));
@@ -11519,6 +11525,12 @@ body {
 .text-blue-700 {
   --tw-text-opacity: 1;
   color: rgb(29 78 216 / var(--tw-text-opacity, 1));
+}
+
+
+.text-cyan-600 {
+  --tw-text-opacity: 1;
+  color: rgb(8 145 178 / var(--tw-text-opacity, 1));
 }
 
 

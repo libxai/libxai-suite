@@ -176,6 +176,7 @@ function WeightCellInline({ value, onChange, isDark }: { value: number; onChange
         type="text"
         inputMode="decimal"
         value={editVal}
+        onClick={(e) => e.stopPropagation()}
         onChange={(e) => setEditVal(e.target.value.replace(/[^0-9.]/g, ''))}
         onBlur={() => {
           const parsed = parseFloat(editVal);
@@ -198,7 +199,7 @@ function WeightCellInline({ value, onChange, isDark }: { value: number; onChange
 
   return (
     <button
-      onClick={() => { setEditVal(String(value || '')); setEditing(true); }}
+      onClick={(e) => { e.stopPropagation(); setEditVal(String(value || '')); setEditing(true); }}
       className={cn(
         "text-xs font-mono cursor-pointer hover:underline",
         value > 0 ? (isDark ? "text-white/80" : "text-gray-700") : (isDark ? "text-white/30" : "text-gray-300")
@@ -293,6 +294,26 @@ export function ListView({
       return { spent, allocated, quoted };
     }
     return sumLeaves(tasks);
+  }, [tasks]);
+
+  // Pre-compute parent→children weight sums (recursive for all levels)
+  const parentWeightSums = useMemo(() => {
+    const sums = new Map<string, number>();
+    function collectWeights(taskList: Task[]): number {
+      let total = 0;
+      for (const t of taskList) {
+        if (t.subtasks && t.subtasks.length > 0) {
+          const childSum = collectWeights(t.subtasks);
+          sums.set(t.id, childSum);
+          total += childSum;
+        } else {
+          total += (t as any).weight || 0;
+        }
+      }
+      return total;
+    }
+    collectWeights(tasks);
+    return sums;
   }, [tasks]);
 
   // Merge project total into healthSidebar data so sidebar can display it
@@ -1054,12 +1075,13 @@ return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} l
         );
 
       case 'weight': {
-        // Parent tasks: show sum of children weights (read-only)
-        if ((task as any).hasChildren && task.subtasks?.length) {
-          const childSum = task.subtasks.reduce((sum: number, sub: any) => sum + (sub.weight || 0), 0);
+        // Parent tasks: show sum of children weights (read-only, not editable)
+        const parentSum = parentWeightSums.get(task.id);
+        if (parentSum !== undefined) {
           return (
-            <span className={cn("text-xs font-mono", childSum > 0 ? (isDark ? "text-white/50" : "text-gray-400") : (isDark ? "text-white/30" : "text-gray-300"))}>
-              {childSum > 0 ? `${Number(childSum.toFixed(2))}%` : '—'}
+            <span className={cn("text-xs font-mono", parentSum > 0 ? (isDark ? "text-white/50" : "text-gray-400") : (isDark ? "text-white/30" : "text-gray-300"))}
+              style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+              {parentSum > 0 ? `${Number(parentSum.toFixed(2))}%` : '—'}
             </span>
           );
         }
@@ -1077,7 +1099,7 @@ return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} l
       default:
         return <span className={cn("text-sm", isDark ? "text-white/60" : "text-gray-500")}>-</span>;
     }
-  }, [callbacks, isDark, locale, availableUsers, t, aggregateParentHours]);
+  }, [callbacks, isDark, locale, availableUsers, t, aggregateParentHours, parentWeightSums]);
 
   // Get column label with translations
   const getColumnLabel = useCallback((column: TableColumn): string => {
@@ -1728,7 +1750,31 @@ return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} l
                         style={{ fontFamily: 'JetBrains Mono, monospace' }}>
                         {spent > 0 ? formatValue(spent) : '–'}
                       </span>
-                    ) : column.type === 'weight' ? (() => {
+                    ) : column.type === 'progress' ? (() => {
+                      // Weighted progress: sum(progress × weight) / sum(weight) for root tasks
+                      const rootTasks = tasks || [];
+                      let weightedSum = 0;
+                      let totalW = 0;
+                      let simpleSum = 0;
+                      let count = 0;
+                      for (const t of rootTasks) {
+                        const w = (t as any).weight || parentWeightSums.get(t.id) || 0;
+                        const prog = t.progress || 0;
+                        if (w > 0) {
+                          weightedSum += prog * w;
+                          totalW += w;
+                        }
+                        simpleSum += prog;
+                        count++;
+                      }
+                      const weightedPct = totalW > 0 ? Math.round((weightedSum / totalW) * 10) / 10 : (count > 0 ? Math.round(simpleSum / count) : 0);
+                      return (
+                        <span className={cn("text-[12px] font-bold font-mono", isDark ? "text-[#00E5CC]" : "text-cyan-600")}
+                          style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                          {weightedPct}%
+                        </span>
+                      );
+                    })() : column.type === 'weight' ? (() => {
                       const allTasks = tasks || [];
                       const flatAll: any[] = [];
                       const flatten = (list: any[]) => { for (const t of list) { flatAll.push(t); if (t.subtasks?.length) flatten(t.subtasks); } };
