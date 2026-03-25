@@ -3872,6 +3872,11 @@ interface ProjectHealthData {
     /** Total hours for the whole project (spent / allocated in minutes) */
     totalHoursSpentMinutes?: number;
     totalHoursAllocatedMinutes?: number;
+    /** Financial data — shown when lens='financial' */
+    totalOffered?: number;
+    totalEstimated?: number;
+    totalExecuted?: number;
+    offeredRate?: number;
 }
 /**
  * ListView configuration

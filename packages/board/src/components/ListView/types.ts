@@ -255,6 +255,11 @@ export interface ProjectHealthData {
   /** Total hours for the whole project (spent / allocated in minutes) */
   totalHoursSpentMinutes?: number;
   totalHoursAllocatedMinutes?: number;
+  /** Financial data — shown when lens='financial' */
+  totalOffered?: number;       // Total $ ofertado (sum of sold_effort × offered_rate)
+  totalEstimated?: number;     // Total $ estimado (sum of effort × assignee_rate)
+  totalExecuted?: number;      // Total $ ejecutado (sum of logged × rate_at_time)
+  offeredRate?: number;        // $/hora ofertada del proyecto
 }
 
 /**

@@ -11,6 +11,7 @@ interface ProjectHealthSidebarProps {
   isDark: boolean;
   locale?: string;
   onClose?: () => void;
+  lens?: 'hours' | 'financial';
 }
 
 function fmtMinutes(minutes: number): string {
@@ -20,13 +21,21 @@ function fmtMinutes(minutes: number): string {
   return m > 0 ? `${h}h ${m}m` : `${h}h`;
 }
 
+function fmtCurrency(value: number): string {
+  if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= 1_000) return `$${(value / 1_000).toFixed(1)}K`;
+  return `$${Math.round(value).toLocaleString('en-US')}`;
+}
+
 export function ProjectHealthSidebar({
   data,
   isDark,
   locale = 'en',
   onClose,
+  lens = 'hours',
 }: ProjectHealthSidebarProps) {
   const isEs = locale === 'es';
+  const isFinancial = lens === 'financial';
 
   return (
     <div className={cn(
@@ -39,7 +48,9 @@ export function ProjectHealthSidebar({
           'text-[10px] font-mono uppercase tracking-wider font-bold',
           isDark ? 'text-white/40' : 'text-gray-500'
         )}>
-          {isEs ? 'SALUD DEL PROYECTO' : 'PROJECT HEALTH'}
+          {isFinancial
+            ? (isEs ? 'SALUD FINANCIERA' : 'FINANCIAL HEALTH')
+            : (isEs ? 'SALUD DEL PROYECTO' : 'PROJECT HEALTH')}
         </h3>
         {onClose && (
           <button
@@ -56,6 +67,77 @@ export function ProjectHealthSidebar({
           </button>
         )}
       </div>
+
+      {/* Section: Financial Health — shown when lens='financial' and financial data available */}
+      {isFinancial && (data.totalOffered !== undefined || data.totalEstimated !== undefined) && (() => {
+        const offered = data.totalOffered ?? 0;
+        const estimated = data.totalEstimated ?? 0;
+        const executed = data.totalExecuted ?? 0;
+        const margin = offered - estimated;
+        const marginPct = offered > 0 ? Math.round((margin / offered) * 100) : 0;
+        const consumedPct = offered > 0 ? Math.min(Math.round((estimated / offered) * 100), 120) : 0;
+        const isOverBudget = estimated > offered && offered > 0;
+        const barColor = isOverBudget ? '#FF2D20' : '#00E5CC';
+
+        return (
+          <div className={cn('px-5 py-4 border-b', isDark ? 'border-[#222]' : 'border-gray-200')}>
+            <h4 className={cn('text-[10px] font-mono uppercase tracking-wider mb-3', isDark ? 'text-white/40' : 'text-gray-500')}>
+              {isEs ? 'PRESUPUESTO' : 'BUDGET'}
+            </h4>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className={cn('text-xs', isDark ? 'text-white/60' : 'text-gray-600')}>
+                  {isEs ? 'Ofertado' : 'Offered'}
+                </span>
+                <span className={cn('text-[11px] font-mono font-bold', isDark ? 'text-white/80' : 'text-gray-800')}>
+                  {fmtCurrency(offered)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className={cn('text-xs', isDark ? 'text-white/60' : 'text-gray-600')}>
+                  {isEs ? 'Estimado' : 'Estimated'}
+                </span>
+                <span className={cn('text-[11px] font-mono font-bold', isOverBudget ? 'text-[#FF2D20]' : isDark ? 'text-white/80' : 'text-gray-800')}>
+                  {fmtCurrency(estimated)}
+                </span>
+              </div>
+              {executed > 0 && (
+                <div className="flex items-center justify-between">
+                  <span className={cn('text-xs', isDark ? 'text-white/60' : 'text-gray-600')}>
+                    {isEs ? 'Ejecutado' : 'Executed'}
+                  </span>
+                  <span className={cn('text-[11px] font-mono', isDark ? 'text-white/60' : 'text-gray-600')}>
+                    {fmtCurrency(executed)}
+                  </span>
+                </div>
+              )}
+              {/* Progress bar: offered as 100%, estimated as fill */}
+              {offered > 0 && (
+                <div className={cn('w-full h-2.5 rounded-full overflow-hidden mt-2', isDark ? 'bg-white/[0.06]' : 'bg-gray-200')}>
+                  <div
+                    className="h-full rounded-full transition-all duration-300"
+                    style={{ width: `${Math.min(consumedPct, 100)}%`, backgroundColor: barColor }}
+                  />
+                </div>
+              )}
+              {/* Margin display */}
+              <div className={cn(
+                'mt-2 px-3 py-2 rounded-lg text-center font-mono text-sm font-bold',
+                margin >= 0
+                  ? (isDark ? 'bg-[#00E5CC]/10 text-[#00E5CC]' : 'bg-emerald-50 text-emerald-600')
+                  : (isDark ? 'bg-[#FF2D20]/10 text-[#FF2D20]' : 'bg-red-50 text-red-600')
+              )}>
+                {margin >= 0
+                  ? `+${fmtCurrency(margin)} ${isEs ? 'Disp.' : 'Avail.'}`
+                  : `${fmtCurrency(Math.abs(margin))} ${isEs ? 'Pérdida' : 'Loss'}`}
+                {offered > 0 && (
+                  <span className="text-[10px] ml-1 opacity-60">({marginPct}%)</span>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Section: Project Hours — always shown when totalHours provided */}
       {(data.totalHoursSpentMinutes !== undefined || data.totalHoursAllocatedMinutes !== undefined) && (() => {

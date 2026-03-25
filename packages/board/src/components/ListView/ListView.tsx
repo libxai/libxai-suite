@@ -928,13 +928,59 @@ export function ListView({
       // v1.2.0: New time tracking columns
       case 'effortMinutes': {
         if (aggregateParentHours && task.subtasks && task.subtasks.length > 0) {
-          const { allocated } = calculateGroupHours(task);
-return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={hourlyRate} />;
+          const { allocated, quoted } = calculateGroupHours(task);
+          // Financial lens: show margin badge for parent
+          if (lens === 'financial' && hourlyRate && allocated > 0 && quoted > 0) {
+            const estDollars = Math.round((allocated / 60) * hourlyRate);
+            const offDollars = Math.round((quoted / 60) * hourlyRate);
+            const margin = offDollars - estDollars;
+            return (
+              <div className="flex items-center gap-1.5">
+                <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={hourlyRate} />
+                {margin !== 0 && (
+                  <span className={cn('text-[9px] font-mono font-bold px-1.5 py-0.5 rounded whitespace-nowrap',
+                    margin > 0 ? 'bg-[#064e3b] text-[#10b981] border border-[#065f46]/30' : 'bg-[#451a03] text-[#f59e0b] border border-[#78350f]/30'
+                  )}>
+                    {margin > 0 ? '+' : ''}{margin >= 1000 ? `$${(margin/1000).toFixed(1)}K` : `$${margin}`}
+                  </span>
+                )}
+              </div>
+            );
+          }
+          return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={hourlyRate} />;
         }
         const isCompleted = task.status === 'completed' || task.progress === 100;
+        const estMins = (task as any).effortMinutes || 0;
+        const soldMins = (task as any).soldEffortMinutes || 0;
+        // Financial lens: show margin badge next to estimated value
+        if (lens === 'financial' && hourlyRate && estMins > 0 && soldMins > 0) {
+          const estDollars = Math.round((estMins / 60) * hourlyRate);
+          const offDollars = Math.round((soldMins / 60) * hourlyRate);
+          const margin = offDollars - estDollars;
+          return (
+            <div className="flex items-center gap-1.5">
+              <TimeCell
+                value={estMins}
+                onChange={(minutes) => handleUpdate({ effortMinutes: minutes } as any)}
+                isDark={isDark}
+                locale={locale}
+                disabled={isCompleted}
+                lens={lens}
+                hourlyRate={hourlyRate}
+              />
+              {margin !== 0 && (
+                <span className={cn('text-[9px] font-mono font-bold px-1.5 py-0.5 rounded whitespace-nowrap',
+                  margin >= 0 ? 'bg-[#064e3b] text-[#10b981] border border-[#065f46]/30' : 'bg-[#451a03] text-[#f59e0b] border border-[#78350f]/30'
+                )}>
+                  {margin > 0 ? '+' : ''}{Math.abs(margin) >= 1000 ? `$${(margin/1000).toFixed(1)}K` : `$${margin}`}
+                </span>
+              )}
+            </div>
+          );
+        }
         return (
           <TimeCell
-            value={(task as any).effortMinutes}
+            value={estMins}
             onChange={(minutes) => handleUpdate({ effortMinutes: minutes } as any)}
             isDark={isDark}
             locale={locale}
@@ -1740,12 +1786,35 @@ return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} l
                         style={{ fontFamily: 'JetBrains Mono, monospace' }}>
                         {quoted > 0 ? formatValue(quoted) : '–'}
                       </span>
-                    ) : column.type === 'effortMinutes' ? (
-                      <span className={cn("text-[12px] font-bold", isDark ? "text-white" : "text-gray-900")}
-                        style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-                        {allocated > 0 ? formatValue(allocated) : '–'}
-                      </span>
-                    ) : column.type === 'timeLoggedMinutes' ? (
+                    ) : column.type === 'effortMinutes' ? (() => {
+                      // Financial lens: show margin in footer
+                      if (isFinancial && quoted > 0 && allocated > 0) {
+                        const offTotal = Math.round((quoted / 60) * (hourlyRate || 25));
+                        const estTotal = Math.round((allocated / 60) * (hourlyRate || 25));
+                        const margin = offTotal - estTotal;
+                        const marginPct = offTotal > 0 ? Math.round((margin / offTotal) * 100) : 0;
+                        return (
+                          <div className="flex items-center gap-2">
+                            <span className={cn("text-[12px] font-bold", isDark ? "text-white" : "text-gray-900")}
+                              style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                              {formatValue(allocated)}
+                            </span>
+                            <span className={cn('text-[9px] font-mono font-bold px-1.5 py-0.5 rounded whitespace-nowrap',
+                              margin >= 0 ? 'bg-[#064e3b] text-[#10b981] border border-[#065f46]/30' : 'bg-[#451a03] text-[#f59e0b] border border-[#78350f]/30'
+                            )}>
+                              {margin >= 0 ? '+' : ''}{Math.abs(margin) >= 1000 ? `$${(margin/1000).toFixed(1)}K` : `$${margin}`}
+                              <span className="ml-0.5 opacity-60">({marginPct}%)</span>
+                            </span>
+                          </div>
+                        );
+                      }
+                      return (
+                        <span className={cn("text-[12px] font-bold", isDark ? "text-white" : "text-gray-900")}
+                          style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                          {allocated > 0 ? formatValue(allocated) : '–'}
+                        </span>
+                      );
+                    })() : column.type === 'timeLoggedMinutes' ? (
                       <span className={cn("text-[12px] font-bold", isDark ? "text-white" : "text-gray-900")}
                         style={{ fontFamily: 'JetBrains Mono, monospace' }}>
                         {spent > 0 ? formatValue(spent) : '–'}
@@ -1821,6 +1890,7 @@ return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} l
           isDark={isDark}
           locale={locale}
           onClose={() => setSidebarOpen(false)}
+          lens={config?.lens}
         />
       )}
       </div>
