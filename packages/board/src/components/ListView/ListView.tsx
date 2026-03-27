@@ -248,6 +248,7 @@ export function ListView({
     // v2.3.0: Financial lens
     lens = 'hours',
     hourlyRate = 0,
+    rateMap,
     // v2.3.2: Aggregate child hours into parent hoursBar cell
     aggregateParentHours = false,
     // v2.4.0: Project totals sticky footer
@@ -256,6 +257,16 @@ export function ListView({
 
   const t = mergeListViewTranslations(locale, customTranslations);
   const isDark = themeName === 'dark';
+
+  // v2.5.0: Resolve per-task hourly rate from assignees' rateMap, fallback to global hourlyRate
+  const getTaskRate = (task: Task): number => {
+    if (!rateMap || !task.assignees || task.assignees.length === 0) return hourlyRate;
+    const rates = task.assignees
+      .map((a: any) => a.id ? rateMap[a.id] : undefined)
+      .filter((r): r is number => r != null && r > 0);
+    if (rates.length === 0) return hourlyRate;
+    return rates.reduce((a, b) => a + b, 0) / rates.length;
+  };
 
   // v0.18.3: Load persisted filter state from localStorage
   const loadPersistedFilter = useCallback(() => {
@@ -884,7 +895,7 @@ export function ListView({
             locale={locale}
             disabled={isCompleted}
             lens={lens}
-            hourlyRate={hourlyRate}
+            hourlyRate={getTaskRate(task)}
           />
         );
       }
@@ -905,7 +916,7 @@ export function ListView({
             disabled={isCompleted}
             isBlurred={shouldBlurQuoted}
             lens={lens}
-            hourlyRate={hourlyRate}
+            hourlyRate={getTaskRate(task)}
           />
         );
       }
@@ -920,7 +931,7 @@ export function ListView({
             locale={locale}
             disabled={isCompleted}
             lens={lens}
-            hourlyRate={hourlyRate}
+            hourlyRate={getTaskRate(task)}
           />
         );
       }
@@ -930,13 +941,14 @@ export function ListView({
         if (aggregateParentHours && task.subtasks && task.subtasks.length > 0) {
           const { allocated, quoted } = calculateGroupHours(task);
           // Financial lens: show margin badge for parent
-          if (lens === 'financial' && hourlyRate && allocated > 0 && quoted > 0) {
-            const estDollars = Math.round((allocated / 60) * hourlyRate);
-            const offDollars = Math.round((quoted / 60) * hourlyRate);
+          const _parentRate = getTaskRate(task);
+          if (lens === 'financial' && _parentRate && allocated > 0 && quoted > 0) {
+            const estDollars = Math.round((allocated / 60) * _parentRate);
+            const offDollars = Math.round((quoted / 60) * _parentRate);
             const margin = offDollars - estDollars;
             return (
               <div className="flex items-center gap-1.5">
-                <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={hourlyRate} />
+                <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={getTaskRate(task)} />
                 {margin !== 0 && (
                   <span className={cn('text-[9px] font-mono font-bold px-1.5 py-0.5 rounded whitespace-nowrap',
                     margin > 0 ? 'bg-[#064e3b] text-[#10b981] border border-[#065f46]/30' : 'bg-[#451a03] text-[#f59e0b] border border-[#78350f]/30'
@@ -947,15 +959,16 @@ export function ListView({
               </div>
             );
           }
-          return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={hourlyRate} />;
+          return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={getTaskRate(task)} />;
         }
         const isCompleted = task.status === 'completed' || task.progress === 100;
         const estMins = (task as any).effortMinutes || 0;
         const soldMins = (task as any).soldEffortMinutes || 0;
         // Financial lens: show margin badge next to estimated value
-        if (lens === 'financial' && hourlyRate && estMins > 0 && soldMins > 0) {
-          const estDollars = Math.round((estMins / 60) * hourlyRate);
-          const offDollars = Math.round((soldMins / 60) * hourlyRate);
+        const _taskRate = getTaskRate(task);
+        if (lens === 'financial' && _taskRate && estMins > 0 && soldMins > 0) {
+          const estDollars = Math.round((estMins / 60) * _taskRate);
+          const offDollars = Math.round((soldMins / 60) * _taskRate);
           const margin = offDollars - estDollars;
           return (
             <div className="flex items-center gap-1.5">
@@ -966,7 +979,7 @@ export function ListView({
                 locale={locale}
                 disabled={isCompleted}
                 lens={lens}
-                hourlyRate={hourlyRate}
+                hourlyRate={getTaskRate(task)}
               />
               {margin !== 0 && (
                 <span className={cn('text-[9px] font-mono font-bold px-1.5 py-0.5 rounded whitespace-nowrap',
@@ -986,7 +999,7 @@ export function ListView({
             locale={locale}
             disabled={isCompleted}
             lens={lens}
-            hourlyRate={hourlyRate}
+            hourlyRate={getTaskRate(task)}
           />
         );
       }
@@ -994,7 +1007,7 @@ export function ListView({
       case 'timeLoggedMinutes': {
         if (aggregateParentHours && task.subtasks && task.subtasks.length > 0) {
           const { spent } = calculateGroupHours(task);
-          return <TimeCell value={spent > 0 ? spent : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={hourlyRate} />;
+          return <TimeCell value={spent > 0 ? spent : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={getTaskRate(task)} />;
         }
         const isCompleted = task.status === 'completed' || task.progress === 100;
         return (
@@ -1009,7 +1022,7 @@ export function ListView({
             placeholder={locale === 'es' ? 'Agregar' : 'Add'}
             disabled={isCompleted}
             lens={lens}
-            hourlyRate={hourlyRate}
+            hourlyRate={getTaskRate(task)}
           />
         );
       }
@@ -1018,7 +1031,7 @@ export function ListView({
         if (aggregateParentHours && task.subtasks && task.subtasks.length > 0) {
           const { quoted } = calculateGroupHours(task);
           const shouldBlurSold = financialBlur?.enabled && (!financialBlur.columns || financialBlur.columns.includes('soldEffortMinutes'));
-          return <TimeCell value={quoted > 0 ? quoted : undefined} isDark={isDark} locale={locale} disabled isBlurred={shouldBlurSold} lens={lens} hourlyRate={hourlyRate} />;
+          return <TimeCell value={quoted > 0 ? quoted : undefined} isDark={isDark} locale={locale} disabled isBlurred={shouldBlurSold} lens={lens} hourlyRate={getTaskRate(task)} />;
         }
         const isCompleted = task.status === 'completed' || task.progress === 100;
         // v1.4.9: Governance v2.0 - Check if this column should be blurred
@@ -1034,7 +1047,7 @@ export function ListView({
             disabled={isCompleted}
             isBlurred={shouldBlurSold}
             lens={lens}
-            hourlyRate={hourlyRate}
+            hourlyRate={getTaskRate(task)}
           />
         );
       }
@@ -1097,7 +1110,7 @@ export function ListView({
             showSoldEffort={config.showSoldEffort}
             onOpenTimeLog={callbacks.onOpenTimeLog}
             lens={lens}
-            hourlyRate={hourlyRate}
+            hourlyRate={getTaskRate(task)}
           />
         );
       }
@@ -1596,11 +1609,11 @@ export function ListView({
                             )}
                           </div>
                         ) : column.type === 'timeLoggedMinutes' ? (
-                          <TimeCell value={spent > 0 ? spent : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={hourlyRate} />
+                          <TimeCell value={spent > 0 ? spent : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={getTaskRate(task)} />
                         ) : column.type === 'soldEffortMinutes' ? (
-                          <TimeCell value={quoted > 0 ? quoted : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={hourlyRate} />
+                          <TimeCell value={quoted > 0 ? quoted : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={getTaskRate(task)} />
                         ) : column.type === 'effortMinutes' ? (
-                          <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={hourlyRate} />
+                          <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={getTaskRate(task)} />
                         ) : (
                           // v2.4.0: Render remaining column types (scheduleVariance, hoursBar, teamLoad, blockers, etc.)
                           renderCell(task, column)

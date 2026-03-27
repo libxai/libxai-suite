@@ -3945,8 +3945,10 @@ interface ListViewConfig {
     showSoldEffort?: boolean;
     /** Display mode: 'hours' shows time values, 'financial' converts to dollars (hours × hourlyRate) */
     lens?: 'hours' | 'financial';
-    /** Hourly rate for converting hours → dollars when lens='financial' */
+    /** Hourly rate for converting hours → dollars when lens='financial' (fallback when rateMap has no match) */
     hourlyRate?: number;
+    /** Per-user hourly rate map (userId → rate). When provided, uses the task assignee's rate instead of the global hourlyRate */
+    rateMap?: Record<string, number>;
     /** Show a sticky "TOTAL PROJECT" row at the bottom of the list */
     showProjectTotals?: boolean;
 }

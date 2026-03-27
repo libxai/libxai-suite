@@ -340,8 +340,10 @@ export interface ListViewConfig {
   // v2.3.0: Financial lens — show dollar values instead of hours
   /** Display mode: 'hours' shows time values, 'financial' converts to dollars (hours × hourlyRate) */
   lens?: 'hours' | 'financial';
-  /** Hourly rate for converting hours → dollars when lens='financial' */
+  /** Hourly rate for converting hours → dollars when lens='financial' (fallback when rateMap has no match) */
   hourlyRate?: number;
+  /** Per-user hourly rate map (userId → rate). When provided, uses the task assignee's rate instead of the global hourlyRate */
+  rateMap?: Record<string, number>;
 
   // v2.4.0: Project totals sticky footer row
   /** Show a sticky "TOTAL PROJECT" row at the bottom of the list */
