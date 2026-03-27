@@ -348,6 +348,9 @@ export interface ListViewConfig {
   // v2.4.0: Project totals sticky footer row
   /** Show a sticky "TOTAL PROJECT" row at the bottom of the list */
   showProjectTotals?: boolean;
+
+  /** v2.5.0: Render content just before the Create Task button (e.g., share/export dropdown) */
+  toolbarEndContent?: ReactNode;
 }
 
 /**
@@ -473,6 +476,14 @@ export interface ListViewCallbacks {
   onTaskEdit?: (task: Task) => void;
   /** Task duplicate requested (from context menu) */
   onTaskDuplicate?: (task: Task) => void;
+  /** v2.5.0: Move task up in hierarchy */
+  onTaskMove?: (taskId: string, direction: 'up' | 'down') => void;
+  /** v2.5.0: Indent task (make it a subtask of the task above) */
+  onTaskIndent?: (taskId: string) => void;
+  /** v2.5.0: Outdent task (move it up one hierarchy level) */
+  onTaskOutdent?: (taskId: string) => void;
+  /** v2.5.0: Reparent task (drag & drop to make subtask or reorder) */
+  onTaskReparent?: (taskId: string, newParentId: string | null, position?: number) => void;
   /** Create custom field */
   onCreateCustomField?: (field: CustomFieldDefinition) => Promise<void>;
 
@@ -553,6 +564,8 @@ export interface ListViewProps {
   // v2.1.0: Toolbar customization
   /** Render custom content on the right side of toolbar (before create button) */
   toolbarRightContent?: ReactNode;
+  /** v2.5.0: Render content just before the Create Task button (e.g., share/export dropdown) */
+  toolbarEndContent?: ReactNode;
 }
 
 /**

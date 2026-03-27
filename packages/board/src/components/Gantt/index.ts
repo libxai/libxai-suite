@@ -1,6 +1,6 @@
 // Main components
 export { GanttBoard } from './GanttBoard';
-export { GanttToolbar } from './GanttToolbar';
+export { GanttToolbar, ExportDropdown } from './GanttToolbar';
 
 // Theme Context (internal use - for Portal theming)
 export { GanttThemeContext, useGanttTheme } from './GanttThemeContext';

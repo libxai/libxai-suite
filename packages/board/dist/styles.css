@@ -8725,6 +8725,11 @@ body {
 }
 
 
+.me-1 {
+  margin-inline-end: 0.25rem;
+}
+
+
 .ml-0\.5 {
   margin-left: 0.125rem;
 }
@@ -13326,6 +13331,11 @@ body {
 }
 
 
+.hover\:\!opacity-80:hover {
+  opacity: 0.8 !important;
+}
+
+
 .hover\:opacity-70:hover {
   opacity: 0.7;
 }
@@ -13482,6 +13492,11 @@ body {
 
 .group:hover .group-hover\:opacity-100 {
   opacity: 1;
+}
+
+
+.group:hover .group-hover\:opacity-40 {
+  opacity: 0.4;
 }
 
 

@@ -6,6 +6,7 @@
  */
 
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   List,
@@ -52,6 +53,7 @@ import { BlockersCell } from './cells/BlockersCell';
 
 // Components
 import { TableContextMenu } from './TableContextMenu';
+import { ganttUtils } from '../Gantt/ganttUtils';
 import { ColumnSelector } from './ColumnSelector';
 import { CreateFieldModal } from './CreateFieldModal';
 import { StatusFilter, type StatusFilterValue } from './StatusFilter';
@@ -356,6 +358,119 @@ export function ListView({
     y: 0,
     type: 'task',
   });
+
+  // v2.5.0: Row drag & drop (mouse-based, same pattern as Gantt TaskGrid)
+  const [rowDragId, setRowDragId] = useState<string | null>(null);
+  const [rowDragging, setRowDragging] = useState(false);
+  const [rowDropTargetId, setRowDropTargetId] = useState<string | null>(null);
+  const [rowDropPosition, setRowDropPosition] = useState<'above' | 'below' | 'child' | null>(null);
+  const [rowGhostPos, setRowGhostPos] = useState<{ x: number; y: number } | null>(null);
+  const rowDragStartY = useRef(0);
+  const rowDraggingRef = useRef(false);
+  const canDragRows = !!(callbacks.onTaskMove || callbacks.onTaskReparent);
+
+  const handleRowDragStart = useCallback((taskId: string, e: React.MouseEvent) => {
+    if (!canDragRows) return;
+    e.preventDefault();
+    rowDragStartY.current = e.clientY;
+    setRowDragId(taskId);
+    rowDraggingRef.current = false;
+    setRowDragging(false);
+    setRowGhostPos({ x: e.clientX, y: e.clientY });
+  }, [canDragRows]);
+
+  const handleRowDragMove = useCallback((e: MouseEvent) => {
+    if (!rowDragId) return;
+    const delta = Math.abs(e.clientY - rowDragStartY.current);
+    if (delta > 5 && !rowDraggingRef.current) {
+      rowDraggingRef.current = true;
+      setRowDragging(true);
+    }
+    setRowGhostPos({ x: e.clientX, y: e.clientY });
+    if (!rowDraggingRef.current) return;
+
+    // Find target row
+    const rows = document.querySelectorAll('[data-listview-row]');
+    let foundId: string | null = null;
+    let pos: 'above' | 'below' | 'child' | null = null;
+    rows.forEach((row) => {
+      const rect = row.getBoundingClientRect();
+      const id = row.getAttribute('data-listview-row');
+      if (id && id !== rowDragId && e.clientY >= rect.top && e.clientY <= rect.bottom) {
+        foundId = id;
+        const relY = e.clientY - rect.top;
+        const h = rect.height;
+        pos = relY < h * 0.25 ? 'above' : relY > h * 0.75 ? 'below' : 'child';
+      }
+    });
+    setRowDropTargetId(foundId);
+    setRowDropPosition(pos);
+  }, [rowDragId]);
+
+  const handleRowDragEnd = useCallback(() => {
+    if (rowDraggingRef.current && rowDragId && rowDropTargetId && rowDropPosition) {
+      if (rowDropPosition === 'child' && callbacks.onTaskReparent) {
+        callbacks.onTaskReparent(rowDragId, rowDropTargetId);
+      } else if (rowDropPosition === 'above' || rowDropPosition === 'below') {
+        // Find parent of target
+        const findParent = (list: Task[], targetId: string, parent: string | null = null): string | null | undefined => {
+          for (const t of list) {
+            if (t.id === targetId) return parent;
+            if (t.subtasks) {
+              const found = findParent(t.subtasks, targetId, t.id);
+              if (found !== undefined) return found;
+            }
+          }
+          return undefined;
+        };
+        const draggedParent = findParent(tasks, rowDragId, null);
+        const targetParent = findParent(tasks, rowDropTargetId, null);
+
+        if (callbacks.onTaskReparent) {
+          const findSiblings = (list: Task[], parentId: string | null): Task[] => {
+            if (parentId === null) return list;
+            for (const t of list) {
+              if (t.id === parentId) return t.subtasks || [];
+              if (t.subtasks) {
+                const found = findSiblings(t.subtasks, parentId);
+                if (found.length > 0 || t.subtasks.some(s => s.id === parentId)) return found;
+              }
+            }
+            return [];
+          };
+          const siblings = findSiblings(tasks, targetParent ?? null);
+          const targetIdx = siblings.findIndex(t => t.id === rowDropTargetId);
+          const sameGroup = draggedParent === targetParent;
+          const dragIdx = sameGroup ? siblings.findIndex(t => t.id === rowDragId) : -1;
+          let pos = rowDropPosition === 'below' ? targetIdx + 1 : targetIdx;
+          if (sameGroup && dragIdx !== -1 && dragIdx < targetIdx) pos -= 1;
+          callbacks.onTaskReparent(rowDragId, targetParent ?? null, Math.max(0, pos));
+        }
+      }
+    }
+    setRowDragId(null);
+    setRowDropTargetId(null);
+    setRowDropPosition(null);
+    setRowGhostPos(null);
+    rowDraggingRef.current = false;
+    setRowDragging(false);
+  }, [rowDragId, rowDropTargetId, rowDropPosition, tasks, callbacks]);
+
+  useEffect(() => {
+    if (rowDragId) {
+      document.addEventListener('mousemove', handleRowDragMove);
+      document.addEventListener('mouseup', handleRowDragEnd);
+      document.body.style.cursor = 'grabbing';
+      document.body.style.userSelect = 'none';
+      return () => {
+        document.removeEventListener('mousemove', handleRowDragMove);
+        document.removeEventListener('mouseup', handleRowDragEnd);
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      };
+    }
+    return undefined;
+  }, [rowDragId, handleRowDragMove, handleRowDragEnd]);
 
   // v2.5.0: WBS Level filter (same as Gantt)
   const [wbsLevel, setWbsLevel] = useState<number | 'all'>('all');
@@ -1401,6 +1516,9 @@ export function ListView({
             </button>
           )}
 
+          {/* v2.5.0: Custom end content (rendered just before Create Task button) */}
+          {config.toolbarEndContent}
+
           {/* Create Task Button - v0.18.0: Same style as GanttToolbar */}
           {showCreateTaskButton && onCreateTask && (
             <motion.button
@@ -1624,23 +1742,53 @@ export function ListView({
                 );
               }
 
+              const isBeingDragged = rowDragId === task.id;
+              const isDropTarget = rowDropTargetId === task.id;
+              const showDropAbove = isDropTarget && rowDropPosition === 'above';
+              const showDropBelow = isDropTarget && rowDropPosition === 'below';
+              const showDropChild = isDropTarget && rowDropPosition === 'child';
+
               return (
                 <motion.div
                   key={task.id}
+                  data-listview-row={task.id}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.15, delay: animationDelay }}
                   className={cn(
-                    "flex items-center border-b transition-colors",
+                    "flex items-center border-b transition-colors relative group",
                     isDark
                       ? "border-[#222] hover:bg-white/[0.05]"
                       : "border-gray-100 hover:bg-gray-50"
                   )}
+                  style={{
+                    opacity: isBeingDragged ? 0.4 : 1,
+                    backgroundColor: showDropChild ? (isDark ? 'rgba(46,148,255,0.08)' : 'rgba(46,148,255,0.05)') : undefined,
+                    boxShadow: showDropChild ? 'inset 0 0 0 2px #2E94FF' : undefined,
+                  }}
                   onClick={() => callbacks.onTaskClick?.(task)}
                   onDoubleClick={() => callbacks.onTaskDoubleClick?.(task)}
                   onContextMenu={(e) => handleContextMenu(e, task)}
                 >
+                  {/* Drop indicator ABOVE */}
+                  {showDropAbove && (
+                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, backgroundColor: '#2E94FF', zIndex: 10 }} />
+                  )}
+                  {/* Drop indicator BELOW */}
+                  {showDropBelow && (
+                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 2, backgroundColor: '#2E94FF', zIndex: 10 }} />
+                  )}
+                  {/* Drag handle */}
+                  {canDragRows && (
+                    <div
+                      className="flex-shrink-0 flex items-center justify-center w-5 cursor-grab opacity-0 group-hover:opacity-40 hover:!opacity-80 transition-opacity"
+                      onMouseDown={(e) => handleRowDragStart(task.id, e)}
+                      style={{ color: isDark ? '#888' : '#999' }}
+                    >
+                      <GripVertical className="w-3 h-3" />
+                    </div>
+                  )}
                   {visibleColumns.map((column) => (
                     <div
                       key={column.id}
@@ -1924,7 +2072,45 @@ export function ListView({
         onOpenTimeLog={callbacks.onOpenTimeLog}
         onReportBlocker={callbacks.onReportBlocker}
         onCopyTaskLink={callbacks.onCopyTaskLink}
+        onTaskMove={callbacks.onTaskMove}
+        onTaskIndent={callbacks.onTaskIndent}
+        onTaskOutdent={callbacks.onTaskOutdent}
       />
+
+      {/* v2.5.0: Drag ghost element */}
+      {rowDragging && rowGhostPos && rowDragId && createPortal(
+        <div
+          style={{
+            position: 'fixed',
+            left: rowGhostPos.x + 12,
+            top: rowGhostPos.y - 10,
+            zIndex: 99999,
+            pointerEvents: 'none',
+          }}
+        >
+          {(() => {
+            const flatAll = ganttUtils.flattenTasks(tasks);
+            const draggedTask = flatAll.find(t => t.id === rowDragId);
+            return draggedTask ? (
+              <div
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
+                style={{
+                  backgroundColor: isDark ? 'rgba(10,10,10,0.9)' : 'rgba(255,255,255,0.95)',
+                  border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#e5e7eb'}`,
+                  backdropFilter: 'blur(8px)',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                }}
+              >
+                <GripVertical className="w-3 h-3" style={{ color: '#2E94FF' }} />
+                <span className="text-xs font-medium" style={{ color: isDark ? '#e6edf3' : '#111827' }}>
+                  {draggedTask.name}
+                </span>
+              </div>
+            ) : null;
+          })()}
+        </div>,
+        document.body
+      )}
 
       {/* Create Field Modal */}
       <CreateFieldModal
