@@ -585,7 +585,7 @@ export const DEFAULT_TABLE_COLUMNS: TableColumn[] = [
   { id: 'name', type: 'name', label: 'Name', width: 300, visible: true, sortable: true, resizable: true },
   { id: 'status', type: 'status', label: 'Status', width: 140, visible: true, sortable: true, resizable: true },
   { id: 'priority', type: 'priority', label: 'Priority', width: 100, visible: false, sortable: true, resizable: true },
-  { id: 'assignees', type: 'assignees', label: 'Assignees', width: 150, visible: false, sortable: false, resizable: true },
+  // v2.5.0: 'assignees' removed — redundant with 'teamLoad' (Equipo)
   { id: 'startDate', type: 'startDate', label: 'Start Date', width: 120, visible: true, sortable: true, resizable: true },
   { id: 'endDate', type: 'endDate', label: 'End Date', width: 120, visible: true, sortable: true, resizable: true },
   { id: 'progress', type: 'progress', label: 'Progress', width: 100, visible: true, sortable: true, resizable: true },

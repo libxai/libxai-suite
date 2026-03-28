@@ -74,7 +74,7 @@ const COLUMN_ICONS: Record<ColumnType, React.ReactNode> = {
 };
 
 // Standard fields that are always available
-const STANDARD_COLUMNS: ColumnType[] = ['name', 'status', 'priority', 'assignees', 'startDate', 'endDate', 'progress', 'tags', 'effortMinutes', 'timeLoggedMinutes', 'soldEffortMinutes', 'weight'];
+const STANDARD_COLUMNS: ColumnType[] = ['name', 'status', 'priority', 'startDate', 'endDate', 'progress', 'tags', 'effortMinutes', 'timeLoggedMinutes', 'soldEffortMinutes', 'weight'];
 
 export function ColumnSelector({
   isOpen,
@@ -192,9 +192,9 @@ export function ColumnSelector({
     onColumnsChange([...columns, newColumn]);
   };
 
-  // Filter columns by search
+  // Filter columns by search (exclude deprecated 'assignees' — use 'teamLoad' instead)
   const filteredStandardColumns = STANDARD_COLUMNS.filter((type) =>
-    getColumnLabel(type).toLowerCase().includes(search.toLowerCase())
+    type !== 'assignees' && getColumnLabel(type).toLowerCase().includes(search.toLowerCase())
   );
 
   const filteredCustomFields = customFields.filter((field) =>
@@ -454,7 +454,6 @@ const translations = {
       name: 'Name',
       status: 'Status',
       priority: 'Priority',
-      assignees: 'Assignees',
       startDate: 'Start Date',
       endDate: 'End Date',
       progress: 'Progress',
@@ -484,7 +483,6 @@ const translations = {
       name: 'Nombre',
       status: 'Estado',
       priority: 'Prioridad',
-      assignees: 'Asignados',
       startDate: 'Fecha Inicio',
       endDate: 'Fecha Fin',
       progress: 'Progreso',

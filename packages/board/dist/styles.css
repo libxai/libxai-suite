@@ -8462,11 +8462,6 @@ body {
 }
 
 
-.bottom-2 {
-  bottom: 0.5rem;
-}
-
-
 .bottom-4 {
   bottom: 1rem;
 }
@@ -8559,11 +8554,6 @@ body {
 
 .top-1\/2 {
   top: 50%;
-}
-
-
-.top-2 {
-  top: 0.5rem;
 }
 
 
@@ -11868,6 +11858,11 @@ body {
 }
 
 
+.opacity-20 {
+  opacity: 0.2;
+}
+
+
 .opacity-25 {
   opacity: 0.25;
 }
@@ -13497,6 +13492,11 @@ body {
 
 .group:hover .group-hover\:opacity-40 {
   opacity: 0.4;
+}
+
+
+.group:hover .group-hover\:opacity-80 {
+  opacity: 0.8;
 }
 
 
