@@ -1230,14 +1230,31 @@ export function ListView({
         );
       }
 
-      case 'teamLoad':
+      case 'teamLoad': {
+        const isParent = (task as any).hasChildren || (task.subtasks && task.subtasks.length > 0);
+        // Parent tasks: read-only rollup of assignees from children
+        if (isParent) {
+          return (
+            <TeamLoadCell
+              task={task}
+              isDark={isDark}
+              locale={locale}
+            />
+          );
+        }
+        // Leaf tasks: editable assignee picker (same as old 'assignees' column)
         return (
-          <TeamLoadCell
-            task={task}
+          <AssigneesCell
+            value={task.assignees || []}
+            availableUsers={availableUsers}
+            onChange={(assignees) => {
+              callbacks.onTaskUpdate?.({ ...task, assignees });
+            }}
             isDark={isDark}
             locale={locale}
           />
         );
+      }
 
       case 'blockers':
         return (
