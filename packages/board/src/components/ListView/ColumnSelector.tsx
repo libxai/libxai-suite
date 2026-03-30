@@ -3,7 +3,7 @@
  * @version 2.3.0
  */
 
-import { useState, useEffect, useRef, useLayoutEffect } from 'react';
+import { useState, useEffect, useRef, useLayoutEffect, useMemo } from 'react';
 import {
   X,
   Search,
@@ -147,10 +147,25 @@ export function ColumnSelector({
     };
   }, [isOpen, onClose]);
 
+  // Build complete list: STANDARD_COLUMNS + any columns already in config (teamLoad, blockers, etc.)
+  // Must be before early return to respect hooks rules
+  const allColumnTypes = useMemo(() => {
+    const types = new Set<ColumnType>([...STANDARD_COLUMNS]);
+    columns.forEach(col => {
+      if (col.type && col.type !== 'assignees') types.add(col.type);
+    });
+    return Array.from(types);
+  }, [columns]);
+
   if (!isOpen) return null;
 
   const getColumnLabel = (type: ColumnType): string => {
-    return (t.columns as any)[type] || type;
+    // First check translations, then check the existing column config for its label
+    const translated = (t.columns as any)[type];
+    if (translated) return translated;
+    const existingCol = columns.find(c => c.type === type);
+    if (existingCol?.label) return existingCol.label;
+    return type;
   };
 
   const toggleColumnVisibility = (columnId: string) => {
@@ -192,8 +207,8 @@ export function ColumnSelector({
     onColumnsChange([...columns, newColumn]);
   };
 
-  // Filter columns by search (exclude deprecated 'assignees' — use 'teamLoad' instead)
-  const filteredStandardColumns = STANDARD_COLUMNS.filter((type) =>
+  // Filter columns by search (exclude deprecated 'assignees')
+  const filteredStandardColumns = allColumnTypes.filter((type) =>
     type !== 'assignees' && getColumnLabel(type).toLowerCase().includes(search.toLowerCase())
   );
 
@@ -353,13 +368,16 @@ export function ColumnSelector({
                   </span>
                   {/* Label */}
                   <span
+                    className="truncate"
                     style={{
                       fontSize: 12,
                       fontWeight: isVisible ? 500 : 400,
                       color: isVisible
                         ? (isDark ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.85)')
                         : (isDark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.5)'),
+                      maxWidth: '160px',
                     }}
+                    title={getColumnLabel(type)}
                   >
                     {getColumnLabel(type)}
                   </span>
