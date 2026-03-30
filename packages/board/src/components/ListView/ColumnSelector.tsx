@@ -88,6 +88,7 @@ export function ColumnSelector({
 }: ColumnSelectorProps) {
   const [search, setSearch] = useState('');
   const [maxHeight, setMaxHeight] = useState<number | null>(null);
+  const [fixedPos, setFixedPos] = useState<{ top: number; right: number } | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const t = locale === 'es' ? translations.es : translations.en;
 
@@ -97,11 +98,15 @@ export function ColumnSelector({
 
     const updateMaxHeight = () => {
       if (!panelRef.current) return;
+      // Position the fixed panel relative to its parent (the + button container)
+      const parent = panelRef.current.parentElement;
+      if (parent) {
+        const parentRect = parent.getBoundingClientRect();
+        setFixedPos({ top: parentRect.bottom + 4, right: window.innerWidth - parentRect.right });
+      }
       const rect = panelRef.current.getBoundingClientRect();
       const viewportHeight = window.innerHeight;
-      // Leave 20px padding from bottom of viewport
       const availableHeight = viewportHeight - rect.top - 20;
-      // Minimum height of 300px, maximum of available space
       setMaxHeight(Math.max(300, availableHeight));
     };
 
@@ -224,13 +229,15 @@ export function ColumnSelector({
       ref={panelRef}
       style={{
         ...(maxHeight ? { maxHeight: `${maxHeight}px` } : {}),
+        ...(fixedPos ? { top: fixedPos.top, right: fixedPos.right } : {}),
         background: isDark ? '#111114' : '#FFFFFF',
         border: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.08)'}`,
         boxShadow: isDark
           ? '0 8px 32px rgba(0,0,0,0.7)'
           : '0 8px 32px rgba(0,0,0,0.12)',
+        zIndex: 99999,
       }}
-      className="absolute right-0 top-full mt-1 w-64 rounded-xl z-50 flex flex-col"
+      className="fixed w-64 rounded-xl flex flex-col"
     >
       {/* Header */}
       <div

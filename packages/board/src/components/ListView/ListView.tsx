@@ -290,21 +290,29 @@ export function ListView({
     return { statusFilter: 'all' as StatusFilterValue, hideCompleted: false };
   }, [persistFilter]);
 
-  // Calculate total project hours from all tasks (flat sum of leaf nodes to avoid double counting)
+  // Calculate total project hours + dollars from all tasks (flat sum of leaf nodes to avoid double counting)
   const projectTotalHours = useMemo(() => {
-    function sumLeaves(taskList: Task[]): { spent: number; allocated: number; quoted: number } {
+    function sumLeaves(taskList: Task[]): { spent: number; allocated: number; quoted: number; dollarSpent: number; dollarAllocated: number; dollarQuoted: number } {
       let spent = 0; let allocated = 0; let quoted = 0;
+      let dollarSpent = 0; let dollarAllocated = 0; let dollarQuoted = 0;
       for (const t of taskList) {
         if (t.subtasks && t.subtasks.length > 0) {
           const nested = sumLeaves(t.subtasks);
           spent += nested.spent; allocated += nested.allocated; quoted += nested.quoted;
+          dollarSpent += nested.dollarSpent; dollarAllocated += nested.dollarAllocated; dollarQuoted += nested.dollarQuoted;
         } else {
-          spent += (t as any).timeLoggedMinutes ?? 0;
-          allocated += (t as any).effortMinutes ?? 0;
-          quoted += (t as any).soldEffortMinutes ?? 0;
+          const tSpent = (t as any).timeLoggedMinutes ?? 0;
+          const tAlloc = (t as any).effortMinutes ?? 0;
+          const tQuoted = (t as any).soldEffortMinutes ?? 0;
+          spent += tSpent; allocated += tAlloc; quoted += tQuoted;
+          // Calculate $ using per-task rate (same as cell rendering)
+          const rate = getTaskRate(t);
+          dollarSpent += (tSpent / 60) * rate;
+          dollarAllocated += (tAlloc / 60) * rate;
+          dollarQuoted += (tQuoted / 60) * rate;
         }
       }
-      return { spent, allocated, quoted };
+      return { spent, allocated, quoted, dollarSpent, dollarAllocated, dollarQuoted };
     }
     return sumLeaves(tasks);
   }, [tasks]);
@@ -1900,14 +1908,14 @@ export function ListView({
               ? `+${formatGroupHours(Math.abs(varianceMinutes))} ${locale === 'es' ? 'EXCEDIDO' : 'OVER'}`
               : `-${formatGroupHours(varianceMinutes)} ${locale === 'es' ? 'AHORRADO' : 'SAVED'}`;
             const isFinancial = lens === 'financial' && hourlyRate > 0;
-            const formatValue = (mins: number) => {
+            const formatValue = (mins: number, dollarOverride?: number) => {
               if (isFinancial) {
-                const dollars = (mins / 60) * hourlyRate;
-                return `$${dollars.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+                const dollars = dollarOverride != null ? dollarOverride : (mins / 60) * hourlyRate;
+                return `$${Math.round(dollars).toLocaleString('en-US')}`;
               }
               return formatGroupHours(mins);
             };
-            const varianceDollars = isFinancial ? Math.abs(varianceMinutes / 60 * hourlyRate) : 0;
+            const varianceDollars = isFinancial ? Math.abs(projectTotalHours.dollarAllocated - projectTotalHours.dollarSpent) : 0;
             const varianceLabelFinancial = isFinancial
               ? `${isOver ? '+' : '-'}$${varianceDollars.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} ${isOver ? (locale === 'es' ? 'EXCEDIDO' : 'OVER') : (locale === 'es' ? 'AHORRADO' : 'SAVED')}`
               : varianceLabel;
@@ -1915,7 +1923,7 @@ export function ListView({
             return (
               <div
                 className={cn(
-                  "flex items-center sticky bottom-0 z-10",
+                  "flex items-center sticky bottom-0 z-[5]",
                   isDark
                     ? "border-t border-[#2A2A3A]"
                     : "border-t border-gray-300"
@@ -1943,12 +1951,12 @@ export function ListView({
                       <div className="flex items-center gap-2 w-full">
                         <span className={cn("text-[12px] font-bold", isDark ? "text-white" : "text-gray-900")}
                           style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-                          {formatValue(spent)}
+                          {formatValue(spent, isFinancial ? projectTotalHours.dollarSpent : undefined)}
                         </span>
                         <span className={cn("text-[11px]", isDark ? "text-white/40" : "text-gray-400")}>/</span>
                         <span className={cn("text-[11px]", isDark ? "text-white/50" : "text-gray-500")}
                           style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-                          {formatValue(allocated)}
+                          {formatValue(allocated, isFinancial ? projectTotalHours.dollarAllocated : undefined)}
                         </span>
                         {allocated > 0 && (
                           <span className={cn(
@@ -1962,20 +1970,20 @@ export function ListView({
                     ) : column.type === 'soldEffortMinutes' ? (
                       <span className={cn("text-[12px] font-bold", isDark ? "text-white" : "text-gray-900")}
                         style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-                        {quoted > 0 ? formatValue(quoted) : '–'}
+                        {quoted > 0 ? formatValue(quoted, isFinancial ? projectTotalHours.dollarQuoted : undefined) : '–'}
                       </span>
                     ) : column.type === 'effortMinutes' ? (() => {
                       // Financial lens: show margin in footer
                       if (isFinancial && quoted > 0 && allocated > 0) {
-                        const offTotal = Math.round((quoted / 60) * (hourlyRate || 25));
-                        const estTotal = Math.round((allocated / 60) * (hourlyRate || 25));
+                        const offTotal = Math.round(projectTotalHours.dollarQuoted);
+                        const estTotal = Math.round(projectTotalHours.dollarAllocated);
                         const margin = offTotal - estTotal;
                         const marginPct = offTotal > 0 ? Math.round((margin / offTotal) * 100) : 0;
                         return (
                           <div className="flex items-center gap-2">
                             <span className={cn("text-[12px] font-bold", isDark ? "text-white" : "text-gray-900")}
                               style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-                              {formatValue(allocated)}
+                              {formatValue(allocated, projectTotalHours.dollarAllocated)}
                             </span>
                             <span className={cn('text-[9px] font-mono font-bold px-1.5 py-0.5 rounded whitespace-nowrap',
                               margin >= 0 ? 'bg-[#064e3b] text-[#10b981] border border-[#065f46]/30' : 'bg-[#451a03] text-[#f59e0b] border border-[#78350f]/30'
@@ -1989,13 +1997,13 @@ export function ListView({
                       return (
                         <span className={cn("text-[12px] font-bold", isDark ? "text-white" : "text-gray-900")}
                           style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-                          {allocated > 0 ? formatValue(allocated) : '–'}
+                          {allocated > 0 ? formatValue(allocated, isFinancial ? projectTotalHours.dollarAllocated : undefined) : '–'}
                         </span>
                       );
                     })() : column.type === 'timeLoggedMinutes' ? (
                       <span className={cn("text-[12px] font-bold", isDark ? "text-white" : "text-gray-900")}
                         style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-                        {spent > 0 ? formatValue(spent) : '–'}
+                        {spent > 0 ? formatValue(spent, isFinancial ? projectTotalHours.dollarSpent : undefined) : '–'}
                       </span>
                     ) : column.type === 'progress' ? (() => {
                       // Weighted progress: sum(progress × weight) / sum(weight) for root tasks
