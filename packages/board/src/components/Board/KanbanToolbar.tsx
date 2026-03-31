@@ -99,6 +99,8 @@ export interface KanbanToolbarProps {
   translations?: Partial<KanbanToolbarI18n>;
   /** Render custom content on the right side of toolbar (e.g. lens toggle) */
   toolbarRightContent?: React.ReactNode;
+  /** v2.5.0: Render content just before the Create Task button (e.g., share/export dropdown) */
+  toolbarEndContent?: React.ReactNode;
 }
 
 // Column Selector Dropdown
@@ -442,6 +444,7 @@ export function KanbanToolbar({
   onExportExcel,
   translations,
   toolbarRightContent,
+  toolbarEndContent,
 }: KanbanToolbarProps) {
   const themeStyles = theme === 'dark' ? darkTheme : lightTheme;
   const t: KanbanToolbarI18n = {
@@ -486,6 +489,8 @@ export function KanbanToolbar({
             )}
           </>
         )}
+
+        {toolbarEndContent}
 
         {onCreateTask && (
           useColumnSelector ? (

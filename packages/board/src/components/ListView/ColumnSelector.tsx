@@ -3,7 +3,7 @@
  * @version 2.3.0
  */
 
-import { useState, useEffect, useRef, useLayoutEffect } from 'react';
+import { useState, useEffect, useRef, useLayoutEffect, useMemo } from 'react';
 import {
   X,
   Search,
@@ -64,6 +64,7 @@ const COLUMN_ICONS: Record<ColumnType, React.ReactNode> = {
   hoursBar: <BarChart3 className="w-4 h-4" />,
   teamLoad: <Users className="w-4 h-4" />,
   blockers: <AlertTriangle className="w-4 h-4" />,
+  weight: <BarChart className="w-4 h-4" />,
   // Custom field types
   text: <Type className="w-4 h-4" />,
   number: <Hash className="w-4 h-4" />,
@@ -73,7 +74,7 @@ const COLUMN_ICONS: Record<ColumnType, React.ReactNode> = {
 };
 
 // Standard fields that are always available
-const STANDARD_COLUMNS: ColumnType[] = ['name', 'status', 'priority', 'assignees', 'startDate', 'endDate', 'progress', 'tags', 'effortMinutes', 'timeLoggedMinutes', 'soldEffortMinutes'];
+const STANDARD_COLUMNS: ColumnType[] = ['name', 'status', 'priority', 'startDate', 'endDate', 'progress', 'tags', 'effortMinutes', 'timeLoggedMinutes', 'soldEffortMinutes', 'weight'];
 
 export function ColumnSelector({
   isOpen,
@@ -87,6 +88,7 @@ export function ColumnSelector({
 }: ColumnSelectorProps) {
   const [search, setSearch] = useState('');
   const [maxHeight, setMaxHeight] = useState<number | null>(null);
+  const [fixedPos, setFixedPos] = useState<{ top: number; right: number } | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const t = locale === 'es' ? translations.es : translations.en;
 
@@ -96,11 +98,15 @@ export function ColumnSelector({
 
     const updateMaxHeight = () => {
       if (!panelRef.current) return;
+      // Position the fixed panel relative to its parent (the + button container)
+      const parent = panelRef.current.parentElement;
+      if (parent) {
+        const parentRect = parent.getBoundingClientRect();
+        setFixedPos({ top: parentRect.bottom + 4, right: window.innerWidth - parentRect.right });
+      }
       const rect = panelRef.current.getBoundingClientRect();
       const viewportHeight = window.innerHeight;
-      // Leave 20px padding from bottom of viewport
       const availableHeight = viewportHeight - rect.top - 20;
-      // Minimum height of 300px, maximum of available space
       setMaxHeight(Math.max(300, availableHeight));
     };
 
@@ -146,10 +152,25 @@ export function ColumnSelector({
     };
   }, [isOpen, onClose]);
 
+  // Build complete list: STANDARD_COLUMNS + any columns already in config (teamLoad, blockers, etc.)
+  // Must be before early return to respect hooks rules
+  const allColumnTypes = useMemo(() => {
+    const types = new Set<ColumnType>([...STANDARD_COLUMNS]);
+    columns.forEach(col => {
+      if (col.type && col.type !== 'assignees') types.add(col.type);
+    });
+    return Array.from(types);
+  }, [columns]);
+
   if (!isOpen) return null;
 
   const getColumnLabel = (type: ColumnType): string => {
-    return t.columns[type] || type;
+    // First check translations, then check the existing column config for its label
+    const translated = (t.columns as any)[type];
+    if (translated) return translated;
+    const existingCol = columns.find(c => c.type === type);
+    if (existingCol?.label) return existingCol.label;
+    return type;
   };
 
   const toggleColumnVisibility = (columnId: string) => {
@@ -191,9 +212,9 @@ export function ColumnSelector({
     onColumnsChange([...columns, newColumn]);
   };
 
-  // Filter columns by search
-  const filteredStandardColumns = STANDARD_COLUMNS.filter((type) =>
-    getColumnLabel(type).toLowerCase().includes(search.toLowerCase())
+  // Filter columns by search (exclude deprecated 'assignees')
+  const filteredStandardColumns = allColumnTypes.filter((type) =>
+    type !== 'assignees' && getColumnLabel(type).toLowerCase().includes(search.toLowerCase())
   );
 
   const filteredCustomFields = customFields.filter((field) =>
@@ -208,13 +229,15 @@ export function ColumnSelector({
       ref={panelRef}
       style={{
         ...(maxHeight ? { maxHeight: `${maxHeight}px` } : {}),
+        ...(fixedPos ? { top: fixedPos.top, right: fixedPos.right } : {}),
         background: isDark ? '#111114' : '#FFFFFF',
         border: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.08)'}`,
         boxShadow: isDark
           ? '0 8px 32px rgba(0,0,0,0.7)'
           : '0 8px 32px rgba(0,0,0,0.12)',
+        zIndex: 99999,
       }}
-      className="absolute right-0 top-full mt-1 w-64 rounded-xl z-50 flex flex-col"
+      className="fixed w-64 rounded-xl flex flex-col"
     >
       {/* Header */}
       <div
@@ -352,13 +375,16 @@ export function ColumnSelector({
                   </span>
                   {/* Label */}
                   <span
+                    className="truncate"
                     style={{
                       fontSize: 12,
                       fontWeight: isVisible ? 500 : 400,
                       color: isVisible
                         ? (isDark ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.85)')
                         : (isDark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.5)'),
+                      maxWidth: '160px',
                     }}
+                    title={getColumnLabel(type)}
                   >
                     {getColumnLabel(type)}
                   </span>
@@ -453,7 +479,6 @@ const translations = {
       name: 'Name',
       status: 'Status',
       priority: 'Priority',
-      assignees: 'Assignees',
       startDate: 'Start Date',
       endDate: 'End Date',
       progress: 'Progress',
@@ -470,6 +495,7 @@ const translations = {
       date: 'Date',
       dropdown: 'Dropdown',
       checkbox: 'Checkbox',
+      weight: 'Weight',
     } as Record<ColumnType, string>,
   },
   es: {
@@ -482,7 +508,6 @@ const translations = {
       name: 'Nombre',
       status: 'Estado',
       priority: 'Prioridad',
-      assignees: 'Asignados',
       startDate: 'Fecha Inicio',
       endDate: 'Fecha Fin',
       progress: 'Progreso',
@@ -499,6 +524,7 @@ const translations = {
       date: 'Fecha',
       dropdown: 'Lista',
       checkbox: 'Casilla',
+      weight: 'Peso',
     } as Record<ColumnType, string>,
   },
 };

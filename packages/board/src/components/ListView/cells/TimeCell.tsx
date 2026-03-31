@@ -201,15 +201,14 @@ export function TimeCell({
 
   // Read-only mode (no onChange provided)
   if (disabled || !onChange) {
+    // Parent tasks with no value: render empty (no dash)
+    if (!value || value === 0) return null;
     return (
       <div className="flex items-center gap-1.5">
-        {value != null && value > 0 && (
-          <ValueIcon className={cn('w-3.5 h-3.5 flex-shrink-0', isDark ? 'text-white/30' : 'text-gray-400')} />
-        )}
+        <ValueIcon className={cn('w-3.5 h-3.5 flex-shrink-0', isDark ? 'text-white/30' : 'text-gray-400')} />
         <span className={cn(
           'text-sm font-mono',
           isDark ? 'text-white/60' : 'text-gray-500',
-          (!value || value === 0) && (isDark ? 'text-white/30' : 'text-gray-400')
         )}>
           {formattedValue}
         </span>

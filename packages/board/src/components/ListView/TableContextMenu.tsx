@@ -72,6 +72,10 @@ interface TableContextMenuProps {
   onOpenTimeLog?: (task: Task) => void;
   onReportBlocker?: (task: Task) => void;
   onCopyTaskLink?: (task: Task) => void;
+  // v2.5.0: Hierarchy actions
+  onTaskMove?: (taskId: string, direction: 'up' | 'down') => void;
+  onTaskIndent?: (taskId: string) => void;
+  onTaskOutdent?: (taskId: string) => void;
 }
 
 interface MenuItem {
@@ -99,6 +103,9 @@ export function TableContextMenu({
   onOpenTimeLog,
   onReportBlocker,
   onCopyTaskLink,
+  onTaskMove,
+  onTaskIndent,
+  onTaskOutdent,
 }: TableContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const t = locale === 'es' ? translations.es : translations.en;
@@ -318,6 +325,41 @@ export function TableContextMenu({
       });
     }
 
+    // v2.5.0: Hierarchy actions (move, indent, outdent)
+    if (onTaskMove || onTaskIndent || onTaskOutdent) {
+      items.push({ id: 'sep3', label: '', icon: null, separator: true });
+      if (onTaskMove) {
+        items.push({
+          id: 'move-up',
+          label: t.moveUp || (locale === 'es' ? 'Mover arriba' : 'Move up'),
+          icon: <ArrowUp className="w-4 h-4" />,
+          onClick: () => { onTaskMove(state.task!.id, 'up'); onClose(); },
+        });
+        items.push({
+          id: 'move-down',
+          label: t.moveDown || (locale === 'es' ? 'Mover abajo' : 'Move down'),
+          icon: <ArrowDown className="w-4 h-4" />,
+          onClick: () => { onTaskMove(state.task!.id, 'down'); onClose(); },
+        });
+      }
+      if (onTaskIndent) {
+        items.push({
+          id: 'indent',
+          label: t.indent || (locale === 'es' ? 'Convertir en subtarea' : 'Make subtask'),
+          icon: <ChevronRight className="w-4 h-4" />,
+          onClick: () => { onTaskIndent(state.task!.id); onClose(); },
+        });
+      }
+      if (onTaskOutdent) {
+        items.push({
+          id: 'outdent',
+          label: t.outdent || (locale === 'es' ? 'Sacar de subtarea' : 'Remove from parent'),
+          icon: <ArrowUp className="w-4 h-4 -rotate-90" />,
+          onClick: () => { onTaskOutdent(state.task!.id); onClose(); },
+        });
+      }
+    }
+
     // Delete
     if (onTaskDelete) {
       items.push({
@@ -510,6 +552,10 @@ const translations = {
     changePriority: 'Change priority',
     assignUser: 'Assign user',
     duplicate: 'Duplicate',
+    moveUp: 'Move up',
+    moveDown: 'Move down',
+    indent: 'Make subtask',
+    outdent: 'Remove from parent',
     delete: 'Delete',
     todo: 'To Do',
     inProgress: 'In Progress',
@@ -531,6 +577,10 @@ const translations = {
     changePriority: 'Cambiar prioridad',
     assignUser: 'Asignar usuario',
     duplicate: 'Duplicar',
+    moveUp: 'Mover arriba',
+    moveDown: 'Mover abajo',
+    indent: 'Convertir en subtarea',
+    outdent: 'Sacar de subtarea',
     delete: 'Eliminar',
     todo: 'Pendiente',
     inProgress: 'En Progreso',

@@ -6,6 +6,7 @@
  */
 
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   List,
@@ -52,6 +53,7 @@ import { BlockersCell } from './cells/BlockersCell';
 
 // Components
 import { TableContextMenu } from './TableContextMenu';
+import { ganttUtils } from '../Gantt/ganttUtils';
 import { ColumnSelector } from './ColumnSelector';
 import { CreateFieldModal } from './CreateFieldModal';
 import { StatusFilter, type StatusFilterValue } from './StatusFilter';
@@ -163,6 +165,55 @@ function formatGroupHours(minutes: number): string {
 }
 
 /**
+ * Inline weight cell — click to edit, Enter/blur to save
+ */
+function WeightCellInline({ value, onChange, isDark }: { value: number; onChange: (v: number) => void; isDark: boolean }) {
+  const [editing, setEditing] = useState(false);
+  const [editVal, setEditVal] = useState(String(value || ''));
+
+  if (editing) {
+    return (
+      <input
+        autoFocus
+        type="text"
+        inputMode="decimal"
+        value={editVal}
+        onClick={(e) => e.stopPropagation()}
+        onChange={(e) => setEditVal(e.target.value.replace(/[^0-9.]/g, ''))}
+        onBlur={() => {
+          const parsed = parseFloat(editVal);
+          if (!isNaN(parsed) && parsed >= 0 && parsed <= 100) onChange(parsed);
+          else if (editVal === '') onChange(0);
+          setEditing(false);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+          if (e.key === 'Escape') { setEditVal(String(value || '')); setEditing(false); }
+        }}
+        className={cn(
+          "w-14 text-xs text-right font-mono px-1 py-0.5 rounded border outline-none",
+          isDark ? "bg-white/5 border-[#00E5CC]/50 text-white" : "bg-gray-50 border-blue-400 text-gray-900"
+        )}
+        style={{ fontFamily: 'JetBrains Mono, monospace' }}
+      />
+    );
+  }
+
+  return (
+    <button
+      onClick={(e) => { e.stopPropagation(); setEditVal(String(value || '')); setEditing(true); }}
+      className={cn(
+        "text-xs font-mono cursor-pointer hover:underline",
+        value > 0 ? (isDark ? "text-white/80" : "text-gray-700") : (isDark ? "text-white/30" : "text-gray-300")
+      )}
+      style={{ fontFamily: 'JetBrains Mono, monospace' }}
+    >
+      {value > 0 ? `${value}%` : '—'}
+    </button>
+  );
+}
+
+/**
  * Main ListView Component
  */
 export function ListView({
@@ -199,6 +250,7 @@ export function ListView({
     // v2.3.0: Financial lens
     lens = 'hours',
     hourlyRate = 0,
+    rateMap,
     // v2.3.2: Aggregate child hours into parent hoursBar cell
     aggregateParentHours = false,
     // v2.4.0: Project totals sticky footer
@@ -207,6 +259,37 @@ export function ListView({
 
   const t = mergeListViewTranslations(locale, customTranslations);
   const isDark = themeName === 'dark';
+
+  // v2.5.0: Resolve per-task hourly rate from assignees' rateMap, fallback to global hourlyRate
+  const getTaskRate = (task: Task): number => {
+    if (!rateMap || !task.assignees || task.assignees.length === 0) return hourlyRate;
+    const rates = task.assignees
+      .map((a: any) => a.id ? rateMap[a.id] : undefined)
+      .filter((r): r is number => r != null && r > 0);
+    if (rates.length === 0) return hourlyRate;
+    return rates.reduce((a, b) => a + b, 0) / rates.length;
+  };
+
+  // v2.5.1: Calculate group dollar totals — same logic as projectTotalHours (sumLeaves)
+  const calculateGroupDollars = (parentTask: Task): { dollarSpent: number; dollarAllocated: number; dollarQuoted: number } => {
+    let dollarSpent = 0, dollarAllocated = 0, dollarQuoted = 0;
+    const sumLeaves = (taskList: Task[]) => {
+      for (const t of taskList) {
+        if (t.subtasks && t.subtasks.length > 0) {
+          sumLeaves(t.subtasks);
+        } else {
+          const rate = getTaskRate(t);
+          dollarSpent += (((t as any).timeLoggedMinutes ?? 0) / 60) * rate;
+          dollarAllocated += (((t as any).effortMinutes ?? 0) / 60) * rate;
+          dollarQuoted += (((t as any).soldEffortMinutes ?? 0) / 60) * rate;
+        }
+      }
+    };
+    if (parentTask.subtasks) {
+      sumLeaves(parentTask.subtasks);
+    }
+    return { dollarSpent, dollarAllocated, dollarQuoted };
+  };
 
   // v0.18.3: Load persisted filter state from localStorage
   const loadPersistedFilter = useCallback(() => {
@@ -228,23 +311,51 @@ export function ListView({
     return { statusFilter: 'all' as StatusFilterValue, hideCompleted: false };
   }, [persistFilter]);
 
-  // Calculate total project hours from all tasks (flat sum of leaf nodes to avoid double counting)
+  // Calculate total project hours + dollars from all tasks (flat sum of leaf nodes to avoid double counting)
   const projectTotalHours = useMemo(() => {
-    function sumLeaves(taskList: Task[]): { spent: number; allocated: number; quoted: number } {
+    function sumLeaves(taskList: Task[]): { spent: number; allocated: number; quoted: number; dollarSpent: number; dollarAllocated: number; dollarQuoted: number } {
       let spent = 0; let allocated = 0; let quoted = 0;
+      let dollarSpent = 0; let dollarAllocated = 0; let dollarQuoted = 0;
       for (const t of taskList) {
         if (t.subtasks && t.subtasks.length > 0) {
           const nested = sumLeaves(t.subtasks);
           spent += nested.spent; allocated += nested.allocated; quoted += nested.quoted;
+          dollarSpent += nested.dollarSpent; dollarAllocated += nested.dollarAllocated; dollarQuoted += nested.dollarQuoted;
         } else {
-          spent += (t as any).timeLoggedMinutes ?? 0;
-          allocated += (t as any).effortMinutes ?? 0;
-          quoted += (t as any).soldEffortMinutes ?? 0;
+          const tSpent = (t as any).timeLoggedMinutes ?? 0;
+          const tAlloc = (t as any).effortMinutes ?? 0;
+          const tQuoted = (t as any).soldEffortMinutes ?? 0;
+          spent += tSpent; allocated += tAlloc; quoted += tQuoted;
+          // Calculate $ using per-task rate (same as cell rendering)
+          const rate = getTaskRate(t);
+          dollarSpent += (tSpent / 60) * rate;
+          dollarAllocated += (tAlloc / 60) * rate;
+          dollarQuoted += (tQuoted / 60) * rate;
         }
       }
-      return { spent, allocated, quoted };
+      return { spent, allocated, quoted, dollarSpent, dollarAllocated, dollarQuoted };
     }
     return sumLeaves(tasks);
+  }, [tasks]);
+
+  // Pre-compute parent→children weight sums (recursive for all levels)
+  const parentWeightSums = useMemo(() => {
+    const sums = new Map<string, number>();
+    function collectWeights(taskList: Task[]): number {
+      let total = 0;
+      for (const t of taskList) {
+        if (t.subtasks && t.subtasks.length > 0) {
+          const childSum = collectWeights(t.subtasks);
+          sums.set(t.id, childSum);
+          total += childSum;
+        } else {
+          total += (t as any).weight || 0;
+        }
+      }
+      return total;
+    }
+    collectWeights(tasks);
+    return sums;
   }, [tasks]);
 
   // Merge project total into healthSidebar data so sidebar can display it
@@ -276,6 +387,119 @@ export function ListView({
     y: 0,
     type: 'task',
   });
+
+  // v2.5.0: Row drag & drop (mouse-based, same pattern as Gantt TaskGrid)
+  const [rowDragId, setRowDragId] = useState<string | null>(null);
+  const [rowDragging, setRowDragging] = useState(false);
+  const [rowDropTargetId, setRowDropTargetId] = useState<string | null>(null);
+  const [rowDropPosition, setRowDropPosition] = useState<'above' | 'below' | 'child' | null>(null);
+  const [rowGhostPos, setRowGhostPos] = useState<{ x: number; y: number } | null>(null);
+  const rowDragStartY = useRef(0);
+  const rowDraggingRef = useRef(false);
+  const canDragRows = !!(callbacks.onTaskMove || callbacks.onTaskReparent);
+
+  const handleRowDragStart = useCallback((taskId: string, e: React.MouseEvent) => {
+    if (!canDragRows) return;
+    e.preventDefault();
+    rowDragStartY.current = e.clientY;
+    setRowDragId(taskId);
+    rowDraggingRef.current = false;
+    setRowDragging(false);
+    setRowGhostPos({ x: e.clientX, y: e.clientY });
+  }, [canDragRows]);
+
+  const handleRowDragMove = useCallback((e: MouseEvent) => {
+    if (!rowDragId) return;
+    const delta = Math.abs(e.clientY - rowDragStartY.current);
+    if (delta > 5 && !rowDraggingRef.current) {
+      rowDraggingRef.current = true;
+      setRowDragging(true);
+    }
+    setRowGhostPos({ x: e.clientX, y: e.clientY });
+    if (!rowDraggingRef.current) return;
+
+    // Find target row
+    const rows = document.querySelectorAll('[data-listview-row]');
+    let foundId: string | null = null;
+    let pos: 'above' | 'below' | 'child' | null = null;
+    rows.forEach((row) => {
+      const rect = row.getBoundingClientRect();
+      const id = row.getAttribute('data-listview-row');
+      if (id && id !== rowDragId && e.clientY >= rect.top && e.clientY <= rect.bottom) {
+        foundId = id;
+        const relY = e.clientY - rect.top;
+        const h = rect.height;
+        pos = relY < h * 0.25 ? 'above' : relY > h * 0.75 ? 'below' : 'child';
+      }
+    });
+    setRowDropTargetId(foundId);
+    setRowDropPosition(pos);
+  }, [rowDragId]);
+
+  const handleRowDragEnd = useCallback(() => {
+    if (rowDraggingRef.current && rowDragId && rowDropTargetId && rowDropPosition) {
+      if (rowDropPosition === 'child' && callbacks.onTaskReparent) {
+        callbacks.onTaskReparent(rowDragId, rowDropTargetId);
+      } else if (rowDropPosition === 'above' || rowDropPosition === 'below') {
+        // Find parent of target
+        const findParent = (list: Task[], targetId: string, parent: string | null = null): string | null | undefined => {
+          for (const t of list) {
+            if (t.id === targetId) return parent;
+            if (t.subtasks) {
+              const found = findParent(t.subtasks, targetId, t.id);
+              if (found !== undefined) return found;
+            }
+          }
+          return undefined;
+        };
+        const draggedParent = findParent(tasks, rowDragId, null);
+        const targetParent = findParent(tasks, rowDropTargetId, null);
+
+        if (callbacks.onTaskReparent) {
+          const findSiblings = (list: Task[], parentId: string | null): Task[] => {
+            if (parentId === null) return list;
+            for (const t of list) {
+              if (t.id === parentId) return t.subtasks || [];
+              if (t.subtasks) {
+                const found = findSiblings(t.subtasks, parentId);
+                if (found.length > 0 || t.subtasks.some(s => s.id === parentId)) return found;
+              }
+            }
+            return [];
+          };
+          const siblings = findSiblings(tasks, targetParent ?? null);
+          const targetIdx = siblings.findIndex(t => t.id === rowDropTargetId);
+          const sameGroup = draggedParent === targetParent;
+          const dragIdx = sameGroup ? siblings.findIndex(t => t.id === rowDragId) : -1;
+          let pos = rowDropPosition === 'below' ? targetIdx + 1 : targetIdx;
+          if (sameGroup && dragIdx !== -1 && dragIdx < targetIdx) pos -= 1;
+          callbacks.onTaskReparent(rowDragId, targetParent ?? null, Math.max(0, pos));
+        }
+      }
+    }
+    setRowDragId(null);
+    setRowDropTargetId(null);
+    setRowDropPosition(null);
+    setRowGhostPos(null);
+    rowDraggingRef.current = false;
+    setRowDragging(false);
+  }, [rowDragId, rowDropTargetId, rowDropPosition, tasks, callbacks]);
+
+  useEffect(() => {
+    if (rowDragId) {
+      document.addEventListener('mousemove', handleRowDragMove);
+      document.addEventListener('mouseup', handleRowDragEnd);
+      document.body.style.cursor = 'grabbing';
+      document.body.style.userSelect = 'none';
+      return () => {
+        document.removeEventListener('mousemove', handleRowDragMove);
+        document.removeEventListener('mouseup', handleRowDragEnd);
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      };
+    }
+    return undefined;
+  }, [rowDragId, handleRowDragMove, handleRowDragEnd]);
 
   // v2.5.0: WBS Level filter (same as Gantt)
   const [wbsLevel, setWbsLevel] = useState<number | 'all'>('all');
@@ -815,7 +1039,7 @@ export function ListView({
             locale={locale}
             disabled={isCompleted}
             lens={lens}
-            hourlyRate={hourlyRate}
+            hourlyRate={getTaskRate(task)}
           />
         );
       }
@@ -836,7 +1060,7 @@ export function ListView({
             disabled={isCompleted}
             isBlurred={shouldBlurQuoted}
             lens={lens}
-            hourlyRate={hourlyRate}
+            hourlyRate={getTaskRate(task)}
           />
         );
       }
@@ -851,7 +1075,7 @@ export function ListView({
             locale={locale}
             disabled={isCompleted}
             lens={lens}
-            hourlyRate={hourlyRate}
+            hourlyRate={getTaskRate(task)}
           />
         );
       }
@@ -860,18 +1084,70 @@ export function ListView({
       case 'effortMinutes': {
         if (aggregateParentHours && task.subtasks && task.subtasks.length > 0) {
           const { allocated } = calculateGroupHours(task);
-return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={hourlyRate} />;
+          // Financial lens for parent: sum $ from children directly
+          if (lens === 'financial') {
+            const groupDollars = calculateGroupDollars(task);
+            const estDollars = Math.round(groupDollars.dollarAllocated);
+            const offDollars = Math.round(groupDollars.dollarQuoted);
+            const margin = offDollars - estDollars;
+            return (
+              <div className="flex items-center gap-1.5">
+                {estDollars > 0 ? (
+                  <span className={cn('text-sm font-mono', isDark ? 'text-white/60' : 'text-gray-500')}>
+                    ${estDollars.toLocaleString('en-US')}
+                  </span>
+                ) : null}
+                {margin !== 0 && estDollars > 0 && offDollars > 0 && (
+                  <span className={cn('text-[9px] font-mono font-bold px-1.5 py-0.5 rounded whitespace-nowrap',
+                    margin > 0 ? 'bg-[#064e3b] text-[#10b981] border border-[#065f46]/30' : 'bg-[#451a03] text-[#f59e0b] border border-[#78350f]/30'
+                  )}>
+                    {margin > 0 ? '+' : ''}{Math.abs(margin) >= 1000 ? `$${(margin/1000).toFixed(1)}K` : `$${margin}`}
+                  </span>
+                )}
+              </div>
+            );
+          }
+          return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={hourlyRate} />;
         }
         const isCompleted = task.status === 'completed' || task.progress === 100;
+        const estMins = (task as any).effortMinutes || 0;
+        const soldMins = (task as any).soldEffortMinutes || 0;
+        // Financial lens: show margin badge next to estimated value
+        const _taskRate = getTaskRate(task);
+        if (lens === 'financial' && _taskRate && estMins > 0 && soldMins > 0) {
+          const estDollars = Math.round((estMins / 60) * _taskRate);
+          const offDollars = Math.round((soldMins / 60) * _taskRate);
+          const margin = offDollars - estDollars;
+          return (
+            <div className="flex items-center gap-1.5">
+              <TimeCell
+                value={estMins}
+                onChange={(minutes) => handleUpdate({ effortMinutes: minutes } as any)}
+                isDark={isDark}
+                locale={locale}
+                disabled={isCompleted}
+                lens={lens}
+                hourlyRate={getTaskRate(task)}
+              />
+              {margin !== 0 && (
+                <span className={cn('text-[9px] font-mono font-bold px-1.5 py-0.5 rounded whitespace-nowrap',
+                  margin >= 0 ? 'bg-[#064e3b] text-[#10b981] border border-[#065f46]/30' : 'bg-[#451a03] text-[#f59e0b] border border-[#78350f]/30'
+                )}>
+                  {margin > 0 ? '+' : ''}{Math.abs(margin) >= 1000 ? `$${(margin/1000).toFixed(1)}K` : `$${margin}`}
+                </span>
+              )}
+            </div>
+          );
+        }
         return (
           <TimeCell
-            value={(task as any).effortMinutes}
+            value={estMins}
             onChange={(minutes) => handleUpdate({ effortMinutes: minutes } as any)}
             isDark={isDark}
             locale={locale}
             disabled={isCompleted}
             lens={lens}
-            hourlyRate={hourlyRate}
+            hourlyRate={getTaskRate(task)}
           />
         );
       }
@@ -879,7 +1155,7 @@ return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} l
       case 'timeLoggedMinutes': {
         if (aggregateParentHours && task.subtasks && task.subtasks.length > 0) {
           const { spent } = calculateGroupHours(task);
-          return <TimeCell value={spent > 0 ? spent : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={hourlyRate} />;
+          return <TimeCell value={spent > 0 ? spent : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={getTaskRate(task)} />;
         }
         const isCompleted = task.status === 'completed' || task.progress === 100;
         return (
@@ -894,7 +1170,7 @@ return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} l
             placeholder={locale === 'es' ? 'Agregar' : 'Add'}
             disabled={isCompleted}
             lens={lens}
-            hourlyRate={hourlyRate}
+            hourlyRate={getTaskRate(task)}
           />
         );
       }
@@ -903,7 +1179,7 @@ return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} l
         if (aggregateParentHours && task.subtasks && task.subtasks.length > 0) {
           const { quoted } = calculateGroupHours(task);
           const shouldBlurSold = financialBlur?.enabled && (!financialBlur.columns || financialBlur.columns.includes('soldEffortMinutes'));
-          return <TimeCell value={quoted > 0 ? quoted : undefined} isDark={isDark} locale={locale} disabled isBlurred={shouldBlurSold} lens={lens} hourlyRate={hourlyRate} />;
+          return <TimeCell value={quoted > 0 ? quoted : undefined} isDark={isDark} locale={locale} disabled isBlurred={shouldBlurSold} lens={lens} hourlyRate={getTaskRate(task)} />;
         }
         const isCompleted = task.status === 'completed' || task.progress === 100;
         // v1.4.9: Governance v2.0 - Check if this column should be blurred
@@ -919,7 +1195,7 @@ return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} l
             disabled={isCompleted}
             isBlurred={shouldBlurSold}
             lens={lens}
-            hourlyRate={hourlyRate}
+            hourlyRate={getTaskRate(task)}
           />
         );
       }
@@ -982,19 +1258,36 @@ return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} l
             showSoldEffort={config.showSoldEffort}
             onOpenTimeLog={callbacks.onOpenTimeLog}
             lens={lens}
-            hourlyRate={hourlyRate}
+            hourlyRate={getTaskRate(task)}
           />
         );
       }
 
-      case 'teamLoad':
+      case 'teamLoad': {
+        const isParent = (task as any).hasChildren || (task.subtasks && task.subtasks.length > 0);
+        // Parent tasks: read-only rollup of assignees from children
+        if (isParent) {
+          return (
+            <TeamLoadCell
+              task={task}
+              isDark={isDark}
+              locale={locale}
+            />
+          );
+        }
+        // Leaf tasks: editable assignee picker (same as old 'assignees' column)
         return (
-          <TeamLoadCell
-            task={task}
+          <AssigneesCell
+            value={task.assignees || []}
+            availableUsers={availableUsers}
+            onChange={(assignees) => {
+              callbacks.onTaskUpdate?.({ ...task, assignees });
+            }}
             isDark={isDark}
             locale={locale}
           />
         );
+      }
 
       case 'blockers':
         return (
@@ -1005,10 +1298,32 @@ return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} l
           />
         );
 
+      case 'weight': {
+        // Parent tasks: show sum of children weights (read-only, not editable)
+        const parentSum = parentWeightSums.get(task.id);
+        if (parentSum !== undefined) {
+          return (
+            <span className={cn("text-xs font-mono", parentSum > 0 ? (isDark ? "text-white/50" : "text-gray-400") : (isDark ? "text-white/30" : "text-gray-300"))}
+              style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+              {parentSum > 0 ? `${Number(parentSum.toFixed(2))}%` : '—'}
+            </span>
+          );
+        }
+        // Leaf tasks: inline editable
+        const weightVal = (task as any).weight || 0;
+        return (
+          <WeightCellInline
+            value={weightVal}
+            onChange={(v) => handleUpdate({ weight: v } as any)}
+            isDark={isDark}
+          />
+        );
+      }
+
       default:
         return <span className={cn("text-sm", isDark ? "text-white/60" : "text-gray-500")}>-</span>;
     }
-  }, [callbacks, isDark, locale, availableUsers, t, aggregateParentHours]);
+  }, [callbacks, isDark, locale, availableUsers, t, aggregateParentHours, parentWeightSums]);
 
   // Get column label with translations
   const getColumnLabel = useCallback((column: TableColumn): string => {
@@ -1035,6 +1350,7 @@ return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} l
       hoursBar: (t.columns as any).hoursBar || (locale === 'es' ? 'Horas (Usado / Asignado)' : 'Hours (Spent / Allocated)'),
       teamLoad: (t.columns as any).teamLoad || (locale === 'es' ? 'Equipo' : 'Team'),
       blockers: (t.columns as any).blockers || (locale === 'es' ? 'Bloqueantes' : 'Blockers'),
+      weight: (t.columns as any).weight || (locale === 'es' ? 'Peso' : 'Weight'),
     };
     const label = labelMap[column.type] || column.label;
     // Ensure we always return a string to prevent React error #310
@@ -1250,6 +1566,9 @@ return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} l
             </button>
           )}
 
+          {/* v2.5.0: Custom end content (rendered just before Create Task button) */}
+          {config.toolbarEndContent}
+
           {/* Create Task Button - v0.18.0: Same style as GanttToolbar */}
           {showCreateTaskButton && onCreateTask && (
             <motion.button
@@ -1458,11 +1777,40 @@ return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} l
                             )}
                           </div>
                         ) : column.type === 'timeLoggedMinutes' ? (
-                          <TimeCell value={spent > 0 ? spent : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={hourlyRate} />
+                          lens === 'financial' ? (() => {
+                            const groupDollars = calculateGroupDollars(task);
+                            const val = Math.round(groupDollars.dollarSpent);
+                            return val > 0 ? <span className={cn('text-sm font-mono', isDark ? 'text-white/60' : 'text-gray-500')}>${val.toLocaleString('en-US')}</span> : null;
+                          })() : <TimeCell value={spent > 0 ? spent : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={getTaskRate(task)} />
                         ) : column.type === 'soldEffortMinutes' ? (
-                          <TimeCell value={quoted > 0 ? quoted : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={hourlyRate} />
+                          lens === 'financial' ? (() => {
+                            const groupDollars = calculateGroupDollars(task);
+                            const val = Math.round(groupDollars.dollarQuoted);
+                            return val > 0 ? <span className={cn('text-sm font-mono', isDark ? 'text-white/60' : 'text-gray-500')}>${val.toLocaleString('en-US')}</span> : null;
+                          })() : <TimeCell value={quoted > 0 ? quoted : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={getTaskRate(task)} />
                         ) : column.type === 'effortMinutes' ? (
-                          <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={hourlyRate} />
+                          lens === 'financial' ? (() => {
+                            const groupDollars = calculateGroupDollars(task);
+                            const estDollars = Math.round(groupDollars.dollarAllocated);
+                            const offDollars = Math.round(groupDollars.dollarQuoted);
+                            const margin = offDollars - estDollars;
+                            return (
+                              <div className="flex items-center gap-1.5">
+                                {estDollars > 0 ? (
+                                  <span className={cn('text-sm font-mono', isDark ? 'text-white/60' : 'text-gray-500')}>
+                                    ${estDollars.toLocaleString('en-US')}
+                                  </span>
+                                ) : null}
+                                {margin !== 0 && estDollars > 0 && offDollars > 0 && (
+                                  <span className={cn('text-[9px] font-mono font-bold px-1.5 py-0.5 rounded whitespace-nowrap',
+                                    margin > 0 ? 'bg-[#064e3b] text-[#10b981] border border-[#065f46]/30' : 'bg-[#451a03] text-[#f59e0b] border border-[#78350f]/30'
+                                  )}>
+                                    {margin > 0 ? '+' : ''}{Math.abs(margin) >= 1000 ? `$${(margin/1000).toFixed(1)}K` : `$${margin}`}
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })() : <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={getTaskRate(task)} />
                         ) : (
                           // v2.4.0: Render remaining column types (scheduleVariance, hoursBar, teamLoad, blockers, etc.)
                           renderCell(task, column)
@@ -1473,23 +1821,53 @@ return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} l
                 );
               }
 
+              const isBeingDragged = rowDragId === task.id;
+              const isDropTarget = rowDropTargetId === task.id;
+              const showDropAbove = isDropTarget && rowDropPosition === 'above';
+              const showDropBelow = isDropTarget && rowDropPosition === 'below';
+              const showDropChild = isDropTarget && rowDropPosition === 'child';
+
               return (
                 <motion.div
                   key={task.id}
+                  data-listview-row={task.id}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.15, delay: animationDelay }}
                   className={cn(
-                    "flex items-center border-b transition-colors",
+                    "flex items-center border-b transition-colors relative group",
                     isDark
                       ? "border-[#222] hover:bg-white/[0.05]"
                       : "border-gray-100 hover:bg-gray-50"
                   )}
+                  style={{
+                    opacity: isBeingDragged ? 0.4 : 1,
+                    backgroundColor: showDropChild ? (isDark ? 'rgba(46,148,255,0.08)' : 'rgba(46,148,255,0.05)') : undefined,
+                    boxShadow: showDropChild ? 'inset 0 0 0 2px #2E94FF' : undefined,
+                  }}
                   onClick={() => callbacks.onTaskClick?.(task)}
                   onDoubleClick={() => callbacks.onTaskDoubleClick?.(task)}
                   onContextMenu={(e) => handleContextMenu(e, task)}
                 >
+                  {/* Drop indicator ABOVE */}
+                  {showDropAbove && (
+                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, backgroundColor: '#2E94FF', zIndex: 10 }} />
+                  )}
+                  {/* Drop indicator BELOW */}
+                  {showDropBelow && (
+                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 2, backgroundColor: '#2E94FF', zIndex: 10 }} />
+                  )}
+                  {/* Drag handle */}
+                  {canDragRows && (
+                    <div
+                      className="flex-shrink-0 flex items-center justify-center w-5 cursor-grab opacity-0 group-hover:opacity-40 hover:!opacity-80 transition-opacity"
+                      onMouseDown={(e) => handleRowDragStart(task.id, e)}
+                      style={{ color: isDark ? '#888' : '#999' }}
+                    >
+                      <GripVertical className="w-3 h-3" />
+                    </div>
+                  )}
                   {visibleColumns.map((column) => (
                     <div
                       key={column.id}
@@ -1584,14 +1962,14 @@ return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} l
               ? `+${formatGroupHours(Math.abs(varianceMinutes))} ${locale === 'es' ? 'EXCEDIDO' : 'OVER'}`
               : `-${formatGroupHours(varianceMinutes)} ${locale === 'es' ? 'AHORRADO' : 'SAVED'}`;
             const isFinancial = lens === 'financial' && hourlyRate > 0;
-            const formatValue = (mins: number) => {
+            const formatValue = (mins: number, dollarOverride?: number) => {
               if (isFinancial) {
-                const dollars = (mins / 60) * hourlyRate;
-                return `$${dollars.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+                const dollars = dollarOverride != null ? dollarOverride : (mins / 60) * hourlyRate;
+                return `$${Math.round(dollars).toLocaleString('en-US')}`;
               }
               return formatGroupHours(mins);
             };
-            const varianceDollars = isFinancial ? Math.abs(varianceMinutes / 60 * hourlyRate) : 0;
+            const varianceDollars = isFinancial ? Math.abs(projectTotalHours.dollarAllocated - projectTotalHours.dollarSpent) : 0;
             const varianceLabelFinancial = isFinancial
               ? `${isOver ? '+' : '-'}$${varianceDollars.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} ${isOver ? (locale === 'es' ? 'EXCEDIDO' : 'OVER') : (locale === 'es' ? 'AHORRADO' : 'SAVED')}`
               : varianceLabel;
@@ -1599,7 +1977,7 @@ return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} l
             return (
               <div
                 className={cn(
-                  "flex items-center sticky bottom-0 z-10",
+                  "flex items-center sticky bottom-0 z-[5]",
                   isDark
                     ? "border-t border-[#2A2A3A]"
                     : "border-t border-gray-300"
@@ -1627,12 +2005,12 @@ return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} l
                       <div className="flex items-center gap-2 w-full">
                         <span className={cn("text-[12px] font-bold", isDark ? "text-white" : "text-gray-900")}
                           style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-                          {formatValue(spent)}
+                          {formatValue(spent, isFinancial ? projectTotalHours.dollarSpent : undefined)}
                         </span>
                         <span className={cn("text-[11px]", isDark ? "text-white/40" : "text-gray-400")}>/</span>
                         <span className={cn("text-[11px]", isDark ? "text-white/50" : "text-gray-500")}
                           style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-                          {formatValue(allocated)}
+                          {formatValue(allocated, isFinancial ? projectTotalHours.dollarAllocated : undefined)}
                         </span>
                         {allocated > 0 && (
                           <span className={cn(
@@ -1646,19 +2024,80 @@ return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} l
                     ) : column.type === 'soldEffortMinutes' ? (
                       <span className={cn("text-[12px] font-bold", isDark ? "text-white" : "text-gray-900")}
                         style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-                        {quoted > 0 ? formatValue(quoted) : '–'}
+                        {quoted > 0 ? formatValue(quoted, isFinancial ? projectTotalHours.dollarQuoted : undefined) : '–'}
                       </span>
-                    ) : column.type === 'effortMinutes' ? (
+                    ) : column.type === 'effortMinutes' ? (() => {
+                      // Financial lens: show margin in footer
+                      if (isFinancial && quoted > 0 && allocated > 0) {
+                        const offTotal = Math.round(projectTotalHours.dollarQuoted);
+                        const estTotal = Math.round(projectTotalHours.dollarAllocated);
+                        const margin = offTotal - estTotal;
+                        const marginPct = offTotal > 0 ? Math.round((margin / offTotal) * 100) : 0;
+                        return (
+                          <div className="flex items-center gap-2">
+                            <span className={cn("text-[12px] font-bold", isDark ? "text-white" : "text-gray-900")}
+                              style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                              {formatValue(allocated, projectTotalHours.dollarAllocated)}
+                            </span>
+                            <span className={cn('text-[9px] font-mono font-bold px-1.5 py-0.5 rounded whitespace-nowrap',
+                              margin >= 0 ? 'bg-[#064e3b] text-[#10b981] border border-[#065f46]/30' : 'bg-[#451a03] text-[#f59e0b] border border-[#78350f]/30'
+                            )}>
+                              {margin >= 0 ? '+' : ''}{Math.abs(margin) >= 1000 ? `$${(margin/1000).toFixed(1)}K` : `$${margin}`}
+                              <span className="ml-0.5 opacity-60">({marginPct}%)</span>
+                            </span>
+                          </div>
+                        );
+                      }
+                      return (
+                        <span className={cn("text-[12px] font-bold", isDark ? "text-white" : "text-gray-900")}
+                          style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                          {allocated > 0 ? formatValue(allocated, isFinancial ? projectTotalHours.dollarAllocated : undefined) : '–'}
+                        </span>
+                      );
+                    })() : column.type === 'timeLoggedMinutes' ? (
                       <span className={cn("text-[12px] font-bold", isDark ? "text-white" : "text-gray-900")}
                         style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-                        {allocated > 0 ? formatValue(allocated) : '–'}
+                        {spent > 0 ? formatValue(spent, isFinancial ? projectTotalHours.dollarSpent : undefined) : '–'}
                       </span>
-                    ) : column.type === 'timeLoggedMinutes' ? (
-                      <span className={cn("text-[12px] font-bold", isDark ? "text-white" : "text-gray-900")}
-                        style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-                        {spent > 0 ? formatValue(spent) : '–'}
-                      </span>
-                    ) : (
+                    ) : column.type === 'progress' ? (() => {
+                      // Weighted progress: sum(progress × weight) / sum(weight) for root tasks
+                      const rootTasks = tasks || [];
+                      let weightedSum = 0;
+                      let totalW = 0;
+                      let simpleSum = 0;
+                      let count = 0;
+                      for (const t of rootTasks) {
+                        const w = (t as any).weight || parentWeightSums.get(t.id) || 0;
+                        const prog = t.progress || 0;
+                        if (w > 0) {
+                          weightedSum += prog * w;
+                          totalW += w;
+                        }
+                        simpleSum += prog;
+                        count++;
+                      }
+                      const weightedPct = totalW > 0 ? Math.round((weightedSum / totalW) * 10) / 10 : (count > 0 ? Math.round(simpleSum / count) : 0);
+                      return (
+                        <span className={cn("text-[12px] font-bold font-mono", isDark ? "text-[#00E5CC]" : "text-cyan-600")}
+                          style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                          {weightedPct}%
+                        </span>
+                      );
+                    })() : column.type === 'weight' ? (() => {
+                      const allTasks = tasks || [];
+                      const flatAll: any[] = [];
+                      const flatten = (list: any[]) => { for (const t of list) { flatAll.push(t); if (t.subtasks?.length) flatten(t.subtasks); } };
+                      flatten(allTasks);
+                      const leafTasks = flatAll.filter((t: any) => !t.subtasks?.length || t.subtasks.length === 0);
+                      const totalWeight = leafTasks.reduce((sum: number, t: any) => sum + (t.weight || 0), 0);
+                      const isValid = Math.abs(totalWeight - 100) < 0.1;
+                      return (
+                        <span className={cn("text-[12px] font-bold font-mono", isValid ? (isDark ? "text-[#22C55E]" : "text-green-600") : "text-[#EF4444]")}
+                          style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                          {Number(totalWeight.toFixed(1))}%
+                        </span>
+                      );
+                    })() : (
                       <span className={cn("text-[11px]", isDark ? "text-white/30" : "text-gray-300")}>–</span>
                     )}
                   </div>
@@ -1691,6 +2130,7 @@ return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} l
           isDark={isDark}
           locale={locale}
           onClose={() => setSidebarOpen(false)}
+          lens={config?.lens}
         />
       )}
       </div>
@@ -1711,7 +2151,45 @@ return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} l
         onOpenTimeLog={callbacks.onOpenTimeLog}
         onReportBlocker={callbacks.onReportBlocker}
         onCopyTaskLink={callbacks.onCopyTaskLink}
+        onTaskMove={callbacks.onTaskMove}
+        onTaskIndent={callbacks.onTaskIndent}
+        onTaskOutdent={callbacks.onTaskOutdent}
       />
+
+      {/* v2.5.0: Drag ghost element */}
+      {rowDragging && rowGhostPos && rowDragId && createPortal(
+        <div
+          style={{
+            position: 'fixed',
+            left: rowGhostPos.x + 12,
+            top: rowGhostPos.y - 10,
+            zIndex: 99999,
+            pointerEvents: 'none',
+          }}
+        >
+          {(() => {
+            const flatAll = ganttUtils.flattenTasks(tasks);
+            const draggedTask = flatAll.find(t => t.id === rowDragId);
+            return draggedTask ? (
+              <div
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
+                style={{
+                  backgroundColor: isDark ? 'rgba(10,10,10,0.9)' : 'rgba(255,255,255,0.95)',
+                  border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#e5e7eb'}`,
+                  backdropFilter: 'blur(8px)',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                }}
+              >
+                <GripVertical className="w-3 h-3" style={{ color: '#2E94FF' }} />
+                <span className="text-xs font-medium" style={{ color: isDark ? '#e6edf3' : '#111827' }}>
+                  {draggedTask.name}
+                </span>
+              </div>
+            ) : null;
+          })()}
+        </div>,
+        document.body
+      )}
 
       {/* Create Field Modal */}
       <CreateFieldModal

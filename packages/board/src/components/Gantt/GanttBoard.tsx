@@ -1010,7 +1010,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     },
 
     exportToExcel: async (filename?: string) => {
-      await ganttUtils.exportToExcel(localTasks, filename);
+      await ganttUtils.exportToExcel(localTasks, filename, exportRateRef.current);
     },
 
     exportToJSON: () => ganttUtils.exportToJSON(localTasks),
@@ -1662,12 +1662,16 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     await ganttUtils.exportToPDF(localTasks);
   }, [localTasks]);
 
+  // Ref to always have latest rateMap/defaultRate (avoids stale closure in useCallback)
+  const exportRateRef = useRef({ rateMap: config.rateMap, defaultRate: config.defaultRate, projectName });
+  exportRateRef.current = { rateMap: config.rateMap, defaultRate: config.defaultRate, projectName };
+
   const handleExportExcel = useCallback(async () => {
     const now = new Date();
     const pad = (n: number) => String(n).padStart(2, '0');
     const ts = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`;
     const name = projectName ? projectName.replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ _-]/g, '') : 'Project';
-    await ganttUtils.exportToExcel(localTasks, `${name}_${ts}.xlsx`);
+    await ganttUtils.exportToExcel(localTasks, `${name}_${ts}.xlsx`, exportRateRef.current);
   }, [localTasks, projectName]);
 
   const handleExportCSV = useCallback(() => {

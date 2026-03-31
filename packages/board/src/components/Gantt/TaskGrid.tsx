@@ -546,13 +546,12 @@ export function TaskGrid({
             ) : (
               <>
                 <span
-                  className="flex-1"
+                  className="flex-1 min-w-0"
                   style={{
                     // v0.17.72: Enhanced visual hierarchy - Root tasks (level 0) are always "phases"
-                    display: 'inline-flex',
+                    display: 'flex',
                     alignItems: 'baseline',
                     gap: '6px',
-                    overflow: 'hidden',
                     color: !task.parentId
                       ? theme.textPrimary
                       : theme.textSecondary,
@@ -595,7 +594,13 @@ export function TaskGrid({
                       }}
                     >★</span>
                   )}
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <span style={{
+                    flex: 1,
+                    minWidth: 0,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}>
                     {task.name}
                   </span>
                   {/* v5.0.0: Master/summary tasks show progress percentage */}
@@ -1217,8 +1222,8 @@ export function TaskGrid({
               width: `${column.width}px`,
               minWidth: `${column.minWidth ?? (isNameColumn ? 200 : 60)}px`,
               maxWidth: `${column.maxWidth ?? 2000}px`,
-              flexShrink: 0,
-              flexGrow: 0,
+              flexShrink: isNameColumn && visibleColumns.length === 1 ? 1 : 0,
+              flexGrow: isNameColumn && visibleColumns.length === 1 ? 1 : 0,
               // v0.17.129: Border between columns, none on last (GanttBoard has the main divider)
               borderRight: !isLastColumn ? `1px solid ${theme.borderLight}` : 'none',
               height: '100%',
@@ -1269,10 +1274,10 @@ export function TaskGrid({
               <div
                 className="absolute right-0 top-0 bottom-0 cursor-col-resize transition-colors group"
                 style={{
-                  width: '8px', // v0.17.56: Wider grab area
-                  marginRight: '-4px', // v0.17.56: Center on border
+                  width: '12px',
+                  marginRight: '-6px',
                   backgroundColor: resizingColumn === column.id ? `${theme.accent}30` : 'transparent',
-                  zIndex: 5, // v0.17.56: Above column content
+                  zIndex: 5,
                 }}
                 onMouseDown={(e) => {
                   e.preventDefault();
@@ -1283,16 +1288,19 @@ export function TaskGrid({
                 }}
                 title="Drag to resize column"
               >
-                {/* Visual indicator line on hover */}
+                {/* Visual indicator line — always slightly visible, brighter on hover */}
                 <div
-                  className="absolute top-2 bottom-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="absolute top-0 bottom-0 transition-opacity"
                   style={{
-                    left: '3px',
+                    left: '5px',
                     width: '2px',
                     backgroundColor: theme.accent,
                     borderRadius: '1px',
+                    opacity: resizingColumn === column.id ? 0.8 : undefined,
                   }}
-                />
+                >
+                  <div className="absolute inset-0 opacity-20 group-hover:opacity-80 transition-opacity" style={{ backgroundColor: theme.accent }} />
+                </div>
               </div>
             )}
           </div>
@@ -1498,8 +1506,8 @@ export function TaskGrid({
                 width: `${column.width}px`,
                 minWidth: `${column.minWidth ?? (isNameColumn ? 200 : 60)}px`,
                 maxWidth: `${column.maxWidth ?? 2000}px`,
-                flexShrink: 0,
-                flexGrow: 0,
+                flexShrink: isNameColumn && visibleColumns.length === 1 ? 1 : 0,
+                flexGrow: isNameColumn && visibleColumns.length === 1 ? 1 : 0,
                 // v0.17.129: Consistent border handling - inline style like header
                 borderRight: !isLastColumn ? `1px solid ${hoveredTaskId === task.id ? theme.border : theme.borderLight}` : 'none',
                 height: '100%',

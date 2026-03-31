@@ -31,6 +31,7 @@ export const en: ListViewTranslations = {
     hoursBar: 'Hours (Spent / Allocated)',
     teamLoad: 'Team Load',
     blockers: 'Blockers',
+    weight: 'Weight',
   },
 
   toolbar: {
@@ -111,6 +112,7 @@ export const es: ListViewTranslations = {
     hoursBar: 'Horas (Usado / Asignado)',
     teamLoad: 'Equipo',
     blockers: 'Bloqueantes',
+    weight: 'Peso',
   },
 
   toolbar: {

@@ -663,4 +663,9 @@ export interface GanttConfig {
 
   // v0.17.68: Reparent callback - move task to a different parent via drag & drop
   onTaskReparent?: (taskId: string, newParentId: string | null, position?: number) => void;
+
+  /** v2.5.0: Per-user hourly rate map for Excel export cost columns (userId → rate) */
+  rateMap?: Record<string, number>;
+  /** v2.5.0: Default hourly rate fallback when rateMap has no match for a user */
+  defaultRate?: number;
 }

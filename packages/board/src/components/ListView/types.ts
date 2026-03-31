@@ -41,6 +41,8 @@ export type ColumnType =
   | 'hoursBar'            // Visual hours bar (spent/allocated) + Log button
   | 'teamLoad'            // Avatar + team name + load badge
   | 'blockers'            // Blocker badges (RFI, Pending, etc.)
+  // v2.1.0: Weight column for weighted progress
+  | 'weight'              // Task weight percentage (for weighted project progress)
   // Custom field types
   | 'text'           // Custom text field
   | 'number'         // Custom number field
@@ -253,6 +255,11 @@ export interface ProjectHealthData {
   /** Total hours for the whole project (spent / allocated in minutes) */
   totalHoursSpentMinutes?: number;
   totalHoursAllocatedMinutes?: number;
+  /** Financial data — shown when lens='financial' */
+  totalOffered?: number;       // Total $ ofertado (sum of sold_effort × offered_rate)
+  totalEstimated?: number;     // Total $ estimado (sum of effort × assignee_rate)
+  totalExecuted?: number;      // Total $ ejecutado (sum of logged × rate_at_time)
+  offeredRate?: number;        // $/hora ofertada del proyecto
 }
 
 /**
@@ -333,12 +340,17 @@ export interface ListViewConfig {
   // v2.3.0: Financial lens — show dollar values instead of hours
   /** Display mode: 'hours' shows time values, 'financial' converts to dollars (hours × hourlyRate) */
   lens?: 'hours' | 'financial';
-  /** Hourly rate for converting hours → dollars when lens='financial' */
+  /** Hourly rate for converting hours → dollars when lens='financial' (fallback when rateMap has no match) */
   hourlyRate?: number;
+  /** Per-user hourly rate map (userId → rate). When provided, uses the task assignee's rate instead of the global hourlyRate */
+  rateMap?: Record<string, number>;
 
   // v2.4.0: Project totals sticky footer row
   /** Show a sticky "TOTAL PROJECT" row at the bottom of the list */
   showProjectTotals?: boolean;
+
+  /** v2.5.0: Render content just before the Create Task button (e.g., share/export dropdown) */
+  toolbarEndContent?: ReactNode;
 }
 
 /**
@@ -366,6 +378,7 @@ export interface ListViewTranslations {
     hoursBar?: string;
     teamLoad?: string;
     blockers?: string;
+    weight?: string;
   };
 
   // Toolbar
@@ -463,6 +476,14 @@ export interface ListViewCallbacks {
   onTaskEdit?: (task: Task) => void;
   /** Task duplicate requested (from context menu) */
   onTaskDuplicate?: (task: Task) => void;
+  /** v2.5.0: Move task up in hierarchy */
+  onTaskMove?: (taskId: string, direction: 'up' | 'down') => void;
+  /** v2.5.0: Indent task (make it a subtask of the task above) */
+  onTaskIndent?: (taskId: string) => void;
+  /** v2.5.0: Outdent task (move it up one hierarchy level) */
+  onTaskOutdent?: (taskId: string) => void;
+  /** v2.5.0: Reparent task (drag & drop to make subtask or reorder) */
+  onTaskReparent?: (taskId: string, newParentId: string | null, position?: number) => void;
   /** Create custom field */
   onCreateCustomField?: (field: CustomFieldDefinition) => Promise<void>;
 
@@ -543,6 +564,8 @@ export interface ListViewProps {
   // v2.1.0: Toolbar customization
   /** Render custom content on the right side of toolbar (before create button) */
   toolbarRightContent?: ReactNode;
+  /** v2.5.0: Render content just before the Create Task button (e.g., share/export dropdown) */
+  toolbarEndContent?: ReactNode;
 }
 
 /**
@@ -562,7 +585,7 @@ export const DEFAULT_TABLE_COLUMNS: TableColumn[] = [
   { id: 'name', type: 'name', label: 'Name', width: 300, visible: true, sortable: true, resizable: true },
   { id: 'status', type: 'status', label: 'Status', width: 140, visible: true, sortable: true, resizable: true },
   { id: 'priority', type: 'priority', label: 'Priority', width: 100, visible: false, sortable: true, resizable: true },
-  { id: 'assignees', type: 'assignees', label: 'Assignees', width: 150, visible: false, sortable: false, resizable: true },
+  // v2.5.0: 'assignees' removed — redundant with 'teamLoad' (Equipo)
   { id: 'startDate', type: 'startDate', label: 'Start Date', width: 120, visible: true, sortable: true, resizable: true },
   { id: 'endDate', type: 'endDate', label: 'End Date', width: 120, visible: true, sortable: true, resizable: true },
   { id: 'progress', type: 'progress', label: 'Progress', width: 100, visible: true, sortable: true, resizable: true },
@@ -576,6 +599,8 @@ export const DEFAULT_TABLE_COLUMNS: TableColumn[] = [
   { id: 'hoursBar', type: 'hoursBar', label: 'Hours', width: 200, visible: false, sortable: true, resizable: true },
   { id: 'teamLoad', type: 'teamLoad', label: 'Team Load', width: 160, visible: false, sortable: true, resizable: true },
   { id: 'blockers', type: 'blockers', label: 'Blockers', width: 150, visible: false, sortable: false, resizable: true },
+  // v2.1.0: Weight column
+  { id: 'weight', type: 'weight', label: 'Weight', width: 80, visible: false, sortable: true, resizable: true },
 ];
 
 /**
@@ -600,6 +625,8 @@ export const STANDARD_FIELDS: Array<{ type: ColumnType; labelKey: string; icon: 
   { type: 'hoursBar', labelKey: 'columns.hoursBar', icon: 'BarChart3' },
   { type: 'teamLoad', labelKey: 'columns.teamLoad', icon: 'Users' },
   { type: 'blockers', labelKey: 'columns.blockers', icon: 'AlertTriangle' },
+  // v2.1.0: Weight
+  { type: 'weight', labelKey: 'columns.weight', icon: 'Scale' },
 ];
 
 /**

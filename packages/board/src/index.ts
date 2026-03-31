@@ -67,6 +67,7 @@ export {
 export {
   GanttBoard,
   GanttToolbar,
+  ExportDropdown, // v2.5.0 - Reusable export dropdown (PNG, PDF, Excel, CSV, MS Project)
   TaskGrid,
   Timeline,
   TaskBar,

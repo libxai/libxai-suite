@@ -573,9 +573,21 @@ export const ganttUtils = {
    * @param filename - Optional filename (default: 'gantt-chart.xlsx')
    * @returns Promise<void>
    */
-  exportToExcel: async (tasks: Task[], filename?: string): Promise<void> => {
+  exportToExcel: async (tasks: Task[], filename?: string, options?: { rateMap?: Record<string, number>; defaultRate?: number; projectName?: string }): Promise<void> => {
     const XLSX = await import('xlsx');
     const flat = ganttUtils.flattenTasks(tasks);
+    const rateMap = options?.rateMap;
+    const defaultRate = options?.defaultRate || 0;
+
+    // Resolve hourly rate for a task based on its assignees
+    const getTaskRate = (task: Task): number => {
+      if (!rateMap || !task.assignees || task.assignees.length === 0) return defaultRate;
+      const rates = task.assignees
+        .map((a: any) => a.id ? rateMap[a.id] : undefined)
+        .filter((r): r is number => r != null && r > 0);
+      if (rates.length === 0) return defaultRate;
+      return rates.reduce((a, b) => a + b, 0) / rates.length;
+    };
 
     // Build WBS codes for human-readable hierarchy
     const wbsMap = new Map<string, string>();
@@ -589,7 +601,11 @@ export const ganttUtils = {
     };
     buildWbs(tasks);
 
-    // Prepare data — no internal IDs, include hours
+    // Check if cost data is available — either via rateMap OR task._costRate
+    const hasCostData = (rateMap && Object.keys(rateMap).length > 0) ||
+      flat.some(t => (t as any)._costRate > 0);
+
+    // Prepare data — no internal IDs, include hours + costs
     const data = flat.map(task => {
       const duration = task.startDate && task.endDate
         ? ganttUtils.calculateDuration(task.startDate, task.endDate)
@@ -598,7 +614,13 @@ export const ganttUtils = {
       const logged = (task as any).timeLoggedMinutes;
       const sold = (task as any).soldEffortMinutes;
 
-      return {
+      const estH = typeof effort === 'number' ? +(effort / 60).toFixed(1) : 0;
+      const logH = typeof logged === 'number' ? +(logged / 60).toFixed(1) : 0;
+      const soldH = typeof sold === 'number' ? +(sold / 60).toFixed(1) : 0;
+      // Priority: task-level rate (injected by consumer) → rateMap lookup → defaultRate
+      const rate = (task as any)._costRate > 0 ? (task as any)._costRate : getTaskRate(task);
+
+      const row: Record<string, any> = {
         'WBS': wbsMap.get(task.id) || '',
         'Task Name': task.name,
         'Start Date': task.startDate ? ganttUtils.formatDate(task.startDate) : '',
@@ -607,12 +629,69 @@ export const ganttUtils = {
         'Progress (%)': task.progress,
         'Status': task.status || '',
         'Assignees': task.assignees?.map(a => a.name).join(', ') || '',
-        'Estimated (h)': typeof effort === 'number' ? +(effort / 60).toFixed(1) : '',
-        'Logged (h)': typeof logged === 'number' ? +(logged / 60).toFixed(1) : '',
-        'Quoted (h)': typeof sold === 'number' ? +(sold / 60).toFixed(1) : '',
-        'Is Milestone': task.isMilestone ? 'Yes' : 'No',
+        'Estimated (h)': estH || '',
+        'Logged (h)': logH || '',
+        'Quoted (h)': soldH || '',
       };
+
+      if (hasCostData) {
+        row['$ Estimated'] = estH > 0 && rate > 0 ? Math.round(estH * rate) : '';
+        row['$ Executed'] = logH > 0 && rate > 0 ? Math.round(logH * rate) : '';
+        row['$ Quoted'] = soldH > 0 && rate > 0 ? Math.round(soldH * rate) : '';
+        row['Rate ($/h)'] = rate > 0 ? rate : '';
+      }
+
+      row['Is Milestone'] = task.isMilestone ? 'Yes' : 'No';
+      return row;
     });
+
+    // Task 0: Project summary row with totals
+    const projectName = options?.projectName || '';
+    if (projectName || data.length > 0) {
+      // Calculate totals from all task rows
+      let totalEstH = 0, totalLogH = 0, totalSoldH = 0;
+      let totalCostEst = 0, totalCostExec = 0, totalCostQuoted = 0;
+      let totalProgress = 0, taskCount = 0;
+      const earliest = flat.filter(t => t.startDate).map(t => t.startDate!.getTime());
+      const latest = flat.filter(t => t.endDate).map(t => t.endDate!.getTime());
+
+      for (const row of data) {
+        if (typeof row['Estimated (h)'] === 'number') totalEstH += row['Estimated (h)'];
+        if (typeof row['Logged (h)'] === 'number') totalLogH += row['Logged (h)'];
+        if (typeof row['Quoted (h)'] === 'number') totalSoldH += row['Quoted (h)'];
+        if (hasCostData) {
+          if (typeof row['$ Estimated'] === 'number') totalCostEst += row['$ Estimated'];
+          if (typeof row['$ Executed'] === 'number') totalCostExec += row['$ Executed'];
+          if (typeof row['$ Quoted'] === 'number') totalCostQuoted += row['$ Quoted'];
+        }
+        if (typeof row['Progress (%)'] === 'number') { totalProgress += row['Progress (%)']; taskCount++; }
+      }
+
+      const summaryRow: Record<string, any> = {
+        'WBS': '0',
+        'Task Name': `📋 ${projectName || 'PROJECT TOTAL'}`,
+        'Start Date': earliest.length > 0 ? ganttUtils.formatDate(new Date(Math.min(...earliest))) : '',
+        'End Date': latest.length > 0 ? ganttUtils.formatDate(new Date(Math.max(...latest))) : '',
+        'Duration (days)': earliest.length > 0 && latest.length > 0
+          ? ganttUtils.calculateDuration(new Date(Math.min(...earliest)), new Date(Math.max(...latest)))
+          : '',
+        'Progress (%)': taskCount > 0 ? Math.round(totalProgress / taskCount) : 0,
+        'Status': '',
+        'Assignees': '',
+        'Estimated (h)': +(totalEstH.toFixed(1)) || '',
+        'Logged (h)': +(totalLogH.toFixed(1)) || '',
+        'Quoted (h)': +(totalSoldH.toFixed(1)) || '',
+      };
+      if (hasCostData) {
+        summaryRow['$ Estimated'] = totalCostEst || '';
+        summaryRow['$ Executed'] = totalCostExec || '';
+        summaryRow['$ Quoted'] = totalCostQuoted || '';
+        summaryRow['Rate ($/h)'] = '';
+      }
+      summaryRow['Is Milestone'] = 'No';
+
+      data.unshift(summaryRow);
+    }
 
     // Create worksheet
     const worksheet = XLSX.utils.json_to_sheet(data);
@@ -627,9 +706,15 @@ export const ganttUtils = {
       { wch: 12 }, // Progress
       { wch: 15 }, // Status
       { wch: 30 }, // Assignees
-      { wch: 14 }, // Estimated
-      { wch: 12 }, // Logged
-      { wch: 12 }, // Quoted
+      { wch: 14 }, // Estimated (h)
+      { wch: 12 }, // Logged (h)
+      { wch: 12 }, // Quoted (h)
+      ...(hasCostData ? [
+        { wch: 14 }, // $ Estimated
+        { wch: 14 }, // $ Executed
+        { wch: 14 }, // $ Quoted
+        { wch: 12 }, // Rate
+      ] : []),
       { wch: 12 }, // Is Milestone
     ];
     worksheet['!cols'] = columnWidths;
