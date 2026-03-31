@@ -270,6 +270,27 @@ export function ListView({
     return rates.reduce((a, b) => a + b, 0) / rates.length;
   };
 
+  // v2.5.1: Calculate group dollar totals — same logic as projectTotalHours (sumLeaves)
+  const calculateGroupDollars = (parentTask: Task): { dollarSpent: number; dollarAllocated: number; dollarQuoted: number } => {
+    let dollarSpent = 0, dollarAllocated = 0, dollarQuoted = 0;
+    const sumLeaves = (taskList: Task[]) => {
+      for (const t of taskList) {
+        if (t.subtasks && t.subtasks.length > 0) {
+          sumLeaves(t.subtasks);
+        } else {
+          const rate = getTaskRate(t);
+          dollarSpent += (((t as any).timeLoggedMinutes ?? 0) / 60) * rate;
+          dollarAllocated += (((t as any).effortMinutes ?? 0) / 60) * rate;
+          dollarQuoted += (((t as any).soldEffortMinutes ?? 0) / 60) * rate;
+        }
+      }
+    };
+    if (parentTask.subtasks) {
+      sumLeaves(parentTask.subtasks);
+    }
+    return { dollarSpent, dollarAllocated, dollarQuoted };
+  };
+
   // v0.18.3: Load persisted filter state from localStorage
   const loadPersistedFilter = useCallback(() => {
     if (!persistFilter || typeof window === 'undefined') {
@@ -1062,27 +1083,31 @@ export function ListView({
       // v1.2.0: New time tracking columns
       case 'effortMinutes': {
         if (aggregateParentHours && task.subtasks && task.subtasks.length > 0) {
-          const { allocated, quoted } = calculateGroupHours(task);
-          // Financial lens: show margin badge for parent
-          const _parentRate = getTaskRate(task);
-          if (lens === 'financial' && _parentRate && allocated > 0 && quoted > 0) {
-            const estDollars = Math.round((allocated / 60) * _parentRate);
-            const offDollars = Math.round((quoted / 60) * _parentRate);
+          const { allocated } = calculateGroupHours(task);
+          // Financial lens for parent: sum $ from children directly
+          if (lens === 'financial') {
+            const groupDollars = calculateGroupDollars(task);
+            const estDollars = Math.round(groupDollars.dollarAllocated);
+            const offDollars = Math.round(groupDollars.dollarQuoted);
             const margin = offDollars - estDollars;
             return (
               <div className="flex items-center gap-1.5">
-                <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={getTaskRate(task)} />
-                {margin !== 0 && (
+                {estDollars > 0 ? (
+                  <span className={cn('text-sm font-mono', isDark ? 'text-white/60' : 'text-gray-500')}>
+                    ${estDollars.toLocaleString('en-US')}
+                  </span>
+                ) : null}
+                {margin !== 0 && estDollars > 0 && offDollars > 0 && (
                   <span className={cn('text-[9px] font-mono font-bold px-1.5 py-0.5 rounded whitespace-nowrap',
                     margin > 0 ? 'bg-[#064e3b] text-[#10b981] border border-[#065f46]/30' : 'bg-[#451a03] text-[#f59e0b] border border-[#78350f]/30'
                   )}>
-                    {margin > 0 ? '+' : ''}{margin >= 1000 ? `$${(margin/1000).toFixed(1)}K` : `$${margin}`}
+                    {margin > 0 ? '+' : ''}{Math.abs(margin) >= 1000 ? `$${(margin/1000).toFixed(1)}K` : `$${margin}`}
                   </span>
                 )}
               </div>
             );
           }
-          return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={getTaskRate(task)} />;
+          return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={hourlyRate} />;
         }
         const isCompleted = task.status === 'completed' || task.progress === 100;
         const estMins = (task as any).effortMinutes || 0;
@@ -1752,11 +1777,40 @@ export function ListView({
                             )}
                           </div>
                         ) : column.type === 'timeLoggedMinutes' ? (
-                          <TimeCell value={spent > 0 ? spent : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={getTaskRate(task)} />
+                          lens === 'financial' ? (() => {
+                            const groupDollars = calculateGroupDollars(task);
+                            const val = Math.round(groupDollars.dollarSpent);
+                            return val > 0 ? <span className={cn('text-sm font-mono', isDark ? 'text-white/60' : 'text-gray-500')}>${val.toLocaleString('en-US')}</span> : null;
+                          })() : <TimeCell value={spent > 0 ? spent : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={getTaskRate(task)} />
                         ) : column.type === 'soldEffortMinutes' ? (
-                          <TimeCell value={quoted > 0 ? quoted : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={getTaskRate(task)} />
+                          lens === 'financial' ? (() => {
+                            const groupDollars = calculateGroupDollars(task);
+                            const val = Math.round(groupDollars.dollarQuoted);
+                            return val > 0 ? <span className={cn('text-sm font-mono', isDark ? 'text-white/60' : 'text-gray-500')}>${val.toLocaleString('en-US')}</span> : null;
+                          })() : <TimeCell value={quoted > 0 ? quoted : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={getTaskRate(task)} />
                         ) : column.type === 'effortMinutes' ? (
-                          <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={getTaskRate(task)} />
+                          lens === 'financial' ? (() => {
+                            const groupDollars = calculateGroupDollars(task);
+                            const estDollars = Math.round(groupDollars.dollarAllocated);
+                            const offDollars = Math.round(groupDollars.dollarQuoted);
+                            const margin = offDollars - estDollars;
+                            return (
+                              <div className="flex items-center gap-1.5">
+                                {estDollars > 0 ? (
+                                  <span className={cn('text-sm font-mono', isDark ? 'text-white/60' : 'text-gray-500')}>
+                                    ${estDollars.toLocaleString('en-US')}
+                                  </span>
+                                ) : null}
+                                {margin !== 0 && estDollars > 0 && offDollars > 0 && (
+                                  <span className={cn('text-[9px] font-mono font-bold px-1.5 py-0.5 rounded whitespace-nowrap',
+                                    margin > 0 ? 'bg-[#064e3b] text-[#10b981] border border-[#065f46]/30' : 'bg-[#451a03] text-[#f59e0b] border border-[#78350f]/30'
+                                  )}>
+                                    {margin > 0 ? '+' : ''}{Math.abs(margin) >= 1000 ? `$${(margin/1000).toFixed(1)}K` : `$${margin}`}
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })() : <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={getTaskRate(task)} />
                         ) : (
                           // v2.4.0: Render remaining column types (scheduleVariance, hoursBar, teamLoad, blockers, etc.)
                           renderCell(task, column)
