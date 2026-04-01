@@ -7,7 +7,7 @@ import { ColumnManager } from './ColumnManager'; // v0.17.215: Back with sticky 
 import { ContextMenu, ContextMenuItem, MenuIcons } from './ContextMenu';
 import { useGanttKeyboard } from './useGanttKeyboard';
 import { useGanttSelection } from './useGanttSelection';
-import { flattenTasks as flattenTasksUtil } from './hierarchyUtils';
+import { flattenTasks as flattenTasksUtil, findTask as findTaskInTree } from './hierarchyUtils';
 import { UserAssignmentSelector } from '../Card/UserAssignmentSelector';
 import { StatusSelector } from '../Card/StatusSelector';
 import { PrioritySelector } from '../Card/PrioritySelector'; // v0.17.29
@@ -428,7 +428,7 @@ export function TaskGrid({
           onTaskReparent?.(draggedTaskId, null, pos);
         } else {
           // Target has a parent
-          const parentTask = flatTasks.find(ft => ft.task.id === targetParent)?.task;
+          const parentTask = findTaskInTree(tasks, targetParent);
           if (parentTask?.subtasks) {
             const sameGroup = draggedParent === targetParent; // same parent
             const pos = computePosition(parentTask.subtasks, dropTargetTaskId, draggedTaskId, sameGroup);
