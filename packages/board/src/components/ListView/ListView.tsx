@@ -960,17 +960,20 @@ export function ListView({
           />
         );
 
-      case 'progress':
+      case 'progress': {
+        const isParent = !!(task.subtasks && task.subtasks.length > 0);
         return (
           <ProgressCell
             value={task.progress || 0}
-            onChange={(progress) => {
+            onChange={isParent ? undefined : (progress) => {
               const status = progress === 100 ? 'completed' : progress > 0 ? 'in-progress' : 'todo';
               handleUpdate({ progress, status });
             }}
             isDark={isDark}
+            disabled={isParent}
           />
         );
+      }
 
       case 'tags':
         return (
