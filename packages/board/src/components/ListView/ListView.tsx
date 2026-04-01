@@ -142,11 +142,12 @@ function calculateGroupHours(task: Task): { spent: number; allocated: number; qu
   let quoted = 0;
   for (const sub of task.subtasks) {
     if (sub.subtasks?.length) {
-      // Sub is itself a group — recurse, don't double-count its own values
+      // Sub is itself a group — recurse into its children
       const nested = calculateGroupHours(sub);
-      spent += nested.spent;
-      allocated += nested.allocated;
-      quoted += nested.quoted;
+      // If children have values, use them; otherwise fallback to the group's own values
+      spent += nested.spent > 0 ? nested.spent : ((sub as any).timeLoggedMinutes ?? 0);
+      allocated += nested.allocated > 0 ? nested.allocated : ((sub as any).effortMinutes ?? 0);
+      quoted += nested.quoted > 0 ? nested.quoted : ((sub as any).soldEffortMinutes ?? 0);
     } else {
       // Leaf task — sum directly
       spent += (sub as any).timeLoggedMinutes ?? 0;
@@ -276,7 +277,17 @@ export function ListView({
     const sumLeaves = (taskList: Task[]) => {
       for (const t of taskList) {
         if (t.subtasks && t.subtasks.length > 0) {
+          // Recurse into children first
+          const before = { s: dollarSpent, a: dollarAllocated, q: dollarQuoted };
           sumLeaves(t.subtasks);
+          const childrenAdded = (dollarSpent - before.s) + (dollarAllocated - before.a) + (dollarQuoted - before.q);
+          // If children contributed nothing, use this group's own values as fallback
+          if (childrenAdded === 0) {
+            const rate = getTaskRate(t);
+            dollarSpent += (((t as any).timeLoggedMinutes ?? 0) / 60) * rate;
+            dollarAllocated += (((t as any).effortMinutes ?? 0) / 60) * rate;
+            dollarQuoted += (((t as any).soldEffortMinutes ?? 0) / 60) * rate;
+          }
         } else {
           const rate = getTaskRate(t);
           dollarSpent += (((t as any).timeLoggedMinutes ?? 0) / 60) * rate;
@@ -319,8 +330,21 @@ export function ListView({
       for (const t of taskList) {
         if (t.subtasks && t.subtasks.length > 0) {
           const nested = sumLeaves(t.subtasks);
-          spent += nested.spent; allocated += nested.allocated; quoted += nested.quoted;
-          dollarSpent += nested.dollarSpent; dollarAllocated += nested.dollarAllocated; dollarQuoted += nested.dollarQuoted;
+          const nestedTotal = nested.spent + nested.allocated + nested.quoted;
+          if (nestedTotal > 0) {
+            spent += nested.spent; allocated += nested.allocated; quoted += nested.quoted;
+            dollarSpent += nested.dollarSpent; dollarAllocated += nested.dollarAllocated; dollarQuoted += nested.dollarQuoted;
+          } else {
+            // Children have no values — fallback to this group's own values
+            const tSpent = (t as any).timeLoggedMinutes ?? 0;
+            const tAlloc = (t as any).effortMinutes ?? 0;
+            const tQuoted = (t as any).soldEffortMinutes ?? 0;
+            spent += tSpent; allocated += tAlloc; quoted += tQuoted;
+            const rate = getTaskRate(t);
+            dollarSpent += (tSpent / 60) * rate;
+            dollarAllocated += (tAlloc / 60) * rate;
+            dollarQuoted += (tQuoted / 60) * rate;
+          }
         } else {
           const tSpent = (t as any).timeLoggedMinutes ?? 0;
           const tAlloc = (t as any).effortMinutes ?? 0;
@@ -960,17 +984,20 @@ export function ListView({
           />
         );
 
-      case 'progress':
+      case 'progress': {
+        const isParent = !!(task.subtasks && task.subtasks.length > 0);
         return (
           <ProgressCell
             value={task.progress || 0}
-            onChange={(progress) => {
+            onChange={isParent ? undefined : (progress) => {
               const status = progress === 100 ? 'completed' : progress > 0 ? 'in-progress' : 'todo';
               handleUpdate({ progress, status });
             }}
             isDark={isDark}
+            disabled={isParent}
           />
         );
+      }
 
       case 'tags':
         return (
@@ -1606,6 +1633,8 @@ export function ListView({
               isDark ? "border-[#222] bg-[#1A1A1A] font-mono" : "border-gray-200 bg-gray-50"
             )}
           >
+            {/* Spacer to align with drag handle in child rows */}
+            {canDragRows && <div className="w-5 flex-shrink-0" />}
             {visibleColumns.map((column) => {
               const isDraggable = column.id !== 'name';
               const isDragOver = dragOverColumnId === column.id && dragColumnId !== column.id;
@@ -1670,7 +1699,7 @@ export function ListView({
 
             {/* Add column button */}
             {allowColumnCustomization && (
-              <div className="relative flex items-center justify-center px-3 py-0.5">
+              <div className="relative flex items-center justify-center w-12 flex-shrink-0">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -1731,10 +1760,12 @@ export function ListView({
                     className={cn("flex items-center border-y cursor-pointer", isDark ? "border-[#222] bg-[#222]" : "border-gray-200 bg-gray-100")}
                     onClick={() => callbacks.onTaskClick?.(task)}
                   >
+                    {/* Spacer to align with drag handle in child rows */}
+                    {canDragRows && <div className="w-5 flex-shrink-0" />}
                     {visibleColumns.map((column) => (
                       <div
                         key={column.id}
-                        className="flex items-center px-4 py-2.5"
+                        className="flex items-center px-4 py-3 min-h-[56px]"
                         style={{ width: columnWidthPercent[column.id], minWidth: column.minWidth }}
                       >
                         {column.type === 'name' ? (
@@ -1817,6 +1848,9 @@ export function ListView({
                         )}
                       </div>
                     ))}
+                    {allowColumnCustomization && (
+                      <div className="w-12 flex-shrink-0" />
+                    )}
                   </motion.div>
                 );
               }
@@ -1875,7 +1909,7 @@ export function ListView({
                       style={{ width: columnWidthPercent[column.id], minWidth: column.minWidth }}
                     >
                       {column.type === 'name' ? (
-                        // Name column with hierarchy — Chronos V2.0 two-line layout
+                        /* Name column with hierarchy — Chronos V2.0 two-line layout */
                         <div className="flex items-center gap-2 min-w-0 w-full">
                           {/* Indentation spacer for hierarchy levels */}
                           {showHierarchy && task.level > 0 && (
@@ -1988,6 +2022,8 @@ export function ListView({
                   WebkitBackdropFilter: 'blur(8px)',
                 }}
               >
+                {/* Spacer to align with drag handle in child rows */}
+                {canDragRows && <div className="w-5 flex-shrink-0" />}
                 {visibleColumns.map((column) => (
                   <div
                     key={column.id}
