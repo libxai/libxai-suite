@@ -1629,8 +1629,8 @@ export function ListView({
           {/* List Header */}
           <div
             className={cn(
-              "flex-shrink-0 flex items-center border-b text-[9px] font-bold uppercase tracking-wider sticky top-0 z-10",
-              isDark ? "border-[#222] bg-[#1A1A1A] font-mono" : "border-gray-200 bg-gray-50"
+              "flex-shrink-0 flex items-center border-b text-[10px] font-bold uppercase tracking-wider sticky top-0 z-10",
+              isDark ? "border-[#222] bg-[#1A1A1A] font-mono text-white/70" : "border-gray-200 bg-gray-50 text-gray-600"
             )}
           >
             {/* Spacer to align with drag handle in child rows */}
@@ -1789,7 +1789,7 @@ export function ListView({
                                 {task.wbsCode}
                               </span>
                             )}
-                            <span title={task.name} className={cn("text-[11px] font-semibold uppercase tracking-wide truncate", isDark ? "text-white" : "text-gray-800")} style={{ fontFamily: 'Inter, system-ui, sans-serif', WebkitFontSmoothing: 'antialiased', MozOsxFontSmoothing: 'grayscale' }}>
+                            <span title={task.name} className={cn("text-[13px] font-bold uppercase tracking-wide truncate", isDark ? "text-white" : "text-gray-900")} style={{ fontFamily: 'Inter, system-ui, sans-serif', WebkitFontSmoothing: 'antialiased', MozOsxFontSmoothing: 'grayscale' }}>
                               {task.name}
                             </span>
                             <span className={cn("text-[10px] font-mono px-2 py-0.5 rounded-full flex-shrink-0", isDark ? "text-white/30 bg-white/[0.05]" : "text-gray-500 bg-gray-200")}>
@@ -1951,7 +1951,8 @@ export function ListView({
                             )}
                             {/* Line 2: Task name */}
                             <span className={cn(
-                              "truncate font-bold text-[13px]",
+                              "truncate text-[13px]",
+                              task.hasChildren ? "font-semibold" : "font-medium",
                               task.progress === 100
                                 ? (isDark ? "line-through text-white/50" : "line-through text-gray-400")
                                 : (isDark ? "text-white" : "text-gray-900")
@@ -2096,23 +2097,30 @@ export function ListView({
                         {spent > 0 ? formatValue(spent, isFinancial ? projectTotalHours.dollarSpent : undefined) : '–'}
                       </span>
                     ) : column.type === 'progress' ? (() => {
-                      // Weighted progress: sum(progress × weight) / sum(weight) for root tasks
-                      const rootTasks = tasks || [];
+                      // Weighted progress from ALL leaf tasks (not just root)
+                      const allTasks = tasks || [];
+                      const leaves: { progress: number; weight: number }[] = [];
+                      const collectLeaves = (list: Task[]) => {
+                        for (const t of list) {
+                          if (t.subtasks && t.subtasks.length > 0) {
+                            collectLeaves(t.subtasks);
+                          } else {
+                            leaves.push({ progress: t.progress || 0, weight: (t as any).weight || 0 });
+                          }
+                        }
+                      };
+                      collectLeaves(allTasks);
                       let weightedSum = 0;
                       let totalW = 0;
                       let simpleSum = 0;
-                      let count = 0;
-                      for (const t of rootTasks) {
-                        const w = (t as any).weight || parentWeightSums.get(t.id) || 0;
-                        const prog = t.progress || 0;
-                        if (w > 0) {
-                          weightedSum += prog * w;
-                          totalW += w;
+                      for (const leaf of leaves) {
+                        if (leaf.weight > 0) {
+                          weightedSum += leaf.progress * leaf.weight;
+                          totalW += leaf.weight;
                         }
-                        simpleSum += prog;
-                        count++;
+                        simpleSum += leaf.progress;
                       }
-                      const weightedPct = totalW > 0 ? Math.round((weightedSum / totalW) * 10) / 10 : (count > 0 ? Math.round(simpleSum / count) : 0);
+                      const weightedPct = totalW > 0 ? Math.round((weightedSum / totalW) * 10) / 10 : (leaves.length > 0 ? Math.round(simpleSum / leaves.length) : 0);
                       return (
                         <span className={cn("text-[12px] font-bold font-mono", isDark ? "text-[#00E5CC]" : "text-cyan-600")}
                           style={{ fontFamily: 'JetBrains Mono, monospace' }}>

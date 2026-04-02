@@ -53,7 +53,7 @@ export function ScheduleVarianceCell({
         );
       }
       return (
-        <span className="font-mono" style={{ fontSize: '10px', color: '#3B9EFF', fontWeight: 600 }}>
+        <span className="font-mono" style={{ fontSize: '10px', color: '#10B981', fontWeight: 600 }}>
           {isEs ? 'En Tiempo' : 'On Track'}
         </span>
       );
@@ -68,7 +68,7 @@ export function ScheduleVarianceCell({
     }
 
     return (
-      <span className="font-mono" style={{ fontSize: '10px', color: '#FF2D20', fontWeight: 600 }}>
+      <span className="font-mono" style={{ fontSize: '10px', color: '#F87171', fontWeight: 600 }}>
         {scheduleVariance}d {isEs ? 'Atraso' : 'Delay'}
       </span>
     );

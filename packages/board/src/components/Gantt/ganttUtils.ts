@@ -641,6 +641,8 @@ export const ganttUtils = {
         row['Rate ($/h)'] = rate > 0 ? rate : '';
       }
 
+      const weight = (task as any).weight;
+      row['Weight (%)'] = typeof weight === 'number' && weight > 0 ? weight : '';
       row['Is Milestone'] = task.isMilestone ? 'Yes' : 'No';
       return row;
     });
