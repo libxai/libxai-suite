@@ -39,14 +39,14 @@ export function ProjectHealthSidebar({
 
   return (
     <div className={cn(
-      'w-[220px] xl:w-[280px] flex-shrink-0 overflow-y-auto border-l',
+      'w-[260px] xl:w-[320px] flex-shrink-0 overflow-y-auto border-l',
       isDark ? 'bg-[#141414] border-[#222]' : 'bg-gray-50 border-gray-200'
     )}>
       {/* Header */}
       <div className={cn('px-5 py-4 border-b flex items-center justify-between', isDark ? 'border-[#222]' : 'border-gray-200')}>
         <h3 className={cn(
-          'text-[10px] font-mono uppercase tracking-wider font-bold',
-          isDark ? 'text-white/40' : 'text-gray-500'
+          'text-[11px] font-mono uppercase tracking-wider font-bold',
+          isDark ? 'text-white/60' : 'text-gray-600'
         )}>
           {isFinancial
             ? (isEs ? 'SALUD FINANCIERA' : 'FINANCIAL HEALTH')
@@ -77,11 +77,11 @@ export function ProjectHealthSidebar({
         const marginPct = offered > 0 ? Math.round((margin / offered) * 100) : 0;
         const consumedPct = offered > 0 ? Math.min(Math.round((estimated / offered) * 100), 120) : 0;
         const isOverBudget = estimated > offered && offered > 0;
-        const barColor = isOverBudget ? '#FF2D20' : '#00E5CC';
+        const barColor = isOverBudget ? '#F87171' : '#00E5CC';
 
         return (
           <div className={cn('px-5 py-4 border-b', isDark ? 'border-[#222]' : 'border-gray-200')}>
-            <h4 className={cn('text-[10px] font-mono uppercase tracking-wider mb-3', isDark ? 'text-white/40' : 'text-gray-500')}>
+            <h4 className={cn('text-[11px] font-mono uppercase tracking-wider font-semibold mb-3', isDark ? 'text-white/60' : 'text-gray-600')}>
               {isEs ? 'PRESUPUESTO' : 'BUDGET'}
             </h4>
             <div className="space-y-2">
@@ -97,7 +97,7 @@ export function ProjectHealthSidebar({
                 <span className={cn('text-xs', isDark ? 'text-white/60' : 'text-gray-600')}>
                   {isEs ? 'Estimado' : 'Estimated'}
                 </span>
-                <span className={cn('text-[11px] font-mono font-bold', isOverBudget ? 'text-[#FF2D20]' : isDark ? 'text-white/80' : 'text-gray-800')}>
+                <span className={cn('text-[11px] font-mono font-bold', isOverBudget ? 'text-[#F87171]' : isDark ? 'text-white/80' : 'text-gray-800')}>
                   {fmtCurrency(estimated)}
                 </span>
               </div>
@@ -125,7 +125,7 @@ export function ProjectHealthSidebar({
                 'mt-2 px-3 py-2 rounded-lg text-center font-mono text-sm font-bold',
                 margin >= 0
                   ? (isDark ? 'bg-[#00E5CC]/10 text-[#00E5CC]' : 'bg-emerald-50 text-emerald-600')
-                  : (isDark ? 'bg-[#FF2D20]/10 text-[#FF2D20]' : 'bg-red-50 text-red-600')
+                  : (isDark ? 'bg-[#F87171]/10 text-[#F87171]' : 'bg-red-50 text-red-600')
               )}>
                 {margin >= 0
                   ? `+${fmtCurrency(margin)} ${isEs ? 'Disp.' : 'Avail.'}`
@@ -145,10 +145,10 @@ export function ProjectHealthSidebar({
         const allocated = data.totalHoursAllocatedMinutes ?? 0;
         const pct = allocated > 0 ? Math.min(Math.round((spent / allocated) * 100), 100) : 0;
         const isOver = spent > allocated && allocated > 0;
-        const barColor = isOver ? '#FF2D20' : pct >= 80 ? '#FFD60A' : '#3BF06E';
+        const barColor = isOver ? '#F87171' : pct >= 80 ? '#FFD60A' : '#3BF06E';
         return (
           <div className={cn('px-5 py-4 border-b', isDark ? 'border-[#222]' : 'border-gray-200')}>
-            <h4 className={cn('text-[10px] font-mono uppercase tracking-wider mb-3', isDark ? 'text-white/40' : 'text-gray-500')}>
+            <h4 className={cn('text-[11px] font-mono uppercase tracking-wider font-semibold mb-3', isDark ? 'text-white/60' : 'text-gray-600')}>
               {isEs ? 'HORAS DEL PROYECTO' : 'PROJECT HOURS'}
             </h4>
             <div className="space-y-2">
@@ -156,7 +156,7 @@ export function ProjectHealthSidebar({
                 <span className={cn('text-xs', isDark ? 'text-white/60' : 'text-gray-600')}>
                   {isEs ? 'Usado' : 'Spent'}
                 </span>
-                <span className={cn('text-[11px] font-mono font-bold', isOver ? 'text-[#FF2D20]' : isDark ? 'text-white/80' : 'text-gray-800')}>
+                <span className={cn('text-[11px] font-mono font-bold', isOver ? 'text-[#F87171]' : isDark ? 'text-white/80' : 'text-gray-800')}>
                   {fmtMinutes(spent)}
                 </span>
               </div>
@@ -185,8 +185,8 @@ export function ProjectHealthSidebar({
       {(data.openRFIs !== undefined || data.submittalsApprovalPercent !== undefined) && (
         <div className={cn('px-5 py-4 border-b', isDark ? 'border-[#222]' : 'border-gray-200')}>
           <h4 className={cn(
-            'text-[10px] font-mono uppercase tracking-wider mb-3',
-            isDark ? 'text-white/40' : 'text-gray-500'
+            'text-[11px] font-mono uppercase tracking-wider font-semibold mb-3',
+            isDark ? 'text-white/60' : 'text-gray-600'
           )}>
             {isEs ? 'SALUD TÉCNICA' : 'TECHNICAL HEALTH'}
           </h4>
@@ -200,7 +200,7 @@ export function ProjectHealthSidebar({
                 <span className={cn(
                   'px-2 py-0.5 rounded text-[11px] font-mono font-bold',
                   data.openRFIs > 0
-                    ? 'bg-[#FF2D20]/15 text-[#FF2D20]'
+                    ? 'bg-[#F87171]/15 text-[#F87171]'
                     : 'bg-[#3BF06E]/15 text-[#3BF06E]'
                 )}>
                   {data.openRFIs}
@@ -250,7 +250,7 @@ export function ProjectHealthSidebar({
             <div className={cn(
               'px-3 py-2 rounded-lg text-center font-mono text-sm font-bold',
               isAhead && 'bg-[#3BF06E]/15 text-[#3BF06E]',
-              isBehind && 'bg-[#FF2D20]/15 text-[#FF2D20]',
+              isBehind && 'bg-[#F87171]/15 text-[#F87171]',
               !isAhead && !isBehind && 'bg-[#3B9EFF]/15 text-[#3B9EFF]'
             )}>
               {label}
@@ -264,8 +264,8 @@ export function ProjectHealthSidebar({
       {data.teams && data.teams.length > 0 && (
         <div className="px-5 py-4">
           <h4 className={cn(
-            'text-[10px] font-mono uppercase tracking-wider mb-3',
-            isDark ? 'text-white/40' : 'text-gray-500'
+            'text-[11px] font-mono uppercase tracking-wider font-semibold mb-3',
+            isDark ? 'text-white/60' : 'text-gray-600'
           )}>
             {isEs ? 'DISPONIBILIDAD DEL EQUIPO' : 'TEAM AVAILABILITY'}
           </h4>
@@ -273,7 +273,7 @@ export function ProjectHealthSidebar({
           <div className="space-y-3">
             {data.teams.map((team, i) => {
               const barColor = team.utilizationPercent >= 100
-                ? '#FF2D20'
+                ? '#F87171'
                 : team.utilizationPercent >= 80
                   ? '#FFD60A'
                   : team.color || '#3BF06E';
