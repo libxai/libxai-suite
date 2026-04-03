@@ -120,6 +120,9 @@ export interface TaskFormData {
   tags?: TaskTag[] // v0.17.158: Tags/Labels support
   pendingFiles?: File[] // v0.17.166: Files to upload after task creation
   effortMinutes?: number | null // v1.2.0: Estimated effort in minutes
+  parentId?: string | null // v2.3.0: Parent task (phase) for hierarchy
+  location?: string // v2.3.0: Location field
+  equipment?: string // v2.3.0: Asset/Equipment field
 }
 
 export interface TaskFormModalProps {
@@ -211,6 +214,9 @@ export function TaskFormModal({
     assignees: [],
     dependencies: [],
     tags: [], // v0.17.158
+    parentId: null,
+    location: '',
+    equipment: '',
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -231,6 +237,9 @@ export function TaskFormModal({
         assignees: task.assignees || [],
         dependencies: task.dependencies || [],
         tags: task.tags || [], // v0.17.158
+        parentId: task.parentId || null,
+        location: (task as any).location || '',
+        equipment: (task as any).equipment || '',
       })
       if ((task.dependencies && task.dependencies.length > 0) || task.isMilestone) {
         setShowAdvanced(true)
@@ -248,6 +257,9 @@ export function TaskFormModal({
         dependencies: [],
         pendingFiles: [], // v0.17.166
         tags: [], // v0.17.158
+        parentId: null,
+        location: '',
+        equipment: '',
       })
       setShowAdvanced(false)
       setPendingFiles([]) // v0.17.166: Clear pending files on reset
@@ -1002,9 +1014,9 @@ export function TaskFormModal({
                         step="5"
                         value={formData.progress}
                         onChange={(e) => handleChange('progress', parseInt(e.target.value))}
-                        className="flex-1 h-1.5 rounded-full appearance-none cursor-pointer"
+                        className="flex-1 h-2 rounded-full appearance-none cursor-pointer"
                         style={{
-                          backgroundColor: themeColors.bgSecondary,
+                          backgroundColor: isDarkTheme ? 'rgba(255,255,255,0.1)' : '#E5E7EB',
                           accentColor: formData.progress < 30 ? '#EF4444' : formData.progress < 70 ? '#F59E0B' : '#10B981',
                         }}
                         disabled={isLoading}
@@ -1060,7 +1072,7 @@ export function TaskFormModal({
                                   <circle cx="12" cy="12" r="10" />
                                 </svg>
                                 <span className="text-xs" style={{ color: themeColors.textTertiary }}>
-                                  Duración estimada
+                                  Horas Estimadas
                                 </span>
                               </div>
                               <input
@@ -1081,6 +1093,84 @@ export function TaskFormModal({
                               <p className="text-xs mt-1" style={{ color: themeColors.textTertiary }}>
                                 Ej: 8 (=8h), 2h 30m, 45m, 1d (1 día = 8h)
                               </p>
+                            </div>
+
+                            {/* v2.3.0: Parent Phase dropdown */}
+                            {availableTasks.length > 0 && (
+                              <div>
+                                <div className="flex items-center gap-2 mb-2">
+                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: themeColors.textTertiary }}>
+                                    <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>
+                                  </svg>
+                                  <span className="text-xs" style={{ color: themeColors.textTertiary }}>
+                                    Fase Padre
+                                  </span>
+                                </div>
+                                <select
+                                  value={formData.parentId || ''}
+                                  onChange={(e) => handleChange('parentId', e.target.value || null)}
+                                  className="w-full px-3 py-2 rounded-lg text-sm transition-colors appearance-none cursor-pointer"
+                                  style={{
+                                    backgroundColor: themeColors.bgSecondary,
+                                    color: themeColors.textPrimary,
+                                    border: `1px solid ${themeColors.borderLight}`,
+                                  }}
+                                  disabled={isLoading}
+                                >
+                                  <option value="">— Sin fase padre (raíz) —</option>
+                                  {availableTasks
+                                    .filter(t => t.id !== task?.id)
+                                    .map(t => (
+                                      <option key={t.id} value={t.id}>{t.name}</option>
+                                    ))}
+                                </select>
+                              </div>
+                            )}
+
+                            {/* v2.3.0: Location & Equipment fields */}
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span style={{ fontSize: 14 }}>📍</span>
+                                  <span className="text-xs" style={{ color: themeColors.textTertiary }}>
+                                    Ubicación
+                                  </span>
+                                </div>
+                                <input
+                                  type="text"
+                                  placeholder="Ej: Zona Norte, Piso 3"
+                                  value={formData.location || ''}
+                                  onChange={(e) => handleChange('location', e.target.value)}
+                                  className="w-full px-3 py-2 rounded-lg text-sm transition-colors"
+                                  style={{
+                                    backgroundColor: themeColors.bgSecondary,
+                                    color: themeColors.textPrimary,
+                                    border: `1px solid ${themeColors.borderLight}`,
+                                  }}
+                                  disabled={isLoading}
+                                />
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span style={{ fontSize: 14 }}>🔧</span>
+                                  <span className="text-xs" style={{ color: themeColors.textTertiary }}>
+                                    Activo / Equipo
+                                  </span>
+                                </div>
+                                <input
+                                  type="text"
+                                  placeholder="Ej: CMC-256"
+                                  value={formData.equipment || ''}
+                                  onChange={(e) => handleChange('equipment', e.target.value)}
+                                  className="w-full px-3 py-2 rounded-lg text-sm transition-colors"
+                                  style={{
+                                    backgroundColor: themeColors.bgSecondary,
+                                    color: themeColors.textPrimary,
+                                    border: `1px solid ${themeColors.borderLight}`,
+                                  }}
+                                  disabled={isLoading}
+                                />
+                              </div>
                             </div>
 
                             {/* v0.17.227: Attachments Section - moved here for cleaner form */}
@@ -1358,7 +1448,7 @@ export function TaskFormModal({
                     type="submit"
                     disabled={isLoading}
                     className="px-4 py-2 font-medium rounded-lg transition-colors flex items-center gap-2"
-                    style={{ backgroundColor: themeColors.accent, color: '#FFF', fontSize: 13 }}
+                    style={{ backgroundColor: '#00E5CC', color: '#111', fontSize: 13, fontWeight: 600 }}
                     onMouseEnter={(e) => !isLoading && (e.currentTarget.style.opacity = '0.9')}
                     onMouseLeave={(e) => !isLoading && (e.currentTarget.style.opacity = '1')}
                   >
