@@ -15,7 +15,6 @@ import {
   Calendar,
   Users,
   Link2,
-  Clock,
   AlertCircle,
   Milestone as MilestoneIcon,
   Flag,
@@ -340,10 +339,11 @@ export function TaskFormModal({
   // Pill button base style — glass surface for dark, solid for light
   const isDarkTheme = theme === 'dark'
   const pillStyle = {
-    backgroundColor: isDarkTheme ? '#141414' : themeColors.bgSecondary,
-    border: `1px solid ${isDarkTheme ? '#262626' : themeColors.borderLight}`,
+    backgroundColor: isDarkTheme ? '#1d1f27' : themeColors.bgSecondary,
+    border: `1px solid ${isDarkTheme ? 'rgba(65,71,84,0.1)' : themeColors.borderLight}`,
     color: themeColors.textPrimary,
   }
+
 
   return (
     <AnimatePresence>
@@ -354,11 +354,11 @@ export function TaskFormModal({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50"
+            className="fixed inset-0 z-[9999]"
             style={{
-              backgroundColor: isDarkTheme ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.3)',
-              backdropFilter: 'blur(4px)',
-              WebkitBackdropFilter: 'blur(4px)',
+              backgroundColor: isDarkTheme ? 'rgba(0, 0, 0, 0.85)' : 'rgba(0, 0, 0, 0.4)',
+              backdropFilter: 'blur(16px)',
+              WebkitBackdropFilter: 'blur(16px)',
             }}
             onClick={onClose}
           />
@@ -369,100 +369,61 @@ export function TaskFormModal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none"
+            className="fixed inset-0 z-[9999] flex items-center justify-center p-4 pointer-events-none"
           >
             <div
-              className="w-full max-w-xl rounded-xl pointer-events-auto overflow-hidden"
+              className="w-full max-w-[640px] rounded-xl pointer-events-auto flex flex-col"
               data-theme={theme}
               style={{
                 backgroundColor: isDarkTheme ? '#0a0a0a' : themeColors.bgPrimary,
-                backdropFilter: isDarkTheme ? 'blur(16px)' : undefined,
-                WebkitBackdropFilter: isDarkTheme ? 'blur(16px)' : undefined,
-                border: `1px solid ${themeColors.border}`,
-                boxShadow: isDarkTheme ? '0 8px 32px rgba(0, 0, 0, 0.6)' : '0 8px 32px rgba(0, 0, 0, 0.12)',
+                border: `1px solid ${isDarkTheme ? 'rgba(65,71,84,0.1)' : themeColors.border}`,
+                boxShadow: isDarkTheme ? '0 8px 48px rgba(0, 0, 0, 0.8)' : '0 8px 32px rgba(0, 0, 0, 0.12)',
+                maxHeight: '90vh',
               }}
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Header - Minimal */}
-              <div
-                className="flex items-center justify-between px-5 py-3"
-                style={{ borderBottom: `1px solid ${themeColors.border}`, fontFamily: 'Inter, sans-serif' }}
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: currentStatus.color || themeColors.accent }}
-                  />
-                  <span style={{ fontSize: 13, fontWeight: 500, color: themeColors.textSecondary }}>
-                    {mode === 'create' ? 'Nueva tarea' : 'Editar tarea'}
-                  </span>
-                </div>
-                <button
-                  onClick={onClose}
-                  className="p-1.5 rounded-lg transition-colors"
-                  style={{ color: themeColors.textTertiary }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = themeColors.hoverBg
-                    e.currentTarget.style.color = themeColors.textPrimary
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent'
-                    e.currentTarget.style.color = themeColors.textTertiary
-                  }}
-                  disabled={isLoading}
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
               {/* Form Content */}
-              <form onSubmit={handleSubmit} className="max-h-[calc(100vh-200px)] overflow-y-auto" style={{ fontFamily: 'Inter, sans-serif' }}>
-                <div className="p-5 space-y-4">
-                  {/* Task Name - Large & Prominent */}
-                  <div>
-                    <input
-                      type="text"
-                      value={formData.name}
-                      onChange={(e) => handleChange('name', e.target.value)}
-                      className="w-full bg-transparent border-none focus:outline-none focus:ring-0"
-                      style={{
-                        color: themeColors.textPrimary,
-                        fontSize: 22,
-                        fontWeight: 700,
-                        fontFamily: 'Inter, sans-serif',
-                        opacity: formData.name ? 1 : undefined,
-                      }}
-                      placeholder="Nombre de la tarea"
-                      disabled={isLoading}
-                      autoFocus
-                    />
-                    {errors.name && (
-                      <p className="mt-1 text-xs text-red-400 flex items-center gap-1">
-                        <AlertCircle className="w-3 h-3" />
-                        {errors.name}
-                      </p>
-                    )}
-                  </div>
+              <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden flex-1" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
+                {/* 1. Header Section — fixed, not scrollable */}
+                <header className="px-8 pt-8 pb-4 space-y-4 flex-shrink-0">
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => handleChange('name', e.target.value)}
+                    className="w-full bg-transparent border-none p-0 focus:outline-none focus:ring-0"
+                    style={{
+                      color: themeColors.textPrimary,
+                      fontSize: 30,
+                      fontWeight: 700,
+                      fontFamily: "'Inter', system-ui, sans-serif",
+                    }}
+                    placeholder="Nombre de la tarea"
+                    disabled={isLoading}
+                    autoFocus
+                  />
+                  {errors.name && (
+                    <p className="text-xs text-red-400 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      {errors.name}
+                    </p>
+                  )}
+                  <textarea
+                    value={formData.description || ''}
+                    onChange={(e) => handleChange('description', e.target.value)}
+                    className="w-full bg-transparent border-none p-0 focus:outline-none focus:ring-0 resize-none"
+                    style={{
+                      color: themeColors.textTertiary,
+                      fontSize: 16,
+                      fontFamily: "'Inter', system-ui, sans-serif",
+                    }}
+                    placeholder="Agregar descripción..."
+                    rows={2}
+                    disabled={isLoading}
+                  />
+                </header>
 
-                  {/* Description - Subtle */}
-                  <div>
-                    <textarea
-                      value={formData.description || ''}
-                      onChange={(e) => handleChange('description', e.target.value)}
-                      className="w-full bg-transparent border-none focus:outline-none focus:ring-0 resize-none"
-                      style={{
-                        color: themeColors.textSecondary,
-                        fontSize: 13,
-                        fontFamily: 'Inter, sans-serif',
-                      }}
-                      placeholder="Agregar descripción..."
-                      rows={2}
-                      disabled={isLoading}
-                    />
-                  </div>
-
-                  {/* Divider */}
-                  <div style={{ borderTop: `1px solid ${themeColors.borderLight}` }} />
+                {/* Scrollable content */}
+                <div className="flex-1 overflow-y-auto px-8 py-4 space-y-6">
 
                   {/* v0.17.98: Pill Button Row - ClickUp Style */}
                   <div className="flex flex-wrap items-center gap-2">
@@ -777,9 +738,14 @@ export function TaskFormModal({
                     ) : null}
                   </div>
 
-                  {/* Dates Row */}
-                  <div className="flex items-center gap-3">
-                    <Calendar className="w-4 h-4" style={{ color: themeColors.textTertiary }} />
+                  {/* 3. Row 2: Date & Progress — 2-col grid */}
+                  <section className="grid grid-cols-1 md:grid-cols-2 gap-8 items-end">
+                  <div className="space-y-3">
+                    <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: themeColors.textTertiary, display: 'block' }}>
+                      Rango de Fechas
+                    </label>
+                  <div className="flex items-center gap-3" style={{ backgroundColor: isDarkTheme ? '#191b22' : themeColors.bgSecondary, borderRadius: 8, border: `1px solid ${isDarkTheme ? 'rgba(65,71,84,0.05)' : themeColors.borderLight}`, padding: '10px 16px' }}>
+                    <Calendar className="w-5 h-5" style={{ color: '#007BFF' }} />
                     <div ref={dateRowRef} className="flex items-center gap-2 flex-1 relative">
                       <button
                         type="button"
@@ -791,12 +757,7 @@ export function TaskFormModal({
                               // Calculate position for Portal
                               if (dateRowRef.current) {
                                 const rect = dateRowRef.current.getBoundingClientRect()
-                                const viewportHeight = window.innerHeight
-                                const pickerHeight = 320 // Approximate height
-                                // Open upward if not enough space below
-                                const spaceBelow = viewportHeight - rect.bottom
-                                const top = spaceBelow < pickerHeight ? rect.top - pickerHeight - 8 : rect.bottom + 8
-                                setDatePickerPosition({ top, left: rect.left })
+                                setDatePickerPosition({ top: rect.bottom + 8, left: Math.max(16, rect.left - 40) })
                               }
                               setShowDatePicker('start')
                               setDatePickerMonth(formData.startDate || new Date())
@@ -824,11 +785,7 @@ export function TaskFormModal({
                               // Calculate position for Portal
                               if (dateRowRef.current) {
                                 const rect = dateRowRef.current.getBoundingClientRect()
-                                const viewportHeight = window.innerHeight
-                                const pickerHeight = 320
-                                const spaceBelow = viewportHeight - rect.bottom
-                                const top = spaceBelow < pickerHeight ? rect.top - pickerHeight - 8 : rect.bottom + 8
-                                setDatePickerPosition({ top, left: rect.left })
+                                setDatePickerPosition({ top: rect.bottom + 8, left: Math.max(16, rect.left - 40) })
                               }
                               setShowDatePicker('end')
                               setDatePickerMonth(formData.endDate || formData.startDate || new Date())
@@ -1002,49 +959,45 @@ export function TaskFormModal({
                     </div>
                     {errors.endDate && <span className="text-xs text-red-400">{errors.endDate}</span>}
                   </div>
-
-                  {/* Progress Row - Compact */}
-                  <div className="flex items-center gap-3">
-                    <Clock className="w-4 h-4" style={{ color: themeColors.textTertiary }} />
-                    <div className="flex items-center gap-3 flex-1">
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        step="5"
-                        value={formData.progress}
-                        onChange={(e) => handleChange('progress', parseInt(e.target.value))}
-                        className="flex-1 h-2 rounded-full appearance-none cursor-pointer"
-                        style={{
-                          backgroundColor: isDarkTheme ? 'rgba(255,255,255,0.1)' : '#E5E7EB',
-                          accentColor: formData.progress < 30 ? '#EF4444' : formData.progress < 70 ? '#F59E0B' : '#10B981',
-                        }}
-                        disabled={isLoading}
-                      />
-                      <span
-                        className="text-xs font-medium px-2 py-0.5 rounded-full min-w-[45px] text-center"
-                        style={{
-                          backgroundColor: `${formData.progress < 30 ? '#EF4444' : formData.progress < 70 ? '#F59E0B' : '#10B981'}20`,
-                          color: formData.progress < 30 ? '#EF4444' : formData.progress < 70 ? '#F59E0B' : '#10B981',
-                          fontFamily: 'JetBrains Mono, monospace',
-                        }}
-                      >
+                  </div>
+                  {/* Progress — static bar matching design */}
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: themeColors.textTertiary }}>
+                        Progreso Inicial
+                      </label>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: '#007BFF' }}>
                         {formData.progress}%
                       </span>
                     </div>
+                    <div
+                      className="h-2 w-full rounded-full overflow-hidden cursor-pointer"
+                      style={{ backgroundColor: isDarkTheme ? '#33343c' : '#E5E7EB' }}
+                      onClick={(e) => {
+                        if (isLoading) return;
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const pct = Math.round(((e.clientX - rect.left) / rect.width) * 100 / 5) * 5;
+                        handleChange('progress', Math.max(0, Math.min(100, pct)));
+                      }}
+                    >
+                      <div
+                        className="h-full rounded-full transition-all"
+                        style={{ width: `${formData.progress}%`, backgroundColor: '#007BFF' }}
+                      />
+                    </div>
                   </div>
+                  </section>
 
                   {/* Advanced Options - Collapsible */}
-                  {/* v0.17.227: Attachments moved inside advanced options for cleaner form */}
-                  <div>
+                  <div style={{ borderTop: `1px solid ${isDarkTheme ? 'rgba(65,71,84,0.05)' : themeColors.borderLight}`, paddingTop: 16 }}>
                     <button
                       type="button"
                       onClick={() => setShowAdvanced(!showAdvanced)}
-                      className="flex items-center gap-2 text-xs w-full py-2 transition-colors"
-                      style={{ color: themeColors.textTertiary }}
+                      className="flex items-center gap-2 w-full py-2 transition-colors"
+                      style={{ color: themeColors.textPrimary }}
                     >
-                      <ChevronDown className={`w-3 h-3 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
-                      Opciones avanzadas
+                      <ChevronDown className={`w-4 h-4 transition-transform ${showAdvanced ? '' : '-rotate-90'}`} style={{ color: themeColors.textTertiary }} />
+                      <span style={{ fontSize: 16, fontWeight: 700, fontFamily: "'Inter', system-ui, sans-serif" }}>Opciones Avanzadas</span>
                     </button>
 
                     <AnimatePresence>
@@ -1429,17 +1382,19 @@ export function TaskFormModal({
                       )}
                     </AnimatePresence>
                   </div>
-                </div>
 
-                {/* Footer - Simplified */}
-                <div className="flex items-center justify-end gap-2 px-5 py-3" style={{ borderTop: `1px solid ${themeColors.border}`, fontFamily: 'Inter, sans-serif' }}>
+                </div>
+                {/* End scrollable content */}
+
+                {/* Footer - Executive style */}
+                <div className="flex items-center justify-end gap-6 px-8 py-5 flex-shrink-0" style={{ borderTop: `1px solid ${isDarkTheme ? 'rgba(65,71,84,0.1)' : themeColors.border}`, backgroundColor: isDarkTheme ? 'rgba(25,27,34,0.2)' : undefined }}>
                   <button
                     type="button"
                     onClick={onClose}
-                    className="px-4 py-2 rounded-lg transition-colors"
-                    style={{ color: themeColors.textSecondary, fontSize: 13 }}
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = themeColors.hoverBg)}
-                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                    className="text-sm font-semibold transition-colors"
+                    style={{ color: themeColors.textTertiary }}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = themeColors.textPrimary)}
+                    onMouseLeave={(e) => (e.currentTarget.style.color = themeColors.textTertiary)}
                     disabled={isLoading}
                   >
                     Cancelar
@@ -1447,15 +1402,21 @@ export function TaskFormModal({
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="px-4 py-2 font-medium rounded-lg transition-colors flex items-center gap-2"
-                    style={{ backgroundColor: '#00E5CC', color: '#111', fontSize: 13, fontWeight: 600 }}
-                    onMouseEnter={(e) => !isLoading && (e.currentTarget.style.opacity = '0.9')}
-                    onMouseLeave={(e) => !isLoading && (e.currentTarget.style.opacity = '1')}
+                    className="px-8 py-3 font-bold rounded-lg transition-all flex items-center gap-2"
+                    style={{
+                      backgroundColor: '#007BFF',
+                      color: '#FFF',
+                      fontSize: 14,
+                      fontFamily: "'Inter', system-ui, sans-serif",
+                      boxShadow: '0 4px 20px rgba(0, 123, 255, 0.2)',
+                    }}
+                    onMouseEnter={(e) => !isLoading && (e.currentTarget.style.filter = 'brightness(1.1)')}
+                    onMouseLeave={(e) => !isLoading && (e.currentTarget.style.filter = 'brightness(1)')}
                   >
                     {isLoading ? (
                       <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Guardando...</>
                     ) : (
-                      <>{mode === 'create' ? 'Crear tarea' : 'Guardar'}</>
+                      <>{mode === 'create' ? 'Crear Tarea' : 'Guardar'}</>
                     )}
                   </button>
                 </div>

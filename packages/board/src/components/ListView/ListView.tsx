@@ -123,13 +123,6 @@ function calculateGroupSPI(task: Task): number | null {
   return count > 0 ? totalSPI / count : null;
 }
 
-/**
- * Count resource conflicts in a group (subtasks with >100% team load)
- */
-function countResourceConflicts(task: Task): number {
-  if (!task.subtasks?.length) return 0;
-  return task.subtasks.filter(sub => sub.teamLoad && sub.teamLoad.percentage >= 100).length;
-}
 
 /**
  * Sum timeLoggedMinutes and effortMinutes recursively across all subtasks of a group.
@@ -1118,14 +1111,14 @@ export function ListView({
             const offDollars = Math.round(groupDollars.dollarQuoted);
             const margin = offDollars - estDollars;
             return (
-              <div className="flex items-center gap-1.5">
+              <div className="flex flex-col">
                 {estDollars > 0 ? (
                   <span className={cn('text-sm font-mono', isDark ? 'text-white/60' : 'text-gray-500')}>
-                    ${estDollars.toLocaleString('en-US')}
+                    ${estDollars.toLocaleString('es-CO')}
                   </span>
                 ) : null}
                 {margin !== 0 && estDollars > 0 && offDollars > 0 && (
-                  <span className={cn('text-[9px] font-mono font-bold px-1.5 py-0.5 rounded whitespace-nowrap',
+                  <span className={cn('text-[9px] font-mono font-bold px-1.5 py-0.5 rounded whitespace-nowrap mt-0.5',
                     margin > 0 ? 'bg-[#064e3b] text-[#10b981] border border-[#065f46]/30' : 'bg-[#451a03] text-[#f59e0b] border border-[#78350f]/30'
                   )}>
                     {margin > 0 ? '+' : ''}{Math.abs(margin) >= 1000 ? `$${(margin/1000).toFixed(1)}K` : `$${margin}`}
@@ -1146,7 +1139,7 @@ export function ListView({
           const offDollars = Math.round((soldMins / 60) * _taskRate);
           const margin = offDollars - estDollars;
           return (
-            <div className="flex items-center gap-1.5">
+            <div className="flex flex-col">
               <TimeCell
                 value={estMins}
                 onChange={(minutes) => handleUpdate({ effortMinutes: minutes } as any)}
@@ -1157,7 +1150,7 @@ export function ListView({
                 hourlyRate={getTaskRate(task)}
               />
               {margin !== 0 && (
-                <span className={cn('text-[9px] font-mono font-bold px-1.5 py-0.5 rounded whitespace-nowrap',
+                <span className={cn('text-[9px] font-mono font-bold px-1.5 py-0.5 rounded whitespace-nowrap mt-0.5',
                   margin >= 0 ? 'bg-[#064e3b] text-[#10b981] border border-[#065f46]/30' : 'bg-[#451a03] text-[#f59e0b] border border-[#78350f]/30'
                 )}>
                   {margin > 0 ? '+' : ''}{Math.abs(margin) >= 1000 ? `$${(margin/1000).toFixed(1)}K` : `$${margin}`}
@@ -1749,7 +1742,6 @@ export function ListView({
               if (isGroupHeader) {
                 const { spent, allocated, quoted } = calculateGroupHours(task);
                 const spi = calculateGroupSPI(task);
-                const conflicts = countResourceConflicts(task);
                 return (
                   <motion.div
                     key={task.id}
@@ -1770,42 +1762,38 @@ export function ListView({
                       >
                         {column.type === 'name' ? (
                           // Name cell — folder icon + wbs + name + count + SPI + conflicts
-                          <div className="flex items-center gap-2 min-w-0 w-full">
+                          <div className="flex items-start gap-2 min-w-0 w-full">
                             <button
                               onClick={(e) => { e.stopPropagation(); toggleExpand(task.id); }}
-                              className={cn("p-0.5 rounded flex-shrink-0", isDark ? "hover:bg-white/[0.05]" : "hover:bg-gray-200")}
+                              className={cn("p-0.5 rounded flex-shrink-0 mt-0.5", isDark ? "hover:bg-white/[0.05]" : "hover:bg-gray-200")}
                             >
                               {isExpanded
                                 ? <ChevronDown className={cn("w-4 h-4", isDark ? "text-white/40" : "text-gray-500")} />
                                 : <ChevronRight className={cn("w-4 h-4", isDark ? "text-white/40" : "text-gray-500")} />}
                             </button>
-                            <span onClick={(e) => { e.stopPropagation(); toggleExpand(task.id); }} className="flex-shrink-0 cursor-pointer">
+                            <span onClick={(e) => { e.stopPropagation(); toggleExpand(task.id); }} className="flex-shrink-0 cursor-pointer mt-0.5">
                               {isExpanded
                                 ? <FolderOpen className="w-4 h-4" style={{ color: isDark ? '#FFD60A' : '#B45309' }} />
                                 : <Folder className="w-4 h-4" style={{ color: isDark ? '#FFD60A' : '#B45309' }} />}
                             </span>
                             {task.wbsCode && (
-                              <span className="text-[10px] font-mono flex-shrink-0" style={{ color: isDark ? '#FFD60A' : '#B45309' }}>
+                              <span className="text-[10px] font-mono flex-shrink-0 mt-1" style={{ color: isDark ? '#FFD60A' : '#B45309' }}>
                                 {task.wbsCode}
                               </span>
                             )}
-                            <span title={task.name} className={cn("text-[13px] font-bold uppercase tracking-wide truncate", isDark ? "text-white" : "text-gray-900")} style={{ fontFamily: 'Inter, system-ui, sans-serif', WebkitFontSmoothing: 'antialiased', MozOsxFontSmoothing: 'grayscale' }}>
-                              {task.name}
-                            </span>
-                            <span className={cn("text-[10px] font-mono px-2 py-0.5 rounded-full flex-shrink-0", isDark ? "text-white/30 bg-white/[0.05]" : "text-gray-500 bg-gray-200")}>
-                              ({subtaskCount} {locale === 'es' ? (subtaskCount === 1 ? 'Tarea' : 'Tareas') : (subtaskCount === 1 ? 'Item' : 'Items')})
-                            </span>
-                            {/* SPI + conflicts after name */}
-                            {spi !== null && (
-                              <span className={cn("text-[10px] font-mono flex-shrink-0", spi >= 1 ? "text-[#32D74B]" : spi >= 0.8 ? "text-[#FFD60A]" : "text-[#FF453A]")}>
-                                Avg SPI: {spi.toFixed(2)}
+                            <div className="flex flex-col min-w-0">
+                              <span className={cn("text-[13px] font-bold uppercase tracking-wide", isDark ? "text-white" : "text-gray-900")} style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                                {task.name}
                               </span>
-                            )}
-                            {conflicts > 0 && (
-                              <span className="text-[10px] font-mono text-[#FF453A] flex-shrink-0">
-                                {locale === 'es' ? 'Conflicto' : 'Conflict'}: {conflicts}
+                              <span className={cn("text-[10px] font-mono", isDark ? "text-white/30" : "text-gray-500")}>
+                                ({subtaskCount} {locale === 'es' ? (subtaskCount === 1 ? 'Tarea' : 'Tareas') : (subtaskCount === 1 ? 'Item' : 'Items')})
                               </span>
-                            )}
+                              {spi !== null && (
+                                <span className={cn("text-[9px] font-mono px-1.5 py-0.5 rounded w-fit mt-0.5", spi >= 1 ? "text-[#32D74B] bg-[#32D74B]/10" : spi >= 0.8 ? "text-[#FFD60A] bg-[#FFD60A]/10" : "text-[#FF453A] bg-[#FF453A]/10")}>
+                                  Avg SPI: {spi.toFixed(2)}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         ) : column.type === 'timeLoggedMinutes' ? (
                           lens === 'financial' ? (() => {
@@ -1826,14 +1814,14 @@ export function ListView({
                             const offDollars = Math.round(groupDollars.dollarQuoted);
                             const margin = offDollars - estDollars;
                             return (
-                              <div className="flex items-center gap-1.5">
+                              <div className="flex flex-col">
                                 {estDollars > 0 ? (
                                   <span className={cn('text-sm font-mono', isDark ? 'text-white/60' : 'text-gray-500')}>
-                                    ${estDollars.toLocaleString('en-US')}
+                                    ${estDollars.toLocaleString('es-CO')}
                                   </span>
                                 ) : null}
                                 {margin !== 0 && estDollars > 0 && offDollars > 0 && (
-                                  <span className={cn('text-[9px] font-mono font-bold px-1.5 py-0.5 rounded whitespace-nowrap',
+                                  <span className={cn('text-[9px] font-mono font-bold px-1.5 py-0.5 rounded whitespace-nowrap mt-0.5',
                                     margin > 0 ? 'bg-[#064e3b] text-[#10b981] border border-[#065f46]/30' : 'bg-[#451a03] text-[#f59e0b] border border-[#78350f]/30'
                                   )}>
                                     {margin > 0 ? '+' : ''}{Math.abs(margin) >= 1000 ? `$${(margin/1000).toFixed(1)}K` : `$${margin}`}
@@ -2000,13 +1988,13 @@ export function ListView({
             const formatValue = (mins: number, dollarOverride?: number) => {
               if (isFinancial) {
                 const dollars = dollarOverride != null ? dollarOverride : (mins / 60) * hourlyRate;
-                return `$${Math.round(dollars).toLocaleString('en-US')}`;
+                return `$${Math.round(dollars).toLocaleString('es-CO')}`;
               }
               return formatGroupHours(mins);
             };
             const varianceDollars = isFinancial ? Math.abs(projectTotalHours.dollarAllocated - projectTotalHours.dollarSpent) : 0;
             const varianceLabelFinancial = isFinancial
-              ? `${isOver ? '+' : '-'}$${varianceDollars.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} ${isOver ? (locale === 'es' ? 'EXCEDIDO' : 'OVER') : (locale === 'es' ? 'AHORRADO' : 'SAVED')}`
+              ? `${isOver ? '+' : '-'}$${varianceDollars.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} ${isOver ? (locale === 'es' ? 'EXCEDIDO' : 'OVER') : (locale === 'es' ? 'AHORRADO' : 'SAVED')}`
               : varianceLabel;
 
             return (
@@ -2039,19 +2027,21 @@ export function ListView({
                         {locale === 'es' ? 'TOTAL PROYECTO' : 'TOTAL PROJECT'}
                       </span>
                     ) : column.type === 'hoursBar' ? (
-                      <div className="flex items-center gap-2 w-full">
-                        <span className={cn("text-[12px] font-bold", isDark ? "text-white" : "text-gray-900")}
-                          style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-                          {formatValue(spent, isFinancial ? projectTotalHours.dollarSpent : undefined)}
-                        </span>
-                        <span className={cn("text-[11px]", isDark ? "text-white/40" : "text-gray-400")}>/</span>
-                        <span className={cn("text-[11px]", isDark ? "text-white/50" : "text-gray-500")}
-                          style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-                          {formatValue(allocated, isFinancial ? projectTotalHours.dollarAllocated : undefined)}
-                        </span>
+                      <div className="flex flex-col w-full">
+                        <div className="flex items-center gap-2">
+                          <span className={cn("text-[12px] font-bold", isDark ? "text-white" : "text-gray-900")}
+                            style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                            {formatValue(spent, isFinancial ? projectTotalHours.dollarSpent : undefined)}
+                          </span>
+                          <span className={cn("text-[11px]", isDark ? "text-white/40" : "text-gray-400")}>/</span>
+                          <span className={cn("text-[11px]", isDark ? "text-white/50" : "text-gray-500")}
+                            style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                            {formatValue(allocated, isFinancial ? projectTotalHours.dollarAllocated : undefined)}
+                          </span>
+                        </div>
                         {allocated > 0 && (
                           <span className={cn(
-                            "text-[10px] font-semibold ml-1",
+                            "text-[10px] font-semibold mt-0.5 whitespace-nowrap",
                             isOver ? "text-[#FF453A]" : "text-[#32D74B]"
                           )} style={{ fontFamily: 'JetBrains Mono, monospace' }}>
                             {isFinancial ? varianceLabelFinancial : varianceLabel}
@@ -2071,12 +2061,12 @@ export function ListView({
                         const margin = offTotal - estTotal;
                         const marginPct = offTotal > 0 ? Math.round((margin / offTotal) * 100) : 0;
                         return (
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-col">
                             <span className={cn("text-[12px] font-bold", isDark ? "text-white" : "text-gray-900")}
                               style={{ fontFamily: 'JetBrains Mono, monospace' }}>
                               {formatValue(allocated, projectTotalHours.dollarAllocated)}
                             </span>
-                            <span className={cn('text-[9px] font-mono font-bold px-1.5 py-0.5 rounded whitespace-nowrap',
+                            <span className={cn('text-[9px] font-mono font-bold px-1.5 py-0.5 rounded whitespace-nowrap mt-0.5',
                               margin >= 0 ? 'bg-[#064e3b] text-[#10b981] border border-[#065f46]/30' : 'bg-[#451a03] text-[#f59e0b] border border-[#78350f]/30'
                             )}>
                               {margin >= 0 ? '+' : ''}{Math.abs(margin) >= 1000 ? `$${(margin/1000).toFixed(1)}K` : `$${margin}`}

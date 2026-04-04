@@ -22,9 +22,7 @@ function fmtMinutes(minutes: number): string {
 }
 
 function fmtCurrency(value: number): string {
-  if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`;
-  if (value >= 1_000) return `$${(value / 1_000).toFixed(1)}K`;
-  return `$${Math.round(value).toLocaleString('en-US')}`;
+  return `$${Math.round(value).toLocaleString('es-CO')}`;
 }
 
 export function ProjectHealthSidebar({
