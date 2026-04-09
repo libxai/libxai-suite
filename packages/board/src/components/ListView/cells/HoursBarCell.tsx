@@ -267,7 +267,7 @@ export function HoursBarCell({
               className="font-mono px-1.5 py-0.5 rounded"
               style={{ fontSize: 10, color: '#EF4444', backgroundColor: 'rgba(239,68,68,0.15)' }}
             >
-              +{fmt(overHours)} Over
+              +{fmt(overHours)} {isEs ? 'Excedido' : 'Over'}
             </span>
           )}
         </div>
