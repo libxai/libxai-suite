@@ -3024,6 +3024,9 @@ interface TaskFormData {
     tags?: TaskTag[];
     pendingFiles?: File[];
     effortMinutes?: number | null;
+    parentId?: string | null;
+    location?: string;
+    equipment?: string;
 }
 interface TaskFormModalProps {
     isOpen: boolean;

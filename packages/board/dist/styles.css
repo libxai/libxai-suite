@@ -8517,6 +8517,11 @@ body {
 }
 
 
+.left-40 {
+  left: 10rem;
+}
+
+
 .left-full {
   left: 100%;
 }
@@ -9028,11 +9033,6 @@ body {
 }
 
 
-.max-h-\[calc\(100vh-200px\)\] {
-  max-height: calc(100vh - 200px);
-}
-
-
 .max-h-\[calc\(80vh-120px\)\] {
   max-height: calc(80vh - 120px);
 }
@@ -9218,8 +9218,8 @@ body {
 }
 
 
-.w-\[220px\] {
-  width: 220px;
+.w-\[260px\] {
+  width: 260px;
 }
 
 
@@ -9339,11 +9339,6 @@ body {
 }
 
 
-.min-w-\[45px\] {
-  min-width: 45px;
-}
-
-
 .min-w-\[70px\] {
   min-width: 70px;
 }
@@ -9389,6 +9384,11 @@ body {
 }
 
 
+.max-w-\[640px\] {
+  max-width: 640px;
+}
+
+
 .max-w-\[85\%\] {
   max-width: 85%;
 }
@@ -9396,11 +9396,6 @@ body {
 
 .max-w-md {
   max-width: 28rem;
-}
-
-
-.max-w-xl {
-  max-width: 36rem;
 }
 
 
@@ -10429,6 +10424,11 @@ body {
 }
 
 
+.bg-\[\#32D74B\]\/10 {
+  background-color: rgb(50 215 75 / 0.1);
+}
+
+
 .bg-\[\#3B9EFF\] {
   --tw-bg-opacity: 1;
   background-color: rgb(59 158 255 / var(--tw-bg-opacity, 1));
@@ -10478,14 +10478,19 @@ body {
 }
 
 
-.bg-\[\#FF2D20\] {
-  --tw-bg-opacity: 1;
-  background-color: rgb(255 45 32 / var(--tw-bg-opacity, 1));
+.bg-\[\#F87171\]\/10 {
+  background-color: rgb(248 113 113 / 0.1);
 }
 
 
-.bg-\[\#FF2D20\]\/10 {
-  background-color: rgb(255 45 32 / 0.1);
+.bg-\[\#F87171\]\/15 {
+  background-color: rgb(248 113 113 / 0.15);
+}
+
+
+.bg-\[\#FF2D20\] {
+  --tw-bg-opacity: 1;
+  background-color: rgb(255 45 32 / var(--tw-bg-opacity, 1));
 }
 
 
@@ -10494,9 +10499,19 @@ body {
 }
 
 
+.bg-\[\#FF453A\]\/10 {
+  background-color: rgb(255 69 58 / 0.1);
+}
+
+
 .bg-\[\#FFD60A\] {
   --tw-bg-opacity: 1;
   background-color: rgb(255 214 10 / var(--tw-bg-opacity, 1));
+}
+
+
+.bg-\[\#FFD60A\]\/10 {
+  background-color: rgb(255 214 10 / 0.1);
 }
 
 
@@ -10899,6 +10914,11 @@ body {
 }
 
 
+.p-0 {
+  padding: 0px;
+}
+
+
 .p-0\.5 {
   padding: 0.125rem;
 }
@@ -10931,11 +10951,6 @@ body {
 
 .p-4 {
   padding: 1rem;
-}
-
-
-.p-5 {
-  padding: 1.25rem;
 }
 
 
@@ -11012,6 +11027,12 @@ body {
 .px-6 {
   padding-left: 1.5rem;
   padding-right: 1.5rem;
+}
+
+
+.px-8 {
+  padding-left: 2rem;
+  padding-right: 2rem;
 }
 
 
@@ -11113,6 +11134,11 @@ body {
 }
 
 
+.pb-4 {
+  padding-bottom: 1rem;
+}
+
+
 .pb-6 {
   padding-bottom: 1.5rem;
 }
@@ -11180,6 +11206,11 @@ body {
 
 .pt-4 {
   padding-top: 1rem;
+}
+
+
+.pt-8 {
+  padding-top: 2rem;
 }
 
 
@@ -11481,6 +11512,12 @@ body {
 .text-\[\#EF4444\] {
   --tw-text-opacity: 1;
   color: rgb(239 68 68 / var(--tw-text-opacity, 1));
+}
+
+
+.text-\[\#F87171\] {
+  --tw-text-opacity: 1;
+  color: rgb(248 113 113 / var(--tw-text-opacity, 1));
 }
 
 
@@ -11810,12 +11847,6 @@ body {
 }
 
 
-.antialiased {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-
 .placeholder-gray-400::-moz-placeholder {
   --tw-placeholder-opacity: 1;
   color: rgb(156 163 175 / var(--tw-placeholder-opacity, 1));
@@ -12109,12 +12140,6 @@ body {
 
 .drop-shadow-md {
   --tw-drop-shadow: drop-shadow(0 4px 3px rgb(0 0 0 / 0.07)) drop-shadow(0 2px 2px rgb(0 0 0 / 0.06));
-  filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
-}
-
-
-.grayscale {
-  --tw-grayscale: grayscale(100%);
   filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
 }
 
@@ -12902,6 +12927,21 @@ body {
 }
 
 
+/* TaskFormModal description textarea — keep typed text readable, placeholder muted */
+
+
+.task-form-description::-moz-placeholder {
+  color: var(--placeholder-color, rgba(255, 255, 255, 0.35));
+  opacity: 1;
+}
+
+
+.task-form-description::placeholder {
+  color: var(--placeholder-color, rgba(255, 255, 255, 0.35));
+  opacity: 1;
+}
+
+
 .placeholder\:text-\[\#6B7280\]::-moz-placeholder {
   --tw-text-opacity: 1;
   color: rgb(107 114 128 / var(--tw-text-opacity, 1));
@@ -13531,8 +13571,8 @@ body {
 @media (min-width: 1280px) {
 
 
-  .xl\:w-\[280px\] {
-    width: 280px;
+  .xl\:w-\[320px\] {
+    width: 320px;
   }
 }
 

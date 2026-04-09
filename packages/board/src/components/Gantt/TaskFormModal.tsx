@@ -410,11 +410,12 @@ export function TaskFormModal({
                   <textarea
                     value={formData.description || ''}
                     onChange={(e) => handleChange('description', e.target.value)}
-                    className="w-full bg-transparent border-none p-0 focus:outline-none focus:ring-0 resize-none"
+                    className="w-full bg-transparent border-none p-0 focus:outline-none focus:ring-0 resize-none task-form-description"
                     style={{
-                      color: themeColors.textTertiary,
+                      color: themeColors.textPrimary,
                       fontSize: 16,
                       fontFamily: "'Inter', system-ui, sans-serif",
+                      ['--placeholder-color' as any]: themeColors.textTertiary,
                     }}
                     placeholder="Agregar descripción..."
                     rows={2}
@@ -1030,7 +1031,7 @@ export function TaskFormModal({
                               </div>
                               <input
                                 type="text"
-                                placeholder="ej: 8 (=8h), 2h 30m, 1d"
+                                placeholder="Ej: 8 (=8h), 2h 30m, 45m, 1d (1 día = 8h)"
                                 value={formData.effortMinutes ? formatMinutesToDisplay(formData.effortMinutes) : ''}
                                 onChange={(e) => {
                                   const minutes = parseTimeInput(e.target.value);
@@ -1043,9 +1044,6 @@ export function TaskFormModal({
                                   border: `1px solid ${themeColors.borderLight}`,
                                 }}
                               />
-                              <p className="text-xs mt-1" style={{ color: themeColors.textTertiary }}>
-                                Ej: 8 (=8h), 2h 30m, 45m, 1d (1 día = 8h)
-                              </p>
                             </div>
 
                             {/* v2.3.0: Parent Phase dropdown */}
