@@ -1066,3 +1066,9 @@
 .scrollbar-slim-light::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.25) !important;
 }
+
+/* TaskFormModal description textarea — keep typed text readable, placeholder muted */
+.task-form-description::placeholder {
+  color: var(--placeholder-color, rgba(255, 255, 255, 0.35));
+  opacity: 1;
+}

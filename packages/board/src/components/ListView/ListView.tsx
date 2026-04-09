@@ -591,11 +591,28 @@ export function ListView({
   const [dragColumnId, setDragColumnId] = useState<string | null>(null);
   const [dragOverColumnId, setDragOverColumnId] = useState<string | null>(null);
 
-  // Sync columns with prop changes
+  // Sync columns with prop changes — only when signature actually differs,
+  // otherwise a parent that echoes the same columns back (via persisted prefs)
+  // overwrites in-flight local edits and flickers the header.
   useEffect(() => {
-    if (tableColumns) {
-      setColumns(tableColumns);
-    }
+    if (!tableColumns) return;
+    setColumns(prev => {
+      // Fast structural compare (id/order/visible/width) — avoids resetting when parent
+      // re-sends an equivalent snapshot after persistence.
+      if (prev.length === tableColumns.length) {
+        let identical = true;
+        for (let i = 0; i < prev.length; i++) {
+          const a = prev[i];
+          const b = tableColumns[i];
+          if (!a || !b || a.id !== b.id || a.visible !== b.visible || a.width !== b.width || a.label !== b.label) {
+            identical = false;
+            break;
+          }
+        }
+        if (identical) return prev;
+      }
+      return tableColumns;
+    });
   }, [tableColumns]);
 
   // v0.18.3: Persist filter state to localStorage when it changes
@@ -699,19 +716,21 @@ export function ListView({
   useEffect(() => {
     if (!resizingColumn) return;
 
+    // Keep latest columns in a local ref so mouseup fires with the freshest state
+    let latestColumns = columns;
+
     const handleMouseMove = (e: MouseEvent) => {
       const delta = e.clientX - resizeStartX;
       const newWidth = Math.max(50, resizeStartWidth + delta);
-      const newColumns = columns.map(col =>
+      latestColumns = latestColumns.map(col =>
         col.id === resizingColumn ? { ...col, width: newWidth } : col
       );
-      setColumns(newColumns);
+      setColumns(latestColumns);
     };
 
     const handleMouseUp = () => {
-      if (resizingColumn) {
-        callbacks.onColumnsChange?.(columns);
-      }
+      // Emit final columns with updated widths (not the stale closure copy)
+      callbacks.onColumnsChange?.(latestColumns);
       setResizingColumn(null);
     };
 
@@ -722,7 +741,9 @@ export function ListView({
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [resizingColumn, resizeStartX, resizeStartWidth, columns, callbacks]);
+    // Intentionally omit `columns` from deps — we read the latest via local ref to avoid re-binding listeners
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resizingColumn, resizeStartX, resizeStartWidth, callbacks]);
 
   // v2.4.0: Column drag-and-drop reorder handlers
   const handleColumnDragStart = useCallback((e: React.DragEvent, columnId: string) => {
