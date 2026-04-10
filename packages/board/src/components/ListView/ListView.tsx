@@ -1659,6 +1659,7 @@ export function ListView({
                   "relative flex items-center gap-2 px-4 py-2 transition-all duration-150 group",
                   isDark ? "text-white/60" : "text-gray-500",
                   isDraggable && "cursor-grab",
+                  column.type !== 'name' && "justify-center",
                   dragColumnId === column.id && "opacity-50",
                   isDragOver && (isDark
                     ? "bg-[#007BFF]/20 border-l-2 border-l-[#007BFF]"
@@ -1778,7 +1779,7 @@ export function ListView({
                     {visibleColumns.map((column) => (
                       <div
                         key={column.id}
-                        className="flex items-center px-4 py-3 min-h-[56px]"
+                        className={cn("flex items-center px-4 py-3 min-h-[56px]", column.type !== 'name' && "justify-center")}
                         style={{ width: columnWidthPercent[column.id], minWidth: column.minWidth }}
                       >
                         {column.type === 'name' ? (
@@ -1914,7 +1915,7 @@ export function ListView({
                   {visibleColumns.map((column) => (
                     <div
                       key={column.id}
-                      className="flex items-center px-4 py-3 min-h-[56px]"
+                      className={cn("flex items-center px-4 py-3 min-h-[56px]", column.type !== 'name' && "justify-center")}
                       style={{ width: columnWidthPercent[column.id], minWidth: column.minWidth }}
                     >
                       {column.type === 'name' ? (
@@ -2037,7 +2038,10 @@ export function ListView({
                 {visibleColumns.map((column) => (
                   <div
                     key={column.id}
-                    className="flex items-center px-4 py-3"
+                    className={cn(
+                      "flex items-center px-4 py-3",
+                      column.type !== 'name' && "justify-center"
+                    )}
                     style={{ width: columnWidthPercent[column.id], minWidth: column.minWidth }}
                   >
                     {column.type === 'name' ? (
@@ -2048,7 +2052,7 @@ export function ListView({
                         {locale === 'es' ? 'TOTAL PROYECTO' : 'TOTAL PROJECT'}
                       </span>
                     ) : column.type === 'hoursBar' ? (
-                      <div className="flex flex-col w-full">
+                      <div className="flex flex-col items-center w-full">
                         <div className="flex items-center gap-2">
                           <span className={cn("text-[12px] font-bold", isDark ? "text-white" : "text-gray-900")}
                             style={{ fontFamily: 'JetBrains Mono, monospace' }}>
@@ -2082,7 +2086,7 @@ export function ListView({
                         const margin = offTotal - estTotal;
                         const marginPct = offTotal > 0 ? Math.round((margin / offTotal) * 100) : 0;
                         return (
-                          <div className="flex flex-col">
+                          <div className="flex flex-col items-center">
                             <span className={cn("text-[12px] font-bold", isDark ? "text-white" : "text-gray-900")}
                               style={{ fontFamily: 'JetBrains Mono, monospace' }}>
                               {formatValue(allocated, projectTotalHours.dollarAllocated)}
