@@ -390,6 +390,7 @@ export function ListView({
 
   // State
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [highlightedTaskId, setHighlightedTaskId] = useState<string | null>(null);
   const [sortField, setSortField] = useState<SortField>('position');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [searchQuery, setSearchQuery] = useState('');
@@ -1767,11 +1768,16 @@ export function ListView({
                 return (
                   <motion.div
                     key={task.id}
+                    data-task-id={task.id}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.15, delay: animationDelay }}
-                    className={cn("flex items-center border-y cursor-pointer", isDark ? "border-[#222] bg-[#222]" : "border-gray-200 bg-gray-100")}
+                    className={cn(
+                      "flex items-center border-y cursor-pointer transition-colors duration-500",
+                      isDark ? "border-[#222] bg-[#222]" : "border-gray-200 bg-gray-100",
+                      highlightedTaskId === task.id && (isDark ? "!bg-[#FFD60A]/15" : "!bg-yellow-100")
+                    )}
                     onClick={() => callbacks.onTaskClick?.(task)}
                   >
                     {/* Spacer to align with drag handle in child rows */}
@@ -1874,6 +1880,7 @@ export function ListView({
               return (
                 <motion.div
                   key={task.id}
+                  data-task-id={task.id}
                   data-listview-row={task.id}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -1883,7 +1890,8 @@ export function ListView({
                     "flex items-center border-b transition-colors relative group",
                     isDark
                       ? "border-[#222] hover:bg-white/[0.05]"
-                      : "border-gray-100 hover:bg-gray-50"
+                      : "border-gray-100 hover:bg-gray-50",
+                    highlightedTaskId === task.id && (isDark ? "!bg-[#FFD60A]/15" : "!bg-yellow-100")
                   )}
                   style={{
                     opacity: isBeingDragged ? 0.4 : 1,
@@ -2190,6 +2198,15 @@ export function ListView({
           locale={locale}
           onClose={() => setSidebarOpen(false)}
           lens={config?.lens}
+          onUnassignedTaskClick={(taskId) => {
+            // Scroll to the task row and highlight it briefly
+            const el = document.querySelector(`[data-task-id="${taskId}"]`);
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              setHighlightedTaskId(taskId);
+              setTimeout(() => setHighlightedTaskId(null), 2000);
+            }
+          }}
         />
       )}
       </div>
