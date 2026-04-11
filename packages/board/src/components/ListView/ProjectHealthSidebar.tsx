@@ -12,6 +12,7 @@ interface ProjectHealthSidebarProps {
   locale?: string;
   onClose?: () => void;
   lens?: 'hours' | 'financial';
+  onUnassignedTaskClick?: (taskId: string) => void;
 }
 
 function fmtMinutes(minutes: number): string {
@@ -31,6 +32,7 @@ export function ProjectHealthSidebar({
   locale = 'en',
   onClose,
   lens = 'hours',
+  onUnassignedTaskClick,
 }: ProjectHealthSidebarProps) {
   const isEs = locale === 'es';
   const isFinancial = lens === 'financial';
@@ -219,6 +221,66 @@ export function ProjectHealthSidebar({
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Section: Unassigned Tasks Alert — only shown when count > 0 */}
+      {data.unassignedCount != null && data.unassignedCount > 0 && (
+        <div className={cn('px-5 py-4 border-b', isDark ? 'border-[#222]' : 'border-gray-200')}>
+          <h4 className={cn(
+            'text-[11px] font-mono uppercase tracking-wider font-semibold mb-3',
+            isDark ? 'text-white/60' : 'text-gray-600'
+          )}>
+            {isEs ? 'TAREAS SIN ASIGNAR' : 'UNASSIGNED TASKS'}
+          </h4>
+          <div className="flex items-center gap-3 mb-3">
+            <div className={cn(
+              'flex items-center justify-center w-10 h-10 rounded-lg font-mono text-lg font-bold',
+              data.unassignedCount >= 10
+                ? 'bg-[#F87171]/15 text-[#F87171]'
+                : 'bg-[#FFD60A]/15 text-[#FFD60A]'
+            )}>
+              {data.unassignedCount}
+            </div>
+            <div>
+              <p className={cn('text-xs font-medium', isDark ? 'text-white/80' : 'text-gray-700')}>
+                {data.unassignedCount === 1
+                  ? (isEs ? 'tarea pendiente' : 'pending task')
+                  : (isEs ? 'tareas pendientes' : 'pending tasks')
+                }
+              </p>
+              <p className={cn('text-[10px]', isDark ? 'text-white/40' : 'text-gray-400')}>
+                {isEs ? 'sin recurso asignado' : 'without assigned resource'}
+              </p>
+            </div>
+          </div>
+          {/* Task list — scrollable when > 5 items, clickable to navigate */}
+          {data.unassignedTasks && data.unassignedTasks.length > 0 && (
+            <div className={cn(
+              'space-y-1.5 overflow-y-auto scrollbar-slim',
+              data.unassignedTasks.length > 5 ? 'max-h-[170px]' : ''
+            )}>
+              {data.unassignedTasks.map((task) => (
+                <button
+                  key={task.id}
+                  onClick={() => onUnassignedTaskClick?.(task.id)}
+                  className={cn(
+                    'flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[11px] w-full text-left transition-colors',
+                    isDark
+                      ? 'bg-white/[0.04] text-white/70 hover:bg-white/[0.08] hover:text-white'
+                      : 'bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-gray-900',
+                    onUnassignedTaskClick && 'cursor-pointer'
+                  )}
+                >
+                  <span className={cn(
+                    'w-1.5 h-1.5 rounded-full flex-shrink-0',
+                    (data.unassignedCount ?? 0) >= 10 ? 'bg-[#F87171]' : 'bg-[#FFD60A]'
+                  )} />
+                  <span className="truncate">{task.name}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
