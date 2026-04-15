@@ -3895,6 +3895,13 @@ interface ProjectHealthData {
     /** Total hours for the whole project (spent / allocated in minutes) */
     totalHoursSpentMinutes?: number;
     totalHoursAllocatedMinutes?: number;
+    /** Count of tasks with no assignees and progress < 100% */
+    unassignedCount?: number;
+    /** Unassigned tasks (id + name for detail display + click-to-scroll in sidebar) */
+    unassignedTasks?: Array<{
+        id: string;
+        name: string;
+    }>;
     /** Financial data — shown when lens='financial' */
     totalOffered?: number;
     totalEstimated?: number;

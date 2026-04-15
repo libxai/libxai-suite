@@ -8988,6 +8988,11 @@ body {
 }
 
 
+.max-h-\[170px\] {
+  max-height: 170px;
+}
+
+
 .max-h-\[200px\] {
   max-height: 200px;
 }
@@ -9075,6 +9080,11 @@ body {
 
 .w-1 {
   width: 0.25rem;
+}
+
+
+.w-1\.5 {
+  width: 0.375rem;
 }
 
 
@@ -10295,6 +10305,17 @@ body {
 }
 
 
+.\!bg-\[\#FFD60A\]\/15 {
+  background-color: rgb(255 214 10 / 0.15) !important;
+}
+
+
+.\!bg-yellow-100 {
+  --tw-bg-opacity: 1 !important;
+  background-color: rgb(254 249 195 / var(--tw-bg-opacity, 1)) !important;
+}
+
+
 .bg-\[\#007BFF\] {
   --tw-bg-opacity: 1;
   background-color: rgb(0 123 255 / var(--tw-bg-opacity, 1));
@@ -10475,6 +10496,12 @@ body {
 
 .bg-\[\#7C3AED\]\/20 {
   background-color: rgb(124 58 237 / 0.2);
+}
+
+
+.bg-\[\#F87171\] {
+  --tw-bg-opacity: 1;
+  background-color: rgb(248 113 113 / var(--tw-bg-opacity, 1));
 }
 
 
@@ -10817,6 +10844,11 @@ body {
 
 .bg-white\/\[0\.03\] {
   background-color: rgb(255 255 255 / 0.03);
+}
+
+
+.bg-white\/\[0\.04\] {
+  background-color: rgb(255 255 255 / 0.04);
 }
 
 
