@@ -209,24 +209,34 @@ function WeightCellInline({ value, onChange, isDark }: { value: number; onChange
 
 /**
  * Computes weighted progress from a list of leaf tasks.
- * - If defined weights cover ≥99% of the tree → use weighted average.
- * - Otherwise → fall back to simple average of all leaves (honest number).
- * This keeps parent rows and project totals consistent regardless of data state.
+ *
+ * Two conditions must BOTH hold to use the weighted formula:
+ *   1. Weight sum >= 99 (pesos declarados cubren ~100%)
+ *   2. Coverage >= 95% of leaves have weight > 0 (casi todas están ponderadas)
+ *
+ * Without the coverage check, a project where only 2 out of 191 leaves carry
+ * weight totaling 100 would silently ignore the other 189 leaves and return
+ * an artificially high total (e.g. 100%). The coverage threshold forces the
+ * fallback to simple average whenever pesos are only partially applied,
+ * which is the honest reading of the data.
  */
 function computeWeightedProgress(leaves: { progress: number; weight: number }[]): number {
   if (leaves.length === 0) return 0;
   let weightedSum = 0;
   let totalW = 0;
+  let weightedCount = 0;
   let simpleSum = 0;
   for (const leaf of leaves) {
     const w = leaf.weight || 0;
     if (w > 0) {
       weightedSum += (leaf.progress || 0) * w;
       totalW += w;
+      weightedCount += 1;
     }
     simpleSum += leaf.progress || 0;
   }
-  const useWeighted = totalW >= 99;
+  const coverage = weightedCount / leaves.length;
+  const useWeighted = totalW >= 99 && coverage >= 0.95;
   const pct = useWeighted
     ? weightedSum / totalW
     : simpleSum / leaves.length;
