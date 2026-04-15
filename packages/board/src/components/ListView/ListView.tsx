@@ -208,6 +208,46 @@ function WeightCellInline({ value, onChange, isDark }: { value: number; onChange
 }
 
 /**
+ * Computes weighted progress from a list of leaf tasks.
+ * - If defined weights cover ≥99% of the tree → use weighted average.
+ * - Otherwise → fall back to simple average of all leaves (honest number).
+ * This keeps parent rows and project totals consistent regardless of data state.
+ */
+function computeWeightedProgress(leaves: { progress: number; weight: number }[]): number {
+  if (leaves.length === 0) return 0;
+  let weightedSum = 0;
+  let totalW = 0;
+  let simpleSum = 0;
+  for (const leaf of leaves) {
+    const w = leaf.weight || 0;
+    if (w > 0) {
+      weightedSum += (leaf.progress || 0) * w;
+      totalW += w;
+    }
+    simpleSum += leaf.progress || 0;
+  }
+  const useWeighted = totalW >= 99;
+  const pct = useWeighted
+    ? weightedSum / totalW
+    : simpleSum / leaves.length;
+  return Math.round(pct * 10) / 10;
+}
+
+/**
+ * Collects all leaf tasks (tasks without subtasks) from a tree.
+ */
+function collectLeaves(list: Task[], out: { progress: number; weight: number }[] = []): { progress: number; weight: number }[] {
+  for (const t of list) {
+    if (t.subtasks && t.subtasks.length > 0) {
+      collectLeaves(t.subtasks, out);
+    } else {
+      out.push({ progress: t.progress || 0, weight: (t as any).weight || 0 });
+    }
+  }
+  return out;
+}
+
+/**
  * Main ListView Component
  */
 export function ListView({
@@ -1001,9 +1041,12 @@ export function ListView({
 
       case 'progress': {
         const isParent = !!(task.subtasks && task.subtasks.length > 0);
+        const displayProgress = isParent
+          ? computeWeightedProgress(collectLeaves(task.subtasks || []))
+          : (task.progress || 0);
         return (
           <ProgressCell
-            value={task.progress || 0}
+            value={displayProgress}
             onChange={isParent ? undefined : (progress) => {
               const status = progress === 100 ? 'completed' : progress > 0 ? 'in-progress' : 'todo';
               handleUpdate({ progress, status });
@@ -2120,30 +2163,8 @@ export function ListView({
                         {spent > 0 ? formatValue(spent, isFinancial ? projectTotalHours.dollarSpent : undefined) : '–'}
                       </span>
                     ) : column.type === 'progress' ? (() => {
-                      // Weighted progress from ALL leaf tasks (not just root)
-                      const allTasks = tasks || [];
-                      const leaves: { progress: number; weight: number }[] = [];
-                      const collectLeaves = (list: Task[]) => {
-                        for (const t of list) {
-                          if (t.subtasks && t.subtasks.length > 0) {
-                            collectLeaves(t.subtasks);
-                          } else {
-                            leaves.push({ progress: t.progress || 0, weight: (t as any).weight || 0 });
-                          }
-                        }
-                      };
-                      collectLeaves(allTasks);
-                      let weightedSum = 0;
-                      let totalW = 0;
-                      let simpleSum = 0;
-                      for (const leaf of leaves) {
-                        if (leaf.weight > 0) {
-                          weightedSum += leaf.progress * leaf.weight;
-                          totalW += leaf.weight;
-                        }
-                        simpleSum += leaf.progress;
-                      }
-                      const weightedPct = totalW > 0 ? Math.round((weightedSum / totalW) * 10) / 10 : (leaves.length > 0 ? Math.round(simpleSum / leaves.length) : 0);
+                      // Consistent with parent rows: weighted if pesos ≥99%, else simple average
+                      const weightedPct = computeWeightedProgress(collectLeaves(tasks || []));
                       return (
                         <span className={cn("text-[12px] font-bold font-mono", isDark ? "text-[#00E5CC]" : "text-cyan-600")}
                           style={{ fontFamily: 'JetBrains Mono, monospace' }}>
