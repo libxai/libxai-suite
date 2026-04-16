@@ -139,13 +139,18 @@ export function ProjectHealthSidebar({
         );
       })()}
 
-      {/* Section: Project Hours — always shown when totalHours provided */}
+      {/* Section: Project Hours — always shown when totalHours provided
+          v2.7.0 — red saturation fix: "alarm blindness" prevention.
+          - Bar + text stay red ONLY when spent exceeds allocated by >10%.
+          - 0-10% overrun is shown neutral/amber — the gauge colour speaks by itself.
+          - Never paint the "Spent" value in red alone (the bar communicates it). */}
       {(data.totalHoursSpentMinutes !== undefined || data.totalHoursAllocatedMinutes !== undefined) && (() => {
         const spent = data.totalHoursSpentMinutes ?? 0;
         const allocated = data.totalHoursAllocatedMinutes ?? 0;
         const pct = allocated > 0 ? Math.min(Math.round((spent / allocated) * 100), 100) : 0;
-        const isOver = spent > allocated && allocated > 0;
-        const barColor = isOver ? '#F87171' : pct >= 80 ? '#FFD60A' : '#3BF06E';
+        const overRatio = allocated > 0 ? spent / allocated : 0;
+        const isSignificantlyOver = overRatio > 1.10;
+        const barColor = isSignificantlyOver ? '#F87171' : pct >= 90 ? '#FFD60A' : '#3BF06E';
         return (
           <div className={cn('px-5 py-4 border-b', isDark ? 'border-[#222]' : 'border-gray-200')}>
             <h4 className={cn('text-[11px] font-mono uppercase tracking-wider font-semibold mb-3', isDark ? 'text-white/60' : 'text-gray-600')}>
@@ -156,7 +161,7 @@ export function ProjectHealthSidebar({
                 <span className={cn('text-xs', isDark ? 'text-white/60' : 'text-gray-600')}>
                   {isEs ? 'Usado' : 'Spent'}
                 </span>
-                <span className={cn('text-[11px] font-mono font-bold', isOver ? 'text-[#F87171]' : isDark ? 'text-white/80' : 'text-gray-800')}>
+                <span className={cn('text-[11px] font-mono font-bold', isDark ? 'text-white/80' : 'text-gray-800')}>
                   {fmtMinutes(spent)}
                 </span>
               </div>

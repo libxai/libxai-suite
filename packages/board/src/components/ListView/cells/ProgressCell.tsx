@@ -98,23 +98,30 @@ export function ProgressCell({
         isFlashing && (isDark ? 'bg-[#3BF06E]/30' : 'bg-[#3BF06E]/20')
       )}
     >
-      <div
-        onClick={handleBarClick}
-        className={cn(
-          'flex-1 h-2 rounded-full overflow-hidden',
-          isDark ? 'bg-white/[0.05]' : 'bg-gray-200',
-          !disabled && onChange && 'cursor-pointer'
-        )}
-      >
+      {/* v2.7.0 — Hide the empty grey bar when progress is 0 to reduce visual
+          saturation. The "0%" text (rendered below) with dimmed color already
+          communicates the state; the empty bar just adds noise. */}
+      {displayPercent > 0 ? (
         <div
+          onClick={handleBarClick}
           className={cn(
-            'h-full rounded-full transition-[width]',
-            displayPercent === 100 ? 'bg-[#3BF06E]' : 'bg-[#3B9EFF]',
-            isAnimating && 'transition-none'
+            'flex-1 h-2 rounded-full overflow-hidden',
+            isDark ? 'bg-white/[0.05]' : 'bg-gray-200',
+            !disabled && onChange && 'cursor-pointer'
           )}
-          style={{ width: `${displayPercent}%` }}
-        />
-      </div>
+        >
+          <div
+            className={cn(
+              'h-full rounded-full transition-[width]',
+              displayPercent === 100 ? 'bg-[#3BF06E]' : 'bg-[#3B9EFF]',
+              isAnimating && 'transition-none'
+            )}
+            style={{ width: `${displayPercent}%` }}
+          />
+        </div>
+      ) : (
+        <div className="flex-1" />
+      )}
       {isEditing ? (
         <div className="flex items-center gap-0.5" onClick={e => e.stopPropagation()}>
           <input
@@ -138,7 +145,10 @@ export function ProgressCell({
           onClick={handlePercentClick}
           className={cn(
             'text-xs w-8 text-right tabular-nums font-mono rounded px-1',
-            isDark ? 'text-white/60' : 'text-gray-500',
+            // v2.7.0 — dim the "0%" label to signal inactive state; brighter for > 0
+            displayPercent === 0
+              ? (isDark ? 'text-[#6B7280]' : 'text-gray-400')
+              : (isDark ? 'text-white/60' : 'text-gray-500'),
             !disabled && onChange && 'cursor-pointer hover:bg-white/[0.08]',
             // Slot machine animation emphasis
             isAnimating && 'font-medium scale-105'

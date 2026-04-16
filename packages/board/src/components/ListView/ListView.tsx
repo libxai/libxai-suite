@@ -2048,13 +2048,18 @@ export function ListView({
                                 )}
                               </div>
                             )}
-                            {/* Line 2: Task name */}
+                            {/* Line 2: Task name — v2.7.0 stricter typography hierarchy:
+                                Parent (phase/folder) rows: 14px / 700 / #FFFFFF (dark) or #111827 (light)
+                                Child (task) rows: 13px / 400 / #D1D5DB (dark) or #4B5563 (light)
+                                This lets the eye group phases vs tasks at a glance. */}
                             <span className={cn(
-                              "truncate text-[13px]",
-                              task.hasChildren ? "font-semibold" : "font-medium",
+                              "truncate",
+                              task.hasChildren ? "text-[14px] font-bold" : "text-[13px] font-normal",
                               task.progress === 100
                                 ? (isDark ? "line-through text-white/50" : "line-through text-gray-400")
-                                : (isDark ? "text-white" : "text-gray-900")
+                                : task.hasChildren
+                                  ? (isDark ? "text-white" : "text-gray-900")
+                                  : (isDark ? "text-[#D1D5DB]" : "text-gray-600")
                             )}>
                               {task.name}
                             </span>

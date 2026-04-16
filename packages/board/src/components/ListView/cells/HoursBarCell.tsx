@@ -252,25 +252,49 @@ export function HoursBarCell({
           backgroundColor: isDark ? '#1A1A1A' : '#F9FAFB',
         }}
       >
-        {/* Main line: Registered / Estimated */}
-        <div className="flex items-center gap-1.5">
-          <span className="font-mono" style={{ fontSize: 13, fontWeight: 700, color: isDark ? '#FFFFFF' : '#111827' }}>
-            {fmt(spentHours)}
-          </span>
-          {allocatedMinutes > 0 && (
-            <span className="font-mono" style={{ fontSize: 11, color: isDark ? 'rgba(255,255,255,0.3)' : '#9CA3AF' }}>
-              / {fmt(allocatedHours)}
-            </span>
-          )}
-          {overHours > 0 && (
-            <span
-              className="font-mono px-1.5 py-0.5 rounded"
-              style={{ fontSize: 10, color: '#EF4444', backgroundColor: 'rgba(239,68,68,0.15)' }}
-            >
-              +{fmt(overHours)} {isEs ? 'Excedido' : 'Over'}
-            </span>
-          )}
-        </div>
+        {/* Main line: Registered / Estimated
+            v2.7.0 — visual noise reduction:
+            - Dim the "0h" when no time has been logged yet (signals inactive state)
+            - The "Excedido" badge only turns red when over allocated by >10%
+              (prevents "alarm blindness" from minor overruns being flagged) */}
+        {(() => {
+          const spentIsZero = spentMinutes === 0;
+          const overRatio = allocatedMinutes > 0 ? spentMinutes / allocatedMinutes : 0;
+          const isSignificantlyOver = overRatio > 1.10;
+          return (
+            <div className="flex items-center gap-1.5">
+              <span
+                className="font-mono"
+                style={{
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: spentIsZero
+                    ? (isDark ? '#4B5563' : '#9CA3AF')
+                    : (isDark ? '#FFFFFF' : '#111827'),
+                }}
+              >
+                {fmt(spentHours)}
+              </span>
+              {allocatedMinutes > 0 && (
+                <span className="font-mono" style={{ fontSize: 11, color: isDark ? 'rgba(255,255,255,0.3)' : '#9CA3AF' }}>
+                  / {fmt(allocatedHours)}
+                </span>
+              )}
+              {overHours > 0 && (
+                <span
+                  className="font-mono px-1.5 py-0.5 rounded"
+                  style={{
+                    fontSize: 10,
+                    color: isSignificantlyOver ? '#EF4444' : (isDark ? 'rgba(255,255,255,0.5)' : '#6B7280'),
+                    backgroundColor: isSignificantlyOver ? 'rgba(239,68,68,0.15)' : 'transparent',
+                  }}
+                >
+                  +{fmt(overHours)} {isEs ? 'Excedido' : 'Over'}
+                </span>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Progress bar */}
         {allocatedMinutes > 0 && (
