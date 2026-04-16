@@ -118,9 +118,15 @@ export interface GanttColumn {
 }
 
 export interface Assignee {
+  /** User ID — optional to preserve backward compatibility with older consumers */
+  id?: string;
   name: string;
   initials: string;
   color: string;
+  /** Per-user estimated effort for the parent task, in minutes.
+   *  Set by the SaaS App when a task has multi-user effort distribution.
+   *  When present, cost calculations decompose as Σ(userMinutes × userRate). */
+  estimatedMinutes?: number;
 }
 
 export interface GanttTheme {

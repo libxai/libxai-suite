@@ -304,9 +304,37 @@ export function ListView({
   const t = mergeListViewTranslations(locale, customTranslations);
   const isDark = themeName === 'dark';
 
-  // v2.5.0: Resolve per-task hourly rate from assignees' rateMap, fallback to global hourlyRate
+  // v2.6.0: Resolve per-task hourly rate from assignees' rateMap.
+  //
+  // When a task has 2+ assignees with per-user estimated_minutes (multi-user
+  // effort distribution), the effective rate is a MINUTE-WEIGHTED average so
+  // that downstream `minutes × rate` callsites reproduce the honest
+  //    costo = Σ(userMinutes × userRate)
+  // formula. Example: Arcadio (2.7h @ $50) + Yesid (5.3h @ $100) on an 8h task:
+  //   weightedRate = (2.7*50 + 5.3*100) / 8 = $83.125
+  //   effortMinutes/60 × weightedRate = 8 × 83.125 = $665   (correct)
+  //
+  // When the task has no distribution, falls back to the previous behaviour
+  // (simple average of assignees' rates, or the global hourlyRate).
   const getTaskRate = (task: Task): number => {
     if (!rateMap || !task.assignees || task.assignees.length === 0) return hourlyRate;
+
+    // Minute-weighted path — only when at least one assignee carries
+    // estimatedMinutes > 0 (meaning the SaaS App has distributed the effort).
+    let weightedSum = 0;
+    let totalWeight = 0;
+    for (const a of task.assignees as any[]) {
+      const r = a.id ? rateMap[a.id] : undefined;
+      if (r == null || r <= 0) continue;
+      const m = typeof a.estimatedMinutes === 'number' ? a.estimatedMinutes : 0;
+      if (m > 0) {
+        weightedSum += r * m;
+        totalWeight += m;
+      }
+    }
+    if (totalWeight > 0) return weightedSum / totalWeight;
+
+    // Simple-average fallback (legacy behaviour for tasks without distribution)
     const rates = task.assignees
       .map((a: any) => a.id ? rateMap[a.id] : undefined)
       .filter((r): r is number => r != null && r > 0);
