@@ -93,6 +93,14 @@ export interface Task {
 
   // v5.2.0: Estrella de Reconocimiento
   isHighlighted?: boolean;
+
+  // v2.7.0: Last activity summary, shown at bottom of Gantt tooltip.
+  // Populated by the consuming app from its activity log.
+  lastActivity?: {
+    userName: string;          // e.g. "García C."
+    summary: string;           // e.g. "cambió Fecha Fin"
+    relativeTime: string;      // e.g. "hace 2h", "ayer"
+  };
 }
 
 export type TimeScale = 'day' | 'week' | 'month';

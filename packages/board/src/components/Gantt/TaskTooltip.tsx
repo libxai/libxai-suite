@@ -49,7 +49,8 @@ export function TaskTooltip({ tooltipData, theme, locale = 'en' }: TaskTooltipPr
 
     const { task, mouseX, mouseY } = tooltipData;
     const hasTimeData = task.effortMinutes != null || task.timeLoggedMinutes != null || task.soldEffortMinutes != null;
-    const tooltipH = hasTimeData ? 155 : 105;
+    const hasLastActivity = task.lastActivity != null;
+    const tooltipH = (hasTimeData ? 155 : 105) + (hasLastActivity ? 28 : 0);
 
     // Start above-right of cursor
     let left = mouseX + CURSOR_OFFSET_X;
@@ -183,6 +184,23 @@ export function TaskTooltip({ tooltipData, theme, locale = 'en' }: TaskTooltipPr
                 <span style={{ color: valueColor, fontWeight: 600 }}>{formatMinutes(task.soldEffortMinutes)}</span>
               </span>
             )}
+          </div>
+        )}
+
+        {/* v2.7.0: Last activity — subtle 11px divider + one-line summary */}
+        {task.lastActivity && (
+          <div style={{
+            marginTop: 8,
+            paddingTop: 8,
+            borderTop: `1px solid ${theme?.borderSubtle || 'rgba(255,255,255,0.08)'}`,
+            fontSize: 11,
+            color: labelColor,
+            lineHeight: 1.4,
+          }}>
+            <span style={{ opacity: 0.7 }}>{locale === 'es' ? 'Último: ' : 'Last: '}</span>
+            <span style={{ color: valueColor }}>{task.lastActivity.userName}</span>{' '}
+            <span>{task.lastActivity.summary}</span>{' '}
+            <span style={{ opacity: 0.6 }}>{task.lastActivity.relativeTime}</span>
           </div>
         )}
       </div>
