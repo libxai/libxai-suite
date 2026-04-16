@@ -87,7 +87,7 @@ export function ProjectHealthSidebar({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className={cn('text-xs', isDark ? 'text-white/60' : 'text-gray-600')}>
-                  {isEs ? 'Ofertado' : 'Offered'}
+                  {isEs ? 'V. Oferta' : 'Offered Value'}
                 </span>
                 <span className={cn('text-[11px] font-mono font-bold', isDark ? 'text-white/80' : 'text-gray-800')}>
                   {fmtCurrency(offered)}
