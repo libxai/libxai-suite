@@ -448,6 +448,13 @@ export interface GanttConfig {
   rowDensity?: RowDensity; // Row height density (default: 'comfortable')
   showThemeSelector?: boolean; // Show theme selector in toolbar (default: true)
   showExportButton?: boolean; // v0.12.0: Show export dropdown in toolbar (default: true)
+
+  /**
+   * v2.8.0: Fired AFTER a successful export so the consuming app can record
+   * the event in its audit log / analytics. Receives the report type that
+   * was just produced.
+   */
+  onExportSuccess?: (reportType: 'pdf' | 'excel' | 'png' | 'csv' | 'json' | 'msproject') => void;
   projectName?: string; // Used for export filenames
   availableUsers?: Array<{ id: string; name: string; initials: string; color: string }>; // Available users for assignment
 

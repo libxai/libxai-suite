@@ -65,6 +65,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     rowDensity: initialRowDensity = 'comfortable',
     showThemeSelector = true,
     showExportButton = true, // v0.12.0: Show export dropdown in toolbar
+    onExportSuccess, // v2.8.0: Callback fired after any export completes (for audit logging)
     projectName,
     availableUsers = [],
     templates,
@@ -1656,11 +1657,13 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       timelineScroll.scrollTop = originalTimelineScrollTop;
       timelineScroll.scrollLeft = originalTimelineScrollLeft;
     }
-  }, [theme]);
+    onExportSuccess?.('png');
+  }, [theme, onExportSuccess]);
 
   const handleExportPDF = useCallback(async () => {
     await ganttUtils.exportToPDF(localTasks);
-  }, [localTasks]);
+    onExportSuccess?.('pdf');
+  }, [localTasks, onExportSuccess]);
 
   // Ref to always have latest rateMap/defaultRate (avoids stale closure in useCallback)
   const exportRateRef = useRef({ rateMap: config.rateMap, defaultRate: config.defaultRate, projectName });
@@ -1672,7 +1675,8 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     const ts = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`;
     const name = projectName ? projectName.replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ _-]/g, '') : 'Project';
     await ganttUtils.exportToExcel(localTasks, `${name}_${ts}.xlsx`, exportRateRef.current);
-  }, [localTasks, projectName]);
+    onExportSuccess?.('excel');
+  }, [localTasks, projectName, onExportSuccess]);
 
   const handleExportCSV = useCallback(() => {
     const csv = ganttUtils.exportToCSV(localTasks);
@@ -1682,7 +1686,8 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     link.download = 'gantt-chart.csv';
     link.click();
     URL.revokeObjectURL(link.href);
-  }, [localTasks]);
+    onExportSuccess?.('csv');
+  }, [localTasks, onExportSuccess]);
 
   const handleExportJSON = useCallback(() => {
     const json = ganttUtils.exportToJSON(localTasks);
@@ -1692,11 +1697,13 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     link.download = 'gantt-chart.json';
     link.click();
     URL.revokeObjectURL(link.href);
-  }, [localTasks]);
+    onExportSuccess?.('json');
+  }, [localTasks, onExportSuccess]);
 
   const handleExportMSProject = useCallback(() => {
     ganttUtils.exportToMSProject(localTasks, 'Gantt Project', 'project.xml');
-  }, [localTasks]);
+    onExportSuccess?.('msproject');
+  }, [localTasks, onExportSuccess]);
 
   // Handle separator resize
   const handleMouseDown = (e: React.MouseEvent) => {
