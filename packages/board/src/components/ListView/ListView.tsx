@@ -972,6 +972,7 @@ export function ListView({
       callbacks.onTaskUpdate?.({ ...task, ...updates });
     };
 
+
     // Helper to get custom field value
     const getCustomFieldValue = <T,>(fieldId: string | undefined): T | undefined => {
       if (!fieldId) return undefined;
@@ -1193,6 +1194,10 @@ export function ListView({
 
       case 'elapsedTime': {
         const isCompleted = task.status === 'completed' || task.progress === 100;
+        // v2.5.3: Same canonical override as timeLoggedMinutes — this is the legacy
+        // Ejecutado column exposed via the column selector; it must track real costs
+        // (time_logs × rate_at_time) not current rates.
+        const canonicalDollars = (task as any).executedDollarsCanonical as number | undefined;
         return (
           <TimeCell
             value={(task as any).elapsedTime}
@@ -1202,6 +1207,7 @@ export function ListView({
             disabled={isCompleted}
             lens={lens}
             hourlyRate={getTaskRate(task)}
+            financialOverride={canonicalDollars}
           />
         );
       }
@@ -1924,8 +1930,13 @@ export function ListView({
                           </div>
                         ) : column.type === 'timeLoggedMinutes' ? (
                           lens === 'financial' ? (() => {
-                            const groupDollars = calculateGroupDollars(task);
-                            const val = Math.round(groupDollars.dollarSpent);
+                            // v2.5.3: Prefer canonical rollup (time_logs × rate_at_time)
+                            // when consumer attached it to the task. Keeps group header
+                            // in sync with the TOTAL PROYECTO footer.
+                            const canonicalDollars = (task as any).executedDollarsCanonical as number | undefined;
+                            const val = canonicalDollars != null
+                              ? Math.round(canonicalDollars)
+                              : Math.round(calculateGroupDollars(task).dollarSpent);
                             return val > 0 ? <span className={cn('text-sm font-mono', isDark ? 'text-white/60' : 'text-gray-500')}>${val.toLocaleString('en-US')}</span> : null;
                           })() : <TimeCell value={spent > 0 ? spent : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={getTaskRate(task)} />
                         ) : column.type === 'soldEffortMinutes' ? (

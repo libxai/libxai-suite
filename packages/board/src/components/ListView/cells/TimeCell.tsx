@@ -134,8 +134,9 @@ export function TimeCell({
   // Micro-interaction: flash green on save
   const { isFlashing, triggerFlash } = useSaveFlash();
 
-  const isFin = lens === 'financial' && hourlyRate > 0;
-  // v2.5.3: Prefer canonical per-row dollar figure when provided.
+  // v2.5.3: Financial lens shows dollars. Enabled when consumer supplies a
+  // canonical override OR when there's an hourlyRate available for conversion.
+  const isFin = lens === 'financial' && (hourlyRate > 0 || financialOverride != null);
   const financialDollars = financialOverride != null
     ? financialOverride
     : (value ? (value / 60) * hourlyRate : 0);
