@@ -299,6 +299,8 @@ export function ListView({
     aggregateParentHours = false,
     // v2.4.0: Project totals sticky footer
     showProjectTotals = false,
+    // v2.5.2: Optional dollar-totals override for the footer
+    totalsDollarOverride,
   } = config;
 
   const t = mergeListViewTranslations(locale, customTranslations);
@@ -2102,6 +2104,18 @@ export function ListView({
               ? `+${formatGroupHours(Math.abs(varianceMinutes))} ${locale === 'es' ? 'EXCEDIDO' : 'OVER'}`
               : `-${formatGroupHours(varianceMinutes)} ${locale === 'es' ? 'AHORRADO' : 'SAVED'}`;
             const isFinancial = lens === 'financial' && hourlyRate > 0;
+            // v2.5.2: Prefer consumer-supplied dollar totals when provided (canonical
+            // time_logs × rate_at_time figures). Falls back to the internal per-task
+            // computation when no override is given.
+            const effDollarSpent = totalsDollarOverride?.spent != null
+              ? totalsDollarOverride.spent
+              : projectTotalHours.dollarSpent;
+            const effDollarAllocated = totalsDollarOverride?.allocated != null
+              ? totalsDollarOverride.allocated
+              : projectTotalHours.dollarAllocated;
+            const effDollarQuoted = totalsDollarOverride?.quoted != null
+              ? totalsDollarOverride.quoted
+              : projectTotalHours.dollarQuoted;
             const formatValue = (mins: number, dollarOverride?: number) => {
               if (isFinancial) {
                 const dollars = dollarOverride != null ? dollarOverride : (mins / 60) * hourlyRate;
@@ -2109,7 +2123,7 @@ export function ListView({
               }
               return formatGroupHours(mins);
             };
-            const varianceDollars = isFinancial ? Math.abs(projectTotalHours.dollarAllocated - projectTotalHours.dollarSpent) : 0;
+            const varianceDollars = isFinancial ? Math.abs(effDollarAllocated - effDollarSpent) : 0;
             const varianceLabelFinancial = isFinancial
               ? `${isOver ? '+' : '-'}$${varianceDollars.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} ${isOver ? (locale === 'es' ? 'EXCEDIDO' : 'OVER') : (locale === 'es' ? 'AHORRADO' : 'SAVED')}`
               : varianceLabel;
@@ -2151,12 +2165,12 @@ export function ListView({
                         <div className="flex items-center gap-2">
                           <span className={cn("text-[12px] font-bold", isDark ? "text-white" : "text-gray-900")}
                             style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-                            {formatValue(spent, isFinancial ? projectTotalHours.dollarSpent : undefined)}
+                            {formatValue(spent, isFinancial ? effDollarSpent : undefined)}
                           </span>
                           <span className={cn("text-[11px]", isDark ? "text-white/40" : "text-gray-400")}>/</span>
                           <span className={cn("text-[11px]", isDark ? "text-white/50" : "text-gray-500")}
                             style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-                            {formatValue(allocated, isFinancial ? projectTotalHours.dollarAllocated : undefined)}
+                            {formatValue(allocated, isFinancial ? effDollarAllocated : undefined)}
                           </span>
                         </div>
                         {allocated > 0 && (
@@ -2171,20 +2185,20 @@ export function ListView({
                     ) : column.type === 'soldEffortMinutes' ? (
                       <span className={cn("text-[12px] font-bold", isDark ? "text-white" : "text-gray-900")}
                         style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-                        {quoted > 0 ? formatValue(quoted, isFinancial ? projectTotalHours.dollarQuoted : undefined) : '–'}
+                        {quoted > 0 ? formatValue(quoted, isFinancial ? effDollarQuoted : undefined) : '–'}
                       </span>
                     ) : column.type === 'effortMinutes' ? (() => {
-                      // Financial lens: show margin in footer
+                      // Financial lens: show margin in footer (uses canonical totals when overridden)
                       if (isFinancial && quoted > 0 && allocated > 0) {
-                        const offTotal = Math.round(projectTotalHours.dollarQuoted);
-                        const estTotal = Math.round(projectTotalHours.dollarAllocated);
+                        const offTotal = Math.round(effDollarQuoted);
+                        const estTotal = Math.round(effDollarAllocated);
                         const margin = offTotal - estTotal;
                         const marginPct = offTotal > 0 ? Math.round((margin / offTotal) * 100) : 0;
                         return (
                           <div className="flex flex-col items-center">
                             <span className={cn("text-[12px] font-bold", isDark ? "text-white" : "text-gray-900")}
                               style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-                              {formatValue(allocated, projectTotalHours.dollarAllocated)}
+                              {formatValue(allocated, effDollarAllocated)}
                             </span>
                             <span className={cn('text-[9px] font-mono font-bold px-1.5 py-0.5 rounded whitespace-nowrap mt-0.5',
                               margin >= 0 ? 'bg-[#064e3b] text-[#10b981] border border-[#065f46]/30' : 'bg-[#451a03] text-[#f59e0b] border border-[#78350f]/30'
@@ -2198,13 +2212,13 @@ export function ListView({
                       return (
                         <span className={cn("text-[12px] font-bold", isDark ? "text-white" : "text-gray-900")}
                           style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-                          {allocated > 0 ? formatValue(allocated, isFinancial ? projectTotalHours.dollarAllocated : undefined) : '–'}
+                          {allocated > 0 ? formatValue(allocated, isFinancial ? effDollarAllocated : undefined) : '–'}
                         </span>
                       );
                     })() : column.type === 'timeLoggedMinutes' ? (
                       <span className={cn("text-[12px] font-bold", isDark ? "text-white" : "text-gray-900")}
                         style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-                        {spent > 0 ? formatValue(spent, isFinancial ? projectTotalHours.dollarSpent : undefined) : '–'}
+                        {spent > 0 ? formatValue(spent, isFinancial ? effDollarSpent : undefined) : '–'}
                       </span>
                     ) : column.type === 'progress' ? (() => {
                       // Consistent with parent rows: weighted if pesos ≥99%, else simple average

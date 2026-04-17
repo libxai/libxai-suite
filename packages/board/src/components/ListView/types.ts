@@ -353,6 +353,22 @@ export interface ListViewConfig {
   /** Show a sticky "TOTAL PROJECT" row at the bottom of the list */
   showProjectTotals?: boolean;
 
+  /**
+   * v2.5.2: Canonical dollar totals override for the TOTAL PROJECT footer.
+   * When provided, replaces the internally-computed dollar totals (which
+   * multiply task.timeLoggedMinutes by current assignee rates) with the
+   * consumer's authoritative figures — typically sourced from time_logs ×
+   * rate_at_time. Lets the footer stay in sync with the Portfolio view
+   * and the financial health sidebar, which use frozen per-log rates.
+   * Hours totals (spent/allocated/quoted in minutes) remain computed
+   * internally from the rendered task tree.
+   */
+  totalsDollarOverride?: {
+    spent?: number;
+    allocated?: number;
+    quoted?: number;
+  };
+
   /** v2.5.0: Render content just before the Create Task button (e.g., share/export dropdown) */
   toolbarEndContent?: ReactNode;
 }
