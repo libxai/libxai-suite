@@ -32,6 +32,12 @@ interface TimeCellProps {
   lens?: 'hours' | 'financial';
   /** Rate used to convert hours → dollars when lens='financial' */
   hourlyRate?: number;
+  /**
+   * v2.5.3: When set AND lens='financial', this canonical dollar figure
+   * is displayed instead of `minutes × hourlyRate`. Use it to align
+   * per-row cells with authoritative totals from time_logs × rate_at_time.
+   */
+  financialOverride?: number;
 }
 
 /**
@@ -119,6 +125,7 @@ export function TimeCell({
   isBlurred = false,
   lens = 'hours',
   hourlyRate = 0,
+  financialOverride,
 }: TimeCellProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState('');
@@ -128,8 +135,12 @@ export function TimeCell({
   const { isFlashing, triggerFlash } = useSaveFlash();
 
   const isFin = lens === 'financial' && hourlyRate > 0;
-  const formattedValue = isFin && value
-    ? `$${Math.round((value / 60) * hourlyRate).toLocaleString('en-US')}`
+  // v2.5.3: Prefer canonical per-row dollar figure when provided.
+  const financialDollars = financialOverride != null
+    ? financialOverride
+    : (value ? (value / 60) * hourlyRate : 0);
+  const formattedValue = isFin && (financialOverride != null ? financialOverride > 0 : value)
+    ? `$${Math.round(financialDollars).toLocaleString('en-US')}`
     : formatTime(value, locale);
 
   useEffect(() => {

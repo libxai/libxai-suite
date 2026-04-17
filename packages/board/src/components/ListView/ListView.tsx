@@ -1279,9 +1279,23 @@ export function ListView({
       }
 
       case 'timeLoggedMinutes': {
+        // v2.5.3: Prefer per-task canonical dollars (time_logs × rate_at_time) when
+        // the consumer has attached it to the task row. Keeps every row consistent
+        // with the Total Proyecto footer and the financial health sidebar.
+        const canonicalDollars = (task as any).executedDollarsCanonical as number | undefined;
         if (aggregateParentHours && task.subtasks && task.subtasks.length > 0) {
           const { spent } = calculateGroupHours(task);
-          return <TimeCell value={spent > 0 ? spent : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={getTaskRate(task)} />;
+          return (
+            <TimeCell
+              value={spent > 0 ? spent : undefined}
+              isDark={isDark}
+              locale={locale}
+              disabled
+              lens={lens}
+              hourlyRate={getTaskRate(task)}
+              financialOverride={canonicalDollars}
+            />
+          );
         }
         const isCompleted = task.status === 'completed' || task.progress === 100;
         return (
@@ -1297,6 +1311,7 @@ export function ListView({
             disabled={isCompleted}
             lens={lens}
             hourlyRate={getTaskRate(task)}
+            financialOverride={canonicalDollars}
           />
         );
       }
