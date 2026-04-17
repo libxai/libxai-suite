@@ -11304,6 +11304,11 @@ body {
 }
 
 
+.text-\[14px\] {
+  font-size: 14px;
+}
+
+
 .text-\[8px\] {
   font-size: 8px;
 }
@@ -11532,6 +11537,12 @@ body {
 .text-\[\#9CA3AF\] {
   --tw-text-opacity: 1;
   color: rgb(156 163 175 / var(--tw-text-opacity, 1));
+}
+
+
+.text-\[\#D1D5DB\] {
+  --tw-text-opacity: 1;
+  color: rgb(209 213 219 / var(--tw-text-opacity, 1));
 }
 
 

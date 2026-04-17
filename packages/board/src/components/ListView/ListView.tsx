@@ -1021,13 +1021,12 @@ export function ListView({
 
       case 'assignees': {
         const isParent = (task as any).hasChildren;
-        // Parent tasks: show rollup of unique assignees from subtasks
+        // Parent tasks are pure containers — assignees are derived LIVE from children only.
+        // Any legacy/stale task.assignees stored on the parent row is ignored to prevent
+        // "ghost" avatars persisting after children are unassigned.
         let assigneesValue = task.assignees || [];
         if (isParent && task.subtasks?.length) {
           const uniqueMap = new Map<string, typeof assigneesValue[0]>();
-          // Include parent's own assignees first
-          (task.assignees || []).forEach(a => uniqueMap.set(a.name, a));
-          // Then add from subtasks
           const collectAssignees = (subs: typeof task.subtasks) => {
             (subs || []).forEach(sub => {
               (sub.assignees || []).forEach(a => {
@@ -1038,6 +1037,8 @@ export function ListView({
           };
           collectAssignees(task.subtasks);
           assigneesValue = Array.from(uniqueMap.values());
+        } else if (isParent) {
+          assigneesValue = [];
         }
         return (
           <AssigneesCell

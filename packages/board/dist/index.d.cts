@@ -73,6 +73,11 @@ interface Task {
     baselineEndDate?: Date;
     baselineProgress?: number;
     isHighlighted?: boolean;
+    lastActivity?: {
+        userName: string;
+        summary: string;
+        relativeTime: string;
+    };
 }
 type TimeScale = 'day' | 'week' | 'month';
 type Theme$1 = 'dark' | 'light' | 'neutral';
@@ -91,9 +96,15 @@ interface GanttColumn {
     resizable?: boolean;
 }
 interface Assignee {
+    /** User ID — optional to preserve backward compatibility with older consumers */
+    id?: string;
     name: string;
     initials: string;
     color: string;
+    /** Per-user estimated effort for the parent task, in minutes.
+     *  Set by the SaaS App when a task has multi-user effort distribution.
+     *  When present, cost calculations decompose as Σ(userMinutes × userRate). */
+    estimatedMinutes?: number;
 }
 interface GanttTheme {
     bgPrimary: string;
@@ -373,6 +384,12 @@ interface GanttConfig {
     rowDensity?: RowDensity;
     showThemeSelector?: boolean;
     showExportButton?: boolean;
+    /**
+     * v2.8.0: Fired AFTER a successful export so the consuming app can record
+     * the event in its audit log / analytics. Receives the report type that
+     * was just produced.
+     */
+    onExportSuccess?: (reportType: 'pdf' | 'excel' | 'png' | 'csv' | 'json' | 'msproject') => void;
     projectName?: string;
     availableUsers?: Array<{
         id: string;
