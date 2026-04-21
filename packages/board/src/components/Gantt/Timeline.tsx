@@ -32,6 +32,8 @@ interface TimelineProps {
   highlightWeekends?: boolean;
   /** v4.1.0: Per-task edit check — returns false for read-only bars */
   canEditTask?: (task: Task) => boolean;
+  /** v4.2.0: Committed on pointerup after dragging the progress edge of a task bar. */
+  onTaskProgressDrag?: (task: Task, newProgress: number) => void;
 }
 
 export interface TaskPosition {
@@ -65,6 +67,7 @@ export function Timeline({
   showDependencies = true,
   highlightWeekends = true,
   canEditTask,
+  onTaskProgressDrag,
 }: TimelineProps) {
   const HEADER_HEIGHT = 48; // Must match TaskGrid's HEADER_HEIGHT for alignment
 
@@ -920,6 +923,7 @@ export function Timeline({
               showTaskBarLabels={showTaskBarLabels}
               showCriticalPath={showCriticalPath}
               readOnly={canEditTask ? !canEditTask(task) : false}
+              onProgressChange={onTaskProgressDrag}
             />
           );
         })}

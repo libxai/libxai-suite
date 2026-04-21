@@ -1262,6 +1262,20 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   }, [config, localTasks]);
 
   // 🚀 KILLER FEATURE #2: Handle task date changes WITH auto-scheduling
+  // v4.2.0: Commit on pointerup after dragging the progress edge of a bar.
+  // Auto-promote to status=completed when progress hits 100, and back to
+  // in-progress (or todo) based on the new value, matching the Status column
+  // behavior elsewhere. Goes through handleTaskUpdate so all downstream
+  // listeners (onTaskUpdate, onProgressChange, onAfterTaskUpdate) fire.
+  const handleTaskProgressDrag = useCallback((task: Task, newProgress: number) => {
+    const clamped = Math.max(0, Math.min(100, Math.round(newProgress)));
+    const updates: Partial<Task> = { progress: clamped };
+    if (clamped === 100) updates.status = 'completed';
+    else if (clamped > 0) updates.status = 'in-progress';
+    else updates.status = 'todo';
+    handleTaskUpdate(task.id, updates);
+  }, [handleTaskUpdate]);
+
   // When you move a task, all dependent tasks are automatically rescheduled
   // This is BETTER than DHTMLX - they require manual configuration
   const handleTaskDateChange = useCallback((task: Task, newStart: Date, newEnd: Date) => {
@@ -2040,6 +2054,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
             onTaskDblClick={handleTaskDblClickInternal} // v0.10.0: Use internal handler that opens modal
             onTaskContextMenu={handleTaskContextMenu} // v0.8.0: Now uses our handler for Split feature
             onTaskDateChange={handleTaskDateChange}
+            onTaskProgressDrag={handleTaskProgressDrag}
             onDependencyCreate={handleDependencyCreate}
             onDependencyDelete={handleDependencyDelete}
             showBaseline={showBaseline}
