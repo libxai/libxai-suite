@@ -73,10 +73,15 @@ export function ProjectHealthSidebar({
         const offered = data.totalOffered ?? 0;
         const estimated = data.totalEstimated ?? 0;
         const executed = data.totalExecuted ?? 0;
-        const margin = offered - estimated;
+        // v2.8.0: Disponible = Contrato − Ejecutado (what the user intuitively
+        // expects). Previous version subtracted Estimado, which made the value
+        // misleading when estimates were filled out partially or not at all
+        // (a project with 0 estimates would show "Disp = full contract" even
+        // after spending half the budget).
+        const margin = offered - executed;
         const marginPct = offered > 0 ? Math.round((margin / offered) * 100) : 0;
-        const consumedPct = offered > 0 ? Math.min(Math.round((estimated / offered) * 100), 120) : 0;
-        const isOverBudget = estimated > offered && offered > 0;
+        const consumedPct = offered > 0 ? Math.min(Math.round((executed / offered) * 100), 120) : 0;
+        const isOverBudget = executed > offered && offered > 0;
         const barColor = isOverBudget ? '#F87171' : '#00E5CC';
 
         return (
@@ -97,7 +102,7 @@ export function ProjectHealthSidebar({
                 <span className={cn('text-xs', isDark ? 'text-white/60' : 'text-gray-600')}>
                   {isEs ? 'Estimado' : 'Estimated'}
                 </span>
-                <span className={cn('text-[11px] font-mono font-bold', isOverBudget ? 'text-[#F87171]' : isDark ? 'text-white/80' : 'text-gray-800')}>
+                <span className={cn('text-[11px] font-mono font-bold', isDark ? 'text-white/80' : 'text-gray-800')}>
                   {fmtCurrency(estimated)}
                 </span>
               </div>
@@ -106,7 +111,7 @@ export function ProjectHealthSidebar({
                   <span className={cn('text-xs', isDark ? 'text-white/60' : 'text-gray-600')}>
                     {isEs ? 'Ejecutado' : 'Executed'}
                   </span>
-                  <span className={cn('text-[11px] font-mono', isDark ? 'text-white/60' : 'text-gray-600')}>
+                  <span className={cn('text-[11px] font-mono font-bold', isOverBudget ? 'text-[#F87171]' : isDark ? 'text-white/80' : 'text-gray-800')}>
                     {fmtCurrency(executed)}
                   </span>
                 </div>

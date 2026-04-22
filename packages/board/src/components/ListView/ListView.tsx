@@ -2126,9 +2126,13 @@ export function ListView({
             const { spent, allocated, quoted } = projectTotalHours;
             const varianceMinutes = allocated - spent;
             const isOver = varianceMinutes < 0;
+            // v2.8.0: Both labels use a positive sign — "AHORRADO" with a
+            // leading minus sign read as a loss to users. The semantic is
+            // already in the word (EXCEDIDO vs AHORRADO), so the sign should
+            // always be positive (the magnitude of the variance).
             const varianceLabel = isOver
               ? `+${formatGroupHours(Math.abs(varianceMinutes))} ${locale === 'es' ? 'EXCEDIDO' : 'OVER'}`
-              : `-${formatGroupHours(varianceMinutes)} ${locale === 'es' ? 'AHORRADO' : 'SAVED'}`;
+              : `+${formatGroupHours(varianceMinutes)} ${locale === 'es' ? 'AHORRADO' : 'SAVED'}`;
             const isFinancial = lens === 'financial' && hourlyRate > 0;
             // v2.5.2: Prefer consumer-supplied dollar totals when provided (canonical
             // time_logs × rate_at_time figures). Falls back to the internal per-task
@@ -2151,7 +2155,7 @@ export function ListView({
             };
             const varianceDollars = isFinancial ? Math.abs(effDollarAllocated - effDollarSpent) : 0;
             const varianceLabelFinancial = isFinancial
-              ? `${isOver ? '+' : '-'}$${varianceDollars.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} ${isOver ? (locale === 'es' ? 'EXCEDIDO' : 'OVER') : (locale === 'es' ? 'AHORRADO' : 'SAVED')}`
+              ? `+$${varianceDollars.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} ${isOver ? (locale === 'es' ? 'EXCEDIDO' : 'OVER') : (locale === 'es' ? 'AHORRADO' : 'SAVED')}`
               : varianceLabel;
 
             return (
