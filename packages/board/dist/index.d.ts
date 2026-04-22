@@ -3925,7 +3925,19 @@ interface ProjectHealthData {
     /** Financial data — shown when lens='financial' */
     totalOffered?: number;
     totalEstimated?: number;
+    /** v2.6.0 — Labor-only portion of the estimated cost (for breakdown tooltip) */
+    totalEstimatedLabor?: number;
+    /** v2.6.0 — Equipment portion of the estimated cost (for breakdown tooltip) */
+    totalEstimatedEquipment?: number;
+    /** v2.6.0 — Travel/per-diem portion of the estimated cost (for breakdown tooltip) */
+    totalEstimatedTravel?: number;
     totalExecuted?: number;
+    /** v2.6.0 — Labor-only portion of the executed cost (for breakdown tooltip) */
+    totalExecutedLabor?: number;
+    /** v2.6.0 — Equipment portion of the executed cost (for breakdown tooltip) */
+    totalExecutedEquipment?: number;
+    /** v2.6.0 — Travel/per-diem portion of the executed cost (for breakdown tooltip) */
+    totalExecutedTravel?: number;
     offeredRate?: number;
 }
 /**
