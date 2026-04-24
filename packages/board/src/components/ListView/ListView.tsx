@@ -210,18 +210,35 @@ function WeightCellInline({ value, onChange, isDark }: { value: number; onChange
 /**
  * Computes weighted progress from a list of leaf tasks.
  *
- * Two conditions must BOTH hold to use the weighted formula:
- *   1. Weight sum >= 99 (pesos declarados cubren ~100%)
- *   2. Coverage >= 95% of leaves have weight > 0 (casi todas están ponderadas)
+ * Weighting priority (aligns with EVM portfolio formula):
+ *   1. effort_minutes — canonical effort-based weight (leaves without it default to 60 min)
+ *   2. weight         — legacy manual weight, used only if `weight` coverage is ≥95% and sum ≥99
+ *   3. simple average — fallback when neither source is meaningful
  *
- * Without the coverage check, a project where only 2 out of 191 leaves carry
- * weight totaling 100 would silently ignore the other 189 leaves and return
- * an artificially high total (e.g. 100%). The coverage threshold forces the
- * fallback to simple average whenever pesos are only partially applied,
- * which is the honest reading of the data.
+ * The effort-first path makes "TOTAL PROYECTO" match Portfolio's `progress_pct`
+ * (SQL: get_portfolio_summary) which is the canonical reading for project %
+ * complete. A project with effort_minutes populated no longer reports an
+ * inflated figure from simple-averaging leaves of widely different sizes.
  */
-function computeWeightedProgress(leaves: { progress: number; weight: number }[]): number {
+function computeWeightedProgress(
+  leaves: { progress: number; weight: number; effort_minutes?: number }[]
+): number {
   if (leaves.length === 0) return 0;
+
+  // 1. Try effort-weighted first (missing effort defaults to 60 min → always weightable)
+  const totalEffort = leaves.reduce((s, l) => s + (l.effort_minutes || 0), 0);
+  if (totalEffort > 0) {
+    let num = 0;
+    let den = 0;
+    for (const leaf of leaves) {
+      const w = leaf.effort_minutes || 60;
+      num += (leaf.progress || 0) * w;
+      den += w;
+    }
+    return Math.round((num / den) * 10) / 10;
+  }
+
+  // 2. Legacy manual weight path (only if almost everyone has weight and they sum to ≥99)
   let weightedSum = 0;
   let totalW = 0;
   let weightedCount = 0;
@@ -246,12 +263,19 @@ function computeWeightedProgress(leaves: { progress: number; weight: number }[])
 /**
  * Collects all leaf tasks (tasks without subtasks) from a tree.
  */
-function collectLeaves(list: Task[], out: { progress: number; weight: number }[] = []): { progress: number; weight: number }[] {
+function collectLeaves(
+  list: Task[],
+  out: { progress: number; weight: number; effort_minutes?: number }[] = []
+): { progress: number; weight: number; effort_minutes?: number }[] {
   for (const t of list) {
     if (t.subtasks && t.subtasks.length > 0) {
       collectLeaves(t.subtasks, out);
     } else {
-      out.push({ progress: t.progress || 0, weight: (t as any).weight || 0 });
+      out.push({
+        progress: t.progress || 0,
+        weight: (t as any).weight || 0,
+        effort_minutes: (t as any).effort_minutes ?? (t as any).effortMinutes,
+      });
     }
   }
   return out;
