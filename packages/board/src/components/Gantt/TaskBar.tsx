@@ -1,4 +1,4 @@
-import { useRef, useCallback, useEffect } from 'react';
+import { useRef, useCallback, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Task, GanttTemplates } from './types';
 import { TaskPosition } from './Timeline';
@@ -42,6 +42,10 @@ interface TaskBarProps {
   showCriticalPath?: boolean;
   // v4.1.0: When true, disable drag/resize/connect interactions (read-only bar)
   readOnly?: boolean;
+  // v4.2.0: Drag the progress edge to change task.progress (0–100). Fires once
+  // on pointerup with the committed value. Rendered only for leaf tasks with
+  // valid dates when the consumer provides this handler and readOnly is false.
+  onProgressChange?: (task: Task, newProgress: number) => void;
 }
 
 type DragMode = 'none' | 'move' | 'resize-start' | 'resize-end' | 'connect';
@@ -67,6 +71,7 @@ export function TaskBar({
   showTaskBarLabels = true,
   showCriticalPath = true,
   readOnly = false,
+  onProgressChange,
 }: TaskBarProps) {
   // v0.8.1: Centralized drag state management for better modularity
   const dragState = useDragState(x, width);
@@ -104,6 +109,29 @@ export function TaskBar({
   const borderRadius = isChronos ? 3 : 6;
   // Chronos: Any task with children is a "summary" bar (thin line, no label)
   const isSummaryTask = task.subtasks && task.subtasks.length > 0;
+
+  // v4.2.0: Progress drag state — tracks live % during pointer drag.
+  // `dragProgress` is null when not dragging; otherwise holds the current
+  // live-clamped percentage. On pointerup we commit via onProgressChange
+  // and reset to null so the row re-renders from props.
+  const progressDragRef = useRef<{ barRect: DOMRect | null; initialPct: number } | null>(null);
+  const [dragProgress, setDragProgress] = (() => {
+    // Use refs to avoid re-rendering the whole TaskBar on every pointermove —
+    // we only want to refresh the handle + fill. React state is good enough
+    // because TaskBar is already per-row; re-renders are cheap.
+    const ref = useRef<number | null>(null);
+    const [, force] = useState(0);
+    return [
+      ref.current,
+      (v: number | null) => { ref.current = v; force(n => n + 1); },
+    ] as const;
+  })();
+  const canDragProgress = !!onProgressChange
+    && !readOnly
+    && !isSummaryTask
+    && !task.segments
+    && !!task.startDate
+    && !!task.endDate;
 
   // Detect task states for neutral theme visualization
   // Compare date-only: task is overdue only AFTER endDate day has fully passed (midnight)
@@ -579,6 +607,66 @@ export function TaskBar({
   // v5.1.0: CPM opacity — non-critical tasks fade when showCriticalPath is on
   const cpmOpacity = showCriticalPath ? (task.isCriticalPath ? 1.0 : 0.25) : 1.0;
 
+  // v4.2.0: Pointer handlers for dragging the progress edge. We clamp the
+  // result to [0, 100], round to nearest integer, and only commit on pointerup.
+  // Shift held during drag soft-snaps to 0/25/50/75/100 for convenience.
+  const handleProgressPointerDown = useCallback((e: React.PointerEvent<SVGElement>) => {
+    if (!canDragProgress) return;
+    e.stopPropagation();
+    e.preventDefault();
+    // Cache the bar rect so subsequent moves can compute % without extra lookups
+    const barEl = svgRef.current?.querySelector<SVGRectElement>('rect[data-bar-background="true"]');
+    const rect = barEl?.getBoundingClientRect() ?? null;
+    progressDragRef.current = { barRect: rect, initialPct: task.progress || 0 };
+    (e.currentTarget as Element).setPointerCapture(e.pointerId);
+    setDragProgress(task.progress || 0);
+  }, [canDragProgress, task.progress, setDragProgress]);
+
+  const handleProgressPointerMove = useCallback((e: React.PointerEvent<SVGElement>) => {
+    const ctx = progressDragRef.current;
+    if (!ctx) return;
+    // Refresh the rect on every move so horizontal scroll in the timeline
+    // doesn't throw off the math when the user drags long distances.
+    const barEl = svgRef.current?.querySelector<SVGRectElement>('rect[data-bar-background="true"]');
+    const rect = barEl?.getBoundingClientRect() ?? ctx.barRect;
+    if (!rect || rect.width <= 0) return;
+    const ratio = (e.clientX - rect.left) / rect.width;
+    let pct = Math.round(Math.max(0, Math.min(1, ratio)) * 100);
+    if (e.shiftKey) {
+      // Soft snap to quarters when Shift is held
+      pct = Math.round(pct / 25) * 25;
+    }
+    setDragProgress(pct);
+  }, [setDragProgress]);
+
+  const handleProgressPointerUp = useCallback((e: React.PointerEvent<SVGElement>) => {
+    const ctx = progressDragRef.current;
+    if (!ctx) return;
+    // Prevent the pointerup from bubbling into the bar's click/dblclick path,
+    // which would open the task drawer right after a progress drag.
+    e.stopPropagation();
+    e.preventDefault();
+    try { (e.currentTarget as Element).releasePointerCapture(e.pointerId); } catch { /* ignore */ }
+    const finalPct = dragProgress;
+    progressDragRef.current = null;
+    setDragProgress(null);
+    if (finalPct != null && finalPct !== ctx.initialPct && onProgressChange) {
+      onProgressChange(task, finalPct);
+    }
+  }, [dragProgress, onProgressChange, task, setDragProgress]);
+
+  // v4.2.0: Swallow click and dblclick on the handle so they don't reach the
+  // bar group (which opens the drawer). Works together with pointerdown/up
+  // stopPropagation — covers the synthetic click fired after pointerup.
+  const handleProgressClickSwallow = useCallback((e: React.SyntheticEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+  }, []);
+
+  // Live progress for rendering: prefer the drag value so the fill + handle
+  // follow the pointer smoothly. Falls back to the persisted value.
+  const liveProgress = dragProgress != null ? dragProgress : (task.progress || 0);
+
   return (
     <g
       ref={svgRef}
@@ -934,6 +1022,7 @@ export function TaskBar({
             stroke={theme.border || 'rgba(255,255,255,0.1)'}
             strokeWidth={1}
             data-task-class={customClass}
+            data-bar-background="true"
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{
               opacity: isDragging && !isConnecting ? 0.15 : task.parentId ? 0.6 : 1,
@@ -995,14 +1084,14 @@ export function TaskBar({
       )}
 
       {/* Progress Fill (non-summary tasks only — summary has its own fill above) */}
-      {!task.segments && task.progress > 0 && !isSummaryTask && (
+      {!task.segments && liveProgress > 0 && !isSummaryTask && (
         isChronos && false ? (
           null
         ) : (
           <rect
             x={displayX}
             y={y}
-            width={Math.max(displayWidth * (task.progress / 100), borderRadius * 2)}
+            width={Math.max(displayWidth * (liveProgress / 100), borderRadius * 2)}
             height={height}
             rx={isChronos ? borderRadius : borderRadius}
             fill={taskColor}
@@ -1050,7 +1139,7 @@ export function TaskBar({
       })()}
 
       {/* Chronos V2: Assignee avatar at end of progress bar */}
-      {isChronos && !task.segments && task.progress > 0 && task.progress < 100 && !isSummaryTask && !isDragging && (
+      {isChronos && !task.segments && task.progress > 0 && task.progress < 100 && !isSummaryTask && !isDragging && dragProgress === null && (
         (() => {
           const progressEndX = displayX + displayWidth * (task.progress / 100);
           const avatarR = 8;
@@ -1077,6 +1166,90 @@ export function TaskBar({
               >
                 {assignee?.initials || assignee?.name?.charAt(0)?.toUpperCase() || ''}
               </text>
+            </g>
+          );
+        })()
+      )}
+
+      {/* v4.2.0: Progress drag handle — Bryntum/Frappe-style circle at the edge
+          of the progress fill. Renders only for leaf tasks with valid dates
+          and when the consumer has wired onProgressChange. Hidden when the
+          handle would overlap the end-resize grip (progress > 88% or bar
+          width < 40px). Shift during drag snaps to 25/50/75/100. */}
+      {canDragProgress && !isDragging && displayWidth >= 40 && (dragProgress !== null || liveProgress < 88) && (
+        (() => {
+          const handleX = displayX + displayWidth * (liveProgress / 100);
+          const handleY = y + height / 2;
+          const isDraggingProgress = dragProgress !== null;
+          const visibleRadius = isDraggingProgress ? 7 : (isHovered ? 6 : 5);
+          const handleOpacity = isDraggingProgress ? 1 : (isHovered ? 1 : 0.35);
+          // Shrink hit area on the right side when close to the end of the bar
+          // so it doesn't steal clicks from the end-resize grip (last ~10px of
+          // the bar are reserved for resize). On the left, keep the full 12px.
+          const distanceToEnd = (displayX + displayWidth) - handleX;
+          const hitRight = Math.max(4, Math.min(12, distanceToEnd - 10));
+          const hitLeft = 12;
+          return (
+            <g>
+              {/* Invisible hit target — asymmetric to avoid overlapping the
+                  end-resize grip when the handle is close to the bar end. */}
+              <rect
+                x={handleX - hitLeft}
+                y={handleY - 12}
+                width={hitLeft + hitRight}
+                height={24}
+                fill="transparent"
+                style={{ cursor: 'ew-resize', touchAction: 'none' }}
+                onPointerDown={handleProgressPointerDown}
+                onPointerMove={handleProgressPointerMove}
+                onPointerUp={handleProgressPointerUp}
+                onPointerCancel={handleProgressPointerUp}
+                onClick={handleProgressClickSwallow}
+                onDoubleClick={handleProgressClickSwallow}
+                onMouseDown={(e) => e.stopPropagation()}
+              />
+              {/* Visible handle circle */}
+              <circle
+                cx={handleX}
+                cy={handleY}
+                r={visibleRadius}
+                fill="#FFFFFF"
+                stroke={taskColor}
+                strokeWidth={2}
+                opacity={handleOpacity}
+                style={{
+                  pointerEvents: 'none',
+                  filter: isDraggingProgress ? `drop-shadow(0 0 4px ${taskColor})` : undefined,
+                  transition: 'r 120ms ease, opacity 120ms ease',
+                }}
+              />
+              {/* Live % tooltip during drag */}
+              {isDraggingProgress && (
+                <g style={{ pointerEvents: 'none' }}>
+                  <rect
+                    x={handleX - 20}
+                    y={handleY - 28}
+                    width={40}
+                    height={18}
+                    rx={4}
+                    fill={isDark ? 'rgba(15, 15, 20, 0.95)' : 'rgba(255, 255, 255, 0.95)'}
+                    stroke={taskColor}
+                    strokeWidth={1}
+                  />
+                  <text
+                    x={handleX}
+                    y={handleY - 16}
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    fill={isDark ? '#FFFFFF' : '#111111'}
+                    fontSize="11"
+                    fontWeight="700"
+                    fontFamily="'JetBrains Mono', monospace"
+                  >
+                    {dragProgress}%
+                  </text>
+                </g>
+              )}
             </g>
           );
         })()

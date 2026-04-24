@@ -73,10 +73,15 @@ export function ProjectHealthSidebar({
         const offered = data.totalOffered ?? 0;
         const estimated = data.totalEstimated ?? 0;
         const executed = data.totalExecuted ?? 0;
-        const margin = offered - estimated;
+        // v2.8.0: Disponible = Contrato − Ejecutado (what the user intuitively
+        // expects). Previous version subtracted Estimado, which made the value
+        // misleading when estimates were filled out partially or not at all
+        // (a project with 0 estimates would show "Disp = full contract" even
+        // after spending half the budget).
+        const margin = offered - executed;
         const marginPct = offered > 0 ? Math.round((margin / offered) * 100) : 0;
-        const consumedPct = offered > 0 ? Math.min(Math.round((estimated / offered) * 100), 120) : 0;
-        const isOverBudget = estimated > offered && offered > 0;
+        const consumedPct = offered > 0 ? Math.min(Math.round((executed / offered) * 100), 120) : 0;
+        const isOverBudget = executed > offered && offered > 0;
         const barColor = isOverBudget ? '#F87171' : '#00E5CC';
 
         return (
@@ -93,24 +98,52 @@ export function ProjectHealthSidebar({
                   {fmtCurrency(offered)}
                 </span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className={cn('text-xs', isDark ? 'text-white/60' : 'text-gray-600')}>
-                  {isEs ? 'Estimado' : 'Estimated'}
-                </span>
-                <span className={cn('text-[11px] font-mono font-bold', isOverBudget ? 'text-[#F87171]' : isDark ? 'text-white/80' : 'text-gray-800')}>
-                  {fmtCurrency(estimated)}
-                </span>
-              </div>
-              {executed > 0 && (
-                <div className="flex items-center justify-between">
-                  <span className={cn('text-xs', isDark ? 'text-white/60' : 'text-gray-600')}>
-                    {isEs ? 'Ejecutado' : 'Executed'}
-                  </span>
-                  <span className={cn('text-[11px] font-mono', isDark ? 'text-white/60' : 'text-gray-600')}>
-                    {fmtCurrency(executed)}
-                  </span>
-                </div>
-              )}
+              {(() => {
+                // v2.6.0 — Estimado breakdown tooltip when equipment or travel > 0
+                const estLabor = data.totalEstimatedLabor ?? 0;
+                const estEq = data.totalEstimatedEquipment ?? 0;
+                const estTr = data.totalEstimatedTravel ?? 0;
+                const showEstBreakdown = estEq > 0 || estTr > 0;
+                const estTooltip = showEstBreakdown
+                  ? (isEs
+                      ? `Desglose del estimado:\n· Mano de obra: ${fmtCurrency(estLabor)}\n· Activos: ${fmtCurrency(estEq)}\n· Viáticos: ${fmtCurrency(estTr)}\n───\nTotal: ${fmtCurrency(estimated)}`
+                      : `Estimated breakdown:\n· Labor: ${fmtCurrency(estLabor)}\n· Equipment: ${fmtCurrency(estEq)}\n· Travel: ${fmtCurrency(estTr)}\n───\nTotal: ${fmtCurrency(estimated)}`)
+                  : undefined;
+                return (
+                  <div className={cn('flex items-center justify-between', showEstBreakdown && 'cursor-help')} title={estTooltip}>
+                    <span className={cn('text-xs', isDark ? 'text-white/60' : 'text-gray-600')}>
+                      {isEs ? 'Estimado' : 'Estimated'}
+                      {showEstBreakdown && <span className="ml-1 opacity-50">ⓘ</span>}
+                    </span>
+                    <span className={cn('text-[11px] font-mono font-bold', isDark ? 'text-white/80' : 'text-gray-800')}>
+                      {fmtCurrency(estimated)}
+                    </span>
+                  </div>
+                );
+              })()}
+              {executed > 0 && (() => {
+                // v2.6.0 — Ejecutado breakdown tooltip when equipment or travel > 0
+                const exLabor = data.totalExecutedLabor ?? 0;
+                const exEq = data.totalExecutedEquipment ?? 0;
+                const exTr = data.totalExecutedTravel ?? 0;
+                const showExBreakdown = exEq > 0 || exTr > 0;
+                const exTooltip = showExBreakdown
+                  ? (isEs
+                      ? `Desglose del ejecutado:\n· Mano de obra: ${fmtCurrency(exLabor)}\n· Activos: ${fmtCurrency(exEq)}\n· Viáticos: ${fmtCurrency(exTr)}\n───\nTotal: ${fmtCurrency(executed)}`
+                      : `Executed breakdown:\n· Labor: ${fmtCurrency(exLabor)}\n· Equipment: ${fmtCurrency(exEq)}\n· Travel: ${fmtCurrency(exTr)}\n───\nTotal: ${fmtCurrency(executed)}`)
+                  : undefined;
+                return (
+                  <div className={cn('flex items-center justify-between', showExBreakdown && 'cursor-help')} title={exTooltip}>
+                    <span className={cn('text-xs', isDark ? 'text-white/60' : 'text-gray-600')}>
+                      {isEs ? 'Ejecutado' : 'Executed'}
+                      {showExBreakdown && <span className="ml-1 opacity-50">ⓘ</span>}
+                    </span>
+                    <span className={cn('text-[11px] font-mono font-bold', isOverBudget ? 'text-[#F87171]' : isDark ? 'text-white/80' : 'text-gray-800')}>
+                      {fmtCurrency(executed)}
+                    </span>
+                  </div>
+                );
+              })()}
               {/* Progress bar: offered as 100%, estimated as fill */}
               {offered > 0 && (
                 <div className={cn('w-full h-2.5 rounded-full overflow-hidden mt-2', isDark ? 'bg-white/[0.06]' : 'bg-gray-200')}>

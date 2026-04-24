@@ -2870,6 +2870,8 @@ interface TimelineProps {
     highlightWeekends?: boolean;
     /** v4.1.0: Per-task edit check — returns false for read-only bars */
     canEditTask?: (task: Task) => boolean;
+    /** v4.2.0: Committed on pointerup after dragging the progress edge of a task bar. */
+    onTaskProgressDrag?: (task: Task, newProgress: number) => void;
 }
 interface TaskPosition {
     id: string;
@@ -2882,7 +2884,7 @@ declare function Timeline({ tasks, theme, rowHeight: ROW_HEIGHT, timeScale, star
 templates, dependencyLineStyle, // v0.17.310
 showTaskBarLabels, onTaskClick, onTaskDblClick, // v0.8.0
 onTaskContextMenu, // v0.8.0
-onTaskDateChange, onDependencyCreate, onDependencyDelete, showBaseline, showCriticalPath, showDependencies, highlightWeekends, canEditTask, }: TimelineProps): react_jsx_runtime.JSX.Element;
+onTaskDateChange, onDependencyCreate, onDependencyDelete, showBaseline, showCriticalPath, showDependencies, highlightWeekends, canEditTask, onTaskProgressDrag, }: TimelineProps): react_jsx_runtime.JSX.Element;
 
 interface TaskTooltipData {
     task: Task;
@@ -2916,13 +2918,14 @@ interface TaskBarProps {
     showTaskBarLabels?: boolean;
     showCriticalPath?: boolean;
     readOnly?: boolean;
+    onProgressChange?: (task: Task, newProgress: number) => void;
 }
 declare function TaskBar({ task, x, y, width, theme, dayWidth, startDate, templates, onClick, onDoubleClick, // v0.8.0
 onContextMenu, // v0.8.0
 onDateChange, onDependencyCreate, allTaskPositions, onDragMove, // v0.13.0
 onHoverChange, // v0.17.76
 showBaseline, // v3.0.0
-showTaskBarLabels, showCriticalPath, readOnly, }: TaskBarProps): react_jsx_runtime.JSX.Element;
+showTaskBarLabels, showCriticalPath, readOnly, onProgressChange, }: TaskBarProps): react_jsx_runtime.JSX.Element;
 
 interface DependencyLineProps {
     x1: number;
@@ -3922,7 +3925,19 @@ interface ProjectHealthData {
     /** Financial data — shown when lens='financial' */
     totalOffered?: number;
     totalEstimated?: number;
+    /** v2.6.0 — Labor-only portion of the estimated cost (for breakdown tooltip) */
+    totalEstimatedLabor?: number;
+    /** v2.6.0 — Equipment portion of the estimated cost (for breakdown tooltip) */
+    totalEstimatedEquipment?: number;
+    /** v2.6.0 — Travel/per-diem portion of the estimated cost (for breakdown tooltip) */
+    totalEstimatedTravel?: number;
     totalExecuted?: number;
+    /** v2.6.0 — Labor-only portion of the executed cost (for breakdown tooltip) */
+    totalExecutedLabor?: number;
+    /** v2.6.0 — Equipment portion of the executed cost (for breakdown tooltip) */
+    totalExecutedEquipment?: number;
+    /** v2.6.0 — Travel/per-diem portion of the executed cost (for breakdown tooltip) */
+    totalExecutedTravel?: number;
     offeredRate?: number;
 }
 /**
