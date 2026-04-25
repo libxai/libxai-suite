@@ -210,22 +210,40 @@ function WeightCellInline({ value, onChange, isDark }: { value: number; onChange
 /**
  * Computes weighted progress from a list of leaf tasks.
  *
- * Weighting priority (aligns with EVM portfolio formula):
- *   1. effort_minutes — canonical effort-based weight (leaves without it default to 60 min)
- *   2. weight         — legacy manual weight, used only if `weight` coverage is ≥95% and sum ≥99
- *   3. simple average — fallback when neither source is meaningful
+ * Two-path priority (matches user mental model: weight wins when declared):
+ *   1. Manual weight  — used when weight sum ≥ 99 AND ≥95% of leaves carry weight.
+ *                       This honors a fully-declared weight scheme like 90/10.
+ *   2. Effort_minutes — peso virtual; used when weight is missing or partially
+ *                       declared. Each leaf contributes proportional to its hours.
+ *   3. Simple average — last-resort fallback when neither weight nor effort exists.
  *
- * The effort-first path makes "TOTAL PROYECTO" match Portfolio's `progress_pct`
- * (SQL: get_portfolio_summary) which is the canonical reading for project %
- * complete. A project with effort_minutes populated no longer reports an
- * inflated figure from simple-averaging leaves of widely different sizes.
+ * Why this order: when the project lead bothered to type weights, the weight
+ * is intent (e.g. "this small task is critical, give it 90%"). Effort-based
+ * weighting is the right default only when no intent is recorded.
  */
 function computeWeightedProgress(
   leaves: { progress: number; weight: number; effort_minutes?: number }[]
 ): number {
   if (leaves.length === 0) return 0;
 
-  // 1. Try effort-weighted first (missing effort defaults to 60 min → always weightable)
+  // 1. Manual weight path — intent of the project lead wins
+  let weightedSum = 0;
+  let totalW = 0;
+  let weightedCount = 0;
+  for (const leaf of leaves) {
+    const w = leaf.weight || 0;
+    if (w > 0) {
+      weightedSum += (leaf.progress || 0) * w;
+      totalW += w;
+      weightedCount += 1;
+    }
+  }
+  const weightCoverage = weightedCount / leaves.length;
+  if (totalW >= 99 && weightCoverage >= 0.95) {
+    return Math.round((weightedSum / totalW) * 10) / 10;
+  }
+
+  // 2. Effort-weighted path — peso virtual based on hours
   const totalEffort = leaves.reduce((s, l) => s + (l.effort_minutes || 0), 0);
   if (totalEffort > 0) {
     let num = 0;
@@ -238,26 +256,9 @@ function computeWeightedProgress(
     return Math.round((num / den) * 10) / 10;
   }
 
-  // 2. Legacy manual weight path (only if almost everyone has weight and they sum to ≥99)
-  let weightedSum = 0;
-  let totalW = 0;
-  let weightedCount = 0;
-  let simpleSum = 0;
-  for (const leaf of leaves) {
-    const w = leaf.weight || 0;
-    if (w > 0) {
-      weightedSum += (leaf.progress || 0) * w;
-      totalW += w;
-      weightedCount += 1;
-    }
-    simpleSum += leaf.progress || 0;
-  }
-  const coverage = weightedCount / leaves.length;
-  const useWeighted = totalW >= 99 && coverage >= 0.95;
-  const pct = useWeighted
-    ? weightedSum / totalW
-    : simpleSum / leaves.length;
-  return Math.round(pct * 10) / 10;
+  // 3. Simple average fallback
+  const simpleSum = leaves.reduce((s, l) => s + (l.progress || 0), 0);
+  return Math.round((simpleSum / leaves.length) * 10) / 10;
 }
 
 /**
