@@ -638,11 +638,32 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     return flat.some(t => t.dependencies && t.dependencies.length > 0);
   }, [localTasks]);
 
+  // v1.5.93: Stamp each task with its UNFILTERED WBS code so the visible
+  // numbering stays stable when the user filters (e.g. "4.0 Diseño" stays
+  // "4.0" instead of becoming "2.0" because earlier siblings were hidden).
+  // TaskGrid will read task.wbsCode if present and skip recomputing.
+  const tasksWithStableWbs = useMemo((): Task[] => {
+    const stamp = (taskList: Task[], parentWbs = ''): Task[] => {
+      const sorted = [...taskList].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+      return sorted.map((task, i) => {
+        const seq = i + 1;
+        const wbsCode = parentWbs ? `${parentWbs}.${seq}` : `${seq}.0`;
+        const childPrefix = parentWbs ? `${parentWbs}.${seq}` : `${seq}`;
+        return {
+          ...task,
+          wbsCode,
+          subtasks: task.subtasks?.length ? stamp(task.subtasks, childPrefix) : task.subtasks,
+        };
+      });
+    };
+    return stamp(tasksWithCriticalPath);
+  }, [tasksWithCriticalPath]);
+
   // v0.17.300: Filter tasks based on taskFilter state
   // v0.18.0: Added hideCompleted filter
   const filteredTasks = useMemo((): Task[] => {
     // If no filters active, return all tasks
-    if (taskFilter === 'all' && !hideCompleted) return tasksWithCriticalPath;
+    if (taskFilter === 'all' && !hideCompleted) return tasksWithStableWbs;
 
     const filterTasksRecursively = (taskList: Task[]): Task[] => {
       const result: Task[] = [];
@@ -688,8 +709,8 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       return result;
     };
 
-    return filterTasksRecursively(tasksWithCriticalPath);
-  }, [tasksWithCriticalPath, taskFilter, hideCompleted]);
+    return filterTasksRecursively(tasksWithStableWbs);
+  }, [tasksWithStableWbs, taskFilter, hideCompleted]);
 
   // Calculate row height based on density
   const rowHeight = getRowHeight(rowDensity);
