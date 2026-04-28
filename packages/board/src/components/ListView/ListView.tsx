@@ -72,20 +72,27 @@ const DEFAULT_COLUMNS: TableColumn[] = [
 ];
 
 /**
- * Flatten hierarchical tasks to flat list with level info
+ * Flatten hierarchical tasks to flat list with level info.
+ * `parentPath` accumulates ancestor ids (root → ... → self) so filters can
+ * preserve hierarchy by matching ancestors when a descendant passes the filter.
  */
-function flattenTasksWithLevel(tasks: Task[], level = 0): FlattenedTask[] {
+function flattenTasksWithLevel(
+  tasks: Task[],
+  level = 0,
+  ancestorPath: string[] = []
+): FlattenedTask[] {
   const result: FlattenedTask[] = [];
 
   for (const task of tasks) {
+    const path = [...ancestorPath, task.id];
     result.push({
       ...task,
       level,
       hasChildren: (task.subtasks?.length || 0) > 0,
-      parentPath: [task.id],
+      parentPath: path,
     });
     if (task.subtasks?.length && task.isExpanded !== false) {
-      result.push(...flattenTasksWithLevel(task.subtasks, level + 1));
+      result.push(...flattenTasksWithLevel(task.subtasks, level + 1, path));
     }
   }
 
@@ -935,14 +942,28 @@ export function ListView({
       );
     }
 
-    // Filter by status
+    // Filter by status — preserve ancestors so hierarchy stays intact.
+    // Without this, filtering "completed" can hide an intermediate parent
+    // while keeping its matching descendants, which the renderer then
+    // visually nests under the previous sibling phase (the "fase 4 dentro
+    // de fase 3" bug).
     if (statusFilter !== 'all') {
-      flatTasks = flatTasks.filter(task => getTaskStatus(task) === statusFilter);
+      const matchingIds = new Set(
+        flatTasks
+          .filter(task => getTaskStatus(task) === statusFilter)
+          .flatMap(task => task.parentPath)
+      );
+      flatTasks = flatTasks.filter(task => matchingIds.has(task.id));
     }
 
-    // Hide completed tasks
+    // Hide completed tasks — same ancestor-preserving logic
     if (hideCompleted) {
-      flatTasks = flatTasks.filter(task => getTaskStatus(task) !== 'completed');
+      const matchingIds = new Set(
+        flatTasks
+          .filter(task => getTaskStatus(task) !== 'completed')
+          .flatMap(task => task.parentPath)
+      );
+      flatTasks = flatTasks.filter(task => matchingIds.has(task.id));
     }
 
     // Sort

@@ -227,16 +227,21 @@ export function TaskGrid({
     const sortedTasks = [...tasks].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
     for (let i = 0; i < sortedTasks.length; i++) {
       const task = sortedTasks[i]!;
-      // Generate WBS code: "1.0", "1.1", "1.1.1", etc.
+      // v1.5.93: Honor a pre-stamped wbsCode (set by GanttBoard.tasksWithStableWbs
+      // BEFORE filtering) so visible numbers stay stable when the user filters.
+      // Fallback to local sequence when none was provided.
       const seq = i + 1;
-      const wbsCode = parentWbs
+      const localWbs = parentWbs
         ? `${parentWbs}.${seq}`         // Child: "1.1", "1.1.1"
         : `${seq}.0`;                    // Root: "1.0", "2.0"
+      const wbsCode = task.wbsCode || localWbs;
       task.wbsCode = wbsCode;
       result.push({ task, level });
       if (task.subtasks && task.subtasks.length > 0 && task.isExpanded) {
-        // Children use parent's seq (without .0) as prefix
-        const childPrefix = parentWbs ? `${parentWbs}.${seq}` : `${seq}`;
+        // Strip a trailing ".0" from a stamped root WBS so children build "4.1" not "4.0.1"
+        const stampedChildPrefix = task.wbsCode?.replace(/\.0$/, '');
+        const childPrefix = stampedChildPrefix
+          || (parentWbs ? `${parentWbs}.${seq}` : `${seq}`);
         result.push(...flattenTasks(task.subtasks, level + 1, childPrefix));
       }
     }
