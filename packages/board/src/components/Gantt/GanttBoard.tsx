@@ -1705,13 +1705,21 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   exportRateRef.current = { rateMap: config.rateMap, defaultRate: config.defaultRate, projectName };
 
   const handleExportExcel = useCallback(async () => {
+    // Consumer-supplied override takes priority. Lets apps replace the
+    // built-in exporter with their own (custom template, branded format,
+    // server-side export, etc.) while keeping the same toolbar button.
+    if (config.onExportExcel) {
+      await config.onExportExcel();
+      onExportSuccess?.('excel');
+      return;
+    }
     const now = new Date();
     const pad = (n: number) => String(n).padStart(2, '0');
     const ts = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`;
     const name = projectName ? projectName.replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ _-]/g, '') : 'Project';
     await ganttUtils.exportToExcel(localTasks, `${name}_${ts}.xlsx`, exportRateRef.current);
     onExportSuccess?.('excel');
-  }, [localTasks, projectName, onExportSuccess]);
+  }, [localTasks, projectName, onExportSuccess, config.onExportExcel]);
 
   const handleExportCSV = useCallback(() => {
     const csv = ganttUtils.exportToCSV(localTasks);
