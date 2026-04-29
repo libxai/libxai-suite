@@ -450,6 +450,17 @@ export interface GanttConfig {
   showExportButton?: boolean; // v0.12.0: Show export dropdown in toolbar (default: true)
 
   /**
+   * Override the default Excel export with a consumer-supplied handler.
+   * When set, clicking "Export to Excel" in the share/export dropdown
+   * runs this function instead of the library's built-in ganttUtils
+   * exporter. The handler is responsible for the entire export (including
+   * triggering the file download). Useful for plugging in a custom
+   * template or branded format. `onExportSuccess` still fires after a
+   * successful run.
+   */
+  onExportExcel?: () => Promise<void>;
+
+  /**
    * v2.8.0: Fired AFTER a successful export so the consuming app can record
    * the event in its audit log / analytics. Receives the report type that
    * was just produced.

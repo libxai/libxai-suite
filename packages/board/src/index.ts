@@ -102,7 +102,8 @@ export type {
   TaskTag, // v0.17.158 - Tags/Labels type
   TimeScale,
   Theme as GanttTheme,
-  GanttConfig as GanttBoardConfig,
+  GanttConfig,
+  GanttConfig as GanttBoardConfig, // legacy alias kept for backwards compatibility
   ProjectForecast, // v3.1.0: Forecast HUD data
   GanttPermissions, // v0.8.2 - Permissions for authorization
   GanttColumn,
@@ -486,7 +487,10 @@ export type {
   ScheduledTask,
   ResourceAllocation,
   ResourceUtilization,
-  GanttConfig,
+  // Renamed to avoid clashing with the board's own GanttConfig (component
+  // props). The core `GanttConfig` describes view-data state and is a
+  // distinct shape; consumers that need it can import it under this name.
+  GanttConfig as GanttCoreConfig,
   GanttState,
   DependencyValidation,
   AutoScheduleOptions,
