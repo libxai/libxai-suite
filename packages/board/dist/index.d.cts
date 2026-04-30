@@ -395,6 +395,13 @@ interface GanttConfig {
      */
     onExportExcel?: () => Promise<void>;
     /**
+     * Fires whenever the TODAY marker enters or leaves the visible
+     * timeline viewport (after horizontal scroll, zoom, timeScale change,
+     * or initial mount). Lets consumer apps render a floating "go to
+     * today" affordance that only shows up when relevant.
+     */
+    onTodayVisibilityChange?: (visible: boolean) => void;
+    /**
      * v2.8.0: Fired AFTER a successful export so the consuming app can record
      * the event in its audit log / analytics. Receives the report type that
      * was just produced.
@@ -2746,6 +2753,12 @@ interface GanttBoardRef {
      * Similar to: gantt.clearAll()
      */
     clearAll: () => void;
+    /**
+     * Smoothly scroll the timeline so that today's date sits in the
+     * center of the visible viewport. No-op when today falls outside
+     * the project's date range.
+     */
+    scrollToToday: () => void;
 }
 
 interface GanttBoardProps {

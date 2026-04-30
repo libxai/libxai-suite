@@ -587,6 +587,11 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   const gridScrollInnerRef = useRef<HTMLDivElement>(null); // v0.18.15: The actual scrollable .gantt-grid-scroll element
   const timelineScrollRef = useRef<HTMLDivElement>(null);
   const ganttContainerRef = useRef<HTMLDivElement>(null);
+  // Cache the inputs the imperative scrollToToday() needs in a ref so
+  // it can read them without listing them in useImperativeHandle deps
+  // (where they would create a temporal-dead-zone before the useMemo
+  // that derives startDate runs further down).
+  const scrollToTodayDepsRef = useRef<{ startDate: Date; timeScale: TimeScale; zoom: number } | null>(null);
 
   // Derivar theme desde CSS variables si hay ThemeProvider, sino usar theme estático
   const theme = useMemo(() => {
@@ -1053,6 +1058,22 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
 
     clearAll: () => {
       setLocalTasks([]);
+    },
+
+    scrollToToday: () => {
+      const scrollEl = timelineScrollRef.current;
+      const sd = scrollToTodayDepsRef.current;
+      if (!scrollEl || !sd) return;
+      const today = new Date();
+      const daysFromStart = (today.getTime() - sd.startDate.getTime()) / (1000 * 60 * 60 * 24);
+      // Match the dayWidth formula used inside Timeline.tsx so the
+      // computed pixel position lines up with the rendered TODAY line.
+      const dayWidth = sd.timeScale === 'day' ? 60 : sd.timeScale === 'week' ? 20 : 8;
+      const todayX = daysFromStart * dayWidth * sd.zoom;
+      const viewportWidth = scrollEl.clientWidth;
+      // Center today in the viewport. Clamp to valid scroll range.
+      const target = Math.max(0, todayX - viewportWidth / 2);
+      scrollEl.scrollTo({ left: target, behavior: 'smooth' });
     },
   }), [localTasks, undo, redo, canUndo, canRedo, clearHistory, theme, rowHeight]);
 
@@ -1867,6 +1888,40 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       document.removeEventListener('mouseup', handleMouseUp);
     };
   }, [isResizing, isPanning, calculatedGridWidth]);
+
+  // Keep the imperative scrollToToday() call site fed with fresh inputs.
+  scrollToTodayDepsRef.current = { startDate, timeScale, zoom };
+
+  // Notify the consumer whenever the TODAY marker enters or leaves the
+  // viewport. Powers floating "go to today" affordances in apps that
+  // render their own UI on top of the Gantt.
+  const onTodayVisibilityChange = config.onTodayVisibilityChange;
+  const todayVisibleRef = useRef<boolean | null>(null);
+  useEffect(() => {
+    if (!onTodayVisibilityChange) return;
+    const scrollEl = timelineScrollRef.current;
+    if (!scrollEl) return;
+    const dayWidth = timeScale === 'day' ? 60 : timeScale === 'week' ? 20 : 8;
+    const compute = () => {
+      const today = new Date();
+      const daysFromStart = (today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
+      const todayX = daysFromStart * dayWidth * zoom;
+      const left = scrollEl.scrollLeft;
+      const right = left + scrollEl.clientWidth;
+      const visible = todayX >= left && todayX <= right;
+      if (todayVisibleRef.current !== visible) {
+        todayVisibleRef.current = visible;
+        onTodayVisibilityChange(visible);
+      }
+    };
+    compute();
+    scrollEl.addEventListener('scroll', compute, { passive: true });
+    window.addEventListener('resize', compute);
+    return () => {
+      scrollEl.removeEventListener('scroll', compute);
+      window.removeEventListener('resize', compute);
+    };
+  }, [onTodayVisibilityChange, startDate, timeScale, zoom]);
 
   // v0.17.377: Scroll to today on initial mount (like ClickUp)
   // Uses useLayoutEffect to scroll BEFORE the browser paints, avoiding visible jump

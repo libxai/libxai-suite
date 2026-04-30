@@ -461,6 +461,14 @@ export interface GanttConfig {
   onExportExcel?: () => Promise<void>;
 
   /**
+   * Fires whenever the TODAY marker enters or leaves the visible
+   * timeline viewport (after horizontal scroll, zoom, timeScale change,
+   * or initial mount). Lets consumer apps render a floating "go to
+   * today" affordance that only shows up when relevant.
+   */
+  onTodayVisibilityChange?: (visible: boolean) => void;
+
+  /**
    * v2.8.0: Fired AFTER a successful export so the consuming app can record
    * the event in its audit log / analytics. Receives the report type that
    * was just produced.

@@ -239,4 +239,11 @@ export interface GanttBoardRef {
    * Similar to: gantt.clearAll()
    */
   clearAll: () => void;
+
+  /**
+   * Smoothly scroll the timeline so that today's date sits in the
+   * center of the visible viewport. No-op when today falls outside
+   * the project's date range.
+   */
+  scrollToToday: () => void;
 }
