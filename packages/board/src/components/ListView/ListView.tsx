@@ -20,6 +20,7 @@ import {
   PanelRight,
   GripVertical,
   Layers,
+  Info,
 } from 'lucide-react';
 import type { Task } from '../Gantt/types';
 import type {
@@ -193,7 +194,7 @@ function WeightCellInline({ value, onChange, isDark }: { value: number; onChange
         }}
         className={cn(
           "w-14 text-xs text-right font-mono px-1 py-0.5 rounded border outline-none",
-          isDark ? "bg-white/5 border-[#00E5CC]/50 text-white" : "bg-gray-50 border-blue-400 text-gray-900"
+          isDark ? "bg-white/5 border-[#00E5CC]/50 text-white" : "bg-gray-50 border-[#00E5CC] text-gray-900"
         )}
         style={{ fontFamily: 'JetBrains Mono, monospace' }}
       />
@@ -303,6 +304,10 @@ export function ListView({
   availableUsers = [],
   customFields = [],
   toolbarRightContent,
+  // v1.8.0: column header actions
+  onColumnHeaderClick,
+  columnsWithFilter,
+  filterDotColor = '#00E5CC',
 }: ListViewProps) {
   const {
     theme: themeName = 'dark',
@@ -1567,7 +1572,7 @@ export function ListView({
     return (
       <div className={cn("flex-1 flex items-center justify-center", isDark ? "bg-[#0D0D0D]" : "bg-white", className)} style={style}>
         <div className="flex flex-col items-center gap-4">
-          <div className="w-8 h-8 animate-spin rounded-full border-b-2 border-[#007BFF]" />
+          <div className="w-8 h-8 animate-spin rounded-full border-b-2 border-[#00E5CC]" />
           <p className={cn("text-sm", isDark ? "text-white/60" : "text-gray-600")}>
             {t.empty.noTasks}...
           </p>
@@ -1602,8 +1607,8 @@ export function ListView({
     return (
       <div className={cn("flex-1 flex items-center justify-center", isDark ? "bg-[#0D0D0D]" : "bg-white", className)} style={style}>
         <div className="text-center max-w-md">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-[#007BFF]/10 flex items-center justify-center">
-            <List className="w-8 h-8 text-[#007BFF]" />
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-[#00E5CC]/10 flex items-center justify-center">
+            <List className="w-8 h-8 text-[#00E5CC]" />
           </div>
           <h3 className={cn("text-lg font-semibold mb-2", isDark ? "text-white" : "text-gray-900")}>
             {t.empty.noTasks}
@@ -1653,7 +1658,7 @@ export function ListView({
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={t.toolbar.searchPlaceholder}
                 className={cn(
-                  "w-full h-9 pl-10 pr-4 rounded-lg border outline-none focus:ring-2 focus:ring-[#007BFF]/30",
+                  "w-full h-9 pl-10 pr-4 rounded-lg border outline-none focus:ring-2 focus:ring-[#00E5CC]/30",
                   isDark
                     ? "bg-white/[0.03] border-[#222] text-white placeholder:text-white/30 font-mono"
                     : "bg-gray-100 border-gray-200 text-gray-900 placeholder:text-gray-400"
@@ -1682,10 +1687,10 @@ export function ListView({
                   'flex items-center gap-1.5 px-2 py-1.5 rounded-lg border transition-colors text-[11px] font-medium',
                   isDark
                     ? wbsDropdownOpen
-                      ? 'bg-blue-500/10 border-blue-500/40 text-blue-400'
+                      ? 'bg-[#00E5CC]/10 border-[#00E5CC]/40 text-[#00E5CC]'
                       : 'bg-white/[0.03] border-[#333] text-white/50 hover:text-white/70 hover:bg-white/[0.05]'
                     : wbsDropdownOpen
-                      ? 'bg-blue-50 border-blue-300 text-blue-600'
+                      ? 'bg-[#00E5CC]/15 border-[#00E5CC] text-[#00C4AE]'
                       : 'bg-gray-100 border-gray-200 text-gray-500 hover:text-gray-700 hover:bg-gray-200'
                 )}
                 style={{ fontFamily: "'JetBrains Mono', monospace" }}
@@ -1717,15 +1722,15 @@ export function ListView({
                         'w-full px-3 py-2 text-left text-xs transition-colors flex items-center justify-between',
                         isDark
                           ? wbsLevel === opt.value
-                            ? 'bg-blue-500/10 text-blue-400'
+                            ? 'bg-[#00E5CC]/10 text-[#00E5CC]'
                             : 'text-white/60 hover:bg-white/[0.05] hover:text-white/80'
                           : wbsLevel === opt.value
-                            ? 'bg-blue-50 text-blue-600'
+                            ? 'bg-[#00E5CC]/15 text-[#00C4AE]'
                             : 'text-gray-600 hover:bg-gray-100'
                       )}
                     >
                       <span>{opt.label}</span>
-                      {wbsLevel === opt.value && <span className="text-blue-400">✓</span>}
+                      {wbsLevel === opt.value && <span className="text-[#00E5CC]">✓</span>}
                     </button>
                   ))}
                 </div>
@@ -1768,7 +1773,7 @@ export function ListView({
               onClick={onCreateTask}
               className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-[transform,box-shadow]"
               style={{
-                background: 'linear-gradient(135deg, #007BFF 0%, #005FCC 100%)',
+                background: 'linear-gradient(135deg, #00E5CC 0%, #005FCC 100%)',
                 color: '#FFFFFF',
                 fontFamily: 'Inter, sans-serif',
                 fontWeight: 500,
@@ -1814,8 +1819,8 @@ export function ListView({
                   column.type !== 'name' && "justify-center",
                   dragColumnId === column.id && "opacity-50",
                   isDragOver && (isDark
-                    ? "bg-[#007BFF]/20 border-l-2 border-l-[#007BFF]"
-                    : "bg-blue-50 border-l-2 border-l-blue-400")
+                    ? "bg-[#00E5CC]/20 border-l-2 border-l-[#00E5CC]"
+                    : "bg-[#00E5CC]/15 border-l-2 border-l-[#00E5CC]")
                 )}
                 style={{ width: columnWidthPercent[column.id], minWidth: column.minWidth }}
                 draggable={isDraggable}
@@ -1833,20 +1838,60 @@ export function ListView({
                     isDark ? "text-white/20 group-hover:text-white/50" : "text-gray-300 group-hover:text-gray-500"
                   )} />
                 )}
-                {column.sortable ? (
+                {/* v1.8.0: when the consumer wires onColumnHeaderClick, the
+                    whole label area becomes the trigger for a unified
+                    Sort+Filter+Hide dropdown rendered by the consumer. We
+                    pass the bounding rect so the consumer can anchor the
+                    popup. Falls back to the legacy sort-on-click behavior
+                    when the consumer doesn't opt in. */}
+                {onColumnHeaderClick ? (
+                  <button
+                    draggable={false}
+                    onClick={(e) => {
+                      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                      onColumnHeaderClick(column.id, rect);
+                    }}
+                    className="flex items-center gap-1.5 hover:text-[#00E5CC]"
+                  >
+                    {getColumnLabel(column)}
+                    {columnsWithFilter?.includes(column.id) && (
+                      <span
+                        title="filtered"
+                        style={{ width: 6, height: 6, borderRadius: '50%', background: filterDotColor, display: 'inline-block', flexShrink: 0 }}
+                      />
+                    )}
+                    {sortField === column.id && (
+                      <ArrowUpDown className="w-3 h-3 text-[#00E5CC]" />
+                    )}
+                  </button>
+                ) : column.sortable ? (
                   <button
                     draggable={false}
                     onClick={() => handleSort(column.id)}
-                    className="flex items-center gap-1 hover:text-[#007BFF]"
+                    className="flex items-center gap-1 hover:text-[#00E5CC]"
                   >
                     {getColumnLabel(column)}
+                    {columnsWithFilter?.includes(column.id) && (
+                      <span
+                        title="filtered"
+                        style={{ width: 6, height: 6, borderRadius: '50%', background: filterDotColor, display: 'inline-block', flexShrink: 0 }}
+                      />
+                    )}
                     <ArrowUpDown className={cn(
                       "w-3 h-3",
-                      sortField === column.id && "text-[#007BFF]"
+                      sortField === column.id && "text-[#00E5CC]"
                     )} />
                   </button>
                 ) : (
-                  <span draggable={false}>{getColumnLabel(column)}</span>
+                  <span draggable={false} className="flex items-center gap-1.5">
+                    {getColumnLabel(column)}
+                    {columnsWithFilter?.includes(column.id) && (
+                      <span
+                        title="filtered"
+                        style={{ width: 6, height: 6, borderRadius: '50%', background: filterDotColor, display: 'inline-block', flexShrink: 0 }}
+                      />
+                    )}
+                  </span>
                 )}
 
                 {/* Resize handle */}
@@ -1854,8 +1899,8 @@ export function ListView({
                   <div
                     className={cn(
                       "absolute right-0 top-0 bottom-0 w-1 cursor-col-resize group",
-                      "hover:bg-[#007BFF]",
-                      resizingColumn === column.id && "bg-[#007BFF]"
+                      "hover:bg-[#00E5CC]",
+                      resizingColumn === column.id && "bg-[#00E5CC]"
                     )}
                     onMouseDown={(e) => handleResizeStart(e, column.id)}
                   />
@@ -2051,8 +2096,8 @@ export function ListView({
                   )}
                   style={{
                     opacity: isBeingDragged ? 0.4 : 1,
-                    backgroundColor: showDropChild ? (isDark ? 'rgba(46,148,255,0.08)' : 'rgba(46,148,255,0.05)') : undefined,
-                    boxShadow: showDropChild ? 'inset 0 0 0 2px #2E94FF' : undefined,
+                    backgroundColor: showDropChild ? (isDark ? 'rgba(0, 229, 204,0.08)' : 'rgba(0, 229, 204,0.05)') : undefined,
+                    boxShadow: showDropChild ? 'inset 0 0 0 2px #00E5CC' : undefined,
                   }}
                   onClick={() => callbacks.onTaskClick?.(task)}
                   onDoubleClick={() => callbacks.onTaskDoubleClick?.(task)}
@@ -2060,11 +2105,11 @@ export function ListView({
                 >
                   {/* Drop indicator ABOVE */}
                   {showDropAbove && (
-                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, backgroundColor: '#2E94FF', zIndex: 10 }} />
+                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, backgroundColor: '#00E5CC', zIndex: 10 }} />
                   )}
                   {/* Drop indicator BELOW */}
                   {showDropBelow && (
-                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 2, backgroundColor: '#2E94FF', zIndex: 10 }} />
+                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 2, backgroundColor: '#00E5CC', zIndex: 10 }} />
                   )}
                   {/* Drag handle */}
                   {canDragRows && (
@@ -2112,7 +2157,7 @@ export function ListView({
                             {(task.wbsCode || task.taskCode) && (
                               <div className="flex items-center gap-1.5">
                                 {task.wbsCode && (
-                                  <span className={cn("text-[10px] font-mono", isDark ? "text-[#007BFF]" : "text-blue-600")}>
+                                  <span className={cn("text-[10px] font-mono", isDark ? "text-[#00E5CC]" : "text-[#00C4AE]")}>
                                     {task.wbsCode}
                                   </span>
                                 )}
@@ -2204,6 +2249,48 @@ export function ListView({
               ? `+$${varianceDollars.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} ${isOver ? (locale === 'es' ? 'EXCEDIDO' : 'OVER') : (locale === 'es' ? 'AHORRADO' : 'SAVED')}`
               : varianceLabel;
 
+            // v2.9.0: Tooltip explaining the TOTAL composition. The visible phase
+            // rows only sum labor (task minutes × rate); the TOTAL also folds in
+            // project-level committed costs (equipment, travel) supplied via
+            // totalsDollarOverride.breakdown. Without this, users see the footer
+            // not matching the sum of the rows above and assume a bug.
+            const bd = totalsDollarOverride?.breakdown;
+            const fmtMoney = (n: number) => `$${Math.round(n).toLocaleString('es-CO')}`;
+            let totalTooltip: string | undefined;
+            if (isFinancial && bd && ((bd.equipment ?? 0) > 0 || (bd.travel ?? 0) > 0)) {
+              const lines: string[] = [];
+              if (locale === 'es') {
+                lines.push('Estimado total:');
+                if (bd.laborAllocated != null) lines.push(`  Mano de obra: ${fmtMoney(bd.laborAllocated)}`);
+                if ((bd.equipment ?? 0) > 0) lines.push(`  Activos: ${fmtMoney(bd.equipment!)}`);
+                if ((bd.travel ?? 0) > 0) lines.push(`  Viáticos: ${fmtMoney(bd.travel!)}`);
+                lines.push(`  = ${fmtMoney(effDollarAllocated)}`);
+                lines.push('');
+                lines.push('Ejecutado total:');
+                if (bd.laborSpent != null) lines.push(`  Mano de obra: ${fmtMoney(bd.laborSpent)}`);
+                if ((bd.equipment ?? 0) > 0) lines.push(`  Activos: ${fmtMoney(bd.equipment!)}`);
+                if ((bd.travel ?? 0) > 0) lines.push(`  Viáticos: ${fmtMoney(bd.travel!)}`);
+                lines.push(`  = ${fmtMoney(effDollarSpent)}`);
+                lines.push('');
+                lines.push('Las filas de fase solo muestran mano de obra.');
+              } else {
+                lines.push('Total estimated:');
+                if (bd.laborAllocated != null) lines.push(`  Labor: ${fmtMoney(bd.laborAllocated)}`);
+                if ((bd.equipment ?? 0) > 0) lines.push(`  Equipment: ${fmtMoney(bd.equipment!)}`);
+                if ((bd.travel ?? 0) > 0) lines.push(`  Travel: ${fmtMoney(bd.travel!)}`);
+                lines.push(`  = ${fmtMoney(effDollarAllocated)}`);
+                lines.push('');
+                lines.push('Total executed:');
+                if (bd.laborSpent != null) lines.push(`  Labor: ${fmtMoney(bd.laborSpent)}`);
+                if ((bd.equipment ?? 0) > 0) lines.push(`  Equipment: ${fmtMoney(bd.equipment!)}`);
+                if ((bd.travel ?? 0) > 0) lines.push(`  Travel: ${fmtMoney(bd.travel!)}`);
+                lines.push(`  = ${fmtMoney(effDollarSpent)}`);
+                lines.push('');
+                lines.push('Phase rows only show labor.');
+              }
+              totalTooltip = lines.join('\n');
+            }
+
             return (
               <div
                 className={cn(
@@ -2230,11 +2317,19 @@ export function ListView({
                     style={{ width: columnWidthPercent[column.id], minWidth: column.minWidth }}
                   >
                     {column.type === 'name' ? (
-                      <span className={cn(
-                        "text-[11px] font-black uppercase tracking-widest",
-                        isDark ? "text-white" : "text-gray-900"
-                      )} style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                      <span
+                        className={cn(
+                          "text-[11px] font-black uppercase tracking-widest inline-flex items-center gap-1.5",
+                          isDark ? "text-white" : "text-gray-900",
+                          totalTooltip && "cursor-help"
+                        )}
+                        style={{ fontFamily: 'JetBrains Mono, monospace' }}
+                        title={totalTooltip}
+                      >
                         {locale === 'es' ? 'TOTAL PROYECTO' : 'TOTAL PROJECT'}
+                        {totalTooltip && (
+                          <Info className={cn("w-3 h-3", isDark ? "text-white/40" : "text-gray-400")} />
+                        )}
                       </span>
                     ) : column.type === 'hoursBar' ? (
                       <div className="flex flex-col items-center w-full">
@@ -2300,7 +2395,7 @@ export function ListView({
                       // Consistent with parent rows: weighted if pesos ≥99%, else simple average
                       const weightedPct = computeWeightedProgress(collectLeaves(tasks || []));
                       return (
-                        <span className={cn("text-[12px] font-bold font-mono", isDark ? "text-[#00E5CC]" : "text-cyan-600")}
+                        <span className={cn("text-[12px] font-bold font-mono", isDark ? "text-[#00E5CC]" : "text-[#00C4AE]")}
                           style={{ fontFamily: 'JetBrains Mono, monospace' }}>
                           {weightedPct}%
                         </span>
@@ -2411,7 +2506,7 @@ export function ListView({
                   boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
                 }}
               >
-                <GripVertical className="w-3 h-3" style={{ color: '#2E94FF' }} />
+                <GripVertical className="w-3 h-3" style={{ color: '#00E5CC' }} />
                 <span className="text-xs font-medium" style={{ color: isDark ? '#e6edf3' : '#111827' }}>
                   {draggedTask.name}
                 </span>

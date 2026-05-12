@@ -379,6 +379,19 @@ export interface ListViewConfig {
     spent?: number;
     allocated?: number;
     quoted?: number;
+    /**
+     * Optional breakdown of the override totals into their components so the
+     * footer can surface a tooltip explaining why the TOTAL differs from the
+     * sum of the visible phase rows (which only count labor).
+     * - labor: Σ(task minutes × rate) — the portion the phase rows show
+     * - equipment / travel: committed project-level costs not tied to tasks
+     */
+    breakdown?: {
+      laborSpent?: number;
+      laborAllocated?: number;
+      equipment?: number;
+      travel?: number;
+    };
   };
 
   /** v2.5.0: Render content just before the Create Task button (e.g., share/export dropdown) */
@@ -598,6 +611,25 @@ export interface ListViewProps {
   toolbarRightContent?: ReactNode;
   /** v2.5.0: Render content just before the Create Task button (e.g., share/export dropdown) */
   toolbarEndContent?: ReactNode;
+
+  // v1.8.0: Column header actions (Linear/Airtable pattern)
+  /**
+   * Fires when the user clicks anywhere on a column header. The consumer
+   * renders its own dropdown (Sort + Filter + Hide) anchored to `anchorRect`.
+   * If unset, the header keeps the legacy behavior (click on the sort icon
+   * cycles asc/desc/clear).
+   */
+  onColumnHeaderClick?: (columnId: string, anchorRect: DOMRect) => void;
+  /**
+   * IDs of columns that currently have an active filter applied. Each one
+   * gets a small accent dot rendered next to its label.
+   */
+  columnsWithFilter?: string[];
+  /**
+   * Color (hex / CSS) of the dot rendered for filtered columns. Defaults
+   * to the brand cyan #00E5CC so consumers don't have to think about it.
+   */
+  filterDotColor?: string;
 }
 
 /**
