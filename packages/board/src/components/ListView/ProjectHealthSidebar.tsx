@@ -99,49 +99,69 @@ export function ProjectHealthSidebar({
                 </span>
               </div>
               {(() => {
-                // v2.6.0 — Estimado breakdown tooltip when equipment or travel > 0
+                // v2.9.0 — Estimado: total + always-visible sub-lines for labor /
+                // equipment / travel when those committed costs are present, so
+                // the user sees how the figure is composed (the table footer only
+                // shows labor; this is where the full breakdown lives).
                 const estLabor = data.totalEstimatedLabor ?? 0;
                 const estEq = data.totalEstimatedEquipment ?? 0;
                 const estTr = data.totalEstimatedTravel ?? 0;
                 const showEstBreakdown = estEq > 0 || estTr > 0;
-                const estTooltip = showEstBreakdown
-                  ? (isEs
-                      ? `Desglose del estimado:\n· Mano de obra: ${fmtCurrency(estLabor)}\n· Activos: ${fmtCurrency(estEq)}\n· Viáticos: ${fmtCurrency(estTr)}\n───\nTotal: ${fmtCurrency(estimated)}`
-                      : `Estimated breakdown:\n· Labor: ${fmtCurrency(estLabor)}\n· Equipment: ${fmtCurrency(estEq)}\n· Travel: ${fmtCurrency(estTr)}\n───\nTotal: ${fmtCurrency(estimated)}`)
-                  : undefined;
-                return (
-                  <div className={cn('flex items-center justify-between', showEstBreakdown && 'cursor-help')} title={estTooltip}>
-                    <span className={cn('text-xs', isDark ? 'text-white/60' : 'text-gray-600')}>
-                      {isEs ? 'Estimado' : 'Estimated'}
-                      {showEstBreakdown && <span className="ml-1 opacity-50">ⓘ</span>}
-                    </span>
-                    <span className={cn('text-[11px] font-mono font-bold', isDark ? 'text-white/80' : 'text-gray-800')}>
-                      {fmtCurrency(estimated)}
-                    </span>
+                const subLine = (label: string, val: number) => (
+                  <div className="flex items-center justify-between pl-3">
+                    <span className={cn('text-[10px]', isDark ? 'text-white/40' : 'text-gray-400')}>{label}</span>
+                    <span className={cn('text-[10px] font-mono', isDark ? 'text-white/55' : 'text-gray-500')}>{fmtCurrency(val)}</span>
                   </div>
+                );
+                return (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <span className={cn('text-xs', isDark ? 'text-white/60' : 'text-gray-600')}>
+                        {isEs ? 'Estimado' : 'Estimated'}
+                      </span>
+                      <span className={cn('text-[11px] font-mono font-bold', isDark ? 'text-white/80' : 'text-gray-800')}>
+                        {fmtCurrency(estimated)}
+                      </span>
+                    </div>
+                    {showEstBreakdown && (
+                      <>
+                        {subLine(isEs ? 'Mano de obra' : 'Labor', estLabor)}
+                        {estEq > 0 && subLine(isEs ? 'Activos' : 'Equipment', estEq)}
+                        {estTr > 0 && subLine(isEs ? 'Viáticos' : 'Travel', estTr)}
+                      </>
+                    )}
+                  </>
                 );
               })()}
               {executed > 0 && (() => {
-                // v2.6.0 — Ejecutado breakdown tooltip when equipment or travel > 0
                 const exLabor = data.totalExecutedLabor ?? 0;
                 const exEq = data.totalExecutedEquipment ?? 0;
                 const exTr = data.totalExecutedTravel ?? 0;
                 const showExBreakdown = exEq > 0 || exTr > 0;
-                const exTooltip = showExBreakdown
-                  ? (isEs
-                      ? `Desglose del ejecutado:\n· Mano de obra: ${fmtCurrency(exLabor)}\n· Activos: ${fmtCurrency(exEq)}\n· Viáticos: ${fmtCurrency(exTr)}\n───\nTotal: ${fmtCurrency(executed)}`
-                      : `Executed breakdown:\n· Labor: ${fmtCurrency(exLabor)}\n· Equipment: ${fmtCurrency(exEq)}\n· Travel: ${fmtCurrency(exTr)}\n───\nTotal: ${fmtCurrency(executed)}`)
-                  : undefined;
-                return (
-                  <div className={cn('flex items-center justify-between', showExBreakdown && 'cursor-help')} title={exTooltip}>
-                    <span className={cn('text-xs', isDark ? 'text-white/60' : 'text-gray-600')}>
-                      {isEs ? 'Ejecutado' : 'Executed'}
-                      {showExBreakdown && <span className="ml-1 opacity-50">ⓘ</span>}
-                    </span>
-                    <span className={cn('text-[11px] font-mono font-bold', isOverBudget ? 'text-[#F87171]' : isDark ? 'text-white/80' : 'text-gray-800')}>
-                      {fmtCurrency(executed)}
-                    </span>
+                const subLine = (label: string, val: number) => (
+                  <div className="flex items-center justify-between pl-3">
+                    <span className={cn('text-[10px]', isDark ? 'text-white/40' : 'text-gray-400')}>{label}</span>
+                    <span className={cn('text-[10px] font-mono', isDark ? 'text-white/55' : 'text-gray-500')}>{fmtCurrency(val)}</span>
                   </div>
+                );
+                return (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <span className={cn('text-xs', isDark ? 'text-white/60' : 'text-gray-600')}>
+                        {isEs ? 'Ejecutado' : 'Executed'}
+                      </span>
+                      <span className={cn('text-[11px] font-mono font-bold', isOverBudget ? 'text-[#F87171]' : isDark ? 'text-white/80' : 'text-gray-800')}>
+                        {fmtCurrency(executed)}
+                      </span>
+                    </div>
+                    {showExBreakdown && (
+                      <>
+                        {subLine(isEs ? 'Mano de obra' : 'Labor', exLabor)}
+                        {exEq > 0 && subLine(isEs ? 'Activos' : 'Equipment', exEq)}
+                        {exTr > 0 && subLine(isEs ? 'Viáticos' : 'Travel', exTr)}
+                      </>
+                    )}
+                  </>
                 );
               })()}
               {/* Progress bar: offered as 100%, estimated as fill */}

@@ -2228,12 +2228,14 @@ export function ListView({
             // v2.5.2: Prefer consumer-supplied dollar totals when provided (canonical
             // time_logs × rate_at_time figures). Falls back to the internal per-task
             // computation when no override is given.
-            const effDollarSpent = totalsDollarOverride?.spent != null
-              ? totalsDollarOverride.spent
-              : projectTotalHours.dollarSpent;
-            const effDollarAllocated = totalsDollarOverride?.allocated != null
-              ? totalsDollarOverride.allocated
-              : projectTotalHours.dollarAllocated;
+            const bd = totalsDollarOverride?.breakdown;
+            const hasCommittedExtras = !!bd && ((bd.equipment ?? 0) > 0 || (bd.travel ?? 0) > 0);
+            const effDollarSpent = bd?.laborSpent != null
+              ? bd.laborSpent
+              : (totalsDollarOverride?.spent != null ? totalsDollarOverride.spent : projectTotalHours.dollarSpent);
+            const effDollarAllocated = bd?.laborAllocated != null
+              ? bd.laborAllocated
+              : (totalsDollarOverride?.allocated != null ? totalsDollarOverride.allocated : projectTotalHours.dollarAllocated);
             const effDollarQuoted = totalsDollarOverride?.quoted != null
               ? totalsDollarOverride.quoted
               : projectTotalHours.dollarQuoted;
@@ -2249,47 +2251,12 @@ export function ListView({
               ? `+$${varianceDollars.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} ${isOver ? (locale === 'es' ? 'EXCEDIDO' : 'OVER') : (locale === 'es' ? 'AHORRADO' : 'SAVED')}`
               : varianceLabel;
 
-            // v2.9.0: Tooltip explaining the TOTAL composition. The visible phase
-            // rows only sum labor (task minutes × rate); the TOTAL also folds in
-            // project-level committed costs (equipment, travel) supplied via
-            // totalsDollarOverride.breakdown. Without this, users see the footer
-            // not matching the sum of the rows above and assume a bug.
-            const bd = totalsDollarOverride?.breakdown;
-            const fmtMoney = (n: number) => `$${Math.round(n).toLocaleString('es-CO')}`;
-            let totalTooltip: string | undefined;
-            if (isFinancial && bd && ((bd.equipment ?? 0) > 0 || (bd.travel ?? 0) > 0)) {
-              const lines: string[] = [];
-              if (locale === 'es') {
-                lines.push('Estimado total:');
-                if (bd.laborAllocated != null) lines.push(`  Mano de obra: ${fmtMoney(bd.laborAllocated)}`);
-                if ((bd.equipment ?? 0) > 0) lines.push(`  Activos: ${fmtMoney(bd.equipment!)}`);
-                if ((bd.travel ?? 0) > 0) lines.push(`  Viáticos: ${fmtMoney(bd.travel!)}`);
-                lines.push(`  = ${fmtMoney(effDollarAllocated)}`);
-                lines.push('');
-                lines.push('Ejecutado total:');
-                if (bd.laborSpent != null) lines.push(`  Mano de obra: ${fmtMoney(bd.laborSpent)}`);
-                if ((bd.equipment ?? 0) > 0) lines.push(`  Activos: ${fmtMoney(bd.equipment!)}`);
-                if ((bd.travel ?? 0) > 0) lines.push(`  Viáticos: ${fmtMoney(bd.travel!)}`);
-                lines.push(`  = ${fmtMoney(effDollarSpent)}`);
-                lines.push('');
-                lines.push('Las filas de fase solo muestran mano de obra.');
-              } else {
-                lines.push('Total estimated:');
-                if (bd.laborAllocated != null) lines.push(`  Labor: ${fmtMoney(bd.laborAllocated)}`);
-                if ((bd.equipment ?? 0) > 0) lines.push(`  Equipment: ${fmtMoney(bd.equipment!)}`);
-                if ((bd.travel ?? 0) > 0) lines.push(`  Travel: ${fmtMoney(bd.travel!)}`);
-                lines.push(`  = ${fmtMoney(effDollarAllocated)}`);
-                lines.push('');
-                lines.push('Total executed:');
-                if (bd.laborSpent != null) lines.push(`  Labor: ${fmtMoney(bd.laborSpent)}`);
-                if ((bd.equipment ?? 0) > 0) lines.push(`  Equipment: ${fmtMoney(bd.equipment!)}`);
-                if ((bd.travel ?? 0) > 0) lines.push(`  Travel: ${fmtMoney(bd.travel!)}`);
-                lines.push(`  = ${fmtMoney(effDollarSpent)}`);
-                lines.push('');
-                lines.push('Phase rows only show labor.');
-              }
-              totalTooltip = lines.join('\n');
-            }
+            // Small note under "TOTAL PROYECTO" clarifying the footer is labor-only;
+            // the full picture (labor + equipment + travel) is in the Financial
+            // Health sidebar.
+            const totalNote = isFinancial && hasCommittedExtras
+              ? (locale === 'es' ? 'solo mano de obra' : 'labor only')
+              : undefined;
 
             return (
               <div
@@ -2317,20 +2284,28 @@ export function ListView({
                     style={{ width: columnWidthPercent[column.id], minWidth: column.minWidth }}
                   >
                     {column.type === 'name' ? (
-                      <span
-                        className={cn(
-                          "text-[11px] font-black uppercase tracking-widest inline-flex items-center gap-1.5",
-                          isDark ? "text-white" : "text-gray-900",
-                          totalTooltip && "cursor-help"
+                      <div className="flex flex-col">
+                        <span
+                          className={cn(
+                            "text-[11px] font-black uppercase tracking-widest",
+                            isDark ? "text-white" : "text-gray-900"
+                          )}
+                          style={{ fontFamily: 'JetBrains Mono, monospace' }}
+                        >
+                          {locale === 'es' ? 'TOTAL PROYECTO' : 'TOTAL PROJECT'}
+                        </span>
+                        {totalNote && (
+                          <span
+                            className={cn(
+                              "text-[9px] font-mono mt-0.5 flex items-center gap-1",
+                              isDark ? "text-white/35" : "text-gray-400"
+                            )}
+                          >
+                            <Info className="w-2.5 h-2.5" />
+                            {totalNote}
+                          </span>
                         )}
-                        style={{ fontFamily: 'JetBrains Mono, monospace' }}
-                        title={totalTooltip}
-                      >
-                        {locale === 'es' ? 'TOTAL PROYECTO' : 'TOTAL PROJECT'}
-                        {totalTooltip && (
-                          <Info className={cn("w-3 h-3", isDark ? "text-white/40" : "text-gray-400")} />
-                        )}
-                      </span>
+                      </div>
                     ) : column.type === 'hoursBar' ? (
                       <div className="flex flex-col items-center w-full">
                         <div className="flex items-center gap-2">
