@@ -442,10 +442,24 @@ export interface ProjectForecast {
   currency?: string;
 }
 
+/**
+ * v4.3.0 — Workspace working-day configuration consumed by the tooltip
+ * Duration field (and any other piece that needs to count business days).
+ * Lets the consumer mirror its weekend toggles + holiday calendar.
+ */
+export interface GanttWorkingDaysConfig {
+  /** Which weekdays count as working days. 0=Sun, 1=Mon, ..., 6=Sat. Length 7. */
+  enabledWeekdays?: boolean[];
+  /** Holiday dates in 'YYYY-MM-DD' (workspace-local) to exclude. */
+  holidayDates?: Set<string> | string[];
+}
+
 export interface GanttConfig {
   theme?: Theme;
   timeScale?: TimeScale;
   rowDensity?: RowDensity; // Row height density (default: 'comfortable')
+  /** v4.3.0: Defines which days count as working days for duration calculations. */
+  workingDaysConfig?: GanttWorkingDaysConfig;
   showThemeSelector?: boolean; // Show theme selector in toolbar (default: true)
   showExportButton?: boolean; // v0.12.0: Show export dropdown in toolbar (default: true)
 

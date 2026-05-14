@@ -27,10 +27,23 @@ export interface TaskTooltipData {
   mouseY: number;
 }
 
+/**
+ * Optional working-days configuration so the tooltip Duration reflects the
+ * workspace's actual working schedule (weekend toggles + holidays) instead
+ * of raw calendar days. When omitted, falls back to calendar days.
+ */
+export interface WorkingDaysConfig {
+  /** Which weekdays count as working days. 0=Sun, 1=Mon, ..., 6=Sat. */
+  enabledWeekdays?: boolean[]; // length 7
+  /** Holiday dates in 'YYYY-MM-DD' (workspace-local) to exclude. */
+  holidayDates?: Set<string> | string[];
+}
+
 interface TaskTooltipProps {
   tooltipData: TaskTooltipData | null;
   theme: any;
   locale?: 'en' | 'es';
+  workingDaysConfig?: WorkingDaysConfig;
 }
 
 const TOOLTIP_WIDTH = 260;
@@ -38,7 +51,7 @@ const SCREEN_PADDING = 8;
 const CURSOR_OFFSET_X = 16;  // px to the right of cursor
 const CURSOR_OFFSET_Y = -12; // px above cursor (negative = up)
 
-export function TaskTooltip({ tooltipData, theme, locale = 'en' }: TaskTooltipProps) {
+export function TaskTooltip({ tooltipData, theme, locale = 'en', workingDaysConfig }: TaskTooltipProps) {
   const [pos, setPos] = useState<{ left: number; top: number; showBelow: boolean } | null>(null);
 
   useLayoutEffect(() => {
@@ -98,7 +111,32 @@ export function TaskTooltip({ tooltipData, theme, locale = 'en' }: TaskTooltipPr
 
   const getDuration = () => {
     if (!task.startDate || !task.endDate) return 'N/A';
-    const days = Math.ceil((task.endDate.getTime() - task.startDate.getTime()) / (1000 * 60 * 60 * 24));
+
+    // Default: calendar-day count (inclusive of both ends).
+    if (!workingDaysConfig?.enabledWeekdays) {
+      const days = Math.max(1, Math.round((task.endDate.getTime() - task.startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+      return locale === 'es' ? `${days} día${days !== 1 ? 's' : ''}` : `${days} day${days !== 1 ? 's' : ''}`;
+    }
+
+    // Working-day count respecting workspace weekday toggles + holidays.
+    const enabled = workingDaysConfig.enabledWeekdays;
+    const holidaySet = workingDaysConfig.holidayDates instanceof Set
+      ? workingDaysConfig.holidayDates
+      : new Set(workingDaysConfig.holidayDates ?? []);
+    const toKey = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+    let count = 0;
+    const cursor = new Date(task.startDate.getFullYear(), task.startDate.getMonth(), task.startDate.getDate());
+    const end = new Date(task.endDate.getFullYear(), task.endDate.getMonth(), task.endDate.getDate());
+    while (cursor.getTime() <= end.getTime()) {
+      const dow = cursor.getDay();
+      if (enabled[dow] && !holidaySet.has(toKey(cursor))) {
+        count++;
+      }
+      cursor.setDate(cursor.getDate() + 1);
+    }
+    const days = Math.max(0, count);
     return locale === 'es' ? `${days} día${days !== 1 ? 's' : ''}` : `${days} day${days !== 1 ? 's' : ''}`;
   };
 
@@ -114,7 +152,7 @@ export function TaskTooltip({ tooltipData, theme, locale = 'en' }: TaskTooltipPr
   const labelColor = theme.textTertiary || '#9CA3AF';
   const valueColor = theme.textSecondary || '#D1D5DB';
   const nameColor = theme.textPrimary || '#F9FAFB';
-  const accentColor = theme.accent || '#3B82F6';
+  const accentColor = theme.accent || '#00E5CC';
   const bgColor = theme.bgSecondary || '#1F2937';
   const borderColor = theme.border || '#374151';
 

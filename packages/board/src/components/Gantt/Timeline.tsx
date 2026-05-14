@@ -1,7 +1,7 @@
 import React, { useMemo, useCallback, useState, useRef } from 'react';
 import { TimeScale, Task, GanttTemplates, DependentTaskPreview, DependencyLineStyle } from './types';
 import { TaskBar, TaskTooltipData } from './TaskBar';
-import { TaskTooltip } from './TaskTooltip';
+import { TaskTooltip, WorkingDaysConfig } from './TaskTooltip';
 import { DependencyLine } from './DependencyLine';
 import { Milestone } from './Milestone';
 import { ganttUtils } from './ganttUtils';
@@ -34,6 +34,8 @@ interface TimelineProps {
   canEditTask?: (task: Task) => boolean;
   /** v4.2.0: Committed on pointerup after dragging the progress edge of a task bar. */
   onTaskProgressDrag?: (task: Task, newProgress: number) => void;
+  /** v4.3.0: Workspace working-day config for the tooltip Duration field. */
+  workingDaysConfig?: WorkingDaysConfig;
 }
 
 export interface TaskPosition {
@@ -68,6 +70,7 @@ export function Timeline({
   highlightWeekends = true,
   canEditTask,
   onTaskProgressDrag,
+  workingDaysConfig,
 }: TimelineProps) {
   const HEADER_HEIGHT = 48; // Must match TaskGrid's HEADER_HEIGHT for alignment
 
@@ -549,7 +552,7 @@ export function Timeline({
           {/* v1.4.29: Diagonal stripes for remaining (no-progress) area of task bars */}
           <pattern id="bar-remaining-hatch" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
             {/* Stripe 1: colored band */}
-            <rect x="0" y="0" width="5" height="10" fill="#2E94FF" opacity="0.18" />
+            <rect x="0" y="0" width="5" height="10" fill="#00E5CC" opacity="0.18" />
             {/* Stripe 2: gray band */}
             <rect x="5" y="0" width="5" height="10" fill="#94A3B8" opacity="0.12" />
           </pattern>
@@ -1106,6 +1109,7 @@ export function Timeline({
           tooltipData={activeTooltip}
           theme={theme}
           locale={locale === 'es' ? 'es' : 'en'}
+          workingDaysConfig={workingDaysConfig}
         />
       )}
     </div>

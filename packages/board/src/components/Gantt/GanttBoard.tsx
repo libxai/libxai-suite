@@ -2095,7 +2095,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
 
         {/* v0.17.220: Resize handle - 1px width */}
         <div
-          className="flex-shrink-0 cursor-col-resize hover:bg-blue-500/50 transition-colors h-full"
+          className="flex-shrink-0 cursor-col-resize hover:bg-[#00E5CC]/50 transition-colors h-full"
           style={{
             width: 1,
             backgroundColor: theme.border,
@@ -2146,6 +2146,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
             showDependencies={showDependencies}
             highlightWeekends={highlightWeekends}
             canEditTask={permissions?.canEditTask}
+            workingDaysConfig={config?.workingDaysConfig}
           />
         </div>
       </div>
