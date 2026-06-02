@@ -29,6 +29,12 @@ interface TaskGridProps {
   onToggleColumn: (columnType: ColumnType) => void;
   onColumnResize?: (columnId: ColumnType, newWidth: number) => void; // v0.13.8
   onTaskUpdate?: (taskId: string, updates: Partial<Task>) => void;
+  // Drag-fill: apply a value to many tasks at once (assignees/start/end date).
+  onBulkFill?: (
+    taskIds: string[],
+    column: 'assignees' | 'startDate' | 'endDate',
+    value: any,
+  ) => void;
 
   // Hierarchy handlers
   onTaskIndent?: (taskIds: string[]) => void;
@@ -65,6 +71,7 @@ export function TaskGrid({
   onToggleColumn,
   onColumnResize,
   onTaskUpdate,
+  onBulkFill,
   onTaskIndent,
   onTaskOutdent,
   onTaskMove,
@@ -117,6 +124,15 @@ export function TaskGrid({
   const [isDraggingState, setIsDraggingState] = useState(false);
   // v0.18.15: Auto-scroll during drag
   const autoScrollRAF = useRef<number | null>(null);
+
+  // Drag-fill (Excel-style): drag a value from one cell down across rows to
+  // apply it to all covered tasks at once. Supported for assignees + dates.
+  const [fillDrag, setFillDrag] = useState<{
+    sourceTaskId: string;
+    column: 'assignees' | 'startDate' | 'endDate';
+    sourceIndex: number;   // index in flatTasks of the source row
+    targetIndex: number;   // index of the last row currently covered
+  } | null>(null);
 
   // v0.17.132: Date picker state for column cells
   const [datePickerState, setDatePickerState] = useState<{
@@ -255,6 +271,89 @@ export function TaskGrid({
   // v0.17.221: Calculate content height to match Timeline exactly
   // This ensures proper scroll sync without content cutoff
   const contentHeight = Math.max(flatTasks.length * ROW_HEIGHT, 600 - HEADER_HEIGHT);
+
+  // ── Drag-fill (Excel-style fill handle) ─────────────────────────────────
+  // Reads the source cell's value and applies it to every task between the
+  // source row and the row under the cursor (inclusive). Parent tasks are
+  // skipped (their assignees/dates are read-only / auto-calculated).
+  const getFillValue = (task: Task, column: 'assignees' | 'startDate' | 'endDate') => {
+    if (column === 'assignees') return task.assignees;
+    if (column === 'startDate') return task.startDate;
+    return task.endDate;
+  };
+
+  const handleFillDragStart = (
+    e: React.MouseEvent,
+    sourceTaskId: string,
+    column: 'assignees' | 'startDate' | 'endDate',
+    sourceIndex: number,
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setFillDrag({ sourceTaskId, column, sourceIndex, targetIndex: sourceIndex });
+
+    // Measure the grid body's top edge in viewport coords. The rows are laid
+    // out at fixed ROW_HEIGHT starting from this top, so the row index under
+    // the cursor = floor((cursorY - bodyTop) / ROW_HEIGHT).
+    const bodyEl = (e.currentTarget as HTMLElement).closest('[data-grid-body]') as HTMLElement | null;
+
+    const rowIndexAt = (clientY: number): number => {
+      const top = bodyEl?.getBoundingClientRect().top ?? 0;
+      let idx = Math.floor((clientY - top) / ROW_HEIGHT);
+      idx = Math.max(0, Math.min(flatTasks.length - 1, idx));
+      if (idx < sourceIndex) idx = sourceIndex; // fill downward only
+      return idx;
+    };
+
+    const onMove = (ev: MouseEvent) => {
+      const idx = rowIndexAt(ev.clientY);
+      setFillDrag(prev => (prev ? { ...prev, targetIndex: idx } : prev));
+    };
+
+    const onUp = (ev: MouseEvent) => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      setFillDrag(null);
+
+      // Compute the target index directly from the final cursor position so we
+      // don't depend on async state having flushed.
+      const targetIndex = rowIndexAt(ev.clientY);
+      const src = flatTasks.find(ft => ft.task.id === sourceTaskId)?.task;
+      if (!src) return;
+      const value = getFillValue(src, column);
+      const from = Math.min(sourceIndex, targetIndex);
+      const to = Math.max(sourceIndex, targetIndex);
+
+      // Collect the target task ids (skip the source + parent rows).
+      const targetIds: string[] = [];
+      for (let i = from; i <= to; i++) {
+        if (i === sourceIndex) continue;
+        const target = flatTasks[i]?.task;
+        if (!target) continue;
+        const isParent = !!(target.subtasks && target.subtasks.length > 0);
+        if (isParent) continue; // parents are read-only for assignees/dates
+        targetIds.push(target.id);
+      }
+      if (targetIds.length === 0) return;
+
+      // Single dedicated callback (like onTaskReparent/onTaskMove) — the
+      // consumer applies the value to all targets and persists them. This is
+      // far more reliable than firing onTaskUpdate N times and hoping the
+      // batched state + onTasksChange diff picks them all up.
+      onBulkFill?.(targetIds, column, value);
+    };
+
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
+
+  // True if this row index is inside the current fill-drag range (for preview).
+  const isInFillRange = (index: number) => {
+    if (!fillDrag) return false;
+    const from = Math.min(fillDrag.sourceIndex, fillDrag.targetIndex);
+    const to = Math.max(fillDrag.sourceIndex, fillDrag.targetIndex);
+    return index >= from && index <= to;
+  };
 
   // Calculate duration
   const getDuration = (task: Task) => {
@@ -852,8 +951,8 @@ export function TaskGrid({
                               className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] transition-colors"
                               style={{
                                 color: !d.isCurrentMonth ? theme.textTertiary : isSelected ? '#FFF' : theme.textPrimary,
-                                backgroundColor: isSelected ? '#2E94FF' : 'transparent',
-                                boxShadow: isToday && !isSelected ? 'inset 0 0 0 1px #2E94FF' : 'none',
+                                backgroundColor: isSelected ? '#00E5CC' : 'transparent',
+                                boxShadow: isToday && !isSelected ? 'inset 0 0 0 1px #00E5CC' : 'none',
                               }}
                               onClick={() => {
                                 onTaskUpdate?.(task.id, { [dateField]: d.date });
@@ -899,8 +998,15 @@ export function TaskGrid({
             </div>
           );
         }
+        // Match by id first (robust when two people share a name / initials,
+        // e.g. a real user + a virtual profile). Fall back to name/initials only
+        // for legacy assignees that were stored without an id.
         const taskAssignedUsers: User[] = availableUsers.filter(user =>
-          task.assignees?.some(a => a.name === user.name || a.initials === user.initials)
+          task.assignees?.some(a =>
+            (a as any).id
+              ? (a as any).id === user.id
+              : (a.name === user.name || a.initials === user.initials)
+          )
         );
 
         return (
@@ -918,8 +1024,11 @@ export function TaskGrid({
                   initials: u.initials,
                   color: u.color
                 }));
+                // Pass an empty array (not undefined) when cleared, so consumers
+                // that only sync assignees "when defined" still process the
+                // removal and delete the rows. undefined = "untouched", [] = "none".
                 onTaskUpdate?.(task.id, {
-                  assignees: newAssignees.length > 0 ? newAssignees : undefined
+                  assignees: newAssignees,
                 });
               }}
             />
@@ -1396,9 +1505,10 @@ export function TaskGrid({
 
       {/* Task Rows Container - v0.17.222: Now uses real scroll instead of CSS transform */}
       {/* minHeight ensures scroll area matches Timeline for proper sync */}
-      <div className="gantt-taskgrid-content" style={{ minHeight: contentHeight }}>
+      <div className="gantt-taskgrid-content" data-grid-body style={{ minHeight: contentHeight }}>
       {flatTasks.map(({ task, level }, index) => {
         const isSelected = isTaskSelected(task.id);
+        const inFillRange = isInFillRange(index);
 
         // v0.17.146: Calculate drop indicator styles - ClickUp style with prominent line
         const isDropTarget = dropTargetTaskId === task.id;
@@ -1420,11 +1530,15 @@ export function TaskGrid({
               position: 'relative', // v0.17.146: For drop indicator positioning
               height: `${ROW_HEIGHT}px`,
               borderLeft: isSelected ? `3px solid ${theme.accent}` : `3px solid transparent`,
-              backgroundColor: isSelected
+              backgroundColor: inFillRange
+                ? `${theme.accent}22`
+                : isSelected
                 ? theme.accentLight
                 : showDropChild
                   ? `${theme.accent}15`
                   : (index % 2 === 0 ? theme.bgPrimary : theme.bgGrid),
+              // Drag-fill preview: dashed outline on covered rows
+              boxShadow: inFillRange ? `inset 0 0 0 1px ${theme.accent}55` : undefined,
               // v5.1.0: CPM opacity — non-critical tasks fade
               opacity: showCriticalPath ? (task.isCriticalPath ? 1.0 : 0.4) : undefined,
               transition: 'opacity 300ms ease',
@@ -1500,6 +1614,14 @@ export function TaskGrid({
             const isLastColumn = colIndex === visibleColumns.length - 1;
             const isNameColumn = column.id === 'name';
 
+            // Drag-fill is available on assignees + date cells for non-parent tasks.
+            const isParentRow = !!(task.subtasks && task.subtasks.length > 0);
+            const fillColumn = (column.id === 'assignees' || column.id === 'startDate' || column.id === 'endDate')
+              ? (column.id as 'assignees' | 'startDate' | 'endDate')
+              : null;
+            const canFill = !!fillColumn && !isParentRow;
+            const showFillHandle = canFill && hoveredTaskId === task.id && !fillDrag;
+
             return (
             <div
               key={`${task.id}-${column.id}`}
@@ -1507,6 +1629,7 @@ export function TaskGrid({
                 isNameColumn ? 'justify-start' : 'justify-center'
               }`}
               style={{
+                position: 'relative', // for the fill handle
                 // v0.17.129: All columns use fixed width for consistent resize behavior
                 width: `${column.width}px`,
                 minWidth: `${column.minWidth ?? (isNameColumn ? 200 : 60)}px`,
@@ -1517,10 +1640,28 @@ export function TaskGrid({
                 borderRight: !isLastColumn ? `1px solid ${hoveredTaskId === task.id ? theme.border : theme.borderLight}` : 'none',
                 height: '100%',
                 boxSizing: 'border-box',
-                overflow: 'hidden',
+                overflow: 'visible',
               }}
             >
               {renderCellContent(column, task, isNameColumn ? level : 0)}
+              {showFillHandle && fillColumn && (
+                <div
+                  title="Arrastrá hacia abajo para aplicar a varias tareas"
+                  onMouseDown={(e) => handleFillDragStart(e, task.id, fillColumn, index)}
+                  style={{
+                    position: 'absolute',
+                    right: 2,
+                    bottom: 2,
+                    width: 8,
+                    height: 8,
+                    borderRadius: 2,
+                    background: theme.accent,
+                    border: `1px solid ${theme.bgPrimary}`,
+                    cursor: 'crosshair',
+                    zIndex: 5,
+                  }}
+                />
+              )}
             </div>
           );
           })}

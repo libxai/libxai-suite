@@ -17,13 +17,13 @@ export const themes: Record<string, GanttTheme> = {
     textSecondary: 'rgba(255, 255, 255, 0.60)',
     textTertiary: 'rgba(255, 255, 255, 0.35)',
 
-    // Accent & Interactive — Chronos Blue (#2E94FF)
-    accent: '#2E94FF',
+    // Accent & Interactive — Chronos Blue (#00E5CC)
+    accent: '#00E5CC',
     accentHover: '#5AADFF',
-    accentLight: 'rgba(46, 148, 255, 0.12)',
+    accentLight: 'rgba(0, 229, 204, 0.12)',
 
     // Task Elements — Chronos blue execution bars
-    taskBarPrimary: '#2E94FF',
+    taskBarPrimary: '#00E5CC',
     taskBarProgress: '#5AADFF',
     taskBarHandle: '#FFFFFF',
 
@@ -41,12 +41,12 @@ export const themes: Record<string, GanttTheme> = {
 
     // Status Colors
     statusTodo: '#666666',
-    statusInProgress: '#2E94FF',
+    statusInProgress: '#00E5CC',
     statusCompleted: '#10B981',
 
     // Hover & Focus States
     hoverBg: 'rgba(255, 255, 255, 0.04)',
-    focusRing: '#2E94FF',
+    focusRing: '#00E5CC',
 
     // Chronos V2 additions
     dotGrid: 'rgba(255, 255, 255, 0.05)',
@@ -54,7 +54,7 @@ export const themes: Record<string, GanttTheme> = {
     glassToolbar: 'rgba(0, 0, 0, 0.4)',
     forecastHud: 'rgba(15, 15, 15, 0.9)',
     neonRedGlow: '0 0 8px rgba(239, 68, 68, 0.25)',
-    executionBarBg: 'rgba(46, 148, 255, 0.12)',
+    executionBarBg: 'rgba(0, 229, 204, 0.12)',
   },
   
   light: {
@@ -63,7 +63,7 @@ export const themes: Record<string, GanttTheme> = {
     bgPrimary: '#FFFFFF',
     bgSecondary: '#F8FAFC',  // Slate 50 - subtle contrast
     bgGrid: '#F1F5F9',  // Slate 100 - more visible zebra stripes
-    bgWeekend: 'rgba(37, 99, 235, 0.03)',
+    bgWeekend: 'rgba(0, 196, 174, 0.03)',
 
     // Borders - v0.17.71: More visible separation
     border: '#CBD5E1',  // Slate 300 - stronger column dividers
@@ -75,19 +75,19 @@ export const themes: Record<string, GanttTheme> = {
     textTertiary: '#64748B',  // Slate 500 - for metadata
 
     // Accent & Interactive
-    accent: '#2E94FF',
+    accent: '#00E5CC',
     accentHover: '#1D4ED8',
-    accentLight: 'rgba(37, 99, 235, 0.08)',
+    accentLight: 'rgba(0, 196, 174, 0.08)',
 
     // Task Elements
-    taskBarPrimary: '#2E94FF',
-    taskBarProgress: '#1E40AF',
+    taskBarPrimary: '#00E5CC',
+    taskBarProgress: '#00A893',
     taskBarHandle: '#FFFFFF',
 
     // Dependencies & Critical Path
     // v0.17.361: Solid colors for better visibility
     dependency: '#6B7280',
-    dependencyHover: '#2E94FF',  // v0.17.450: Bright blue hover for better visibility
+    dependencyHover: '#00E5CC',  // v0.17.450: Bright blue hover for better visibility
     criticalPath: '#DC2626',
     criticalPathLight: 'rgba(220, 38, 38, 0.1)',
 
@@ -99,12 +99,12 @@ export const themes: Record<string, GanttTheme> = {
 
     // Status Colors
     statusTodo: '#64748B',  // Slate 500
-    statusInProgress: '#2E94FF',
+    statusInProgress: '#00E5CC',
     statusCompleted: '#059669',
 
     // Hover & Focus States
     hoverBg: 'rgba(0, 0, 0, 0.04)',
-    focusRing: '#2E94FF',
+    focusRing: '#00E5CC',
 
     // Chronos V2 additions (light-mode equivalents)
     dotGrid: 'rgba(0, 0, 0, 0.04)',
@@ -112,7 +112,7 @@ export const themes: Record<string, GanttTheme> = {
     glassToolbar: 'rgba(255, 255, 255, 0.85)',
     forecastHud: 'rgba(248, 250, 252, 0.95)',
     neonRedGlow: '0 0 10px rgba(220, 38, 38, 0.3)',
-    executionBarBg: 'rgba(37, 99, 235, 0.28)',
+    executionBarBg: 'rgba(0, 196, 174, 0.28)',
   },
 
   neutral: {

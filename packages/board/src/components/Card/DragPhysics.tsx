@@ -298,7 +298,7 @@ export function DragPhysics({
           {snapPoints.map((point, index) => (
             <div
               key={index}
-              className="absolute rounded-full border-2 border-dashed border-blue-400 pointer-events-none"
+              className="absolute rounded-full border-2 border-dashed border-[#00E5CC] pointer-events-none"
               style={{
                 left: point.x - (point.radius ?? snapRadius),
                 top: point.y - (point.radius ?? snapRadius),

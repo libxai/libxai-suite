@@ -314,7 +314,7 @@ export function createTask(
     status: 'todo',
     startDate: today,
     endDate: weekFromNow,
-    color: '#2E94FF', // v1.4.29: Default Chronos Blue
+    color: '#00E5CC', // v1.4.29: Default Chronos Blue
   };
 
   const insertTask = (tasks: Task[]): boolean => {
@@ -420,7 +420,7 @@ export function createSubtask(
     status: 'todo',
     startDate: new Date(startDate), // Clone to avoid reference issues
     endDate: new Date(endDate),     // Clone to avoid reference issues
-    color: parentTask?.color || '#2E94FF', // v0.16.7: Inherit parent color (default: electric blue)
+    color: parentTask?.color || '#00E5CC', // v0.16.7: Inherit parent color (default: electric blue)
     position: subtaskCount, // Ensure position is at the end
     parentId: parentTaskId, // Link to parent for proper hierarchy
   };

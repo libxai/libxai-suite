@@ -354,7 +354,7 @@ export function CommandPalette({
                                 : card.priority === 'HIGH'
                                 ? '#F59E0B'
                                 : card.priority === 'MEDIUM'
-                                ? '#2E94FF'
+                                ? '#00E5CC'
                                 : '#6B7280',
                           }}
                         />
@@ -467,7 +467,7 @@ export function CommandPalette({
                                   : card.priority === 'HIGH'
                                   ? '#F59E0B'
                                   : card.priority === 'MEDIUM'
-                                  ? '#2E94FF'
+                                  ? '#00E5CC'
                                   : '#6B7280',
                             }}
                           />

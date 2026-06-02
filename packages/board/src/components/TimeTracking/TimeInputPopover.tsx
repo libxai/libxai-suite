@@ -123,7 +123,7 @@ export function TimeInputPopover({
         <div className="flex items-center gap-1.5">
           <Clock
             className="w-3 h-3"
-            style={{ color: isDark ? '#007FFF' : '#2E94FF' }}
+            style={{ color: isDark ? '#007FFF' : '#00E5CC' }}
           />
           <span
             className="font-mono uppercase tracking-wider"
@@ -209,8 +209,8 @@ export function TimeInputPopover({
             fontWeight: 600,
             padding: '6px 0',
             borderRadius: '4px',
-            border: isDark ? '1px solid rgba(0,127,255,0.3)' : '1px solid #2E94FF',
-            background: isDark ? 'rgba(0,127,255,0.15)' : '#2E94FF',
+            border: isDark ? '1px solid rgba(0, 229, 204,0.3)' : '1px solid #00E5CC',
+            background: isDark ? 'rgba(0, 229, 204,0.15)' : '#00E5CC',
             color: isDark ? '#007FFF' : '#FFFFFF',
           }}
         >

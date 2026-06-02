@@ -258,17 +258,17 @@ export function CardRelationshipsGraph({
 
       switch (config.colorScheme) {
         case 'status':
-          return node.card.columnId === 'done' ? '#10b981' : '#3b82f6'
+          return node.card.columnId === 'done' ? '#10b981' : '#00E5CC'
         case 'priority':
           const priority = node.card.priority
           if (priority === 'URGENT') return '#ef4444' // urgent
           if (priority === 'HIGH') return '#f59e0b' // high
-          if (priority === 'MEDIUM') return '#3b82f6' // medium
+          if (priority === 'MEDIUM') return '#00E5CC' // medium
           return '#6b7280' // low or none
         case 'assignee':
           return node.card.assigneeId ? '#8b5cf6' : '#6b7280'
         default:
-          return '#3b82f6'
+          return '#00E5CC'
       }
     },
     [config.colorScheme]

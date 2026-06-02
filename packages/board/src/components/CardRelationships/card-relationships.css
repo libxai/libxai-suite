@@ -79,7 +79,7 @@
 .relationships-graph-stat-value {
   font-size: 1.5rem;
   font-weight: 700;
-  color: var(--asakaa-accent-blue, #3b82f6);
+  color: var(--asakaa-accent-blue, #00E5CC);
 }
 
 .relationships-graph-stat-critical .relationships-graph-stat-value {
@@ -122,8 +122,8 @@
 }
 
 .relationships-graph-zoom-btn:hover {
-  background: var(--asakaa-accent-blue, #3b82f6);
-  border-color: var(--asakaa-accent-blue, #3b82f6);
+  background: var(--asakaa-accent-blue, #00E5CC);
+  border-color: var(--asakaa-accent-blue, #00E5CC);
   transform: translateY(-1px);
 }
 
@@ -183,7 +183,7 @@
 .relationships-graph-canvas {
   flex: 1;
   background:
-    radial-gradient(circle at 20% 50%, rgba(59, 130, 246, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 20% 50%, rgba(0, 229, 204, 0.05) 0%, transparent 50%),
     radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.05) 0%, transparent 50%),
     var(--asakaa-bg-primary, #0a0a0a);
   cursor: grab;
@@ -357,7 +357,7 @@
 .relationships-graph-tooltip-meta-value {
   font-size: 0.875rem;
   font-weight: 600;
-  color: var(--asakaa-accent-blue, #3b82f6);
+  color: var(--asakaa-accent-blue, #00E5CC);
 }
 
 /* =============================================================================
@@ -428,8 +428,8 @@
 
 .relationships-graph-minimap-viewport {
   position: absolute;
-  border: 2px solid var(--asakaa-accent-blue, #3b82f6);
-  background: rgba(59, 130, 246, 0.1);
+  border: 2px solid var(--asakaa-accent-blue, #00E5CC);
+  background: rgba(0, 229, 204, 0.1);
   cursor: move;
 }
 
@@ -482,13 +482,13 @@
 }
 
 .relationships-graph-filters-select:hover {
-  border-color: var(--asakaa-accent-blue, #3b82f6);
+  border-color: var(--asakaa-accent-blue, #00E5CC);
 }
 
 .relationships-graph-filters-select:focus {
   outline: none;
-  border-color: var(--asakaa-accent-blue, #3b82f6);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: var(--asakaa-accent-blue, #00E5CC);
+  box-shadow: 0 0 0 3px rgba(0, 229, 204, 0.1);
 }
 
 /* =============================================================================
@@ -543,8 +543,8 @@
 .relationships-graph-loading-spinner {
   width: 48px;
   height: 48px;
-  border: 4px solid rgba(59, 130, 246, 0.1);
-  border-top-color: var(--asakaa-accent-blue, #3b82f6);
+  border: 4px solid rgba(0, 229, 204, 0.1);
+  border-top-color: var(--asakaa-accent-blue, #00E5CC);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }

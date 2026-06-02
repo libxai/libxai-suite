@@ -165,54 +165,54 @@ export function GanttAIAssistant({
   // Theme-aware color tokens
   const isDark = theme.bgPrimary === '#050505' || theme.bgPrimary === '#0a0a0a' || theme.textPrimary === '#FFFFFF';
   const fabBg = isDark ? 'rgba(10, 10, 10, 0.75)' : 'rgba(255, 255, 255, 0.85)';
-  const fabBorder = isDark ? 'rgba(46, 148, 255, 0.15)' : 'rgba(46, 148, 255, 0.25)';
+  const fabBorder = isDark ? 'rgba(0, 229, 204, 0.15)' : 'rgba(0, 229, 204, 0.25)';
   const fabShadow = isDark
-    ? '0 0 20px rgba(46, 148, 255, 0.08), 0 4px 12px rgba(0, 0, 0, 0.4), inset 0 0 12px rgba(46, 148, 255, 0.04)'
-    : '0 0 20px rgba(46, 148, 255, 0.06), 0 4px 12px rgba(0, 0, 0, 0.08)';
-  const ringBorderA = isDark ? 'rgba(46, 148, 255, 0.2)' : 'rgba(46, 148, 255, 0.15)';
-  const ringBorderB = isDark ? 'rgba(46, 148, 255, 0.08)' : 'rgba(46, 148, 255, 0.06)';
+    ? '0 0 20px rgba(0, 229, 204, 0.08), 0 4px 12px rgba(0, 0, 0, 0.4), inset 0 0 12px rgba(0, 229, 204, 0.04)'
+    : '0 0 20px rgba(0, 229, 204, 0.06), 0 4px 12px rgba(0, 0, 0, 0.08)';
+  const ringBorderA = isDark ? 'rgba(0, 229, 204, 0.2)' : 'rgba(0, 229, 204, 0.15)';
+  const ringBorderB = isDark ? 'rgba(0, 229, 204, 0.08)' : 'rgba(0, 229, 204, 0.06)';
   const tooltipBg = isDark ? 'rgba(10, 10, 10, 0.85)' : 'rgba(255, 255, 255, 0.95)';
-  const tooltipBorder = isDark ? 'rgba(46, 148, 255, 0.12)' : 'rgba(46, 148, 255, 0.2)';
-  const tooltipColor = isDark ? 'rgba(46, 148, 255, 0.9)' : '#2E94FF';
+  const tooltipBorder = isDark ? 'rgba(0, 229, 204, 0.12)' : 'rgba(0, 229, 204, 0.2)';
+  const tooltipColor = isDark ? 'rgba(0, 229, 204, 0.9)' : '#00E5CC';
   const panelBg = isDark ? 'rgba(10, 10, 10, 0.92)' : 'rgba(255, 255, 255, 0.95)';
-  const panelBorder = isDark ? 'rgba(46, 148, 255, 0.1)' : 'rgba(46, 148, 255, 0.15)';
+  const panelBorder = isDark ? 'rgba(0, 229, 204, 0.1)' : 'rgba(0, 229, 204, 0.15)';
   const panelShadow = isDark
-    ? '0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(46, 148, 255, 0.04), inset 0 1px 0 rgba(255,255,255,0.03)'
-    : '0 20px 60px rgba(0, 0, 0, 0.1), 0 0 20px rgba(46, 148, 255, 0.04)';
-  const headerAccentBg = isDark ? 'rgba(46, 148, 255, 0.04)' : 'rgba(46, 148, 255, 0.03)';
-  const headerAccentBorder = isDark ? 'rgba(46, 148, 255, 0.1)' : 'rgba(46, 148, 255, 0.08)';
-  const iconCircleBg = isDark ? 'rgba(46, 148, 255, 0.08)' : 'rgba(46, 148, 255, 0.06)';
-  const iconCircleBorder = isDark ? 'rgba(46, 148, 255, 0.2)' : 'rgba(46, 148, 255, 0.15)';
+    ? '0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 229, 204, 0.04), inset 0 1px 0 rgba(255,255,255,0.03)'
+    : '0 20px 60px rgba(0, 0, 0, 0.1), 0 0 20px rgba(0, 229, 204, 0.04)';
+  const headerAccentBg = isDark ? 'rgba(0, 229, 204, 0.04)' : 'rgba(0, 229, 204, 0.03)';
+  const headerAccentBorder = isDark ? 'rgba(0, 229, 204, 0.1)' : 'rgba(0, 229, 204, 0.08)';
+  const iconCircleBg = isDark ? 'rgba(0, 229, 204, 0.08)' : 'rgba(0, 229, 204, 0.06)';
+  const iconCircleBorder = isDark ? 'rgba(0, 229, 204, 0.2)' : 'rgba(0, 229, 204, 0.15)';
   const titleColor = isDark ? 'rgba(255, 255, 255, 0.85)' : 'rgba(0, 0, 0, 0.85)';
   const btnColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.35)';
   const btnHoverColor = isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)';
   const btnHoverBg = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)';
   const suggHintColor = isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.4)';
-  const suggBg = isDark ? 'rgba(46, 148, 255, 0.04)' : 'rgba(46, 148, 255, 0.04)';
-  const suggBorder = isDark ? 'rgba(46, 148, 255, 0.08)' : 'rgba(46, 148, 255, 0.12)';
+  const suggBg = isDark ? 'rgba(0, 229, 204, 0.04)' : 'rgba(0, 229, 204, 0.04)';
+  const suggBorder = isDark ? 'rgba(0, 229, 204, 0.08)' : 'rgba(0, 229, 204, 0.12)';
   const suggColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
-  const suggHoverBorder = isDark ? 'rgba(46, 148, 255, 0.25)' : 'rgba(46, 148, 255, 0.3)';
-  const userMsgBg = isDark ? 'rgba(46, 148, 255, 0.12)' : 'rgba(46, 148, 255, 0.08)';
-  const userMsgBorder = isDark ? 'rgba(46, 148, 255, 0.15)' : 'rgba(46, 148, 255, 0.12)';
+  const suggHoverBorder = isDark ? 'rgba(0, 229, 204, 0.25)' : 'rgba(0, 229, 204, 0.3)';
+  const userMsgBg = isDark ? 'rgba(0, 229, 204, 0.12)' : 'rgba(0, 229, 204, 0.08)';
+  const userMsgBorder = isDark ? 'rgba(0, 229, 204, 0.15)' : 'rgba(0, 229, 204, 0.12)';
   const assistMsgBg = isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.03)';
   const assistMsgBorder = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)';
   const assistMsgColor = isDark ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.8)';
-  const inputAreaBorder = isDark ? 'rgba(46, 148, 255, 0.06)' : 'rgba(46, 148, 255, 0.06)';
+  const inputAreaBorder = isDark ? 'rgba(0, 229, 204, 0.06)' : 'rgba(0, 229, 204, 0.06)';
   const inputBoxBg = isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)';
-  const inputBoxBorder = isDark ? 'rgba(46, 148, 255, 0.08)' : 'rgba(46, 148, 255, 0.1)';
+  const inputBoxBorder = isDark ? 'rgba(0, 229, 204, 0.08)' : 'rgba(0, 229, 204, 0.1)';
   const inputColor = isDark ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.85)';
-  const submitBg = isDark ? 'rgba(46, 148, 255, 0.12)' : 'rgba(46, 148, 255, 0.08)';
-  const submitBorder = isDark ? 'rgba(46, 148, 255, 0.2)' : 'rgba(46, 148, 255, 0.15)';
+  const submitBg = isDark ? 'rgba(0, 229, 204, 0.12)' : 'rgba(0, 229, 204, 0.08)';
+  const submitBorder = isDark ? 'rgba(0, 229, 204, 0.2)' : 'rgba(0, 229, 204, 0.15)';
   const submitEmptyColor = isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)';
   const hintColor = isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.25)';
   const mentionDropBg = isDark ? 'rgba(15, 15, 15, 0.95)' : 'rgba(255, 255, 255, 0.98)';
-  const mentionDropBorder = isDark ? 'rgba(46, 148, 255, 0.1)' : 'rgba(46, 148, 255, 0.15)';
+  const mentionDropBorder = isDark ? 'rgba(0, 229, 204, 0.1)' : 'rgba(0, 229, 204, 0.15)';
   const mentionDropShadow = isDark ? '0 -4px 20px rgba(0, 0, 0, 0.4)' : '0 -4px 20px rgba(0, 0, 0, 0.08)';
-  const mentionActiveBg = isDark ? 'rgba(46, 148, 255, 0.08)' : 'rgba(46, 148, 255, 0.06)';
+  const mentionActiveBg = isDark ? 'rgba(0, 229, 204, 0.08)' : 'rgba(0, 229, 204, 0.06)';
   const mentionTextColor = isDark ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.85)';
   const mentionEmailColor = isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.4)';
-  const mentionAvatarBg = isDark ? 'rgba(46, 148, 255, 0.12)' : 'rgba(46, 148, 255, 0.08)';
-  const mentionAvatarBorder = isDark ? 'rgba(46, 148, 255, 0.2)' : 'rgba(46, 148, 255, 0.15)';
+  const mentionAvatarBg = isDark ? 'rgba(0, 229, 204, 0.12)' : 'rgba(0, 229, 204, 0.08)';
+  const mentionAvatarBorder = isDark ? 'rgba(0, 229, 204, 0.2)' : 'rgba(0, 229, 204, 0.15)';
 
   // Get storage key for localStorage
   const storageKey = persistHistory?.storageKey || 'gantt-ai-history';
@@ -568,7 +568,7 @@ export function GanttAIAssistant({
               backdropFilter: 'blur(12px)',
               WebkitBackdropFilter: 'blur(12px)',
               border: `1px solid ${fabBorder}`,
-              color: '#2E94FF',
+              color: '#00E5CC',
               cursor: 'pointer',
               boxShadow: fabShadow,
               overflow: 'visible',
@@ -670,7 +670,7 @@ export function GanttAIAssistant({
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     background: iconCircleBg,
                     border: `1px solid ${iconCircleBorder}`,
-                    color: '#2E94FF',
+                    color: '#00E5CC',
                   }}
                 >
                   <AIIcon size={14} />
@@ -742,7 +742,7 @@ export function GanttAIAssistant({
                                 color: suggColor,
                                 border: `1px solid ${suggBorder}`,
                               }}
-                              onMouseEnter={e => { e.currentTarget.style.borderColor = suggHoverBorder; e.currentTarget.style.color = '#2E94FF'; }}
+                              onMouseEnter={e => { e.currentTarget.style.borderColor = suggHoverBorder; e.currentTarget.style.color = '#00E5CC'; }}
                               onMouseLeave={e => { e.currentTarget.style.borderColor = suggBorder; e.currentTarget.style.color = suggColor; }}
                             >
                               {suggestion.length > 30
@@ -776,7 +776,7 @@ export function GanttAIAssistant({
                                 : assistMsgBg,
                             color:
                               message.role === 'user'
-                                ? '#2E94FF'
+                                ? '#00E5CC'
                                 : assistMsgColor,
                             border: message.role === 'user'
                               ? `1px solid ${userMsgBorder}`
@@ -865,7 +865,7 @@ export function GanttAIAssistant({
                                 style={{
                                   background: mentionAvatarBg,
                                   border: `1px solid ${mentionAvatarBorder}`,
-                                  color: '#2E94FF',
+                                  color: '#00E5CC',
                                 }}
                               >
                                 {user.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
@@ -912,7 +912,7 @@ export function GanttAIAssistant({
                           background: inputValue.trim()
                             ? submitBg
                             : 'transparent',
-                          color: inputValue.trim() ? '#2E94FF' : submitEmptyColor,
+                          color: inputValue.trim() ? '#00E5CC' : submitEmptyColor,
                           border: inputValue.trim() ? `1px solid ${submitBorder}` : '1px solid transparent',
                         }}
                       >

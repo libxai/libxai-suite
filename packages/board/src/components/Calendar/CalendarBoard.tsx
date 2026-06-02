@@ -206,7 +206,7 @@ function MultiDayBar({
                 : "bg-red-50 border border-red-200 text-red-700 hover:border-red-300")
             : (isDark
                 ? "text-white/90"
-                : "bg-gray-50 border border-gray-200 text-gray-700 hover:border-blue-300"),
+                : "bg-gray-50 border border-gray-200 text-gray-700 hover:border-[#00E5CC]"),
       )}
       style={{
         top: `${lane * BAR_HEIGHT}px`,
@@ -239,7 +239,7 @@ function MultiDayBar({
         ...(isSelected ? {
           boxShadow: isDark
             ? '0 0 0 1.5px rgba(0, 229, 255, 0.7), 0 0 12px rgba(0, 229, 255, 0.3)'
-            : '0 0 0 1.5px rgba(59, 130, 246, 0.7), 0 0 12px rgba(59, 130, 246, 0.2)',
+            : '0 0 0 1.5px rgba(0, 229, 204, 0.7), 0 0 12px rgba(0, 229, 204, 0.2)',
           zIndex: 20,
         } : {}),
       }}
@@ -704,9 +704,9 @@ export function CalendarBoard({
         <div className="text-center max-w-md">
           <div className={cn(
             "w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center",
-            isDark ? "bg-[#007FFF]/10 border border-[#007FFF]/20" : "bg-blue-500/10"
+            isDark ? "bg-[#007FFF]/10 border border-[#007FFF]/20" : "bg-[#00E5CC]/10"
           )}>
-            <Calendar className={cn("w-8 h-8", isDark ? "text-[#007FFF]" : "text-blue-500")} />
+            <Calendar className={cn("w-8 h-8", isDark ? "text-[#007FFF]" : "text-[#00E5CC]")} />
           </div>
           <h3 className={cn("text-lg font-semibold mb-2", isDark ? "text-white/90" : "text-gray-900")}>
             {t.labels.noEvents}
@@ -745,7 +745,7 @@ export function CalendarBoard({
             "flex items-center gap-1.5 pl-2.5 pr-2 py-1 rounded-md text-xs transition-all",
             isDark ? "bg-[#111] border border-white/10" : "bg-gray-100 border border-gray-200"
           )}>
-            <Calendar className={cn("w-3.5 h-3.5", isDark ? "text-[#007FFF]" : "text-blue-500")} />
+            <Calendar className={cn("w-3.5 h-3.5", isDark ? "text-[#007FFF]" : "text-[#00E5CC]")} />
             <span className={cn("font-medium", isDark ? "text-white" : "text-gray-900")}>
               {locale === 'es' ? 'Calendario' : 'Calendar'}
             </span>
@@ -859,14 +859,14 @@ export function CalendarBoard({
                         : "bg-gray-50 opacity-50"),
                   // Today highlight
                   day.isToday && isDark && "ring-1 ring-[#007FFF]/40 ring-inset bg-[#007FFF]/[0.03]",
-                  day.isToday && !isDark && "ring-2 ring-blue-500 ring-inset"
+                  day.isToday && !isDark && "ring-2 ring-[#00E5CC] ring-inset"
                 )}
               >
                 {/* Day number — top left, mono font */}
                 <span className={cn(
                   "text-xs font-mono select-none relative z-20",
                   day.isToday
-                    ? (isDark ? "text-[#007FFF] font-bold" : "text-blue-600 font-bold")
+                    ? (isDark ? "text-[#007FFF] font-bold" : "text-[#00C4AE] font-bold")
                     : day.isCurrentMonth
                       ? (isDark ? "text-white/60" : "text-gray-900")
                       : (isDark ? "text-white/20" : "text-gray-400")
@@ -998,7 +998,7 @@ export function CalendarBoard({
                                   : "bg-emerald-500/10 text-emerald-600")
                               : (isDark
                                   ? "text-white/90"
-                                  : "bg-gray-50 border border-gray-200 text-gray-700 hover:border-blue-300")
+                                  : "bg-gray-50 border border-gray-200 text-gray-700 hover:border-[#00E5CC]")
                           )}
                           style={isDark ? (
                             event.task.progress === 100 || event.task.status === 'completed'
@@ -1097,7 +1097,7 @@ export function CalendarBoard({
                                 : "opacity-0 group-hover:opacity-100",
                               isDark
                                 ? "hover:bg-[#007FFF] text-white/30 hover:text-white"
-                                : "hover:bg-blue-500 text-gray-400 hover:text-white"
+                                : "hover:bg-[#00E5CC] text-gray-400 hover:text-white"
                             )}
                           >
                             <Plus className={cn("w-3.5 h-3.5 transition-transform", quickCreateCell === index && "rotate-45")} />
@@ -1396,7 +1396,7 @@ export function CalendarBoard({
                         ? '#EF4444'
                         : systemStatus.budgetUtil > 70
                           ? '#F59E0B'
-                          : 'linear-gradient(to right, #2E94FF, #8B5CF6)',
+                          : 'linear-gradient(to right, #00E5CC, #8B5CF6)',
                     }}
                   />
                 </div>

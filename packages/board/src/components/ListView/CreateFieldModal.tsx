@@ -136,7 +136,7 @@ export function CreateFieldModal({
               onChange={(e) => setName(e.target.value)}
               placeholder={t.fieldNamePlaceholder}
               className={cn(
-                'w-full px-4 py-2.5 rounded-lg border outline-none focus:ring-2 focus:ring-[#007BFF]/30',
+                'w-full px-4 py-2.5 rounded-lg border outline-none focus:ring-2 focus:ring-[#00E5CC]/30',
                 isDark
                   ? 'bg-white/[0.03] border-[#222] text-white placeholder:text-white/30'
                   : 'bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400'
@@ -158,19 +158,19 @@ export function CreateFieldModal({
                   className={cn(
                     'flex flex-col items-center gap-1 p-3 rounded-lg border transition-colors',
                     type === ft.type
-                      ? 'border-[#007BFF] bg-[#007BFF]/10'
+                      ? 'border-[#00E5CC] bg-[#00E5CC]/10'
                       : isDark
                         ? 'border-[#222] hover:border-white/20'
                         : 'border-gray-200 hover:border-gray-300'
                   )}
                 >
-                  <span className={type === ft.type ? 'text-[#007BFF]' : isDark ? 'text-white/60' : 'text-gray-400'}>
+                  <span className={type === ft.type ? 'text-[#00E5CC]' : isDark ? 'text-white/60' : 'text-gray-400'}>
                     {ft.icon}
                   </span>
                   <span className={cn(
                     'text-xs',
                     type === ft.type
-                      ? 'text-[#007BFF]'
+                      ? 'text-[#00E5CC]'
                       : isDark ? 'text-white/60' : 'text-gray-500'
                   )}>
                     {t.types[ft.type]}
@@ -195,7 +195,7 @@ export function CreateFieldModal({
                       onChange={(e) => updateOption(index, e.target.value)}
                       placeholder={`${t.option} ${index + 1}`}
                       className={cn(
-                        'flex-1 px-3 py-2 rounded-lg border outline-none focus:ring-2 focus:ring-[#007BFF]/30',
+                        'flex-1 px-3 py-2 rounded-lg border outline-none focus:ring-2 focus:ring-[#00E5CC]/30',
                         isDark
                           ? 'bg-white/[0.03] border-[#222] text-white placeholder:text-white/30'
                           : 'bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400'
@@ -219,8 +219,8 @@ export function CreateFieldModal({
                   className={cn(
                     'flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors',
                     isDark
-                      ? 'text-[#007BFF] hover:bg-white/[0.05]'
-                      : 'text-blue-600 hover:bg-gray-100'
+                      ? 'text-[#00E5CC] hover:bg-white/[0.05]'
+                      : 'text-[#00C4AE] hover:bg-gray-100'
                   )}
                 >
                   <Plus className="w-4 h-4" />
@@ -252,7 +252,7 @@ export function CreateFieldModal({
             disabled={!name.trim()}
             className={cn(
               'px-4 py-2 text-sm font-medium rounded-lg transition-colors',
-              'bg-[#007BFF] text-white hover:bg-[#005FCC]',
+              'bg-[#00E5CC] text-white hover:bg-[#005FCC]',
               !name.trim() && 'opacity-50 cursor-not-allowed'
             )}
           >

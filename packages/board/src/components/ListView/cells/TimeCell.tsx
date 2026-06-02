@@ -243,8 +243,8 @@ export function TimeCell({
         className={cn(
           'w-full px-2 py-1 text-sm rounded border outline-none',
           isDark
-            ? 'bg-white/[0.03] border-[#007BFF] text-white placeholder:text-white/30'
-            : 'bg-white border-[#007BFF] text-gray-900 placeholder:text-gray-400'
+            ? 'bg-white/[0.03] border-[#00E5CC] text-white placeholder:text-white/30'
+            : 'bg-white border-[#00E5CC] text-gray-900 placeholder:text-gray-400'
         )}
       />
     );

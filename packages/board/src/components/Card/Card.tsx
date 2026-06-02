@@ -305,7 +305,7 @@ export const Card = memo<CardProps>(
           <div className="mt-3 pt-2 border-t border-white/5">
             <div className="flex items-center justify-between mb-1">
               <span className="text-[10px] text-[#6B7280]">Progreso</span>
-              <span className="text-[10px] font-medium" style={{ color: '#2E94FF' }}>
+              <span className="text-[10px] font-medium" style={{ color: '#00E5CC' }}>
                 {Math.round(card.progress)}%
               </span>
             </div>
@@ -314,7 +314,7 @@ export const Card = memo<CardProps>(
                 className="h-full rounded-full transition-all duration-300"
                 style={{
                   width: `${Math.min(100, Math.max(0, card.progress))}%`,
-                  backgroundColor: '#2E94FF',
+                  backgroundColor: '#00E5CC',
                 }}
               />
             </div>

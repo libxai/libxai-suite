@@ -226,7 +226,7 @@ export function QuickTaskCreate({
               className={cn(
                 'flex items-center gap-1 text-xs px-1.5 py-0.5 rounded transition-colors font-mono',
                 selectedDate
-                  ? isDark ? 'bg-[#007FFF]/20 text-[#007FFF]' : 'bg-blue-500/20 text-blue-600'
+                  ? isDark ? 'bg-[#007FFF]/20 text-[#007FFF]' : 'bg-[#00E5CC]/20 text-[#00C4AE]'
                   : isDark ? 'bg-white/5 text-white/30 hover:bg-white/10' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
               )}
             >

@@ -263,7 +263,7 @@ export function DependenciesSelector({
         task.id.toLowerCase().includes(searchQuery.toLowerCase())
     )
 
-  const linkColor = dependencies.length > 0 ? '#2E94FF' : '#BDC3C7'
+  const linkColor = dependencies.length > 0 ? '#00E5CC' : '#BDC3C7'
 
   return (
     <div className={`relative ${className || ''}`}>
@@ -367,8 +367,8 @@ export function DependenciesSelector({
               <div
                 className="w-4 h-4 rounded border-2 flex items-center justify-center transition-all"
                 style={{
-                  background: hasDependencies ? '#3b82f6' : 'transparent',
-                  borderColor: hasDependencies ? '#3b82f6' : 'var(--modal-v2-border, rgba(255, 255, 255, 0.3))',
+                  background: hasDependencies ? '#00E5CC' : 'transparent',
+                  borderColor: hasDependencies ? '#00E5CC' : 'var(--modal-v2-border, rgba(255, 255, 255, 0.3))',
                 }}
               >
                 {hasDependencies && (
@@ -442,8 +442,8 @@ export function DependenciesSelector({
                         <div
                           className="w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-all"
                           style={{
-                            background: isDependency ? '#3b82f6' : 'transparent',
-                            borderColor: isDependency ? '#3b82f6' : 'var(--modal-v2-border, rgba(255, 255, 255, 0.3))',
+                            background: isDependency ? '#00E5CC' : 'transparent',
+                            borderColor: isDependency ? '#00E5CC' : 'var(--modal-v2-border, rgba(255, 255, 255, 0.3))',
                           }}
                         >
                           {isDependency && (

@@ -445,8 +445,8 @@
 
 /* Change button - Blue accent on hover */
 .cover-image-button:nth-child(2):hover {
-  color: #3B82F6;
-  background: rgba(59, 130, 246, 0.08);
+  color: #00E5CC;
+  background: rgba(0, 229, 204, 0.08);
 }
 
 /* Remove button - Danger styling */
@@ -504,7 +504,7 @@
 }
 
 [data-theme="dark"] .cover-image-tab-active {
-  background: #3B82F6;
+  background: #00E5CC;
   color: white;
 }
 
@@ -516,7 +516,7 @@
 
 [data-theme="dark"] .cover-image-dropzone:hover {
   background: rgba(255, 255, 255, 0.05);
-  border-color: #3B82F6;
+  border-color: #00E5CC;
 }
 
 [data-theme="dark"] .cover-image-dropzone h3 {
@@ -543,17 +543,17 @@
 
 [data-theme="dark"] .cover-image-url-input input:focus,
 [data-theme="dark"] .cover-image-search input:focus {
-  border-color: #3B82F6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  border-color: #00E5CC;
+  box-shadow: 0 0 0 3px rgba(0, 229, 204, 0.2);
 }
 
 /* Primary button dark mode */
 [data-theme="dark"] .cover-image-button-primary {
-  background: #3B82F6;
+  background: #00E5CC;
 }
 
 [data-theme="dark"] .cover-image-button-primary:hover {
-  background: #2563EB;
+  background: #00C4AE;
 }
 
 /* Actions bar dark mode */
@@ -600,7 +600,7 @@
 }
 
 [data-theme="dark"] .cover-image-recent-item:hover {
-  border-color: #3B82F6;
+  border-color: #00E5CC;
 }
 
 /* Unsplash grid dark mode */
@@ -609,7 +609,7 @@
 }
 
 [data-theme="dark"] .cover-image-unsplash-item:hover {
-  border-color: #3B82F6;
+  border-color: #00E5CC;
 }
 
 /* ==================== Accessibility ==================== */

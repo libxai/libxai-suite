@@ -263,8 +263,8 @@ export function getRelationshipColor(type: RelationshipType): string {
     required_by: '#d97706',
     relates_to: '#6b7280',
     duplicates: '#8b5cf6',
-    parent_of: '#3b82f6',
-    child_of: '#2563eb',
+    parent_of: '#00E5CC',
+    child_of: '#00C4AE',
     similar_to: '#10b981',
   }
   return colors[type] || '#6b7280'

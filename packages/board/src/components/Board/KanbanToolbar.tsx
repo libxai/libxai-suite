@@ -29,7 +29,7 @@ const darkTheme: KanbanToolbarTheme = {
   textSecondary: 'rgba(255, 255, 255, 0.60)',
   textTertiary: 'rgba(255, 255, 255, 0.35)',
   accent: '#007FFF',
-  accentLight: 'rgba(0, 127, 255, 0.15)',
+  accentLight: 'rgba(0, 229, 204, 0.15)',
   hoverBg: 'rgba(255, 255, 255, 0.04)',
 };
 
@@ -41,8 +41,8 @@ const lightTheme: KanbanToolbarTheme = {
   textPrimary: '#111827',
   textSecondary: '#6B7280',
   textTertiary: '#9CA3AF',
-  accent: '#2E94FF',
-  accentLight: 'rgba(59, 130, 246, 0.1)',
+  accent: '#00E5CC',
+  accentLight: 'rgba(0, 229, 204, 0.1)',
   hoverBg: 'rgba(0, 0, 0, 0.05)',
 };
 
@@ -145,11 +145,11 @@ function ColumnSelector({ columns, onSelect, theme, t, createTaskLabel }: Column
           color: '#FFFFFF',
           fontFamily: 'Inter, sans-serif',
           fontWeight: 500,
-          boxShadow: '0 2px 8px rgba(0, 127, 255, 0.3)',
+          boxShadow: '0 2px 8px rgba(0, 229, 204, 0.3)',
         }}
         whileHover={{
           scale: 1.02,
-          boxShadow: '0 4px 12px rgba(0, 127, 255, 0.4)',
+          boxShadow: '0 4px 12px rgba(0, 229, 204, 0.4)',
         }}
         whileTap={{ scale: 0.98 }}
       >
@@ -418,11 +418,11 @@ function SimpleCreateButton({ onClick, label }: SimpleCreateButtonProps) {
         color: '#FFFFFF',
         fontFamily: 'Inter, sans-serif',
         fontWeight: 500,
-        boxShadow: '0 2px 8px rgba(0, 127, 255, 0.3)',
+        boxShadow: '0 2px 8px rgba(0, 229, 204, 0.3)',
       }}
       whileHover={{
         scale: 1.02,
-        boxShadow: '0 4px 12px rgba(0, 127, 255, 0.4)',
+        boxShadow: '0 4px 12px rgba(0, 229, 204, 0.4)',
       }}
       whileTap={{ scale: 0.98 }}
     >

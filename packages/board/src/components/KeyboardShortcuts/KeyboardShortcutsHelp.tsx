@@ -170,7 +170,7 @@ export function KeyboardShortcutsHelp({
               return (
                 <div key={category}>
                   <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-800 dark:text-white/90">
-                    <span className="w-1 h-5 bg-blue-500 rounded-full" />
+                    <span className="w-1 h-5 bg-[#00E5CC] rounded-full" />
                     {category}
                   </h3>
                   <div className="space-y-3">

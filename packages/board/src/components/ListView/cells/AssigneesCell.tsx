@@ -38,14 +38,14 @@ function getInitials(name: string): string {
 
 function getAvatarColor(name: string): string {
   const colors = [
-    'bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-pink-500',
-    'bg-yellow-500', 'bg-red-500', 'bg-indigo-500', 'bg-teal-500'
+    'bg-[#00E5CC]', 'bg-green-500', 'bg-purple-500', 'bg-pink-500',
+    'bg-yellow-500', 'bg-red-500', 'bg-indigo-500', 'bg-[#00E5CC]'
   ];
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
     hash = name.charCodeAt(i) + ((hash << 5) - hash);
   }
-  return colors[Math.abs(hash) % colors.length] ?? 'bg-blue-500';
+  return colors[Math.abs(hash) % colors.length] ?? 'bg-[#00E5CC]';
 }
 
 export function AssigneesCell({
@@ -265,7 +265,7 @@ export function AssigneesCell({
                     className="flex items-center justify-center"
                     style={{
                       width: 16, height: 16, borderRadius: '50%',
-                      backgroundColor: assignee.color || (isDark ? '#3B82F6' : '#3B82F6'),
+                      backgroundColor: assignee.color || (isDark ? '#00E5CC' : '#00E5CC'),
                       fontSize: 8, fontWeight: 700, color: '#fff',
                     }}
                   >
@@ -326,7 +326,7 @@ export function AssigneesCell({
                       border: 'none',
                       cursor: 'pointer',
                       backgroundColor: assigned
-                        ? (isDark ? 'rgba(0, 127, 255, 0.12)' : 'rgba(59, 130, 246, 0.08)')
+                        ? (isDark ? 'rgba(0, 229, 204, 0.12)' : 'rgba(0, 229, 204, 0.08)')
                         : 'transparent',
                       color: isDark ? 'rgba(255,255,255,0.92)' : '#0F172A',
                       fontSize: 12,
@@ -344,7 +344,7 @@ export function AssigneesCell({
                       className="flex items-center justify-center flex-shrink-0"
                       style={{
                         width: 24, height: 24, borderRadius: '50%',
-                        backgroundColor: user.color || '#3B82F6',
+                        backgroundColor: user.color || '#00E5CC',
                         fontSize: 9, fontWeight: 700, color: '#fff',
                       }}
                     >

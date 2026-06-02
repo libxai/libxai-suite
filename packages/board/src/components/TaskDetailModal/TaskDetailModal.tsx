@@ -839,7 +839,7 @@ export function TaskDetailModal({
                         selectedTask.progress === 100 || selectedTask.status === 'completed'
                           ? "bg-green-500/20 text-green-400"
                           : (selectedTask.progress && selectedTask.progress > 0) || selectedTask.status === 'in-progress'
-                            ? "bg-blue-500/20 text-blue-400"
+                            ? "bg-[#00E5CC]/20 text-[#00E5CC]"
                             : isDark ? "bg-white/10 text-white" : "bg-gray-100 text-gray-700"
                       )}
                     >
@@ -865,7 +865,7 @@ export function TaskDetailModal({
                           >
                             {[
                               { id: 'todo', label: locale === 'es' ? 'Por hacer' : 'To Do', color: 'bg-gray-400' },
-                              { id: 'in-progress', label: locale === 'es' ? 'En progreso' : 'In Progress', color: 'bg-blue-500' },
+                              { id: 'in-progress', label: locale === 'es' ? 'En progreso' : 'In Progress', color: 'bg-[#00E5CC]' },
                               { id: 'completed', label: locale === 'es' ? 'Completado' : 'Done', color: 'bg-green-500' },
                             ].map((status) => (
                               <button
@@ -1179,8 +1179,8 @@ export function TaskDetailModal({
                                         "w-8 h-8 rounded-full flex items-center justify-center text-sm transition-colors",
                                         !d.isCurrentMonth && (isDark ? "text-[#4B5563]" : "text-gray-300"),
                                         d.isCurrentMonth && (isDark ? "text-white" : "text-gray-900"),
-                                        isToday && "ring-2 ring-[#2E94FF]",
-                                        isStartDate && "bg-[#2E94FF] text-white",
+                                        isToday && "ring-2 ring-[#00E5CC]",
+                                        isStartDate && "bg-[#00E5CC] text-white",
                                         isEndDate && !isStartDate && "bg-[#7C3AED] text-white",
                                         isInRange && !isSelected && (isDark ? "bg-[#7C3AED]/20" : "bg-purple-100"),
                                         !isSelected && (isDark ? "hover:bg-white/10" : "hover:bg-gray-100")
@@ -1311,7 +1311,7 @@ export function TaskDetailModal({
                           className={cn(
                             "flex-1 max-w-[120px] h-2 rounded-full appearance-none cursor-pointer",
                             isDark ? "bg-white/10" : "bg-gray-200",
-                            "[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#2E94FF] [&::-webkit-slider-thumb]:cursor-pointer"
+                            "[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#00E5CC] [&::-webkit-slider-thumb]:cursor-pointer"
                           )}
                           autoFocus
                         />
@@ -1326,7 +1326,7 @@ export function TaskDetailModal({
                           <div
                             className={cn(
                               "h-full rounded-full transition-all",
-                              selectedTask.progress === 100 ? "bg-green-500" : "bg-[#2E94FF]"
+                              selectedTask.progress === 100 ? "bg-green-500" : "bg-[#00E5CC]"
                             )}
                             style={{ width: `${selectedTask.progress || 0}%` }}
                           />
@@ -1675,7 +1675,7 @@ export function TaskDetailModal({
                                 key={depId}
                                 className={cn(
                                   "inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium",
-                                  isDark ? "bg-blue-500/20 text-blue-400" : "bg-blue-100 text-blue-700"
+                                  isDark ? "bg-[#00E5CC]/20 text-[#00E5CC]" : "bg-[#00E5CC]/15 text-[#00C4AE]"
                                 )}
                               >
                                 {depTask?.name || depId.slice(0, 8)}
@@ -1781,7 +1781,7 @@ export function TaskDetailModal({
                                             className={cn(
                                               "w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0",
                                               isSelected
-                                                ? "bg-blue-500 border-blue-500"
+                                                ? "bg-[#00E5CC] border-[#00E5CC]"
                                                 : isDark ? "border-white/30" : "border-gray-300"
                                             )}
                                           >
@@ -2009,8 +2009,8 @@ export function TaskDetailModal({
                         className={cn(
                           "flex-1 px-3 py-2 rounded-lg text-sm outline-none transition-colors",
                           isDark
-                            ? "bg-white/5 border border-white/10 text-white placeholder:text-[#6B7280] focus:border-blue-500/50"
-                            : "bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-blue-500"
+                            ? "bg-white/5 border border-white/10 text-white placeholder:text-[#6B7280] focus:border-[#00E5CC]/50"
+                            : "bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-[#00E5CC]"
                         )}
                       />
                       <button
@@ -2019,7 +2019,7 @@ export function TaskDetailModal({
                         className={cn(
                           "px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                           newSubtaskName.trim()
-                            ? "bg-blue-500 hover:bg-blue-600 text-white"
+                            ? "bg-[#00E5CC] hover:bg-[#00C4AE] text-white"
                             : isDark ? "bg-white/5 text-[#6B7280] cursor-not-allowed" : "bg-gray-100 text-gray-400 cursor-not-allowed"
                         )}
                       >
@@ -2145,7 +2145,7 @@ export function TaskDetailModal({
                     className={cn(
                       "border-2 border-dashed rounded-lg p-6 text-center transition-all cursor-pointer relative",
                       isDraggingFile
-                        ? (isDark ? "border-blue-500 bg-blue-500/10" : "border-blue-400 bg-blue-50")
+                        ? (isDark ? "border-[#00E5CC] bg-[#00E5CC]/10" : "border-[#00E5CC] bg-[#00E5CC]/15")
                         : (isDark ? "border-white/10 hover:border-white/20" : "border-gray-200 hover:border-gray-300"),
                       isUploadingFiles && "pointer-events-none opacity-50"
                     )}
@@ -2159,7 +2159,7 @@ export function TaskDetailModal({
                     />
                     {isUploadingFiles ? (
                       <>
-                        <div className="w-6 h-6 mx-auto mb-2 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                        <div className="w-6 h-6 mx-auto mb-2 border-2 border-[#00E5CC] border-t-transparent rounded-full animate-spin" />
                         <p className={cn("text-sm", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
                           {locale === 'es' ? 'Subiendo...' : 'Uploading...'}
                         </p>
@@ -2168,7 +2168,7 @@ export function TaskDetailModal({
                       <>
                         <Upload className={cn(
                           "w-6 h-6 mx-auto mb-2",
-                          isDraggingFile ? "text-blue-500" : (isDark ? "text-[#6B7280]" : "text-gray-400")
+                          isDraggingFile ? "text-[#00E5CC]" : (isDark ? "text-[#6B7280]" : "text-gray-400")
                         )} />
                         <p className={cn("text-sm", isDark ? "text-[#9CA3AF]" : "text-gray-500")}>
                           {isDraggingFile

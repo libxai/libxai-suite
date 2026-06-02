@@ -26,19 +26,19 @@ export const darkTheme: ListViewTheme = {
   textMuted: 'rgba(255,255,255,0.3)',
 
   // Accent colors
-  accent: '#007BFF',
+  accent: '#00E5CC',
   accentHover: '#2979FF',
   accentLight: 'rgba(0,123,255,0.15)',
 
   // Status colors
   statusTodo: 'rgba(255,255,255,0.4)',
-  statusInProgress: '#007BFF',
+  statusInProgress: '#00E5CC',
   statusCompleted: '#34D399',
 
   // Interactive
-  focusRing: '#007BFF',
+  focusRing: '#00E5CC',
   checkboxBg: '#1A1A1A',
-  checkboxChecked: '#007BFF',
+  checkboxChecked: '#00E5CC',
 
   // Chronos V2.0 extended tokens
   bgGroupHeader: '#222222',
@@ -90,7 +90,7 @@ export const lightTheme: ListViewTheme = {
   neonRed: '#DC2626',
   neonGreen: '#16A34A',
   neonAmber: '#D97706',
-  neonBlue: '#2E94FF',
+  neonBlue: '#00E5CC',
 };
 
 /**

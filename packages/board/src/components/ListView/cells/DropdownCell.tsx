@@ -98,7 +98,7 @@ export function DropdownCell({
                   {option}
                 </span>
                 {value === option && (
-                  <Check className="w-4 h-4 text-[#007BFF]" />
+                  <Check className="w-4 h-4 text-[#00E5CC]" />
                 )}
               </button>
             ))

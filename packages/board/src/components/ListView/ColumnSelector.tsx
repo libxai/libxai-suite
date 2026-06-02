@@ -222,7 +222,7 @@ export function ColumnSelector({
   );
 
   // Chronos accent color
-  const accent = isDark ? '#00E5FF' : '#2E94FF';
+  const accent = isDark ? '#00E5FF' : '#00E5CC';
 
   return (
     <div

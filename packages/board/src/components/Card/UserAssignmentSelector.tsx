@@ -302,7 +302,7 @@ export function UserAssignmentSelector({
                     </span>
 
                     {/* Checkmark - fixed width for consistent alignment */}
-                    <span className="w-5 text-lg flex-shrink-0 text-right" style={{ color: isAssigned ? '#3b82f6' : 'transparent' }}>
+                    <span className="w-5 text-lg flex-shrink-0 text-right" style={{ color: isAssigned ? '#00E5CC' : 'transparent' }}>
                       {isAssigned ? '✓' : ''}
                     </span>
                   </button>

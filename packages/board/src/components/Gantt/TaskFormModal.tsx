@@ -209,7 +209,7 @@ export function TaskFormModal({
     status: 'todo',
     priority: 'medium',
     isMilestone: false,
-    color: '#2E94FF',
+    color: '#00E5CC',
     assignees: [],
     dependencies: [],
     tags: [], // v0.17.158
@@ -232,7 +232,7 @@ export function TaskFormModal({
         status: task.status || 'todo',
         priority: (task as any).priority || 'medium',
         isMilestone: task.isMilestone || false,
-        color: task.color || '#2E94FF',
+        color: task.color || '#00E5CC',
         assignees: task.assignees || [],
         dependencies: task.dependencies || [],
         tags: task.tags || [], // v0.17.158
@@ -251,7 +251,7 @@ export function TaskFormModal({
         status: defaultStatus || 'todo',
         priority: 'medium',
         isMilestone: false,
-        color: '#2E94FF',
+        color: '#00E5CC',
         assignees: [],
         dependencies: [],
         pendingFiles: [], // v0.17.166
@@ -746,7 +746,7 @@ export function TaskFormModal({
                       Rango de Fechas
                     </label>
                   <div className="flex items-center gap-3" style={{ backgroundColor: isDarkTheme ? '#191b22' : themeColors.bgSecondary, borderRadius: 8, border: `1px solid ${isDarkTheme ? 'rgba(65,71,84,0.05)' : themeColors.borderLight}`, padding: '10px 16px' }}>
-                    <Calendar className="w-5 h-5" style={{ color: '#007BFF' }} />
+                    <Calendar className="w-5 h-5" style={{ color: '#00E5CC' }} />
                     <div ref={dateRowRef} className="flex items-center gap-2 flex-1 relative">
                       <button
                         type="button"
@@ -967,7 +967,7 @@ export function TaskFormModal({
                       <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: themeColors.textTertiary }}>
                         Progreso Inicial
                       </label>
-                      <span style={{ fontSize: 10, fontWeight: 700, color: '#007BFF' }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: '#00E5CC' }}>
                         {formData.progress}%
                       </span>
                     </div>
@@ -983,7 +983,7 @@ export function TaskFormModal({
                     >
                       <div
                         className="h-full rounded-full transition-all"
-                        style={{ width: `${formData.progress}%`, backgroundColor: '#007BFF' }}
+                        style={{ width: `${formData.progress}%`, backgroundColor: '#00E5CC' }}
                       />
                     </div>
                   </div>
@@ -1402,7 +1402,7 @@ export function TaskFormModal({
                     disabled={isLoading}
                     className="px-8 py-3 font-bold rounded-lg transition-all flex items-center gap-2"
                     style={{
-                      backgroundColor: '#007BFF',
+                      backgroundColor: '#00E5CC',
                       color: '#FFF',
                       fontSize: 14,
                       fontFamily: "'Inter', system-ui, sans-serif",

@@ -14,7 +14,7 @@ export const darkTheme: CalendarTheme = {
   bgPrimary: '#050505',
   bgSecondary: '#080808',
   bgHover: 'rgba(255, 255, 255, 0.02)',
-  bgToday: 'rgba(0, 127, 255, 0.08)',
+  bgToday: 'rgba(0, 229, 204, 0.08)',
   bgWeekend: '#050505',
   bgOtherMonth: '#080808',
 
@@ -31,7 +31,7 @@ export const darkTheme: CalendarTheme = {
   // Accent colors
   accent: '#007FFF',
   accentHover: '#3399FF',
-  accentLight: 'rgba(0, 127, 255, 0.15)',
+  accentLight: 'rgba(0, 229, 204, 0.15)',
 
   // Status colors
   statusTodo: 'rgba(255, 255, 255, 0.40)',
@@ -46,7 +46,7 @@ export const darkTheme: CalendarTheme = {
   glassBorder: 'rgba(255, 255, 255, 0.08)',
   glassHover: 'rgba(255, 255, 255, 0.05)',
   neonRed: '#FF2E2E',
-  glowBlue: '0 0 10px rgba(0, 127, 255, 0.3)',
+  glowBlue: '0 0 10px rgba(0, 229, 204, 0.3)',
   glowRed: '0 0 10px rgba(255, 46, 46, 0.4)',
 };
 
@@ -90,7 +90,7 @@ export const lightTheme: CalendarTheme = {
   glassBorder: 'rgba(0, 0, 0, 0.08)',
   glassHover: 'rgba(0, 0, 0, 0.04)',
   neonRed: '#DC2626',
-  glowBlue: '0 0 10px rgba(0, 127, 255, 0.15)',
+  glowBlue: '0 0 10px rgba(0, 229, 204, 0.15)',
   glowRed: '0 0 10px rgba(220, 38, 38, 0.2)',
 };
 

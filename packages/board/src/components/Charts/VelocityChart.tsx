@@ -103,11 +103,11 @@ export function VelocityChart({
             <Line
               type="monotone"
               dataKey="planned"
-              stroke="#2E94FF"
+              stroke="#00E5CC"
               strokeWidth={2}
               strokeDasharray="5 5"
               name="Planned"
-              dot={{ fill: '#2E94FF', r: 4 }}
+              dot={{ fill: '#00E5CC', r: 4 }}
             />
           )}
 
@@ -143,7 +143,7 @@ export function VelocityChart({
         {showPlanned && data.some((p) => p.planned) && (
           <div className="chart-stat">
             <span className="chart-stat-label">Total Planned</span>
-            <span className="chart-stat-value" style={{ color: '#2E94FF' }}>
+            <span className="chart-stat-value" style={{ color: '#00E5CC' }}>
               {data.reduce((sum, point) => sum + (point.planned || 0), 0)}
             </span>
           </div>

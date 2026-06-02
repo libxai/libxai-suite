@@ -72,6 +72,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     enableAutoCriticalPath = true, // v0.11.1: Allow disabling automatic CPM calculation
     persistExpandedState, // v0.17.181: Persist expanded state in localStorage
     persistFilter, // v0.18.0: Persist filter state in localStorage
+    persistColumns, // Persist visible-columns config in localStorage (per-project key)
     clearFiltersKey, // v1.4.10: Clear filters when this key changes
     aiAssistant, // v0.14.0: AI Assistant configuration
     // v0.15.0: Internationalization
@@ -515,7 +516,80 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     { id: 'priority', label: t.columns.priority, width: 90, minWidth: 70, maxWidth: 150, visible: false, sortable: true, resizable: true }, // v0.17.29
   ], []);
 
-  const [columns, setColumns] = useState<GanttColumn[]>(() => getDefaultColumns(translations));
+  // Persist columns config in localStorage (same pattern as persistFilter /
+  // persistExpandedState). Only the per-column `visible` + `width` are restored;
+  // labels are always re-derived from translations so locale changes still work.
+  const columnsStorageKey = useMemo(() => {
+    if (!persistColumns) return null;
+    return typeof persistColumns === 'string' ? persistColumns : 'gantt-columns-state';
+  }, [persistColumns]);
+
+  const [columns, setColumns] = useState<GanttColumn[]>(() => {
+    const defaults = getDefaultColumns(translations);
+    if (!persistColumns) return defaults;
+    try {
+      const key = typeof persistColumns === 'string' ? persistColumns : 'gantt-columns-state';
+      const stored = localStorage.getItem(key);
+      if (!stored) return defaults;
+      // stored = [{ id, visible, width }]. Merge onto defaults so new columns
+      // added in future versions still appear (forward compatible).
+      const saved = JSON.parse(stored) as Array<{ id: string; visible?: boolean; width?: number }>;
+      const byId = new Map(saved.map(s => [s.id, s]));
+      return defaults.map(col => {
+        const s = byId.get(col.id);
+        return s ? { ...col, visible: s.visible ?? col.visible, width: s.width ?? col.width } : col;
+      });
+    } catch (e) {
+      console.warn('[GanttBoard] Error loading columns state from localStorage:', e);
+      return defaults;
+    }
+  });
+
+  // Reload columns when the storage key changes (e.g. switching projects while
+  // staying on the Gantt view, where the component is NOT remounted). Without
+  // this, the lazy useState init only runs once and the columns of the first
+  // project would "stick" across projects — making per-project config look global.
+  const prevColumnsKeyRef = useRef<string | null>(columnsStorageKey);
+  useEffect(() => {
+    if (prevColumnsKeyRef.current === columnsStorageKey) return;
+    prevColumnsKeyRef.current = columnsStorageKey;
+    const defaults = getDefaultColumns(translations);
+    if (!columnsStorageKey) {
+      setColumns(defaults);
+      return;
+    }
+    try {
+      const stored = localStorage.getItem(columnsStorageKey);
+      if (!stored) {
+        setColumns(defaults);
+        return;
+      }
+      const saved = JSON.parse(stored) as Array<{ id: string; visible?: boolean; width?: number }>;
+      const byId = new Map(saved.map(s => [s.id, s]));
+      setColumns(defaults.map(col => {
+        const s = byId.get(col.id);
+        return s ? { ...col, visible: s.visible ?? col.visible, width: s.width ?? col.width } : col;
+      }));
+    } catch (e) {
+      console.warn('[GanttBoard] Error reloading columns state from localStorage:', e);
+      setColumns(defaults);
+    }
+  }, [columnsStorageKey, getDefaultColumns, translations]);
+
+  // Save columns config to localStorage when visibility/width changes.
+  // Guard: skip the render where the key just changed — at that moment `columns`
+  // may still hold the PREVIOUS project's state, and the reload effect above is
+  // about to replace it. Writing here would leak project A's columns into B's key.
+  useEffect(() => {
+    if (!columnsStorageKey) return;
+    if (prevColumnsKeyRef.current !== columnsStorageKey) return;
+    try {
+      const state = columns.map(col => ({ id: col.id, visible: col.visible, width: col.width }));
+      localStorage.setItem(columnsStorageKey, JSON.stringify(state));
+    } catch (e) {
+      console.warn('[GanttBoard] Error saving columns state to localStorage:', e);
+    }
+  }, [columns, columnsStorageKey]);
 
   // Update column labels when locale changes
   useEffect(() => {
@@ -1154,7 +1228,10 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         return task;
       });
     };
-    setLocalTasks(updateTask(localTasks));
+    // Use the functional updater so multiple synchronous calls (e.g. drag-fill
+    // applying a value to many rows in one tick) each build on the previous
+    // result instead of all reading the same stale `localTasks` closure.
+    setLocalTasks((prev) => updateTask(prev));
 
     // Call callback events
     const updatedTask = ganttUtils.findTaskById(updateTask(localTasks), taskId);
@@ -1170,6 +1247,32 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       }
     }
   }, [localTasks, onTaskUpdate, onBeforeTaskUpdate, onAfterTaskUpdate, onProgressChange]);
+
+  // Drag-fill: apply ONE value to MANY tasks in a single state update, then let
+  // the consumer persist via a dedicated callback. Doing it in one pass (instead
+  // of N onTaskUpdate calls) avoids stale-state batching and guarantees every
+  // target row is updated.
+  const handleBulkFill = useCallback((
+    taskIds: string[],
+    column: 'assignees' | 'startDate' | 'endDate',
+    value: any,
+  ) => {
+    if (taskIds.length === 0) return;
+    const idSet = new Set(taskIds);
+    const apply = (tasks: Task[]): Task[] =>
+      tasks.map((task) => {
+        const next = idSet.has(task.id) ? { ...task, [column]: value } : task;
+        if (next.subtasks) return { ...next, subtasks: apply(next.subtasks) };
+        return next;
+      });
+    setLocalTasks((prev) => {
+      const updated = apply(prev);
+      // Notify the consumer with the freshly-updated tree so it persists the
+      // exact tasks that changed (does not rely on diffing).
+      config.onBulkFill?.(taskIds, column, value, updated);
+      return updated;
+    });
+  }, [config]);
 
   // Hierarchy handlers
   // v0.18.13: All hierarchy handlers set both skipSyncCountRef (to prevent useEffect([tasks]) overwrite)
@@ -2078,6 +2181,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
             onToggleColumn={handleToggleColumn}
             onColumnResize={handleColumnResize}
             onTaskUpdate={handleTaskUpdate}
+            onBulkFill={handleBulkFill}
             onTaskIndent={handleTaskIndent}
             onTaskOutdent={handleTaskOutdent}
             onTaskMove={handleTaskMove}

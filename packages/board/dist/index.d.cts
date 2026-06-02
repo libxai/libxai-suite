@@ -378,10 +378,23 @@ interface ProjectForecast {
     budgetVariancePercent?: number | null;
     currency?: string;
 }
+/**
+ * v4.3.0 — Workspace working-day configuration consumed by the tooltip
+ * Duration field (and any other piece that needs to count business days).
+ * Lets the consumer mirror its weekend toggles + holiday calendar.
+ */
+interface GanttWorkingDaysConfig {
+    /** Which weekdays count as working days. 0=Sun, 1=Mon, ..., 6=Sat. Length 7. */
+    enabledWeekdays?: boolean[];
+    /** Holiday dates in 'YYYY-MM-DD' (workspace-local) to exclude. */
+    holidayDates?: Set<string> | string[];
+}
 interface GanttConfig {
     theme?: Theme$1;
     timeScale?: TimeScale;
     rowDensity?: RowDensity;
+    /** v4.3.0: Defines which days count as working days for duration calculations. */
+    workingDaysConfig?: GanttWorkingDaysConfig;
     showThemeSelector?: boolean;
     showExportButton?: boolean;
     /**
@@ -468,6 +481,16 @@ interface GanttConfig {
      * @default false
      */
     persistFilter?: boolean | string;
+    /**
+     * Persist the visible-columns config (which data columns are shown + their
+     * widths) to localStorage, so it survives navigating away from the Gantt.
+     * When true, uses default key 'gantt-columns-state'.
+     * When string, uses the provided string as the localStorage key (use a
+     * per-project key like `gantt-columns:${projectId}`).
+     * When false/undefined, columns only persist during the current session.
+     * @default false
+     */
+    persistColumns?: boolean | string;
     /**
      * v1.4.10: Clear filters key - when this value changes, internal filters are reset
      * Useful for navigation scenarios where filters should be cleared (e.g., from notifications)
@@ -592,6 +615,10 @@ interface GanttConfig {
     onTaskRename?: (taskId: string, newName: string) => void;
     onTaskToggleExpand?: (taskId: string) => void;
     onTaskReparent?: (taskId: string, newParentId: string | null, position?: number) => void;
+    /** Drag-fill: a value (assignees / startDate / endDate) was applied to many
+     *  tasks at once. `updatedTasks` is the full task tree after the change, so
+     *  the consumer can persist the affected tasks directly. */
+    onBulkFill?: (taskIds: string[], column: 'assignees' | 'startDate' | 'endDate', value: any, updatedTasks: Task[]) => void;
     /** v2.5.0: Per-user hourly rate map for Excel export cost columns (userId → rate) */
     rateMap?: Record<string, number>;
     /** v2.5.0: Default hourly rate fallback when rateMap has no match for a user */
@@ -2846,6 +2873,7 @@ interface TaskGridProps {
     onToggleColumn: (columnType: ColumnType$1) => void;
     onColumnResize?: (columnId: ColumnType$1, newWidth: number) => void;
     onTaskUpdate?: (taskId: string, updates: Partial<Task>) => void;
+    onBulkFill?: (taskIds: string[], column: 'assignees' | 'startDate' | 'endDate', value: any) => void;
     onTaskIndent?: (taskIds: string[]) => void;
     onTaskOutdent?: (taskIds: string[]) => void;
     onTaskMove?: (taskIds: string[], direction: 'up' | 'down') => void;
@@ -2863,10 +2891,22 @@ interface TaskGridProps {
 declare function TaskGrid({ tasks, theme, rowHeight: ROW_HEIGHT, availableUsers, templates: _templates, // TODO: Use templates for custom rendering
 onTaskClick, onTaskDblClick, // v0.8.0
 onTaskContextMenu, // v0.8.0
-onTaskToggle, scrollTop: _scrollTop, columns, onToggleColumn, onColumnResize, onTaskUpdate, onTaskIndent, onTaskOutdent, onTaskMove, onMultiTaskDelete, onTaskDuplicate, onTaskCreate, onTaskRename, onCreateSubtask, onOpenTaskModal, onDeleteRequest, // v0.17.34
+onTaskToggle, scrollTop: _scrollTop, columns, onToggleColumn, onColumnResize, onTaskUpdate, onBulkFill, onTaskIndent, onTaskOutdent, onTaskMove, onMultiTaskDelete, onTaskDuplicate, onTaskCreate, onTaskRename, onCreateSubtask, onOpenTaskModal, onDeleteRequest, // v0.17.34
 onTaskReparent, // v0.17.68
 scrollContainerRef, // v0.18.15
 showCriticalPath, }: TaskGridProps): react_jsx_runtime.JSX.Element;
+
+/**
+ * Optional working-days configuration so the tooltip Duration reflects the
+ * workspace's actual working schedule (weekend toggles + holidays) instead
+ * of raw calendar days. When omitted, falls back to calendar days.
+ */
+interface WorkingDaysConfig {
+    /** Which weekdays count as working days. 0=Sun, 1=Mon, ..., 6=Sat. */
+    enabledWeekdays?: boolean[];
+    /** Holiday dates in 'YYYY-MM-DD' (workspace-local) to exclude. */
+    holidayDates?: Set<string> | string[];
+}
 
 interface TimelineProps {
     tasks: Task[];
@@ -2895,6 +2935,8 @@ interface TimelineProps {
     canEditTask?: (task: Task) => boolean;
     /** v4.2.0: Committed on pointerup after dragging the progress edge of a task bar. */
     onTaskProgressDrag?: (task: Task, newProgress: number) => void;
+    /** v4.3.0: Workspace working-day config for the tooltip Duration field. */
+    workingDaysConfig?: WorkingDaysConfig;
 }
 interface TaskPosition {
     id: string;
@@ -2907,7 +2949,7 @@ declare function Timeline({ tasks, theme, rowHeight: ROW_HEIGHT, timeScale, star
 templates, dependencyLineStyle, // v0.17.310
 showTaskBarLabels, onTaskClick, onTaskDblClick, // v0.8.0
 onTaskContextMenu, // v0.8.0
-onTaskDateChange, onDependencyCreate, onDependencyDelete, showBaseline, showCriticalPath, showDependencies, highlightWeekends, canEditTask, onTaskProgressDrag, }: TimelineProps): react_jsx_runtime.JSX.Element;
+onTaskDateChange, onDependencyCreate, onDependencyDelete, showBaseline, showCriticalPath, showDependencies, highlightWeekends, canEditTask, onTaskProgressDrag, workingDaysConfig, }: TimelineProps): react_jsx_runtime.JSX.Element;
 
 interface TaskTooltipData {
     task: Task;
@@ -4050,6 +4092,19 @@ interface ListViewConfig {
         spent?: number;
         allocated?: number;
         quoted?: number;
+        /**
+         * Optional breakdown of the override totals into their components so the
+         * footer can surface a tooltip explaining why the TOTAL differs from the
+         * sum of the visible phase rows (which only count labor).
+         * - labor: Σ(task minutes × rate) — the portion the phase rows show
+         * - equipment / travel: committed project-level costs not tied to tasks
+         */
+        breakdown?: {
+            laborSpent?: number;
+            laborAllocated?: number;
+            equipment?: number;
+            travel?: number;
+        };
     };
     /** v2.5.0: Render content just before the Create Task button (e.g., share/export dropdown) */
     toolbarEndContent?: ReactNode;
@@ -4231,6 +4286,23 @@ interface ListViewProps {
     toolbarRightContent?: ReactNode;
     /** v2.5.0: Render content just before the Create Task button (e.g., share/export dropdown) */
     toolbarEndContent?: ReactNode;
+    /**
+     * Fires when the user clicks anywhere on a column header. The consumer
+     * renders its own dropdown (Sort + Filter + Hide) anchored to `anchorRect`.
+     * If unset, the header keeps the legacy behavior (click on the sort icon
+     * cycles asc/desc/clear).
+     */
+    onColumnHeaderClick?: (columnId: string, anchorRect: DOMRect) => void;
+    /**
+     * IDs of columns that currently have an active filter applied. Each one
+     * gets a small accent dot rendered next to its label.
+     */
+    columnsWithFilter?: string[];
+    /**
+     * Color (hex / CSS) of the dot rendered for filtered columns. Defaults
+     * to the brand cyan #00E5CC so consumers don't have to think about it.
+     */
+    filterDotColor?: string;
 }
 /**
  * Flattened task with hierarchy info
@@ -4267,7 +4339,7 @@ declare const CUSTOM_FIELD_TYPES: Array<{
 /**
  * Main ListView Component
  */
-declare function ListView({ tasks, config, callbacks, isLoading, error, className, style, availableUsers, customFields, toolbarRightContent, }: ListViewProps): react_jsx_runtime.JSX.Element;
+declare function ListView({ tasks, config, callbacks, isLoading, error, className, style, availableUsers, customFields, toolbarRightContent, onColumnHeaderClick, columnsWithFilter, filterDotColor, }: ListViewProps): react_jsx_runtime.JSX.Element;
 
 /**
  * ListView Themes
@@ -5552,7 +5624,7 @@ declare function useSortedCards(sortBy?: 'title' | 'priority' | 'createdAt' | 'u
  *
  * @example
  * cn('px-2 py-1', 'px-4') // => 'py-1 px-4'
- * cn('text-red-500', condition && 'text-blue-500') // => 'text-blue-500' if condition is true
+ * cn('text-red-500', condition && 'text-[#00E5CC]') // => 'text-[#00E5CC]' if condition is true
  */
 declare function cn(...inputs: ClassValue[]): string;
 

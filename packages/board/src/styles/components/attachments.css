@@ -29,21 +29,21 @@
 }
 
 .attachment-dropzone:hover {
-  border-color: rgba(59, 130, 246, 0.5);
+  border-color: rgba(0, 229, 204, 0.5);
   background: linear-gradient(
     135deg,
-    rgba(59, 130, 246, 0.05) 0%,
-    rgba(59, 130, 246, 0.02) 100%
+    rgba(0, 229, 204, 0.05) 0%,
+    rgba(0, 229, 204, 0.02) 100%
   );
   transform: translateY(-2px);
 }
 
 .attachment-dropzone.dragging {
-  border-color: rgba(59, 130, 246, 0.8);
+  border-color: rgba(0, 229, 204, 0.8);
   background: linear-gradient(
     135deg,
-    rgba(59, 130, 246, 0.1) 0%,
-    rgba(59, 130, 246, 0.05) 100%
+    rgba(0, 229, 204, 0.1) 0%,
+    rgba(0, 229, 204, 0.05) 100%
   );
   transform: scale(1.02);
 }
@@ -68,7 +68,7 @@
 }
 
 .attachment-dropzone:hover .attachment-dropzone-icon {
-  color: rgba(59, 130, 246, 0.8);
+  color: rgba(0, 229, 204, 0.8);
 }
 
 .attachment-dropzone-text {
@@ -96,7 +96,7 @@
   width: 48px;
   height: 48px;
   border: 4px solid rgba(255, 255, 255, 0.1);
-  border-top-color: rgba(59, 130, 246, 0.8);
+  border-top-color: rgba(0, 229, 204, 0.8);
   border-radius: 50%;
   animation: attachment-spin 0.8s linear infinite;
 }
@@ -229,7 +229,7 @@
 }
 
 .attachment-name:hover {
-  color: rgba(59, 130, 246, 0.9);
+  color: rgba(0, 229, 204, 0.9);
   text-decoration: underline;
 }
 
@@ -549,11 +549,11 @@
 }
 
 [data-theme="light"] .attachment-dropzone:hover {
-  border-color: rgba(59, 130, 246, 0.6);
+  border-color: rgba(0, 229, 204, 0.6);
   background: linear-gradient(
     135deg,
-    rgba(59, 130, 246, 0.08) 0%,
-    rgba(59, 130, 246, 0.03) 100%
+    rgba(0, 229, 204, 0.08) 0%,
+    rgba(0, 229, 204, 0.03) 100%
   );
 }
 
@@ -562,7 +562,7 @@
 }
 
 [data-theme="light"] .attachment-dropzone:hover .attachment-dropzone-icon {
-  color: rgba(59, 130, 246, 0.9);
+  color: rgba(0, 229, 204, 0.9);
 }
 
 [data-theme="light"] .attachment-dropzone-text {

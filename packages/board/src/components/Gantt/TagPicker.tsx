@@ -24,10 +24,10 @@ const TAG_COLORS = [
   '#84CC16', // Lime
   '#22C55E', // Green
   '#10B981', // Emerald
-  '#14B8A6', // Teal
-  '#06B6D4', // Cyan
+  '#00E5CC', // Teal
+  '#00E5CC', // Cyan
   '#0EA5E9', // Sky
-  '#2E94FF', // Blue
+  '#00E5CC', // Blue
   '#6366F1', // Indigo
   '#8B5CF6', // Violet
   '#A855F7', // Purple
@@ -65,7 +65,7 @@ export function TagPicker({
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreating, setIsCreating] = useState(false);
-  const [newTagColor, setNewTagColor] = useState(TAG_COLORS[10] || '#2E94FF'); // Default blue
+  const [newTagColor, setNewTagColor] = useState(TAG_COLORS[10] || '#00E5CC'); // Default blue
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -139,7 +139,7 @@ export function TagPicker({
       if (newTag) {
         onChange([...selectedTags, newTag]);
         setSearchQuery('');
-        setNewTagColor(TAG_COLORS[Math.floor(Math.random() * TAG_COLORS.length)] || '#2E94FF');
+        setNewTagColor(TAG_COLORS[Math.floor(Math.random() * TAG_COLORS.length)] || '#00E5CC');
       }
     } finally {
       setIsCreating(false);

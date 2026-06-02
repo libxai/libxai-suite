@@ -178,7 +178,7 @@ export function useCardStacking(options: UseCardStackingOptions): UseCardStackin
               cardIds: cards.map((c) => c.id),
               columnId,
               strategy: 'labels',
-              color: '#3b82f6',
+              color: '#00E5CC',
             },
             reason: `${cards.length} cards with label "${label}"`,
             confidence: 0.85,

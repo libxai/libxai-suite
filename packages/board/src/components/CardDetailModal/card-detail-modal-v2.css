@@ -46,8 +46,8 @@
   --modal-v2-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
   --modal-v2-backdrop: rgba(0, 0, 0, 0.7);
   /* v0.17.21: Accent colors for interactive elements */
-  --color-accent-primary: #3B82F6;
-  --color-accent-hover: #2563EB;
+  --color-accent-primary: #00E5CC;
+  --color-accent-hover: #00C4AE;
   --color-success: #10B981;
   --color-warning: #F59E0B;
   --color-error: #EF4444;
@@ -67,7 +67,7 @@
   --modal-v2-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
   --modal-v2-backdrop: rgba(0, 0, 0, 0.4);
   /* v0.17.21: Accent colors for interactive elements */
-  --color-accent-primary: #2563EB;
+  --color-accent-primary: #00C4AE;
   --color-accent-hover: #1D4ED8;
   --color-success: #059669;
   --color-warning: #D97706;
@@ -88,7 +88,7 @@
   --modal-v2-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
   --modal-v2-backdrop: rgba(0, 0, 0, 0.35);
   /* v0.17.21: Accent colors for interactive elements */
-  --color-accent-primary: #2563EB;
+  --color-accent-primary: #00C4AE;
   --color-accent-hover: #1D4ED8;
   --color-success: #059669;
   --color-warning: #D97706;
@@ -1064,8 +1064,8 @@
 }
 
 .modal-v2-add-cover-button:hover {
-  border-color: var(--asakaa-accent, #3B82F6);
-  color: var(--asakaa-accent, #3B82F6);
+  border-color: var(--asakaa-accent, #00E5CC);
+  color: var(--asakaa-accent, #00E5CC);
   background: var(--modal-v2-bg-secondary);
 }
 
@@ -1234,8 +1234,8 @@
 }
 
 .date-picker-input:focus {
-  border-color: #3B82F6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  border-color: #00E5CC;
+  box-shadow: 0 0 0 3px rgba(0, 229, 204, 0.2);
 }
 
 /* Dark mode specific for date inputs */

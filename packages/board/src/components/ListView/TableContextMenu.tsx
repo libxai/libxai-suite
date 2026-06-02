@@ -172,7 +172,7 @@ export function TableContextMenu({
           {
             id: 'status-in-progress',
             label: t.inProgress,
-            icon: <PlayCircle className="w-4 h-4 text-blue-500" />,
+            icon: <PlayCircle className="w-4 h-4 text-[#00E5CC]" />,
             onClick: () => {
               onTaskUpdate({ ...state.task!, status: 'in-progress', progress: state.task!.progress || 50 });
               onClose();
@@ -226,7 +226,7 @@ export function TableContextMenu({
           {
             id: 'priority-low',
             label: t.low,
-            icon: <div className="w-3 h-3 rounded-full bg-blue-500" />,
+            icon: <div className="w-3 h-3 rounded-full bg-[#00E5CC]" />,
             onClick: () => {
               onTaskUpdate({ ...state.task!, priority: 'low' });
               onClose();
@@ -246,7 +246,7 @@ export function TableContextMenu({
             label: user.name,
             icon: (
               <div
-                className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] text-white bg-blue-500"
+                className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] text-white bg-[#00E5CC]"
               >
                 {user.name.charAt(0).toUpperCase()}
               </div>

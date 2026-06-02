@@ -274,14 +274,14 @@ export function getEventIcon(type: CardHistoryEventType): string {
 export function getEventColor(type: CardHistoryEventType): string {
   const colors: Record<CardHistoryEventType, string> = {
     created: '#10b981',
-    status_changed: '#3b82f6',
+    status_changed: '#00E5CC',
     assignee_changed: '#8b5cf6',
     priority_changed: '#f59e0b',
-    moved: '#06b6d4',
+    moved: '#00E5CC',
     title_updated: '#6366f1',
     description_updated: '#6366f1',
     dates_changed: '#ec4899',
-    labels_changed: '#14b8a6',
+    labels_changed: '#00E5CC',
     dependency_added: '#a855f7',
     dependency_removed: '#ef4444',
     comment_added: '#84cc16',

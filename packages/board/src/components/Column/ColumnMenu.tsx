@@ -187,7 +187,7 @@ export function ColumnMenu({
                   onChange={(e) => setNewTitle(e.target.value)}
                   onKeyDown={handleRenameKeyDown}
                   onBlur={handleRenameSubmit}
-                  className="w-full px-3 py-2 rounded-lg text-sm bg-white/5 border border-white/20 text-white placeholder-white/50 outline-none focus:border-blue-500/50 transition-all"
+                  className="w-full px-3 py-2 rounded-lg text-sm bg-white/5 border border-white/20 text-white placeholder-white/50 outline-none focus:border-[#00E5CC]/50 transition-all"
                   placeholder={t.columnName}
                   maxLength={50}
                 />

@@ -952,8 +952,8 @@ function FilterDropdown({ theme, value, onChange, hideCompleted = false, onHideC
     {
       value: 'all',
       label: t.toolbar.filterAll || 'Show All',
-      icon: <div className="w-3.5 h-3.5 rounded-full border-2 border-[#2E94FF] bg-[#2E94FF]" />,
-      color: 'text-[#2E94FF]'
+      icon: <div className="w-3.5 h-3.5 rounded-full border-2 border-[#00E5CC] bg-[#00E5CC]" />,
+      color: 'text-[#00E5CC]'
     },
     {
       value: 'completed',
@@ -965,7 +965,7 @@ function FilterDropdown({ theme, value, onChange, hideCompleted = false, onHideC
       value: 'in_progress',
       label: t.toolbar.filterInProgress || 'In Progress',
       icon: <PlayCircle className="w-3.5 h-3.5" />,
-      color: 'text-blue-500'
+      color: 'text-[#00E5CC]'
     },
     {
       value: 'incomplete',
@@ -990,13 +990,13 @@ function FilterDropdown({ theme, value, onChange, hideCompleted = false, onHideC
         className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px] transition-all"
         style={{
           backgroundColor: hasActiveFilter
-            ? (isDark ? 'rgba(59, 130, 246, 0.2)' : 'rgb(239 246 255)')
+            ? (isDark ? 'rgba(0, 229, 204, 0.2)' : 'rgb(239 246 255)')
             : (isOpen ? theme.hoverBg : theme.bgSecondary),
           border: `1px solid ${hasActiveFilter
-            ? (isDark ? 'rgba(59, 130, 246, 0.5)' : 'rgb(191 219 254)')
+            ? (isDark ? 'rgba(0, 229, 204, 0.5)' : 'rgb(191 219 254)')
             : theme.borderLight}`,
           color: hasActiveFilter
-            ? '#2E94FF'
+            ? '#00E5CC'
             : theme.textSecondary,
           fontFamily: 'Inter, sans-serif',
           fontWeight: 500,
@@ -1012,7 +1012,7 @@ function FilterDropdown({ theme, value, onChange, hideCompleted = false, onHideC
         {hasActiveFilter && (
           <span
             className="w-2 h-2 rounded-full"
-            style={{ backgroundColor: '#2E94FF' }}
+            style={{ backgroundColor: '#00E5CC' }}
           />
         )}
       </motion.button>
@@ -1066,7 +1066,7 @@ function FilterDropdown({ theme, value, onChange, hideCompleted = false, onHideC
                 const getIcon = () => {
                   if (option.value === 'all') {
                     return isSelected
-                      ? <div className="w-3.5 h-3.5 rounded-full border-2 border-[#2E94FF] bg-[#2E94FF]" />
+                      ? <div className="w-3.5 h-3.5 rounded-full border-2 border-[#00E5CC] bg-[#00E5CC]" />
                       : <div className="w-3.5 h-3.5 rounded-full border-2 border-gray-400" />;
                   }
                   return option.icon;
@@ -1107,7 +1107,7 @@ function FilterDropdown({ theme, value, onChange, hideCompleted = false, onHideC
                     {isSelected && (
                       <Check
                         className="w-3.5 h-3.5 flex-shrink-0"
-                        style={{ color: '#2E94FF' }}
+                        style={{ color: '#00E5CC' }}
                       />
                     )}
                   </motion.button>
@@ -1149,7 +1149,7 @@ function FilterDropdown({ theme, value, onChange, hideCompleted = false, onHideC
                     className="w-3.5 h-3.5 flex-shrink-0"
                     style={{
                       color: hideCompleted
-                        ? '#2E94FF'
+                        ? '#00E5CC'
                         : (isDark ? 'rgba(255,255,255,0.35)' : '#9CA3AF')
                     }}
                   />
@@ -1162,7 +1162,7 @@ function FilterDropdown({ theme, value, onChange, hideCompleted = false, onHideC
                   {hideCompleted && (
                     <Check
                       className="w-3.5 h-3.5 flex-shrink-0"
-                      style={{ color: '#2E94FF' }}
+                      style={{ color: '#00E5CC' }}
                     />
                   )}
                 </motion.button>
@@ -1510,9 +1510,9 @@ function ViewOptionsDropdown({
                       title={tooltipText}
                     >
                       <Icon className="w-3.5 h-3.5 flex-shrink-0"
-                        style={{ color: isDisabled ? (isDark ? 'rgba(255,255,255,0.2)' : '#D1D5DB') : (option.active ? theme.accent || '#2E94FF' : theme.textTertiary) }} />
+                        style={{ color: isDisabled ? (isDark ? 'rgba(255,255,255,0.2)' : '#D1D5DB') : (option.active ? theme.accent || '#00E5CC' : theme.textTertiary) }} />
                       <span className="flex-1 text-left">{option.label}</span>
-                      {option.active && !isDisabled && <Check className="w-3.5 h-3.5" style={{ color: theme.accent || '#2E94FF' }} />}
+                      {option.active && !isDisabled && <Check className="w-3.5 h-3.5" style={{ color: theme.accent || '#00E5CC' }} />}
                     </motion.button>
                   );
                 })}
@@ -1542,10 +1542,10 @@ function ViewOptionsDropdown({
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: (toggleOptions.length + index) * 0.03 }}
                     >
-                      <span style={{ color: isActive ? theme.accent || '#2E94FF' : (isDark ? 'rgba(255,255,255,0.85)' : theme.textPrimary) }}>
+                      <span style={{ color: isActive ? theme.accent || '#00E5CC' : (isDark ? 'rgba(255,255,255,0.85)' : theme.textPrimary) }}>
                         {option.label}
                       </span>
-                      {isActive && <Check className="w-3.5 h-3.5" style={{ color: theme.accent || '#2E94FF' }} />}
+                      {isActive && <Check className="w-3.5 h-3.5" style={{ color: theme.accent || '#00E5CC' }} />}
                     </motion.button>
                   );
                 })}
@@ -1718,10 +1718,10 @@ export function GanttToolbar({
                   className="px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors"
                   style={{
                     backgroundColor: viewMode === 'oracle'
-                      ? (isDark ? 'rgba(46,148,255,0.15)' : 'rgba(37,99,235,0.08)')
+                      ? (isDark ? 'rgba(0, 229, 204,0.15)' : 'rgba(0, 196, 174,0.08)')
                       : 'transparent',
                     color: viewMode === 'oracle'
-                      ? (isDark ? '#2E94FF' : '#2E94FF')
+                      ? (isDark ? '#00E5CC' : '#00E5CC')
                       : theme.textTertiary,
                     fontFamily: 'Inter, sans-serif',
                   }}
@@ -1809,9 +1809,9 @@ export function GanttToolbar({
                   color: '#FFFFFF',
                   fontFamily: 'Inter, sans-serif',
                   fontWeight: 500,
-                  boxShadow: `0 2px 8px ${isDark ? 'rgba(46,148,255,0.3)' : 'rgba(37,99,235,0.3)'}`,
+                  boxShadow: `0 2px 8px ${isDark ? 'rgba(0, 229, 204,0.3)' : 'rgba(0, 196, 174,0.3)'}`,
                 }}
-                whileHover={{ scale: 1.02, boxShadow: `0 4px 12px ${isDark ? 'rgba(46,148,255,0.4)' : 'rgba(37,99,235,0.4)'}` }}
+                whileHover={{ scale: 1.02, boxShadow: `0 4px 12px ${isDark ? 'rgba(0, 229, 204,0.4)' : 'rgba(0, 196, 174,0.4)'}` }}
                 whileTap={{ scale: 0.98 }}
               >
                 <Plus className="w-3.5 h-3.5" />
@@ -1951,15 +1951,15 @@ export function GanttToolbar({
               onClick={onCreateTask}
               className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px] transition-all"
               style={{
-                background: 'linear-gradient(135deg, #2E94FF 0%, #2E94FF 100%)',
+                background: 'linear-gradient(135deg, #00E5CC 0%, #00E5CC 100%)',
                 color: '#FFFFFF',
                 fontFamily: 'Inter, sans-serif',
                 fontWeight: 500,
-                boxShadow: '0 2px 8px rgba(59, 130, 246, 0.3)',
+                boxShadow: '0 2px 8px rgba(0, 229, 204, 0.3)',
               }}
               whileHover={{
                 scale: 1.02,
-                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.4)',
+                boxShadow: '0 4px 12px rgba(0, 229, 204, 0.4)',
               }}
               whileTap={{ scale: 0.98 }}
             >

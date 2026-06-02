@@ -121,7 +121,7 @@ export function GeneratePlanModal({
                   viewBox="0 0 24 24"
                   fill="none"
                   xmlns="http://www.w3.org/2000/svg"
-                  className="text-blue-400"
+                  className="text-[#00E5CC]"
                 >
                   <path
                     d="M12 2L2 7L12 12L22 7L12 2Z"
@@ -181,7 +181,7 @@ export function GeneratePlanModal({
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
                     placeholder="Example: Build a mobile app for tracking fitness goals with user authentication, workout logging, progress charts, and social features..."
-                    className="w-full h-32 px-4 py-3 rounded-lg text-sm bg-white/5 border border-white/20 text-white placeholder-white/40 outline-none focus:border-blue-500/50 transition-all resize-none"
+                    className="w-full h-32 px-4 py-3 rounded-lg text-sm bg-white/5 border border-white/20 text-white placeholder-white/40 outline-none focus:border-[#00E5CC]/50 transition-all resize-none"
                     disabled={isLoading}
                   />
                   <p className="text-xs text-white/50 mt-2">
@@ -238,7 +238,7 @@ export function GeneratePlanModal({
 
                   {/* Explanation */}
                   {generatedPlan.explanation && (
-                    <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/30">
+                    <div className="p-4 rounded-lg bg-[#00E5CC]/10 border border-[#00E5CC]/30">
                       <p className="text-sm text-white/90">{generatedPlan.explanation}</p>
                     </div>
                   )}
@@ -289,7 +289,7 @@ export function GeneratePlanModal({
                                     ? 'bg-orange-500/20 text-orange-400'
                                     : card.priority === 'MEDIUM'
                                     ? 'bg-yellow-500/20 text-yellow-400'
-                                    : 'bg-blue-500/20 text-blue-400'
+                                    : 'bg-[#00E5CC]/20 text-[#00E5CC]'
                                 }`}
                               >
                                 {card.priority}
@@ -314,7 +314,7 @@ export function GeneratePlanModal({
           <div className="px-6 py-4 border-t border-white/10 flex items-center justify-between">
             <div>
               {isLoading && (
-                <div className="flex items-center gap-2 text-blue-400 text-sm">
+                <div className="flex items-center gap-2 text-[#00E5CC] text-sm">
                   <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
                     <circle
                       className="opacity-25"
@@ -349,7 +349,7 @@ export function GeneratePlanModal({
                   disabled={!prompt.trim() || isLoading}
                   className="px-6 py-2 rounded-lg text-sm font-semibold transition-all disabled:opacity-50"
                   style={{
-                    background: 'linear-gradient(135deg, #2E94FF 0%, #2E94FF 100%)',
+                    background: 'linear-gradient(135deg, #00E5CC 0%, #00E5CC 100%)',
                     color: '#ffffff',
                   }}
                 >

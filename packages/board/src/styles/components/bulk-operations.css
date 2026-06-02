@@ -49,8 +49,8 @@
   font-weight: var(--font-semibold);
   padding: var(--space-2) var(--space-3);
   color: var(--color-text-primary);
-  background: rgba(59, 130, 246, var(--opacity-faint));
-  border: 1px solid rgba(59, 130, 246, var(--opacity-light));
+  background: rgba(0, 229, 204, var(--opacity-faint));
+  border: 1px solid rgba(0, 229, 204, var(--opacity-light));
   border-radius: var(--radius-md);
 }
 
@@ -82,8 +82,8 @@
 }
 
 .asakaa-bulk-toolbar-button:hover {
-  background: rgba(59, 130, 246, var(--opacity-faint));
-  border-color: rgba(59, 130, 246, var(--opacity-medium));
+  background: rgba(0, 229, 204, var(--opacity-faint));
+  border-color: rgba(0, 229, 204, var(--opacity-medium));
   transform: scale(1.02);  /* Subtle 2%, not 5% */
 }
 
@@ -93,7 +93,7 @@
 
 .asakaa-bulk-toolbar-button:focus {
   @apply outline-none;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, var(--opacity-medium));
+  box-shadow: 0 0 0 2px rgba(0, 229, 204, var(--opacity-medium));
 }
 
 .asakaa-bulk-toolbar-button:disabled {
@@ -162,12 +162,12 @@
 }
 
 .asakaa-bulk-menu-item:hover {
-  background: rgba(59, 130, 246, var(--opacity-faint));
+  background: rgba(0, 229, 204, var(--opacity-faint));
 }
 
 .asakaa-bulk-menu-item:focus {
   @apply outline-none;
-  background: rgba(59, 130, 246, var(--opacity-faint));
+  background: rgba(0, 229, 204, var(--opacity-faint));
 }
 
 /* Priority dot indicator */

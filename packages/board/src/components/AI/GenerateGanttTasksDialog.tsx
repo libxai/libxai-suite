@@ -183,7 +183,7 @@ export function GenerateGanttTasksDialog({
                   viewBox="0 0 24 24"
                   fill="none"
                   xmlns="http://www.w3.org/2000/svg"
-                  className="text-blue-400"
+                  className="text-[#00E5CC]"
                 >
                   <rect x="3" y="4" width="18" height="2" rx="1" fill="currentColor" />
                   <rect x="3" y="9" width="18" height="2" rx="1" fill="currentColor" />
@@ -226,7 +226,7 @@ export function GenerateGanttTasksDialog({
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
                     placeholder="Example: Build a mobile app for tracking fitness goals with user authentication, workout logging, progress charts, and social features..."
-                    className="w-full h-32 px-4 py-3 rounded-lg text-sm bg-white/5 border border-white/20 text-white placeholder-white/40 outline-none focus:border-blue-500/50 transition-all resize-none"
+                    className="w-full h-32 px-4 py-3 rounded-lg text-sm bg-white/5 border border-white/20 text-white placeholder-white/40 outline-none focus:border-[#00E5CC]/50 transition-all resize-none"
                     disabled={isLoading}
                   />
                   <p className="text-xs text-white/50 mt-2">
@@ -245,7 +245,7 @@ export function GenerateGanttTasksDialog({
                       type="date"
                       value={startDate}
                       onChange={(e) => setStartDate(e.target.value)}
-                      className="w-full px-4 py-2 rounded-lg text-sm bg-white/5 border border-white/20 text-white outline-none focus:border-blue-500/50 transition-all"
+                      className="w-full px-4 py-2 rounded-lg text-sm bg-white/5 border border-white/20 text-white outline-none focus:border-[#00E5CC]/50 transition-all"
                       disabled={isLoading}
                     />
                   </div>
@@ -257,7 +257,7 @@ export function GenerateGanttTasksDialog({
                       type="date"
                       value={endDate}
                       onChange={(e) => setEndDate(e.target.value)}
-                      className="w-full px-4 py-2 rounded-lg text-sm bg-white/5 border border-white/20 text-white outline-none focus:border-blue-500/50 transition-all"
+                      className="w-full px-4 py-2 rounded-lg text-sm bg-white/5 border border-white/20 text-white outline-none focus:border-[#00E5CC]/50 transition-all"
                       disabled={isLoading}
                     />
                   </div>
@@ -318,7 +318,7 @@ export function GenerateGanttTasksDialog({
                       </span>
                     )}
                     {responseMetadata?.from_cache ? (
-                      <span className="px-2 py-1 rounded-lg text-xs font-semibold bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                      <span className="px-2 py-1 rounded-lg text-xs font-semibold bg-[#00E5CC]/20 text-[#00E5CC] border border-[#00E5CC]/30">
                         From Cache ({similarity}% similar)
                       </span>
                     ) : (
@@ -375,7 +375,7 @@ export function GenerateGanttTasksDialog({
                               </span>
                               <span>{task.duration} days</span>
                               {task.dependencies.length > 0 && (
-                                <span className="text-blue-400">
+                                <span className="text-[#00E5CC]">
                                   Depends: {task.dependencies.join(', ')}
                                 </span>
                               )}
@@ -387,7 +387,7 @@ export function GenerateGanttTasksDialog({
                                 ? 'bg-red-500/20 text-red-400'
                                 : task.priority === 'medium'
                                 ? 'bg-yellow-500/20 text-yellow-400'
-                                : 'bg-blue-500/20 text-blue-400'
+                                : 'bg-[#00E5CC]/20 text-[#00E5CC]'
                             }`}
                           >
                             {task.priority}
@@ -405,7 +405,7 @@ export function GenerateGanttTasksDialog({
           <div className="px-6 py-4 border-t border-white/10 flex items-center justify-between">
             <div>
               {isLoading && (
-                <div className="flex items-center gap-2 text-blue-400 text-sm">
+                <div className="flex items-center gap-2 text-[#00E5CC] text-sm">
                   <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
                     <circle
                       className="opacity-25"
@@ -440,7 +440,7 @@ export function GenerateGanttTasksDialog({
                   disabled={!prompt.trim() || isLoading}
                   className="px-6 py-2 rounded-lg text-sm font-semibold transition-all disabled:opacity-50"
                   style={{
-                    background: 'linear-gradient(135deg, #2E94FF 0%, #2E94FF 100%)',
+                    background: 'linear-gradient(135deg, #00E5CC 0%, #00E5CC 100%)',
                     color: '#ffffff',
                   }}
                 >

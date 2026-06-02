@@ -1129,7 +1129,7 @@ export function TaskBar({
               height={height}
               rx={rx}
               fill="none"
-              stroke="#2E94FF"
+              stroke="#00E5CC"
               strokeWidth={0.8}
               strokeDasharray="5 3"
               style={{ pointerEvents: 'none' }}

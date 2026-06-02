@@ -100,7 +100,7 @@ export function AIUsageDashboard({
           {/* Content */}
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
             {/* Usage Limit */}
-            <div className="p-4 rounded-xl bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/30">
+            <div className="p-4 rounded-xl bg-gradient-to-r from-[#00E5CC]/10 to-purple-500/10 border border-[#00E5CC]/30">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-semibold text-white/90">
                   Monthly Usage ({planTier.toUpperCase()})
@@ -145,7 +145,7 @@ export function AIUsageDashboard({
                 <p className="text-xs font-semibold text-white/60 uppercase tracking-wider">
                   Operations
                 </p>
-                <p className="text-2xl font-bold text-blue-400 mt-1">
+                <p className="text-2xl font-bold text-[#00E5CC] mt-1">
                   {stats.totalOperations}
                 </p>
               </div>
@@ -204,7 +204,7 @@ export function AIUsageDashboard({
                       </div>
                       <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-blue-500"
+                          className="h-full bg-[#00E5CC]"
                           style={{ width: `${percent}%` }}
                         />
                       </div>

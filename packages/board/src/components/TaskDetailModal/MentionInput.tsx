@@ -574,7 +574,7 @@ export function MentionInput({
               className={cn(
                 "p-1.5 rounded transition-colors",
                 (value.trim() || pendingFiles.length > 0) && !disabled
-                  ? (isDark ? "bg-blue-500 text-white hover:bg-blue-600" : "bg-blue-500 text-white hover:bg-blue-600")
+                  ? (isDark ? "bg-[#00E5CC] text-white hover:bg-[#00C4AE]" : "bg-[#00E5CC] text-white hover:bg-[#00C4AE]")
                   : (isDark ? "text-[#6B7280]" : "text-gray-400"),
                 isSubmitting && "opacity-50 cursor-not-allowed"
               )}
@@ -694,8 +694,8 @@ export function CommentContent({
                 "inline-flex items-center px-1 py-0.5 rounded",
                 "font-medium text-sm",
                 isDark
-                  ? "bg-blue-500/20 text-blue-400"
-                  : "bg-blue-100 text-blue-700"
+                  ? "bg-[#00E5CC]/20 text-[#00E5CC]"
+                  : "bg-[#00E5CC]/15 text-[#00C4AE]"
               )}
             >
               {part.value}

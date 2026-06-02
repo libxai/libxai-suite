@@ -81,9 +81,9 @@ export function StatusFilter({
   }, [isOpen]);
 
   const options: Array<{ value: StatusFilterValue; label: string; icon: React.ReactNode; color: string }> = [
-    { value: 'all', label: t.showAll, icon: <div className="w-4 h-4 rounded-full border-2 border-[#007BFF] bg-[#007BFF]" />, color: 'text-[#007BFF]' },
+    { value: 'all', label: t.showAll, icon: <div className="w-4 h-4 rounded-full border-2 border-[#00E5CC] bg-[#00E5CC]" />, color: 'text-[#00E5CC]' },
     { value: 'completed', label: t.completed, icon: <CheckCircle2 className="w-4 h-4" />, color: 'text-green-500' },
-    { value: 'in-progress', label: t.inProgress, icon: <PlayCircle className="w-4 h-4" />, color: 'text-blue-500' },
+    { value: 'in-progress', label: t.inProgress, icon: <PlayCircle className="w-4 h-4" />, color: 'text-[#00E5CC]' },
     { value: 'todo', label: t.toDo, icon: <Circle className="w-4 h-4" />, color: 'text-gray-400' },
   ];
 
@@ -105,7 +105,7 @@ export function StatusFilter({
           isDark
             ? 'border-[#222] hover:bg-white/[0.05] text-white/70'
             : 'border-gray-200 hover:bg-gray-100 text-gray-700',
-          hasActiveFilter && (isDark ? 'bg-[#2E94FF]/20 border-[#2E94FF]/50 text-[#2E94FF]' : 'bg-blue-50 border-blue-200 text-blue-600'),
+          hasActiveFilter && (isDark ? 'bg-[#00E5CC]/20 border-[#00E5CC]/50 text-[#00E5CC]' : 'bg-[#00E5CC]/15 border-[#00E5CC]/15 text-[#00C4AE]'),
           isOpen && (isDark ? 'bg-white/[0.05]' : 'bg-gray-100')
         )}
         style={{ fontFamily: 'Inter, sans-serif' }}
@@ -115,7 +115,7 @@ export function StatusFilter({
         {hasActiveFilter && (
           <span className={cn(
             'w-2 h-2 rounded-full',
-            isDark ? 'bg-[#2E94FF]' : 'bg-blue-500'
+            isDark ? 'bg-[#00E5CC]' : 'bg-[#00E5CC]'
           )} />
         )}
       </button>
@@ -151,7 +151,7 @@ export function StatusFilter({
               const getIcon = () => {
                 if (option.value === 'all') {
                   return isSelected
-                    ? <div className="w-4 h-4 rounded-full border-2 border-[#007BFF] bg-[#007BFF]" />
+                    ? <div className="w-4 h-4 rounded-full border-2 border-[#00E5CC] bg-[#00E5CC]" />
                     : <div className="w-4 h-4 rounded-full border-2 border-gray-400" />;
                 }
                 return option.icon;
@@ -181,7 +181,7 @@ export function StatusFilter({
                     {option.label}
                   </span>
                   {isSelected && (
-                    <Check className={cn('w-4 h-4 flex-shrink-0', isDark ? 'text-[#007BFF]' : 'text-blue-500')} />
+                    <Check className={cn('w-4 h-4 flex-shrink-0', isDark ? 'text-[#00E5CC]' : 'text-[#00E5CC]')} />
                   )}
                 </button>
               );
@@ -214,7 +214,7 @@ export function StatusFilter({
               <EyeOff className={cn(
                 'w-4 h-4 flex-shrink-0',
                 hideCompleted
-                  ? (isDark ? 'text-[#007BFF]' : 'text-blue-500')
+                  ? (isDark ? 'text-[#00E5CC]' : 'text-[#00E5CC]')
                   : (isDark ? 'text-white/30' : 'text-gray-400')
               )} />
               <span className={cn(
@@ -224,7 +224,7 @@ export function StatusFilter({
                 {t.hideCompleted}
               </span>
               {hideCompleted && (
-                <Check className={cn('w-4 h-4 flex-shrink-0', isDark ? 'text-[#007BFF]' : 'text-blue-500')} />
+                <Check className={cn('w-4 h-4 flex-shrink-0', isDark ? 'text-[#00E5CC]' : 'text-[#00E5CC]')} />
               )}
             </button>
           </div>

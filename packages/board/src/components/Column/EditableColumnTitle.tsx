@@ -57,7 +57,7 @@ export function EditableColumnTitle({
         onBlur={handleSave}
         onKeyDown={handleKeyDown}
         className={cn(
-          'asakaa-column-title bg-transparent border-b-2 border-blue-500',
+          'asakaa-column-title bg-transparent border-b-2 border-[#00E5CC]',
           'outline-none px-1 -ml-1',
           className
         )}

@@ -14,7 +14,7 @@ export interface TaskColor {
 
 // v0.17.112: Professional vibrant color palette - all colors are eye-catching
 export const TASK_COLORS: TaskColor[] = [
-  { name: 'Azul', value: '#2E94FF', light: '#5AADFF' },
+  { name: 'Azul', value: '#00E5CC', light: '#5AADFF' },
   { name: 'Púrpura', value: '#A855F7', light: '#C084FC' },
   { name: 'Rosa', value: '#EC4899', light: '#F472B6' },
   { name: 'Rojo', value: '#EF4444', light: '#F87171' },
@@ -23,7 +23,7 @@ export const TASK_COLORS: TaskColor[] = [
   { name: 'Lima', value: '#84CC16', light: '#A3E635' },
   { name: 'Verde', value: '#10B981', light: '#34D399' },
   { name: 'Esmeralda', value: '#059669', light: '#10B981' },
-  { name: 'Cyan', value: '#06B6D4', light: '#22D3EE' },
+  { name: 'Cyan', value: '#00E5CC', light: '#00E5CC' },
   { name: 'Azul Cielo', value: '#0EA5E9', light: '#38BDF8' },
   { name: 'Índigo', value: '#4F46E5', light: '#6366F1' },
   { name: 'Violeta', value: '#8B5CF6', light: '#A78BFA' },
@@ -38,7 +38,7 @@ interface ColorPickerProps {
   disabled?: boolean;
 }
 
-export function ColorPicker({ value = '#2E94FF', onChange, disabled = false }: ColorPickerProps) {
+export function ColorPicker({ value = '#00E5CC', onChange, disabled = false }: ColorPickerProps) {
   return (
     <div className="space-y-2">
       {/* v0.17.187: Grid with larger click area (28px) and small visual circle (16px) */}

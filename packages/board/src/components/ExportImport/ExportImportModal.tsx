@@ -110,7 +110,7 @@ export function ExportImportModal({
             className={cn(
               'flex-1 px-6 py-4 font-semibold transition-colors',
               activeTab === 'export'
-                ? 'text-white border-b-2 border-blue-500'
+                ? 'text-white border-b-2 border-[#00E5CC]'
                 : 'text-white/50 hover:text-white/80'
             )}
           >
@@ -121,7 +121,7 @@ export function ExportImportModal({
             className={cn(
               'flex-1 px-6 py-4 font-semibold transition-colors',
               activeTab === 'import'
-                ? 'text-white border-b-2 border-blue-500'
+                ? 'text-white border-b-2 border-[#00E5CC]'
                 : 'text-white/50 hover:text-white/80'
             )}
           >
@@ -145,7 +145,7 @@ export function ExportImportModal({
                       className={cn(
                         'p-4 rounded-lg border-2 transition-all text-center',
                         selectedFormat === format
-                          ? 'border-blue-500 bg-blue-500/20 text-white'
+                          ? 'border-[#00E5CC] bg-[#00E5CC]/20 text-white'
                           : 'border-white/20 hover:border-white/40 text-white/70 hover:text-white'
                       )}
                     >
@@ -173,7 +173,7 @@ export function ExportImportModal({
 
               <button
                 onClick={handleExport}
-                className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-semibold rounded-lg transition-all shadow-lg shadow-blue-500/20"
+                className="w-full py-3 px-4 bg-gradient-to-r from-[#00C4AE] to-[#00C4AE] hover:from-[#00E5CC] hover:to-[#00C4AE] text-white font-semibold rounded-lg transition-all shadow-lg shadow-[#00E5CC]/20"
               >
                 Export Board
               </button>

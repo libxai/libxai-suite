@@ -49,7 +49,7 @@ export function ThemeModal({ isOpen, onClose, className }: ThemeModalProps) {
               className={cn(
                 'w-full p-4 rounded-lg border-2 transition-all flex items-center gap-4',
                 theme === key
-                  ? 'border-blue-500 bg-blue-500/20'
+                  ? 'border-[#00E5CC] bg-[#00E5CC]/20'
                   : 'border-white/20 hover:border-white/40'
               )}
               style={{

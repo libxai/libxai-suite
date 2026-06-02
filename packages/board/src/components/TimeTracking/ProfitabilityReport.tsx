@@ -65,7 +65,7 @@ function getStatusColor(status: TaskProfitability['status'], isDark: boolean): s
     case 'profitable':
       return isDark ? 'text-green-400' : 'text-green-600';
     case 'at-cost':
-      return isDark ? 'text-blue-400' : 'text-blue-600';
+      return isDark ? 'text-[#00E5CC]' : 'text-[#00C4AE]';
     case 'loss':
       return isDark ? 'text-red-400' : 'text-red-600';
     case 'no-estimate':
@@ -84,8 +84,8 @@ function getStatusBgColor(status: TaskProfitability['status'], isDark: boolean):
         : 'bg-green-50 border-green-200';
     case 'at-cost':
       return isDark
-        ? 'bg-blue-900/30 border-blue-700/50'
-        : 'bg-blue-50 border-blue-200';
+        ? 'bg-[#00A893]/30 border-[#00C4AE]/50'
+        : 'bg-[#00E5CC]/15 border-[#00E5CC]/15';
     case 'loss':
       return isDark
         ? 'bg-red-900/30 border-red-700/50'
@@ -186,7 +186,7 @@ function SummaryCard({
             <span className={cn('font-medium', textPrimary)}>{summary.profitableTasksCount}</span>
           </div>
           <div className="flex justify-between">
-            <span className={isDark ? 'text-blue-400' : 'text-blue-600'}>
+            <span className={isDark ? 'text-[#00E5CC]' : 'text-[#00C4AE]'}>
               {locale === 'es' ? 'En costo' : 'At Cost'}
             </span>
             <span className={cn('font-medium', textPrimary)}>{summary.atCostTasksCount}</span>

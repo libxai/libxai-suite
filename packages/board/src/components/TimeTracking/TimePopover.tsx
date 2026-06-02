@@ -301,7 +301,7 @@ export function TimePopover({
                 'w-full pl-8 pr-3 py-1.5 text-sm rounded-lg',
                 'bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600',
                 'text-gray-900 dark:text-white placeholder-gray-400',
-                'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+                'focus:outline-none focus:ring-2 focus:ring-[#00E5CC] focus:border-transparent'
               )}
             />
           </div>
@@ -310,7 +310,7 @@ export function TimePopover({
             disabled={isLogging || !durationInput.trim()}
             className={cn(
               'px-3 py-1.5 rounded-lg text-sm font-medium',
-              'bg-blue-500 hover:bg-blue-600 text-white',
+              'bg-[#00E5CC] hover:bg-[#00C4AE] text-white',
               'disabled:opacity-50 disabled:cursor-not-allowed'
             )}
           >
@@ -327,7 +327,7 @@ export function TimePopover({
             'w-full px-3 py-1.5 text-sm rounded-lg',
             'bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600',
             'text-gray-900 dark:text-white placeholder-gray-400',
-            'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+            'focus:outline-none focus:ring-2 focus:ring-[#00E5CC] focus:border-transparent'
           )}
         />
       </div>
@@ -354,14 +354,14 @@ export function TimePopover({
                 }}
                 onBlur={handleUpdateEstimate}
                 autoFocus
-                className="w-16 px-1 py-0.5 text-sm text-right rounded border border-blue-500 bg-transparent focus:outline-none"
+                className="w-16 px-1 py-0.5 text-sm text-right rounded border border-[#00E5CC] bg-transparent focus:outline-none"
                 placeholder="4h"
               />
             </div>
           ) : (
             <button
               onClick={() => setShowEstimateEdit(true)}
-              className="font-medium text-gray-900 dark:text-white hover:text-blue-500"
+              className="font-medium text-gray-900 dark:text-white hover:text-[#00E5CC]"
             >
               {summary.estimateMinutes
                 ? formatDuration(summary.estimateMinutes)

@@ -149,7 +149,7 @@ export function GroupBySelector({
                       {option.label}
                     </span>
                     {value === option.value && (
-                      <span className="text-blue-400 text-xs">✓</span>
+                      <span className="text-[#00E5CC] text-xs">✓</span>
                     )}
                   </div>
                   <p className="text-xs text-white/60 mt-0.5">

@@ -565,6 +565,17 @@ export interface GanttConfig {
   persistFilter?: boolean | string;
 
   /**
+   * Persist the visible-columns config (which data columns are shown + their
+   * widths) to localStorage, so it survives navigating away from the Gantt.
+   * When true, uses default key 'gantt-columns-state'.
+   * When string, uses the provided string as the localStorage key (use a
+   * per-project key like `gantt-columns:${projectId}`).
+   * When false/undefined, columns only persist during the current session.
+   * @default false
+   */
+  persistColumns?: boolean | string;
+
+  /**
    * v1.4.10: Clear filters key - when this value changes, internal filters are reset
    * Useful for navigation scenarios where filters should be cleared (e.g., from notifications)
    * Pass a timestamp or counter that changes when you want to reset filters
@@ -717,6 +728,16 @@ export interface GanttConfig {
 
   // v0.17.68: Reparent callback - move task to a different parent via drag & drop
   onTaskReparent?: (taskId: string, newParentId: string | null, position?: number) => void;
+
+  /** Drag-fill: a value (assignees / startDate / endDate) was applied to many
+   *  tasks at once. `updatedTasks` is the full task tree after the change, so
+   *  the consumer can persist the affected tasks directly. */
+  onBulkFill?: (
+    taskIds: string[],
+    column: 'assignees' | 'startDate' | 'endDate',
+    value: any,
+    updatedTasks: Task[],
+  ) => void;
 
   /** v2.5.0: Per-user hourly rate map for Excel export cost columns (userId → rate) */
   rateMap?: Record<string, number>;

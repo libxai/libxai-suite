@@ -134,8 +134,8 @@ export function ProgressCell({
             className={cn(
               'w-8 text-xs text-right tabular-nums font-mono rounded border px-1 py-0 outline-none',
               isDark
-                ? 'bg-white/10 border-white/20 text-white focus:border-blue-400'
-                : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500'
+                ? 'bg-white/10 border-white/20 text-white focus:border-[#00E5CC]'
+                : 'bg-white border-gray-300 text-gray-900 focus:border-[#00E5CC]'
             )}
           />
           <span className={cn('text-xs font-mono', isDark ? 'text-white/40' : 'text-gray-400')}>%</span>

@@ -4,7 +4,8 @@
  * Can be used for single date or date range selection
  */
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Calendar, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '../../../utils';
 
@@ -48,21 +49,64 @@ export function DateRangePicker({
     return new Date(new Date().getFullYear(), new Date().getMonth(), 1);
   });
   const ref = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
+  // v1.8.1 — anchor-based fixed positioning for the popup. Without this,
+  // the dropdown was a child of the table cell and got clipped (or pushed
+  // off-screen) when the cell sat near the right or bottom edge of the
+  // viewport. Now we portal it to <body> and place it relative to the
+  // trigger's bounding rect, flipping above/right when there's no room.
+  const [pos, setPos] = useState<{ top: number; left: number; flipUp: boolean } | null>(null);
 
   const startDateValue = startDate ? (startDate instanceof Date ? startDate : new Date(startDate)) : null;
   const endDateValue = endDate ? (endDate instanceof Date ? endDate : new Date(endDate)) : null;
 
-  // Close on outside click
+  // Close on outside click — must consider the portaled popup since it
+  // lives outside `ref`'s subtree.
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
+      const target = e.target as Node;
+      if (ref.current && ref.current.contains(target)) return;
+      if (popupRef.current && popupRef.current.contains(target)) return;
+      setIsOpen(false);
     };
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
     return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
+
+  // Compute popup position when open. Re-runs on scroll/resize so the popup
+  // tracks the trigger if the user scrolls the table while it's open.
+  useLayoutEffect(() => {
+    if (!isOpen) {
+      setPos(null);
+      return;
+    }
+    const place = () => {
+      const rect = triggerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      // The popup is a 2-pane layout (sidebar + calendar). Width ~520px
+      // covers the typical layout; height ~360px (six week-rows + header).
+      const POPUP_WIDTH = 520;
+      const POPUP_HEIGHT = 360;
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const flipUp = spaceBelow < POPUP_HEIGHT && rect.top > spaceBelow;
+      const top = flipUp ? rect.top - 4 : rect.bottom + 4;
+      // Clamp horizontally so the popup never escapes the viewport.
+      const left = Math.min(
+        Math.max(rect.left, 8),
+        window.innerWidth - POPUP_WIDTH - 8,
+      );
+      setPos({ top, left, flipUp });
+    };
+    place();
+    window.addEventListener('scroll', place, true);
+    window.addEventListener('resize', place);
+    return () => {
+      window.removeEventListener('scroll', place, true);
+      window.removeEventListener('resize', place);
+    };
   }, [isOpen]);
 
   // Reset selecting field when opening
@@ -221,6 +265,7 @@ export function DateRangePicker({
     <div ref={ref} className="relative">
       {/* Trigger Button */}
       <button
+        ref={triggerRef}
         onClick={(e) => {
           e.stopPropagation();
           setIsOpen(!isOpen);
@@ -241,17 +286,24 @@ export function DateRangePicker({
         </span>
       </button>
 
-      {/* Dropdown */}
-      {isOpen && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-          <div
-            className={cn(
-              'absolute z-50 top-full left-0 mt-1 rounded-xl shadow-2xl overflow-hidden flex',
-              isDark ? 'bg-[#1A1A1A] border border-[#222]' : 'bg-white border border-gray-200'
-            )}
-            onClick={(e) => e.stopPropagation()}
-          >
+      {/* Dropdown — portaled to <body> with anchor-based positioning so it
+          escapes the table's overflow clipping and flips when near edges. */}
+      {isOpen && pos && createPortal(
+        <div
+          ref={popupRef}
+          className={cn(
+            'rounded-xl shadow-2xl overflow-hidden flex',
+            isDark ? 'bg-[#1A1A1A] border border-[#222]' : 'bg-white border border-gray-200'
+          )}
+          style={{
+            position: 'fixed',
+            top: pos.flipUp ? undefined : pos.top,
+            bottom: pos.flipUp ? window.innerHeight - pos.top : undefined,
+            left: pos.left,
+            zIndex: 10001,
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
             {/* Quick Options - Left Side */}
             <div className={cn('w-44 py-2 border-r', isDark ? 'border-[#222]' : 'border-gray-200')}>
               {getQuickOptions().map((option, i) => (
@@ -370,8 +422,8 @@ export function DateRangePicker({
                         'w-8 h-8 rounded-full flex items-center justify-center text-sm transition-colors',
                         !d.isCurrentMonth && (isDark ? 'text-white/20' : 'text-gray-300'),
                         d.isCurrentMonth && (isDark ? 'text-white' : 'text-gray-900'),
-                        isToday && 'ring-2 ring-[#007BFF]',
-                        isStartDate && 'bg-[#007BFF] text-white',
+                        isToday && 'ring-2 ring-[#00E5CC]',
+                        isStartDate && 'bg-[#00E5CC] text-white',
                         isEndDate && !isStartDate && 'bg-[#7C3AED] text-white',
                         isInRange && !isSelected && (isDark ? 'bg-[#7C3AED]/20' : 'bg-purple-100'),
                         !isSelected && (isDark ? 'hover:bg-white/[0.05]' : 'hover:bg-gray-100')
@@ -383,8 +435,8 @@ export function DateRangePicker({
                 })}
               </div>
             </div>
-          </div>
-        </>
+        </div>,
+        document.body,
       )}
     </div>
   );

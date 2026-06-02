@@ -317,7 +317,7 @@ export function CarouselFlipCard({
               key={index}
               onClick={() => setCurrentFace(index)}
               className={`w-2 h-2 rounded-full transition-all ${
-                index === currentFace ? 'bg-blue-500 w-4' : 'bg-gray-300'
+                index === currentFace ? 'bg-[#00E5CC] w-4' : 'bg-gray-300'
               }`}
               aria-label={`Go to slide ${index + 1}`}
             />

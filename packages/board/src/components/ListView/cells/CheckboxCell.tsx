@@ -61,7 +61,7 @@ export function CheckboxCell({
         className={cn(
           'relative w-5 h-5 rounded border-2 flex items-center justify-center transition-[border-color,background-color,box-shadow]',
           displayValue
-            ? 'bg-[#007BFF] border-[#007BFF]'
+            ? 'bg-[#00E5CC] border-[#00E5CC]'
             : isDark
               ? 'border-[#333] hover:border-[#6B7280]'
               : 'border-gray-300 hover:border-gray-400',
