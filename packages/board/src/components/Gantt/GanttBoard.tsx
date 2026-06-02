@@ -686,7 +686,11 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   // 🚀 KILLER FEATURE #1: Calculate Critical Path (auto-updates when tasks change)
   // v5.1.0: Full CPM data (ES/EF/LS/LF/TF/FF) per task for visual rendering
   const tasksWithCriticalPath = useMemo(() => {
-    if (!enableAutoCriticalPath) {
+    // Only run the (expensive, full-tree) CPM computation when it's actually
+    // needed: either auto-CPM is enabled AND the user is showing the critical
+    // path, or showCriticalPath is on. With CPM off-by-default this skips the
+    // heavy calc on every mount/view-switch until the user toggles it on.
+    if (!enableAutoCriticalPath || !showCriticalPath) {
       return localTasks;
     }
 
@@ -709,7 +713,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     };
 
     return markCritical(localTasks);
-  }, [localTasks, enableAutoCriticalPath]);
+  }, [localTasks, enableAutoCriticalPath, showCriticalPath]);
 
   // v5.1.0: Check if any task has dependencies (for disabling CPM button)
   const hasDependencies = useMemo(() => {
