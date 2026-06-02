@@ -1530,15 +1530,11 @@ export function TaskGrid({
               position: 'relative', // v0.17.146: For drop indicator positioning
               height: `${ROW_HEIGHT}px`,
               borderLeft: isSelected ? `3px solid ${theme.accent}` : `3px solid transparent`,
-              backgroundColor: inFillRange
-                ? `${theme.accent}22`
-                : isSelected
+              backgroundColor: isSelected
                 ? theme.accentLight
                 : showDropChild
                   ? `${theme.accent}15`
                   : (index % 2 === 0 ? theme.bgPrimary : theme.bgGrid),
-              // Drag-fill preview: dashed outline on covered rows
-              boxShadow: inFillRange ? `inset 0 0 0 1px ${theme.accent}55` : undefined,
               // v5.1.0: CPM opacity — non-critical tasks fade
               opacity: showCriticalPath ? (task.isCriticalPath ? 1.0 : 0.4) : undefined,
               transition: 'opacity 300ms ease',
@@ -1621,6 +1617,9 @@ export function TaskGrid({
               : null;
             const canFill = !!fillColumn && !isParentRow;
             const showFillHandle = canFill && hoveredTaskId === task.id && !fillDrag;
+            // Excel-style preview: highlight ONLY the cell of the column being
+            // filled (not the whole row), on the rows covered by the drag.
+            const cellInFill = inFillRange && !!fillDrag && fillDrag.column === column.id;
 
             return (
             <div
@@ -1641,6 +1640,9 @@ export function TaskGrid({
                 height: '100%',
                 boxSizing: 'border-box',
                 overflow: 'visible',
+                // Drag-fill preview on the target column's cells only.
+                backgroundColor: cellInFill ? `${theme.accent}22` : undefined,
+                boxShadow: cellInFill ? `inset 0 0 0 1px ${theme.accent}66` : undefined,
               }}
             >
               {renderCellContent(column, task, isNameColumn ? level : 0)}
