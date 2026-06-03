@@ -551,6 +551,13 @@ export interface ListViewCallbacks {
   onReportBlocker?: (task: Task) => void;
   /** Handler for copying task link to clipboard */
   onCopyTaskLink?: (task: Task) => void;
+  /** Drag-fill (Excel-style): a value (assignees / date) dragged from one cell
+   *  was applied to many tasks at once. */
+  onBulkFill?: (
+    taskIds: string[],
+    column: 'assignees' | 'startDate' | 'endDate',
+    value: any,
+  ) => void;
 }
 
 /**

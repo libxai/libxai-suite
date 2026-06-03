@@ -533,6 +533,28 @@ export function ListView({
   const rowDraggingRef = useRef(false);
   const canDragRows = !!(callbacks.onTaskMove || callbacks.onTaskReparent);
 
+  // Drag-fill (Excel-style): drag a value (assignees/date) from one cell down
+  // across rows to apply it to all of them. Mirrors the Gantt TaskGrid.
+  const [hoveredTaskId, setHoveredTaskId] = useState<string | null>(null);
+  const [fillDrag, setFillDrag] = useState<{
+    sourceTaskId: string;
+    column: 'assignees' | 'startDate' | 'endDate';
+    sourceIndex: number;
+    targetIndex: number;
+  } | null>(null);
+  // The visible "Equipo" column has type 'teamLoad' (it shows the assignee
+  // picker on leaf tasks); map it to 'assignees' for drag-fill. Returns the
+  // normalized fill column for a given column type, or null if not fillable.
+  const fillColumnFor = (colType: string): 'assignees' | 'startDate' | 'endDate' | null => {
+    if (colType === 'assignees' || colType === 'teamLoad') return 'assignees';
+    if (colType === 'startDate') return 'startDate';
+    if (colType === 'endDate') return 'endDate';
+    return null;
+  };
+  // Latest display order, read inside the drag-fill mouse handlers (assigned
+  // after displayTasks is computed, below).
+  const displayTasksRef = useRef<Task[]>([]);
+
   const handleRowDragStart = useCallback((taskId: string, e: React.MouseEvent) => {
     if (!canDragRows) return;
     e.preventDefault();
@@ -619,6 +641,76 @@ export function ListView({
     rowDraggingRef.current = false;
     setRowDragging(false);
   }, [rowDragId, rowDropTargetId, rowDropPosition, tasks, callbacks]);
+
+  // ── Drag-fill handlers (mirror Gantt TaskGrid) ─────────────────────────────
+  const getFillValue = (task: Task, column: 'assignees' | 'startDate' | 'endDate') => {
+    if (column === 'assignees') return (task as any).assignees;
+    if (column === 'startDate') return (task as any).startDate;
+    return (task as any).endDate;
+  };
+
+  const handleFillDragStart = (
+    e: React.MouseEvent,
+    sourceTaskId: string,
+    column: 'assignees' | 'startDate' | 'endDate',
+    sourceIndex: number,
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setFillDrag({ sourceTaskId, column, sourceIndex, targetIndex: sourceIndex });
+
+    // Ordered ids of the rows currently in the DOM (display order).
+    const rowEls = Array.from(document.querySelectorAll('[data-listview-row]')) as HTMLElement[];
+
+    const rowIndexAt = (clientY: number): number => {
+      let idx = sourceIndex;
+      rowEls.forEach((row, i) => {
+        const r = row.getBoundingClientRect();
+        if (clientY >= r.top && clientY <= r.bottom) idx = i;
+      });
+      if (idx < sourceIndex) idx = sourceIndex; // fill downward only
+      return idx;
+    };
+
+    const onMove = (ev: MouseEvent) => {
+      const idx = rowIndexAt(ev.clientY);
+      setFillDrag(prev => (prev ? { ...prev, targetIndex: idx } : prev));
+    };
+
+    const onUp = (ev: MouseEvent) => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      setFillDrag(null);
+      const targetIndex = rowIndexAt(ev.clientY);
+      const src = rowEls.find((r) => r.getAttribute('data-listview-row') === sourceTaskId);
+      if (!src) return;
+      // Resolve the source task from the display list to read its value.
+      const sourceTask = displayTasksRef.current.find((t) => t.id === sourceTaskId);
+      if (!sourceTask) return;
+      const value = getFillValue(sourceTask, column);
+      const from = Math.min(sourceIndex, targetIndex);
+      const to = Math.max(sourceIndex, targetIndex);
+      const targetIds: string[] = [];
+      for (let i = from; i <= to; i++) {
+        if (i === sourceIndex) continue;
+        const t = displayTasksRef.current[i];
+        if (!t) continue;
+        if ((t as any).subtasks && (t as any).subtasks.length > 0) continue; // skip parents
+        targetIds.push(t.id);
+      }
+      if (targetIds.length > 0) callbacks.onBulkFill?.(targetIds, column, value);
+    };
+
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
+
+  const isInFillRange = (index: number) => {
+    if (!fillDrag) return false;
+    const from = Math.min(fillDrag.sourceIndex, fillDrag.targetIndex);
+    const to = Math.max(fillDrag.sourceIndex, fillDrag.targetIndex);
+    return index >= from && index <= to;
+  };
 
   useEffect(() => {
     if (rowDragId) {
@@ -1016,6 +1108,9 @@ export function ListView({
 
     return flatTasks;
   }, [tasks, searchQuery, statusFilter, hideCompleted, sortField, sortOrder, getTaskStatus]);
+
+  // Keep the latest display order accessible inside the drag-fill mouse handlers.
+  displayTasksRef.current = displayTasks;
 
   // Render cell based on column type
   const renderCell = useCallback((task: Task, column: TableColumn) => {
@@ -2102,6 +2197,8 @@ export function ListView({
                   onClick={() => callbacks.onTaskClick?.(task)}
                   onDoubleClick={() => callbacks.onTaskDoubleClick?.(task)}
                   onContextMenu={(e) => handleContextMenu(e, task)}
+                  onMouseEnter={() => setHoveredTaskId(task.id)}
+                  onMouseLeave={() => setHoveredTaskId((prev) => (prev === task.id ? null : prev))}
                 >
                   {/* Drop indicator ABOVE */}
                   {showDropAbove && (
@@ -2121,11 +2218,23 @@ export function ListView({
                       <GripVertical className="w-3 h-3" />
                     </div>
                   )}
-                  {visibleColumns.map((column) => (
+                  {visibleColumns.map((column) => {
+                    // Drag-fill: handle + preview for assignees/date cells.
+                    const isParentRow = !!(task.subtasks && task.subtasks.length > 0);
+                    const fillCol = fillColumnFor(column.type);
+                    const canFill = !!fillCol && !isParentRow;
+                    const showFillHandle = canFill && hoveredTaskId === task.id && !fillDrag;
+                    const cellInFill = !!fillDrag && !!fillCol && fillDrag.column === fillCol && isInFillRange(index);
+                    return (
                     <div
                       key={column.id}
                       className={cn("flex items-center px-4 py-3 min-h-[56px]", column.type !== 'name' && "justify-center")}
-                      style={{ width: columnWidthPercent[column.id], minWidth: column.minWidth }}
+                      style={{
+                        width: columnWidthPercent[column.id], minWidth: column.minWidth,
+                        position: 'relative',
+                        backgroundColor: cellInFill ? 'rgba(0, 229, 204, 0.13)' : undefined,
+                        boxShadow: cellInFill ? 'inset 0 0 0 1px rgba(0, 229, 204, 0.45)' : undefined,
+                      }}
                     >
                       {column.type === 'name' ? (
                         /* Name column with hierarchy — Chronos V2.0 two-line layout */
@@ -2200,8 +2309,27 @@ export function ListView({
                       ) : (
                         renderCell(task, column)
                       )}
+                      {showFillHandle && fillCol && (
+                        <div
+                          title="Arrastrá hacia abajo para aplicar a varias tareas"
+                          onMouseDown={(e) => handleFillDragStart(e, task.id, fillCol, index)}
+                          style={{
+                            position: 'absolute',
+                            right: 2,
+                            bottom: 2,
+                            width: 8,
+                            height: 8,
+                            borderRadius: 2,
+                            background: '#00E5CC',
+                            border: '1px solid rgba(0,0,0,0.3)',
+                            cursor: 'crosshair',
+                            zIndex: 5,
+                          }}
+                        />
+                      )}
                     </div>
-                  ))}
+                    );
+                  })}
 
                   {/* Empty cell for add column button alignment */}
                   {allowColumnCustomization && (

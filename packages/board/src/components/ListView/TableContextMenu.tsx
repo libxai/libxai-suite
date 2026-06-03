@@ -3,7 +3,7 @@
  * @version 0.18.0
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import {
   Edit3,
   Copy,
@@ -109,6 +109,29 @@ export function TableContextMenu({
 }: TableContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const t = locale === 'es' ? translations.es : translations.en;
+
+  // Adjusted position so the menu never overflows the viewport. Starts at the
+  // click coords and is corrected (flip up / shift left) after measuring.
+  const [pos, setPos] = useState<{ left: number; top: number }>({ left: state.x, top: state.y });
+
+  useLayoutEffect(() => {
+    setPos({ left: state.x, top: state.y }); // reset for the new open
+    const el = menuRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const margin = 8;
+    let left = state.x;
+    let top = state.y;
+    // Overflow bottom → open upward from the click point.
+    if (state.y + rect.height > window.innerHeight - margin) {
+      top = Math.max(margin, state.y - rect.height);
+    }
+    // Overflow right → shift left so it fits.
+    if (state.x + rect.width > window.innerWidth - margin) {
+      left = Math.max(margin, window.innerWidth - rect.width - margin);
+    }
+    if (left !== state.x || top !== state.y) setPos({ left, top });
+  }, [state.x, state.y, state.isOpen]);
 
   // Close on click outside
   useEffect(() => {
@@ -423,11 +446,11 @@ export function TableContextMenu({
 
   const menuItems = state.type === 'task' ? getTaskMenuItems() : getHeaderMenuItems();
 
-  // Calculate position to avoid viewport overflow
+  // Position from the overflow-corrected coords (see useLayoutEffect above).
   const menuStyle: React.CSSProperties = {
     position: 'fixed',
-    left: state.x,
-    top: state.y,
+    left: pos.left,
+    top: pos.top,
     zIndex: 9999,
   };
 
