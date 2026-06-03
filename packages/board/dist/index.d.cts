@@ -334,8 +334,14 @@ interface GanttAIAssistantConfig {
     placeholder?: string;
     /** Position of the chat button */
     position?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
-    /** Handler for AI commands - should return task updates */
-    onCommand?: (command: string, tasks: Task[]) => Promise<AICommandResult>;
+    /** Handler for AI commands - should return task updates.
+     *  `history` is the recent conversation (oldest→newest, excluding the current
+     *  command) so the assistant can resolve follow-ups like "ahora movelas un
+     *  día más" / "deshacé eso". */
+    onCommand?: (command: string, tasks: Task[], history?: Array<{
+        role: 'user' | 'assistant';
+        content: string;
+    }>) => Promise<AICommandResult>;
     /** Custom suggestions for the command palette */
     suggestions?: string[];
     /** Maximum messages to keep in memory history */

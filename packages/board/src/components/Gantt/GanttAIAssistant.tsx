@@ -427,7 +427,14 @@ export function GanttAIAssistant({
 
     try {
       if (onCommand) {
-        const result = await onCommand(command, tasks);
+        // Build the recent conversation (last few turns) so the assistant can
+        // resolve follow-ups ("ahora movelas un día más"). Exclude loading
+        // placeholders and the just-added user command.
+        const history = messages
+          .filter((m) => !m.isLoading && m.content)
+          .slice(-6)
+          .map((m) => ({ role: m.role, content: m.content }));
+        const result = await onCommand(command, tasks, history);
 
         // Remove loading message and add response
         setMessages((prev) => {
