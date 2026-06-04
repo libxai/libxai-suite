@@ -165,6 +165,20 @@ export function Timeline({
     return day === 0 || day === 6;
   };
 
+  // Holiday set (workspace-local 'YYYY-MM-DD') derived from workingDaysConfig.
+  // Se usa para sombrear los festivos en gris igual que los fines de semana.
+  const holidaySet = useMemo(() => {
+    const raw = workingDaysConfig?.holidayDates;
+    if (!raw) return null;
+    return raw instanceof Set ? raw : new Set(raw);
+  }, [workingDaysConfig?.holidayDates]);
+
+  const isHoliday = (date: Date): boolean => {
+    if (!holidaySet) return false;
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    return holidaySet.has(key);
+  };
+
   // Convert pixel position to date
   const pixelToDate = useCallback((pixelX: number): Date => {
     const days = Math.round(pixelX / (dayWidth * zoom));
@@ -489,11 +503,12 @@ export function Timeline({
                 />
               )}
 
-              {/* Header text - JetBrains Mono for technical/date display */}
+              {/* Header text - JetBrains Mono for technical/date display.
+                  Los días festivos se resaltan en ámbar para distinguirlos. */}
               <text
                 x={header.x + 8}
                 y={HEADER_HEIGHT / 2}
-                fill={theme.textTertiary}
+                fill={timeScale === 'day' && !isWeekend(header.date) && isHoliday(header.date) ? '#F59E0B' : theme.textTertiary}
                 fontSize="11"
                 fontFamily="'JetBrains Mono', ui-monospace, monospace"
                 fontWeight="500"
@@ -601,12 +616,17 @@ export function Timeline({
           ) : null
         )}
 
-        {/* Weekend overlays — subtle gray tint + diagonal hatch */}
-        {highlightWeekends && headers.map((header, index) => {
+        {/* Weekend + holiday overlays — subtle gray tint + diagonal hatch.
+            Los festivos (workingDaysConfig.holidayDates) se sombrean igual que
+            los fines de semana. Solo aplica en escala de día. */}
+        {headers.map((header, index) => {
           const nextX = headers[index + 1]?.x || timelineWidth;
-          const isWeekendDay = isWeekend(header.date);
+          const isWeekendDay = highlightWeekends && isWeekend(header.date);
+          // Solo marcar festivo si NO es ya fin de semana (evita doble pintado).
+          const isHolidayDay = timeScale === 'day' && !isWeekend(header.date) && isHoliday(header.date);
+          const shouldShade = isWeekendDay || isHolidayDay;
 
-          return isWeekendDay ? (
+          return shouldShade ? (
             <g key={`we-overlay-${index}`}>
               <rect
                 x={header.x}
