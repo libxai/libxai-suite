@@ -264,7 +264,9 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   // v0.17.33: Delete confirmation modal state
-  const [deleteConfirmation, setDeleteConfirmation] = useState<{ taskId: string; taskName: string } | null>(null);
+  // v1.9.6: taskIds (array) para soportar borrado masivo desde el menú
+  // contextual con multi-selección. taskName es la etiqueta del modal.
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{ taskIds: string[]; taskName: string } | null>(null);
 
   // v0.17.215: Keyboard shortcuts state moved back to TaskGrid (with sticky positioning)
 
@@ -2195,7 +2197,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
             onTaskRename={handleTaskRename}
             onCreateSubtask={handleCreateSubtask}
             onOpenTaskModal={onTaskClick ? (task: Task) => onTaskClick(task) : undefined}
-            onDeleteRequest={(taskId: string, taskName: string) => setDeleteConfirmation({ taskId, taskName })} // v0.17.34
+            onDeleteRequest={(taskIds: string[], label: string) => setDeleteConfirmation({ taskIds, taskName: label })} // v1.9.6: bulk-aware
             onTaskReparent={handleTaskReparent} // v0.17.68
             scrollContainerRef={gridScrollInnerRef} // v0.18.15: Auto-scroll during drag
           />
@@ -2339,7 +2341,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
                   icon: MenuIcons.Delete,
                   onClick: () => {
                     setDeleteConfirmation({
-                      taskId: task.id,
+                      taskIds: [task.id],
                       taskName: task.name,
                     });
                   },
@@ -2511,7 +2513,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
                 icon: MenuIcons.Delete,
                 onClick: () => {
                   setDeleteConfirmation({
-                    taskId: task.id,
+                    taskIds: [task.id],
                     taskName: task.name,
                   });
                 },
@@ -2598,11 +2600,25 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
                   className="text-sm leading-relaxed"
                   style={{ color: theme.textSecondary, fontFamily: 'Inter, sans-serif' }}
                 >
-                  {locale === 'es' ? 'Estás a punto de eliminar la tarea' : 'You are about to delete the task'}{' '}
-                  <span className="font-semibold" style={{ color: theme.textPrimary }}>
-                    "{deleteConfirmation.taskName}"
-                  </span>
-                  .
+                  {/* v1.9.6: en borrado masivo solo se muestra el conteo (los
+                      nombres largos volvían el texto ilegible) */}
+                  {deleteConfirmation.taskIds.length > 1 ? (
+                    <>
+                      {locale === 'es' ? 'Estás a punto de eliminar' : 'You are about to delete'}{' '}
+                      <span className="font-semibold" style={{ color: theme.textPrimary }}>
+                        {deleteConfirmation.taskIds.length} {locale === 'es' ? 'tareas' : 'tasks'}
+                      </span>
+                      .
+                    </>
+                  ) : (
+                    <>
+                      {locale === 'es' ? 'Estás a punto de eliminar la tarea' : 'You are about to delete the task'}{' '}
+                      <span className="font-semibold" style={{ color: theme.textPrimary }}>
+                        "{deleteConfirmation.taskName}"
+                      </span>
+                      .
+                    </>
+                  )}
                 </p>
               </div>
 
@@ -2632,7 +2648,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
                 </button>
                 <button
                   onClick={() => {
-                    handleMultiTaskDelete([deleteConfirmation.taskId]);
+                    handleMultiTaskDelete(deleteConfirmation.taskIds);
                     setDeleteConfirmation(null);
                   }}
                   className="px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors flex items-center gap-2"

@@ -2889,7 +2889,9 @@ interface TaskGridProps {
     onTaskRename?: (taskId: string, newName: string) => void;
     onCreateSubtask?: (parentTaskId: string) => void;
     onOpenTaskModal?: (task: Task) => void;
-    onDeleteRequest?: (taskId: string, taskName: string) => void;
+    /** v1.9.6: ahora recibe TODOS los ids a borrar (bulk desde el menú contextual
+     *  con multi-selección) + una etiqueta para el modal de confirmación. */
+    onDeleteRequest?: (taskIds: string[], label: string) => void;
     onTaskReparent?: (taskId: string, newParentId: string | null, position?: number) => void;
     scrollContainerRef?: React.RefObject<HTMLElement>;
     showCriticalPath?: boolean;

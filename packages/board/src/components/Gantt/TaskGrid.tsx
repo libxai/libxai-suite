@@ -47,7 +47,9 @@ interface TaskGridProps {
   onCreateSubtask?: (parentTaskId: string) => void;
   onOpenTaskModal?: (task: Task) => void;
   // v0.17.34: Delete confirmation request (shows modal instead of deleting directly)
-  onDeleteRequest?: (taskId: string, taskName: string) => void;
+  /** v1.9.6: ahora recibe TODOS los ids a borrar (bulk desde el menú contextual
+   *  con multi-selección) + una etiqueta para el modal de confirmación. */
+  onDeleteRequest?: (taskIds: string[], label: string) => void;
   // v0.17.68: Reparent task via drag & drop
   onTaskReparent?: (taskId: string, newParentId: string | null, position?: number) => void;
   // v0.18.15: Scroll container ref for auto-scroll during drag
@@ -1162,6 +1164,31 @@ export function TaskGrid({
   const getTaskContextMenuItems = (task: Task): ContextMenuItem[] => {
     const isParentTask = task.subtasks && task.subtasks.length > 0;
 
+    // v1.9.6: Acciones masivas — si la tarea bajo el cursor es parte de una
+    // multi-selección (Ctrl/Shift+click), las acciones de estado, duplicar y
+    // eliminar aplican a TODAS las tareas seleccionadas. Editar / Agregar
+    // subtarea / Dividir siguen siendo de una sola tarea.
+    const flatAll = flattenTasksUtil(tasks);
+    const isBulk = selectedTaskIds.size > 1 && selectedTaskIds.has(task.id);
+    const selectedTasks = isBulk
+      ? flatAll.filter((t) => selectedTaskIds.has(t.id))
+      : [task];
+    const bulkIds = selectedTasks.map((t) => t.id);
+    // Cambios de estado solo a tareas hoja: el estado/progreso de los padres
+    // se auto-calcula desde sus subtareas.
+    const statusTargets = selectedTasks.filter(
+      (t) => !(t.subtasks && t.subtasks.length > 0)
+    );
+    const sfx = isBulk ? ` (${bulkIds.length})` : '';
+    const requestDelete = () => {
+      if (onDeleteRequest) {
+        // En bulk el modal muestra solo el conteo; el nombre aplica al caso single.
+        onDeleteRequest(bulkIds, task.name);
+      } else {
+        onMultiTaskDelete?.(bulkIds);
+      }
+    };
+
     // v0.17.46: Parent tasks can only add subtasks, duplicate and delete - status/progress is auto-calculated
     if (isParentTask) {
       return [
@@ -1174,29 +1201,23 @@ export function TaskGrid({
             onCreateSubtask?.(task.id);
           },
         },
-        // Duplicate Task (with subtasks)
+        // Duplicate Task (with subtasks) — bulk-aware
         {
           id: 'duplicate',
-          label: translations?.contextMenu?.duplicateTask || 'Duplicate Task',
+          label: (translations?.contextMenu?.duplicateTask || 'Duplicate Task') + sfx,
           icon: MenuIcons.Duplicate,
           onClick: () => {
-            onTaskDuplicate?.([task.id]);
+            onTaskDuplicate?.(bulkIds);
           },
         },
         // Separator before delete
         { id: 'sep1', label: '', onClick: () => {}, separator: true },
-        // Delete Task
+        // Delete Task — bulk-aware
         {
           id: 'delete',
-          label: translations?.contextMenu?.deleteTask || 'Delete Task',
+          label: (translations?.contextMenu?.deleteTask || 'Delete Task') + sfx,
           icon: MenuIcons.Delete,
-          onClick: () => {
-            if (onDeleteRequest) {
-              onDeleteRequest(task.id, task.name);
-            } else {
-              onMultiTaskDelete?.([task.id]);
-            }
-          },
+          onClick: requestDelete,
         },
       ];
     }
@@ -1223,45 +1244,45 @@ export function TaskGrid({
       },
       // Separator before status changes
       { id: 'sep1', label: '', onClick: () => {}, separator: true },
-      // Mark Incomplete (status: 'todo', progress: 0)
+      // Mark Incomplete (status: 'todo', progress: 0) — bulk-aware
       {
         id: 'markIncomplete',
-        label: translations?.contextMenu?.markIncomplete || 'Mark Incomplete',
+        label: (translations?.contextMenu?.markIncomplete || 'Mark Incomplete') + sfx,
         icon: MenuIcons.MarkIncomplete,
         onClick: () => {
-          onTaskUpdate?.(task.id, { status: 'todo', progress: 0 });
+          statusTargets.forEach((t) => onTaskUpdate?.(t.id, { status: 'todo', progress: 0 }));
         },
-        disabled: task.status === 'todo',
+        disabled: statusTargets.length === 0 || statusTargets.every((t) => t.status === 'todo'),
       },
-      // Set In Progress (status: 'in-progress')
+      // Set In Progress (status: 'in-progress') — bulk-aware
       {
         id: 'setInProgress',
-        label: translations?.contextMenu?.setInProgress || 'Set In Progress',
+        label: (translations?.contextMenu?.setInProgress || 'Set In Progress') + sfx,
         icon: MenuIcons.SetInProgress,
         onClick: () => {
-          onTaskUpdate?.(task.id, { status: 'in-progress' });
+          statusTargets.forEach((t) => onTaskUpdate?.(t.id, { status: 'in-progress' }));
         },
-        disabled: task.status === 'in-progress',
+        disabled: statusTargets.length === 0 || statusTargets.every((t) => t.status === 'in-progress'),
       },
-      // Mark Complete (status: 'completed', progress: 100)
+      // Mark Complete (status: 'completed', progress: 100) — bulk-aware
       {
         id: 'markComplete',
-        label: translations?.contextMenu?.markComplete || 'Mark Complete',
+        label: (translations?.contextMenu?.markComplete || 'Mark Complete') + sfx,
         icon: MenuIcons.MarkComplete,
         onClick: () => {
-          onTaskUpdate?.(task.id, { status: 'completed', progress: 100 });
+          statusTargets.forEach((t) => onTaskUpdate?.(t.id, { status: 'completed', progress: 100 }));
         },
-        disabled: task.status === 'completed',
+        disabled: statusTargets.length === 0 || statusTargets.every((t) => t.status === 'completed'),
       },
       // Separator before advanced options
       { id: 'sep2', label: '', onClick: () => {}, separator: true },
-      // v1.4.3: Duplicate Task
+      // v1.4.3: Duplicate Task — bulk-aware
       {
         id: 'duplicate',
-        label: translations?.contextMenu?.duplicateTask || 'Duplicate Task',
+        label: (translations?.contextMenu?.duplicateTask || 'Duplicate Task') + sfx,
         icon: MenuIcons.Duplicate,
         onClick: () => {
-          onTaskDuplicate?.([task.id]);
+          onTaskDuplicate?.(bulkIds);
         },
       },
       // Split Task
@@ -1275,20 +1296,12 @@ export function TaskGrid({
       },
       // Separator before delete
       { id: 'sep3', label: '', onClick: () => {}, separator: true },
-      // Delete Task - v0.17.34: Use confirmation modal if available
+      // Delete Task - v0.17.34: Use confirmation modal if available — bulk-aware
       {
         id: 'delete',
-        label: translations?.contextMenu?.deleteTask || 'Delete Task',
+        label: (translations?.contextMenu?.deleteTask || 'Delete Task') + sfx,
         icon: MenuIcons.Delete,
-        onClick: () => {
-          if (onDeleteRequest) {
-            // Show confirmation modal
-            onDeleteRequest(task.id, task.name);
-          } else {
-            // Fallback to direct delete
-            onMultiTaskDelete?.([task.id]);
-          }
-        },
+        onClick: requestDelete,
       },
     ];
   };
@@ -1551,8 +1564,12 @@ export function TaskGrid({
               // Handle multi-selection
               handleSelectionClick(task.id, flatTaskIds, ctrlOrCmd, e.shiftKey);
 
-              // Also trigger the regular click handler
-              onTaskClick?.(task);
+              // v1.9.6: Ctrl/Shift+click = solo selección — NO disparar onTaskClick
+              // (el consumidor abre un drawer/modal ahí, lo que rompía la
+              // multi-selección abriendo el detalle de cada tarea clickeada).
+              if (!ctrlOrCmd && !e.shiftKey) {
+                onTaskClick?.(task);
+              }
             }}
             onDoubleClick={(e) => {
               // v0.8.0: Double-click event
