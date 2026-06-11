@@ -294,6 +294,11 @@ export function TaskGrid({
     e.stopPropagation();
     setFillDrag({ sourceTaskId, column, sourceIndex, targetIndex: sourceIndex });
 
+    // v1.9.7: cursor global durante el arrastre — sin esto el cursor "parpadea"
+    // o desaparece al pasar sobre celdas con estilos de cursor propios.
+    document.body.style.cursor = 'crosshair';
+    document.body.style.userSelect = 'none';
+
     // Measure the grid body's top edge in viewport coords. The rows are laid
     // out at fixed ROW_HEIGHT starting from this top, so the row index under
     // the cursor = floor((cursorY - bodyTop) / ROW_HEIGHT).
@@ -307,14 +312,70 @@ export function TaskGrid({
       return idx;
     };
 
-    const onMove = (ev: MouseEvent) => {
-      const idx = rowIndexAt(ev.clientY);
+    // v1.9.7: auto-scroll cerca de los bordes del contenedor (mismo patrón que
+    // el drag de reordenar, v0.18.15). Sin esto, en proyectos grandes el
+    // relleno se detiene en la última fila visible y no se puede seguir
+    // arrastrando hacia abajo. El loop RAF también actualiza targetIndex
+    // mientras desplaza (no llegan mousemove si el mouse está quieto).
+    let lastClientY = e.clientY;
+    const container = scrollContainerRef?.current ?? null;
+
+    const stopAutoScroll = () => {
+      if (autoScrollRAF.current) {
+        cancelAnimationFrame(autoScrollRAF.current);
+        autoScrollRAF.current = null;
+      }
+    };
+
+    const updateTarget = () => {
+      const idx = rowIndexAt(lastClientY);
       setFillDrag(prev => (prev ? { ...prev, targetIndex: idx } : prev));
+    };
+
+    const maybeAutoScroll = () => {
+      stopAutoScroll();
+      if (!container) return;
+      const rect = container.getBoundingClientRect();
+      const edgeZone = 60;
+      const maxSpeed = 12;
+      const distFromTop = lastClientY - rect.top;
+      const distFromBottom = rect.bottom - lastClientY;
+
+      if (distFromBottom < edgeZone && container.scrollTop < container.scrollHeight - container.clientHeight) {
+        const speed = Math.max(1, Math.round(maxSpeed * (1 - Math.max(0, distFromBottom) / edgeZone)));
+        const scroll = () => {
+          container.scrollTop += speed;
+          updateTarget();
+          if (container.scrollTop < container.scrollHeight - container.clientHeight) {
+            autoScrollRAF.current = requestAnimationFrame(scroll);
+          }
+        };
+        autoScrollRAF.current = requestAnimationFrame(scroll);
+      } else if (distFromTop < edgeZone && container.scrollTop > 0) {
+        const speed = Math.max(1, Math.round(maxSpeed * (1 - Math.max(0, distFromTop) / edgeZone)));
+        const scroll = () => {
+          container.scrollTop -= speed;
+          updateTarget();
+          if (container.scrollTop > 0) {
+            autoScrollRAF.current = requestAnimationFrame(scroll);
+          }
+        };
+        autoScrollRAF.current = requestAnimationFrame(scroll);
+      }
+    };
+
+    const onMove = (ev: MouseEvent) => {
+      lastClientY = ev.clientY;
+      updateTarget();
+      maybeAutoScroll();
     };
 
     const onUp = (ev: MouseEvent) => {
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
+      stopAutoScroll();
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
       setFillDrag(null);
 
       // Compute the target index directly from the final cursor position so we

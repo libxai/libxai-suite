@@ -541,6 +541,12 @@ export function ListView({
     column: 'assignees' | 'startDate' | 'endDate';
     sourceIndex: number;
     targetIndex: number;
+    // v1.9.7: ids de las filas dentro del rango del arrastre. El preview se
+    // pinta por ID (no por índice): los group headers de nivel 0 no llevan
+    // data-listview-row, así que el índice del DOM y el de displayTasks
+    // divergen en proyectos con fases — pintar por índice marcaba filas
+    // equivocadas (o ninguna) y aplicaba el relleno a tareas incorrectas.
+    rangeIds: Set<string>;
   } | null>(null);
   // The visible "Equipo" column has type 'teamLoad' (it shows the assignee
   // picker on leaf tasks); map it to 'assignees' for drag-fill. Returns the
@@ -657,46 +663,150 @@ export function ListView({
   ) => {
     e.preventDefault();
     e.stopPropagation();
-    setFillDrag({ sourceTaskId, column, sourceIndex, targetIndex: sourceIndex });
+
+    // v1.9.7: cursor global durante el arrastre — sin esto el cursor "parpadea"
+    // o desaparece al pasar sobre celdas con estilos propios.
+    document.body.style.cursor = 'crosshair';
+    document.body.style.userSelect = 'none';
 
     // Ordered ids of the rows currently in the DOM (display order).
+    // v1.9.7: TODO el rango se maneja por IDs de fila del DOM, no por índices
+    // de displayTasks: los group headers (nivel 0) no llevan data-listview-row,
+    // así que ambos espacios de índices divergen en proyectos con fases.
     const rowEls = Array.from(document.querySelectorAll('[data-listview-row]')) as HTMLElement[];
+    const rowIds = rowEls.map((r) => r.getAttribute('data-listview-row') || '');
+    const sourceRowIndex = Math.max(0, rowIds.indexOf(sourceTaskId));
+    const rangeIdsFor = (targetRowIdx: number): string[] =>
+      rowIds.slice(sourceRowIndex, targetRowIdx + 1);
+
+    setFillDrag({
+      sourceTaskId,
+      column,
+      sourceIndex,
+      targetIndex: sourceIndex,
+      rangeIds: new Set([sourceTaskId]),
+    });
+
+    // v1.9.7: el scroll de la Lista vive en un ancestro (la librería no tiene
+    // contenedor propio) — lo detectamos subiendo por el DOM. Fallback: documento.
+    const findScrollParent = (el: HTMLElement | null): HTMLElement | null => {
+      let node = el?.parentElement ?? null;
+      while (node) {
+        const style = window.getComputedStyle(node);
+        const oy = style.overflowY;
+        if ((oy === 'auto' || oy === 'scroll') && node.scrollHeight > node.clientHeight) return node;
+        node = node.parentElement;
+      }
+      const doc = document.scrollingElement as HTMLElement | null;
+      return doc && doc.scrollHeight > doc.clientHeight ? doc : null;
+    };
+    const container = findScrollParent(e.currentTarget as HTMLElement);
 
     const rowIndexAt = (clientY: number): number => {
-      let idx = sourceIndex;
+      let idx = sourceRowIndex;
+      let matched = false;
       rowEls.forEach((row, i) => {
         const r = row.getBoundingClientRect();
-        if (clientY >= r.top && clientY <= r.bottom) idx = i;
+        if (clientY >= r.top && clientY <= r.bottom) {
+          idx = i;
+          matched = true;
+        }
       });
-      if (idx < sourceIndex) idx = sourceIndex; // fill downward only
+      // v1.9.7: cursor por debajo de la última fila → última fila (antes el
+      // índice se quedaba clavado al salir del área de filas).
+      const lastRow = rowEls[rowEls.length - 1];
+      if (!matched && lastRow) {
+        const lastRect = lastRow.getBoundingClientRect();
+        if (clientY > lastRect.bottom) idx = rowEls.length - 1;
+      }
+      if (idx < sourceRowIndex) idx = sourceRowIndex; // fill downward only
       return idx;
     };
 
+    // v1.9.7: auto-scroll cerca de los bordes — en proyectos grandes el relleno
+    // se detenía en la última fila visible. El loop RAF también actualiza el
+    // targetIndex mientras desplaza (no llegan mousemove con el mouse quieto).
+    let lastClientY = e.clientY;
+    let rafId: number | null = null;
+
+    const stopAutoScroll = () => {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+    };
+
+    const updateTarget = () => {
+      const idx = rowIndexAt(lastClientY);
+      const rangeIds = new Set(rangeIdsFor(idx));
+      setFillDrag(prev => (prev ? { ...prev, targetIndex: idx, rangeIds } : prev));
+    };
+
+    const maybeAutoScroll = () => {
+      stopAutoScroll();
+      if (!container) return;
+      const sc = container;
+      const isDoc = sc === document.scrollingElement;
+      const rect = isDoc
+        ? { top: 0, bottom: window.innerHeight }
+        : sc.getBoundingClientRect();
+      const edgeZone = 60;
+      const maxSpeed = 12;
+      const distFromTop = lastClientY - rect.top;
+      const distFromBottom = rect.bottom - lastClientY;
+      const maxScroll = sc.scrollHeight - sc.clientHeight;
+
+      if (distFromBottom < edgeZone && sc.scrollTop < maxScroll) {
+        const speed = Math.max(1, Math.round(maxSpeed * (1 - Math.max(0, distFromBottom) / edgeZone)));
+        const scroll = () => {
+          sc.scrollTop += speed;
+          updateTarget();
+          if (sc.scrollTop < sc.scrollHeight - sc.clientHeight) {
+            rafId = requestAnimationFrame(scroll);
+          }
+        };
+        rafId = requestAnimationFrame(scroll);
+      } else if (distFromTop < edgeZone && sc.scrollTop > 0) {
+        const speed = Math.max(1, Math.round(maxSpeed * (1 - Math.max(0, distFromTop) / edgeZone)));
+        const scroll = () => {
+          sc.scrollTop -= speed;
+          updateTarget();
+          if (sc.scrollTop > 0) {
+            rafId = requestAnimationFrame(scroll);
+          }
+        };
+        rafId = requestAnimationFrame(scroll);
+      }
+    };
+
     const onMove = (ev: MouseEvent) => {
-      const idx = rowIndexAt(ev.clientY);
-      setFillDrag(prev => (prev ? { ...prev, targetIndex: idx } : prev));
+      lastClientY = ev.clientY;
+      updateTarget();
+      maybeAutoScroll();
     };
 
     const onUp = (ev: MouseEvent) => {
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
+      stopAutoScroll();
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
       setFillDrag(null);
-      const targetIndex = rowIndexAt(ev.clientY);
-      const src = rowEls.find((r) => r.getAttribute('data-listview-row') === sourceTaskId);
-      if (!src) return;
+      const targetRowIndex = rowIndexAt(ev.clientY);
       // Resolve the source task from the display list to read its value.
-      const sourceTask = displayTasksRef.current.find((t) => t.id === sourceTaskId);
+      const byId = new Map(displayTasksRef.current.map((t) => [t.id, t]));
+      const sourceTask = byId.get(sourceTaskId);
       if (!sourceTask) return;
       const value = getFillValue(sourceTask, column);
-      const from = Math.min(sourceIndex, targetIndex);
-      const to = Math.max(sourceIndex, targetIndex);
+      // v1.9.7: los destinos salen de los IDs de fila del DOM (espacio
+      // consistente con el preview), no de índices de displayTasks.
       const targetIds: string[] = [];
-      for (let i = from; i <= to; i++) {
-        if (i === sourceIndex) continue;
-        const t = displayTasksRef.current[i];
+      for (const id of rangeIdsFor(targetRowIndex)) {
+        if (id === sourceTaskId) continue;
+        const t = byId.get(id);
         if (!t) continue;
         if ((t as any).subtasks && (t as any).subtasks.length > 0) continue; // skip parents
-        targetIds.push(t.id);
+        targetIds.push(id);
       }
       if (targetIds.length > 0) callbacks.onBulkFill?.(targetIds, column, value);
     };
@@ -705,11 +815,10 @@ export function ListView({
     window.addEventListener('mouseup', onUp);
   };
 
-  const isInFillRange = (index: number) => {
+  // v1.9.7: el rango se evalúa por ID de tarea (ver nota en el estado fillDrag).
+  const isInFillRange = (taskId: string) => {
     if (!fillDrag) return false;
-    const from = Math.min(fillDrag.sourceIndex, fillDrag.targetIndex);
-    const to = Math.max(fillDrag.sourceIndex, fillDrag.targetIndex);
-    return index >= from && index <= to;
+    return fillDrag.rangeIds.has(taskId);
   };
 
   useEffect(() => {
@@ -2224,7 +2333,7 @@ export function ListView({
                     const fillCol = fillColumnFor(column.type);
                     const canFill = !!fillCol && !isParentRow;
                     const showFillHandle = canFill && hoveredTaskId === task.id && !fillDrag;
-                    const cellInFill = !!fillDrag && !!fillCol && fillDrag.column === fillCol && isInFillRange(index);
+                    const cellInFill = !!fillDrag && !!fillCol && fillDrag.column === fillCol && isInFillRange(task.id);
                     return (
                     <div
                       key={column.id}
