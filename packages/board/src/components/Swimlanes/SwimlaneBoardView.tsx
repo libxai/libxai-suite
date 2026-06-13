@@ -5,11 +5,13 @@
  */
 
 import { useMemo, useState, useCallback } from 'react'
+import type { ReactNode } from 'react'
 import type {
   Board,
   Card,
   Column,
   GroupByOption,
+  KanbanBoardProps,
   Swimlane,
   SwimlaneConfig,
 } from '../../types'
@@ -33,6 +35,40 @@ export interface SwimlaneBoardViewProps {
   }
   /** Custom className */
   className?: string
+
+  // ── Extensiones para jerarquía WBS (consumidor-driven) ──
+  /**
+   * Swimlanes PRE-CONSTRUIDOS por el consumidor. Si se proveen, se usan tal
+   * cual y se ignora `swimlaneConfig.groupBy` / generateSwimlanes. Permite
+   * agrupar por cualquier criterio externo (p.ej. jerarquía WBS padre→hojas)
+   * que la librería no modela internamente.
+   */
+  swimlanes?: Swimlane[]
+  /**
+   * Render custom de la cabecera de cada lane. Si se omite, se usa el header
+   * por defecto (icono + título + conteo). Recibe la lane y si está colapsada;
+   * el click de colapso lo gestiona el contenedor — envolver el contenido en
+   * el área clickeable es responsabilidad del header default, así que cuando
+   * se provee este render, el toggle se expone vía `onToggleCollapse`.
+   */
+  renderSwimlaneHeader?: (args: {
+    lane: Swimlane
+    isCollapsed: boolean
+    cardCount: number
+    onToggleCollapse: () => void
+  }) => ReactNode
+  /**
+   * renderProps/config/onCardClick que se reenvían al KanbanBoard de CADA
+   * lane (antes se perdían: las tarjetas dentro de swimlanes no podían usar
+   * renderers custom). Opcionales y retrocompatibles.
+   */
+  renderProps?: KanbanBoardProps['renderProps']
+  config?: KanbanBoardProps['config']
+  onCardClick?: KanbanBoardProps['onCardClick']
+  suppressDetailModal?: boolean
+  availableTags?: KanbanBoardProps['availableTags']
+  attachmentsByCard?: KanbanBoardProps['attachmentsByCard']
+  renderColumnMetrics?: KanbanBoardProps['renderColumnMetrics']
 }
 
 /**
@@ -186,17 +222,48 @@ export function SwimlaneBoardView({
   availableUsers,
   callbacks,
   className,
+  swimlanes: providedSwimlanes,
+  renderSwimlaneHeader,
+  renderProps,
+  config,
+  onCardClick,
+  suppressDetailModal,
+  availableTags,
+  attachmentsByCard,
+  renderColumnMetrics,
 }: SwimlaneBoardViewProps) {
-  const [collapsedLanes, setCollapsedLanes] = useState<Set<string>>(new Set())
+  // Lanes completadas pueden nacer colapsadas (R15): el consumidor lo indica
+  // con isCollapsed en las lanes pre-construidas.
+  const [collapsedLanes, setCollapsedLanes] = useState<Set<string>>(() => {
+    const init = new Set<string>()
+    if (providedSwimlanes) {
+      for (const l of providedSwimlanes) if (l.isCollapsed) init.add(l.id)
+    }
+    return init
+  })
 
-  // Generate swimlanes
+  // Swimlanes: pre-construidos por el consumidor (WBS) o generados por groupBy
   const swimlanes = useMemo(() => {
+    if (providedSwimlanes) return providedSwimlanes
     return generateSwimlanes(
       board.cards,
       swimlaneConfig.groupBy,
       availableUsers
     )
-  }, [board.cards, swimlaneConfig.groupBy, availableUsers])
+  }, [providedSwimlanes, board.cards, swimlaneConfig.groupBy, availableUsers])
+
+  // Props comunes que se reenvían al KanbanBoard de cada lane
+  const innerBoardProps = {
+    callbacks,
+    availableUsers,
+    renderProps,
+    config,
+    onCardClick,
+    suppressDetailModal,
+    availableTags,
+    attachmentsByCard,
+    renderColumnMetrics,
+  }
 
   // Toggle lane collapse
   const toggleLaneCollapse = useCallback((laneId: string) => {
@@ -211,14 +278,13 @@ export function SwimlaneBoardView({
     })
   }, [])
 
-  // If no grouping, render standard board
-  if (swimlaneConfig.groupBy === 'none' || swimlanes.length === 0) {
+  // Sin agrupación (y sin lanes pre-construidos): board plano (R19)
+  if (!providedSwimlanes && (swimlaneConfig.groupBy === 'none' || swimlanes.length === 0)) {
     return (
       <KanbanBoard
         board={board}
-        callbacks={callbacks}
-        availableUsers={availableUsers}
         className={className}
+        {...innerBoardProps}
       />
     )
   }
@@ -244,46 +310,54 @@ export function SwimlaneBoardView({
             key={lane.id}
             className="asakaa-swimlane mb-6 rounded-lg border border-white/10 overflow-hidden"
           >
-            {/* Swimlane Header */}
-            <div
-              className="asakaa-swimlane-header px-4 py-3 bg-white/5 backdrop-blur-sm flex items-center justify-between cursor-pointer hover:bg-white/10 transition-colors"
-              onClick={() => swimlaneConfig.collapsible && toggleLaneCollapse(lane.id)}
-              style={{
-                borderLeft: lane.color ? `4px solid ${lane.color}` : undefined,
-              }}
-            >
-              <div className="flex items-center gap-3">
-                {lane.icon && (
-                  <span className="text-2xl leading-none">{lane.icon}</span>
-                )}
-                <h3
-                  className="text-lg font-semibold"
-                  style={{ color: lane.color }}
-                >
-                  {lane.title}
-                </h3>
-                <span className="text-sm text-white/50 font-medium">
-                  ({lane.cardIds.length} {lane.cardIds.length === 1 ? 'card' : 'cards'})
-                </span>
-              </div>
+            {/* Swimlane Header — custom (R9 WBS) o default */}
+            {renderSwimlaneHeader ? (
+              renderSwimlaneHeader({
+                lane,
+                isCollapsed,
+                cardCount: lane.cardIds.length,
+                onToggleCollapse: () => toggleLaneCollapse(lane.id),
+              })
+            ) : (
+              <div
+                className="asakaa-swimlane-header px-4 py-3 bg-white/5 backdrop-blur-sm flex items-center justify-between cursor-pointer hover:bg-white/10 transition-colors"
+                onClick={() => swimlaneConfig.collapsible && toggleLaneCollapse(lane.id)}
+                style={{
+                  borderLeft: lane.color ? `4px solid ${lane.color}` : undefined,
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  {lane.icon && (
+                    <span className="text-2xl leading-none">{lane.icon}</span>
+                  )}
+                  <h3
+                    className="text-lg font-semibold"
+                    style={{ color: lane.color }}
+                  >
+                    {lane.title}
+                  </h3>
+                  <span className="text-sm text-white/50 font-medium">
+                    ({lane.cardIds.length} {lane.cardIds.length === 1 ? 'card' : 'cards'})
+                  </span>
+                </div>
 
-              {swimlaneConfig.collapsible && (
-                <button
-                  className="text-white/50 hover:text-white transition-colors"
-                  aria-label={isCollapsed ? 'Expand lane' : 'Collapse lane'}
-                >
-                  {isCollapsed ? '▶' : '▼'}
-                </button>
-              )}
-            </div>
+                {swimlaneConfig.collapsible && (
+                  <button
+                    className="text-white/50 hover:text-white transition-colors"
+                    aria-label={isCollapsed ? 'Expand lane' : 'Collapse lane'}
+                  >
+                    {isCollapsed ? '▶' : '▼'}
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* Swimlane Content */}
             {!isCollapsed && (
               <div className="asakaa-swimlane-content p-4">
                 <KanbanBoard
                   board={laneBoard}
-                  callbacks={callbacks}
-                  availableUsers={availableUsers}
+                  {...innerBoardProps}
                 />
               </div>
             )}
