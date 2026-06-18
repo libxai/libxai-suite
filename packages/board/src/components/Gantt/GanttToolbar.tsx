@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { ZoomIn, ZoomOut, Sun, Moon, Palette, Download, FileImage, FileSpreadsheet, FileText, FileJson, ChevronDown, FolderKanban, Plus, Rows3, Check, Filter, CheckCircle2, PlayCircle, Circle, EyeOff, Search, Eye, Share2, Layers, GitBranch, CalendarDays, Zap, Link2 } from 'lucide-react';
+import { ZoomIn, ZoomOut, Sun, Moon, Palette, Download, FileImage, FileSpreadsheet, FileText, FileJson, ChevronDown, FolderKanban, Plus, Rows3, Check, Filter, CheckCircle2, PlayCircle, Circle, EyeOff, Eye, Share2, Layers, GitBranch, CalendarDays, Zap, Link2 } from 'lucide-react';
 import { TimeScale, Theme, RowDensity, TaskFilterType, ProjectForecast } from './types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGanttI18n } from './GanttI18nContext'; // v0.15.0: i18n
@@ -1608,15 +1608,6 @@ export function GanttToolbar({
   const t = useGanttI18n(); // v0.15.0: i18n
   const hasExport = onExportPNG || onExportPDF || onExportExcel || onExportCSV || onExportJSON || onExportMSProject;
   const isChronos = !!theme.glassToolbar;
-  const [searchOpen, setSearchOpen] = useState(false);
-  const searchInputRef = useRef<HTMLInputElement>(null);
-
-  // Focus search input when opened
-  useEffect(() => {
-    if (searchOpen && searchInputRef.current) {
-      searchInputRef.current.focus();
-    }
-  }, [searchOpen]);
 
   // v0.16.0: Use minimal tabs for time scale (Linear/Notion style)
   const timeScaleOptions = [
@@ -1650,46 +1641,9 @@ export function GanttToolbar({
             backdropFilter: 'blur(12px)',
           }}
         >
-          {/* Left: Search Pill */}
+          {/* Left section (el buscador-lupa se eliminó por redundante con el
+              buscador global del header; además su input no filtraba nada). */}
           <div className="flex items-center gap-3">
-            <motion.div
-              className="flex items-center rounded-full overflow-hidden"
-              style={{
-                backgroundColor: isDark ? '#1A1A1A' : theme.bgSecondary,
-                border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : theme.border}`,
-              }}
-              animate={{ width: searchOpen ? 220 : 36 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-            >
-              <motion.button
-                onClick={() => setSearchOpen(!searchOpen)}
-                className="flex items-center justify-center w-9 h-9 flex-shrink-0"
-                style={{ color: theme.textTertiary }}
-                whileHover={{ color: theme.textPrimary }}
-              >
-                <Search className="w-4 h-4" />
-              </motion.button>
-              {searchOpen && (
-                <input
-                  ref={searchInputRef}
-                  type="text"
-                  placeholder="Search tasks..."
-                  className="bg-transparent border-none outline-none text-[11px] pr-3 w-full"
-                  style={{
-                    color: theme.textPrimary,
-                    fontFamily: 'Inter, sans-serif',
-                  }}
-                  onBlur={() => setSearchOpen(false)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Escape') setSearchOpen(false);
-                  }}
-                />
-              )}
-            </motion.div>
-
-            {/* Divider */}
-            <div className="w-px h-5" style={{ backgroundColor: dividerColor }} />
-
             {/* Segmented Control: Execution | Oracle View — only if onViewModeChange provided */}
             {onViewModeChange && (
               <div
