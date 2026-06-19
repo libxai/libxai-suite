@@ -52,6 +52,10 @@ interface TaskGridProps {
   onDeleteRequest?: (taskIds: string[], label: string) => void;
   // v0.17.68: Reparent task via drag & drop
   onTaskReparent?: (taskId: string, newParentId: string | null, position?: number) => void;
+  /** v1.9.10: árbol COMPLETO sin filtrar. Cuando hay un filtro activo, `tasks`
+   *  es un subconjunto; para reordenar correctamente la posición de destino debe
+   *  traducirse al índice real entre TODOS los hermanos (no solo los visibles). */
+  allTasks?: Task[];
   // v0.18.15: Scroll container ref for auto-scroll during drag
   scrollContainerRef?: React.RefObject<HTMLElement>;
   // v5.1.0: CPM visual state
@@ -85,6 +89,7 @@ export function TaskGrid({
   onOpenTaskModal,
   onDeleteRequest, // v0.17.34
   onTaskReparent, // v0.17.68
+  allTasks, // v1.9.10: árbol completo para traducir posición con filtros activos
   scrollContainerRef, // v0.18.15
   showCriticalPath = false, // v5.1.0
 }: TaskGridProps) {
@@ -570,13 +575,21 @@ export function TaskGrid({
           return undefined as unknown as string | null;
         };
 
+        // v1.9.10: para traducir la posición correctamente cuando hay un filtro
+        // activo, usamos el árbol COMPLETO (allTasks) si está disponible; si no,
+        // caemos a `tasks` (comportamiento previo, sin filtro). El target/parent
+        // se buscan también en el árbol elegido.
+        const tree = allTasks && allTasks.length > 0 ? allTasks : tasks;
+
         // Find the parent of the dragged task (to know if it's in the same sibling group)
-        const draggedParent = findParent(tasks, draggedTaskId, null);
-        const targetParent = findParent(tasks, dropTargetTaskId, null);
+        const draggedParent = findParent(tree, draggedTaskId, null);
+        const targetParent = findParent(tree, dropTargetTaskId, null);
 
         // v0.18.13: Compute position accounting for the dragged task being removed first.
         // reparentTask() removes the task then inserts — if the dragged task is before the
         // target in the SAME sibling group, all subsequent indices shift down by 1.
+        // v1.9.10: `siblings` son los hermanos del ÁRBOL COMPLETO → el índice es la
+        // posición real en BD, aunque la vista esté filtrada.
         const computePosition = (siblings: Task[], targetId: string, dragId: string, sameGroup: boolean): number => {
           const targetIdx = siblings.findIndex(t => t.id === targetId);
           const dragIdx = sameGroup ? siblings.findIndex(t => t.id === dragId) : -1;
@@ -591,11 +604,11 @@ export function TaskGrid({
         if (targetParent === null) {
           // Target is at root level
           const sameGroup = draggedParent === null; // dragged is also at root
-          const pos = computePosition(tasks, dropTargetTaskId, draggedTaskId, sameGroup);
+          const pos = computePosition(tree, dropTargetTaskId, draggedTaskId, sameGroup);
           onTaskReparent?.(draggedTaskId, null, pos);
         } else {
           // Target has a parent
-          const parentTask = findTaskInTree(tasks, targetParent);
+          const parentTask = findTaskInTree(tree, targetParent);
           if (parentTask?.subtasks) {
             const sameGroup = draggedParent === targetParent; // same parent
             const pos = computePosition(parentTask.subtasks, dropTargetTaskId, draggedTaskId, sameGroup);
