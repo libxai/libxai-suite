@@ -23,12 +23,6 @@
 /* FilterBar - Advanced filtering and sorting UI */
 @import './components/filter-bar.css';
 
-/* Card Detail Modal - Full card editing experience */
-@import './components/card-detail-modal.css';
-
-/* Card Detail Modal V2 - Enhanced task detail view */
-@import '../components/CardDetailModal/card-detail-modal-v2.css';
-
 /* Card Stack - Smart grouping of related cards (v0.6.0) */
 @import '../components/CardStack/card-stack.css';
 
