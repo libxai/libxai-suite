@@ -46,6 +46,8 @@
 @import './components/bulk-operations.css';
 
 /* Attachments - File upload and management */
+@import '../components/CalendarV2/calendar.css';
+
 @import './components/attachments.css';
 
 /* v0.6.0 Design Refinements - Enhanced clarity */

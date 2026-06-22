@@ -182,38 +182,22 @@ export {
 } from './components/ListView'
 export type { ListViewSupportedLocale } from './components/ListView'
 
-// v0.17.0: CalendarBoard Component
-export { CalendarBoard } from './components/Calendar'
+// CalendarV2 — calendario "proyección operativa CPM" (reemplaza el CalendarBoard
+// plano anterior). Presentacional: el consumidor inyecta tareas/capacidad/festivos.
+export {
+  CalendarView as CalendarBoard,
+  simulateReschedule,
+  buildCalendar,
+} from './components/CalendarV2'
 export type {
-  CalendarBoardProps,
-  CalendarConfig,
-  CalendarCallbacks,
-  CalendarPermissions,
-  CalendarTheme,
-  CalendarTranslations,
-  CalendarEvent,
-  CalendarDay,
-  CalendarViewMode,
-  WeekDay,
-} from './components/Calendar'
-export {
-  calendarThemes,
-  calendarDarkTheme,
-  calendarLightTheme,
-  calendarNeutralTheme,
-  getCalendarTheme,
-} from './components/Calendar'
-export type { CalendarThemeName } from './components/Calendar'
-export {
-  calendarTranslations,
-  calendarEnTranslations,
-  calendarEsTranslations,
-  getCalendarTranslations,
-  mergeCalendarTranslations,
-  getMonthNames,
-  getWeekdayNames,
-} from './components/Calendar'
-export type { CalendarSupportedLocale } from './components/Calendar'
+  RescheduleSimulation,
+  TeamMember as CalendarTeamMember,
+  DailyLog as CalendarDailyLog,
+  CalView,
+  CalMoney,
+  CalLayerId,
+  MoneyMode,
+} from './components/CalendarV2'
 
 // v0.6.0: Smart Card Stacking
 export { CardStack } from './components/CardStack/CardStack'
