@@ -47,9 +47,15 @@ interface TaskGridProps {
   onCreateSubtask?: (parentTaskId: string) => void;
   onOpenTaskModal?: (task: Task) => void;
   // v0.17.34: Delete confirmation request (shows modal instead of deleting directly)
-  onDeleteRequest?: (taskId: string, taskName: string) => void;
+  /** v1.9.6: ahora recibe TODOS los ids a borrar (bulk desde el menú contextual
+   *  con multi-selección) + una etiqueta para el modal de confirmación. */
+  onDeleteRequest?: (taskIds: string[], label: string) => void;
   // v0.17.68: Reparent task via drag & drop
   onTaskReparent?: (taskId: string, newParentId: string | null, position?: number) => void;
+  /** v1.9.10: árbol COMPLETO sin filtrar. Cuando hay un filtro activo, `tasks`
+   *  es un subconjunto; para reordenar correctamente la posición de destino debe
+   *  traducirse al índice real entre TODOS los hermanos (no solo los visibles). */
+  allTasks?: Task[];
   // v0.18.15: Scroll container ref for auto-scroll during drag
   scrollContainerRef?: React.RefObject<HTMLElement>;
   // v5.1.0: CPM visual state
@@ -83,6 +89,7 @@ export function TaskGrid({
   onOpenTaskModal,
   onDeleteRequest, // v0.17.34
   onTaskReparent, // v0.17.68
+  allTasks, // v1.9.10: árbol completo para traducir posición con filtros activos
   scrollContainerRef, // v0.18.15
   showCriticalPath = false, // v5.1.0
 }: TaskGridProps) {
@@ -292,6 +299,11 @@ export function TaskGrid({
     e.stopPropagation();
     setFillDrag({ sourceTaskId, column, sourceIndex, targetIndex: sourceIndex });
 
+    // v1.9.7: cursor global durante el arrastre — sin esto el cursor "parpadea"
+    // o desaparece al pasar sobre celdas con estilos de cursor propios.
+    document.body.style.cursor = 'crosshair';
+    document.body.style.userSelect = 'none';
+
     // Measure the grid body's top edge in viewport coords. The rows are laid
     // out at fixed ROW_HEIGHT starting from this top, so the row index under
     // the cursor = floor((cursorY - bodyTop) / ROW_HEIGHT).
@@ -305,14 +317,70 @@ export function TaskGrid({
       return idx;
     };
 
-    const onMove = (ev: MouseEvent) => {
-      const idx = rowIndexAt(ev.clientY);
+    // v1.9.7: auto-scroll cerca de los bordes del contenedor (mismo patrón que
+    // el drag de reordenar, v0.18.15). Sin esto, en proyectos grandes el
+    // relleno se detiene en la última fila visible y no se puede seguir
+    // arrastrando hacia abajo. El loop RAF también actualiza targetIndex
+    // mientras desplaza (no llegan mousemove si el mouse está quieto).
+    let lastClientY = e.clientY;
+    const container = scrollContainerRef?.current ?? null;
+
+    const stopAutoScroll = () => {
+      if (autoScrollRAF.current) {
+        cancelAnimationFrame(autoScrollRAF.current);
+        autoScrollRAF.current = null;
+      }
+    };
+
+    const updateTarget = () => {
+      const idx = rowIndexAt(lastClientY);
       setFillDrag(prev => (prev ? { ...prev, targetIndex: idx } : prev));
+    };
+
+    const maybeAutoScroll = () => {
+      stopAutoScroll();
+      if (!container) return;
+      const rect = container.getBoundingClientRect();
+      const edgeZone = 60;
+      const maxSpeed = 12;
+      const distFromTop = lastClientY - rect.top;
+      const distFromBottom = rect.bottom - lastClientY;
+
+      if (distFromBottom < edgeZone && container.scrollTop < container.scrollHeight - container.clientHeight) {
+        const speed = Math.max(1, Math.round(maxSpeed * (1 - Math.max(0, distFromBottom) / edgeZone)));
+        const scroll = () => {
+          container.scrollTop += speed;
+          updateTarget();
+          if (container.scrollTop < container.scrollHeight - container.clientHeight) {
+            autoScrollRAF.current = requestAnimationFrame(scroll);
+          }
+        };
+        autoScrollRAF.current = requestAnimationFrame(scroll);
+      } else if (distFromTop < edgeZone && container.scrollTop > 0) {
+        const speed = Math.max(1, Math.round(maxSpeed * (1 - Math.max(0, distFromTop) / edgeZone)));
+        const scroll = () => {
+          container.scrollTop -= speed;
+          updateTarget();
+          if (container.scrollTop > 0) {
+            autoScrollRAF.current = requestAnimationFrame(scroll);
+          }
+        };
+        autoScrollRAF.current = requestAnimationFrame(scroll);
+      }
+    };
+
+    const onMove = (ev: MouseEvent) => {
+      lastClientY = ev.clientY;
+      updateTarget();
+      maybeAutoScroll();
     };
 
     const onUp = (ev: MouseEvent) => {
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
+      stopAutoScroll();
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
       setFillDrag(null);
 
       // Compute the target index directly from the final cursor position so we
@@ -507,13 +575,21 @@ export function TaskGrid({
           return undefined as unknown as string | null;
         };
 
+        // v1.9.10: para traducir la posición correctamente cuando hay un filtro
+        // activo, usamos el árbol COMPLETO (allTasks) si está disponible; si no,
+        // caemos a `tasks` (comportamiento previo, sin filtro). El target/parent
+        // se buscan también en el árbol elegido.
+        const tree = allTasks && allTasks.length > 0 ? allTasks : tasks;
+
         // Find the parent of the dragged task (to know if it's in the same sibling group)
-        const draggedParent = findParent(tasks, draggedTaskId, null);
-        const targetParent = findParent(tasks, dropTargetTaskId, null);
+        const draggedParent = findParent(tree, draggedTaskId, null);
+        const targetParent = findParent(tree, dropTargetTaskId, null);
 
         // v0.18.13: Compute position accounting for the dragged task being removed first.
         // reparentTask() removes the task then inserts — if the dragged task is before the
         // target in the SAME sibling group, all subsequent indices shift down by 1.
+        // v1.9.10: `siblings` son los hermanos del ÁRBOL COMPLETO → el índice es la
+        // posición real en BD, aunque la vista esté filtrada.
         const computePosition = (siblings: Task[], targetId: string, dragId: string, sameGroup: boolean): number => {
           const targetIdx = siblings.findIndex(t => t.id === targetId);
           const dragIdx = sameGroup ? siblings.findIndex(t => t.id === dragId) : -1;
@@ -528,11 +604,11 @@ export function TaskGrid({
         if (targetParent === null) {
           // Target is at root level
           const sameGroup = draggedParent === null; // dragged is also at root
-          const pos = computePosition(tasks, dropTargetTaskId, draggedTaskId, sameGroup);
+          const pos = computePosition(tree, dropTargetTaskId, draggedTaskId, sameGroup);
           onTaskReparent?.(draggedTaskId, null, pos);
         } else {
           // Target has a parent
-          const parentTask = findTaskInTree(tasks, targetParent);
+          const parentTask = findTaskInTree(tree, targetParent);
           if (parentTask?.subtasks) {
             const sameGroup = draggedParent === targetParent; // same parent
             const pos = computePosition(parentTask.subtasks, dropTargetTaskId, draggedTaskId, sameGroup);
@@ -1162,6 +1238,31 @@ export function TaskGrid({
   const getTaskContextMenuItems = (task: Task): ContextMenuItem[] => {
     const isParentTask = task.subtasks && task.subtasks.length > 0;
 
+    // v1.9.6: Acciones masivas — si la tarea bajo el cursor es parte de una
+    // multi-selección (Ctrl/Shift+click), las acciones de estado, duplicar y
+    // eliminar aplican a TODAS las tareas seleccionadas. Editar / Agregar
+    // subtarea / Dividir siguen siendo de una sola tarea.
+    const flatAll = flattenTasksUtil(tasks);
+    const isBulk = selectedTaskIds.size > 1 && selectedTaskIds.has(task.id);
+    const selectedTasks = isBulk
+      ? flatAll.filter((t) => selectedTaskIds.has(t.id))
+      : [task];
+    const bulkIds = selectedTasks.map((t) => t.id);
+    // Cambios de estado solo a tareas hoja: el estado/progreso de los padres
+    // se auto-calcula desde sus subtareas.
+    const statusTargets = selectedTasks.filter(
+      (t) => !(t.subtasks && t.subtasks.length > 0)
+    );
+    const sfx = isBulk ? ` (${bulkIds.length})` : '';
+    const requestDelete = () => {
+      if (onDeleteRequest) {
+        // En bulk el modal muestra solo el conteo; el nombre aplica al caso single.
+        onDeleteRequest(bulkIds, task.name);
+      } else {
+        onMultiTaskDelete?.(bulkIds);
+      }
+    };
+
     // v0.17.46: Parent tasks can only add subtasks, duplicate and delete - status/progress is auto-calculated
     if (isParentTask) {
       return [
@@ -1174,29 +1275,23 @@ export function TaskGrid({
             onCreateSubtask?.(task.id);
           },
         },
-        // Duplicate Task (with subtasks)
+        // Duplicate Task (with subtasks) — bulk-aware
         {
           id: 'duplicate',
-          label: translations?.contextMenu?.duplicateTask || 'Duplicate Task',
+          label: (translations?.contextMenu?.duplicateTask || 'Duplicate Task') + sfx,
           icon: MenuIcons.Duplicate,
           onClick: () => {
-            onTaskDuplicate?.([task.id]);
+            onTaskDuplicate?.(bulkIds);
           },
         },
         // Separator before delete
         { id: 'sep1', label: '', onClick: () => {}, separator: true },
-        // Delete Task
+        // Delete Task — bulk-aware
         {
           id: 'delete',
-          label: translations?.contextMenu?.deleteTask || 'Delete Task',
+          label: (translations?.contextMenu?.deleteTask || 'Delete Task') + sfx,
           icon: MenuIcons.Delete,
-          onClick: () => {
-            if (onDeleteRequest) {
-              onDeleteRequest(task.id, task.name);
-            } else {
-              onMultiTaskDelete?.([task.id]);
-            }
-          },
+          onClick: requestDelete,
         },
       ];
     }
@@ -1223,45 +1318,45 @@ export function TaskGrid({
       },
       // Separator before status changes
       { id: 'sep1', label: '', onClick: () => {}, separator: true },
-      // Mark Incomplete (status: 'todo', progress: 0)
+      // Mark Incomplete (status: 'todo', progress: 0) — bulk-aware
       {
         id: 'markIncomplete',
-        label: translations?.contextMenu?.markIncomplete || 'Mark Incomplete',
+        label: (translations?.contextMenu?.markIncomplete || 'Mark Incomplete') + sfx,
         icon: MenuIcons.MarkIncomplete,
         onClick: () => {
-          onTaskUpdate?.(task.id, { status: 'todo', progress: 0 });
+          statusTargets.forEach((t) => onTaskUpdate?.(t.id, { status: 'todo', progress: 0 }));
         },
-        disabled: task.status === 'todo',
+        disabled: statusTargets.length === 0 || statusTargets.every((t) => t.status === 'todo'),
       },
-      // Set In Progress (status: 'in-progress')
+      // Set In Progress (status: 'in-progress') — bulk-aware
       {
         id: 'setInProgress',
-        label: translations?.contextMenu?.setInProgress || 'Set In Progress',
+        label: (translations?.contextMenu?.setInProgress || 'Set In Progress') + sfx,
         icon: MenuIcons.SetInProgress,
         onClick: () => {
-          onTaskUpdate?.(task.id, { status: 'in-progress' });
+          statusTargets.forEach((t) => onTaskUpdate?.(t.id, { status: 'in-progress' }));
         },
-        disabled: task.status === 'in-progress',
+        disabled: statusTargets.length === 0 || statusTargets.every((t) => t.status === 'in-progress'),
       },
-      // Mark Complete (status: 'completed', progress: 100)
+      // Mark Complete (status: 'completed', progress: 100) — bulk-aware
       {
         id: 'markComplete',
-        label: translations?.contextMenu?.markComplete || 'Mark Complete',
+        label: (translations?.contextMenu?.markComplete || 'Mark Complete') + sfx,
         icon: MenuIcons.MarkComplete,
         onClick: () => {
-          onTaskUpdate?.(task.id, { status: 'completed', progress: 100 });
+          statusTargets.forEach((t) => onTaskUpdate?.(t.id, { status: 'completed', progress: 100 }));
         },
-        disabled: task.status === 'completed',
+        disabled: statusTargets.length === 0 || statusTargets.every((t) => t.status === 'completed'),
       },
       // Separator before advanced options
       { id: 'sep2', label: '', onClick: () => {}, separator: true },
-      // v1.4.3: Duplicate Task
+      // v1.4.3: Duplicate Task — bulk-aware
       {
         id: 'duplicate',
-        label: translations?.contextMenu?.duplicateTask || 'Duplicate Task',
+        label: (translations?.contextMenu?.duplicateTask || 'Duplicate Task') + sfx,
         icon: MenuIcons.Duplicate,
         onClick: () => {
-          onTaskDuplicate?.([task.id]);
+          onTaskDuplicate?.(bulkIds);
         },
       },
       // Split Task
@@ -1275,20 +1370,12 @@ export function TaskGrid({
       },
       // Separator before delete
       { id: 'sep3', label: '', onClick: () => {}, separator: true },
-      // Delete Task - v0.17.34: Use confirmation modal if available
+      // Delete Task - v0.17.34: Use confirmation modal if available — bulk-aware
       {
         id: 'delete',
-        label: translations?.contextMenu?.deleteTask || 'Delete Task',
+        label: (translations?.contextMenu?.deleteTask || 'Delete Task') + sfx,
         icon: MenuIcons.Delete,
-        onClick: () => {
-          if (onDeleteRequest) {
-            // Show confirmation modal
-            onDeleteRequest(task.id, task.name);
-          } else {
-            // Fallback to direct delete
-            onMultiTaskDelete?.([task.id]);
-          }
-        },
+        onClick: requestDelete,
       },
     ];
   };
@@ -1551,8 +1638,12 @@ export function TaskGrid({
               // Handle multi-selection
               handleSelectionClick(task.id, flatTaskIds, ctrlOrCmd, e.shiftKey);
 
-              // Also trigger the regular click handler
-              onTaskClick?.(task);
+              // v1.9.6: Ctrl/Shift+click = solo selección — NO disparar onTaskClick
+              // (el consumidor abre un drawer/modal ahí, lo que rompía la
+              // multi-selección abriendo el detalle de cada tarea clickeada).
+              if (!ctrlOrCmd && !e.shiftKey) {
+                onTaskClick?.(task);
+              }
             }}
             onDoubleClick={(e) => {
               // v0.8.0: Double-click event

@@ -30,15 +30,6 @@ export const ExportImportModal = lazy(() =>
   import('./ExportImport/ExportImportModal').then(m => ({ default: m.ExportImportModal }))
 )
 
-// Card Detail Modal (~30KB saved from initial bundle)
-export const CardDetailModal = lazy(() =>
-  import('./CardDetailModal/CardDetailModal').then(m => ({ default: m.CardDetailModal }))
-)
-
-export const CardDetailModalV2 = lazy(() =>
-  import('./CardDetailModal/CardDetailModalV2').then(m => ({ default: m.CardDetailModalV2 }))
-)
-
 // Bulk Operations (~15KB saved from initial bundle)
 export const BulkOperationsToolbar = lazy(() =>
   import('./BulkOperations/BulkOperationsToolbar').then(m => ({ default: m.BulkOperationsToolbar }))
@@ -98,8 +89,6 @@ const lazyComponents = {
   BurnDownChart,
   DistributionCharts,
   ExportImportModal,
-  CardDetailModal,
-  CardDetailModalV2,
   BulkOperationsToolbar,
   CommandPalette,
   GeneratePlanModal,
