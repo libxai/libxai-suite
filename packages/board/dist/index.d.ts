@@ -567,6 +567,12 @@ interface GanttConfig {
      */
     projectForecast?: ProjectForecast;
     /**
+     * Oculta la barra interna del pronóstico (Forecast HUD) aunque se pase
+     * projectForecast. Útil cuando el consumidor muestra el pronóstico en su propia
+     * barra (p. ej. una barra de áreas del proyecto) y no quiere duplicarlo.
+     */
+    hideForecastHud?: boolean;
+    /**
      * Callback for "Copy Snapshot Link" in the Share dropdown
      * When provided, shows the option in the export/share menu
      */
@@ -2758,6 +2764,7 @@ interface GanttToolbarProps {
     viewMode?: 'execution' | 'oracle';
     onViewModeChange?: (mode: 'execution' | 'oracle') => void;
     projectForecast?: ProjectForecast;
+    hideForecastHud?: boolean;
     onExportPNG?: () => Promise<void>;
     onExportPDF?: () => Promise<void>;
     onExportExcel?: () => Promise<void>;
@@ -2789,7 +2796,7 @@ declare function GanttToolbar({ theme, timeScale, onTimeScaleChange, zoom, onZoo
 showCreateTaskButton, createTaskLabel, // v0.15.0: Will use translations if not provided
 onCreateTask, taskFilter, // v0.17.300: Task filter
 onTaskFilterChange, hideCompleted, // v0.18.0: Hide completed toggle
-onHideCompletedChange, toolbarRightContent, wbsLevel, onWbsLevelChange, maxWbsDepth, viewMode, onViewModeChange, projectForecast, onExportPNG, onExportPDF, onExportExcel, onExportCSV, onExportJSON, onExportMSProject, showCriticalPath, onShowCriticalPathChange, showDependencies, onShowDependenciesChange, highlightWeekends, onHighlightWeekendsChange, showBaseline, onShowBaselineChange, onCopySnapshotLink, hasDependencies, }: GanttToolbarProps): react_jsx_runtime.JSX.Element;
+onHideCompletedChange, toolbarRightContent, wbsLevel, onWbsLevelChange, maxWbsDepth, viewMode, onViewModeChange, projectForecast, hideForecastHud, onExportPNG, onExportPDF, onExportExcel, onExportCSV, onExportJSON, onExportMSProject, showCriticalPath, onShowCriticalPathChange, showDependencies, onShowDependenciesChange, highlightWeekends, onHighlightWeekendsChange, showBaseline, onShowBaselineChange, onCopySnapshotLink, hasDependencies, }: GanttToolbarProps): react_jsx_runtime.JSX.Element;
 
 interface TaskGridProps {
     tasks: Task[];
