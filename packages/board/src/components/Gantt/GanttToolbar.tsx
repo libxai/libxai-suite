@@ -76,6 +76,9 @@ interface GanttToolbarProps {
   onViewModeChange?: (mode: 'execution' | 'oracle') => void;
   // v3.1.0: Forecast HUD data
   projectForecast?: ProjectForecast;
+  // Oculta la barra interna del pronóstico (el consumidor la muestra en otro sitio,
+  // p. ej. una barra de áreas propia). Si es true, no se renderiza aunque haya forecast.
+  hideForecastHud?: boolean;
   // Export handlers
   onExportPNG?: () => Promise<void>;
   onExportPDF?: () => Promise<void>;
@@ -1587,6 +1590,7 @@ export function GanttToolbar({
   onViewModeChange,
   // v3.1.0: Forecast HUD data
   projectForecast,
+  hideForecastHud,
   onExportPNG,
   onExportPDF,
   onExportExcel,
@@ -1776,7 +1780,7 @@ export function GanttToolbar({
         </div>
 
         {/* Bar 2: Forecast HUD Panel (48px) — only if forecast data provided */}
-        {projectForecast && <ForecastHUD theme={theme} forecast={projectForecast} />}
+        {projectForecast && !hideForecastHud && <ForecastHUD theme={theme} forecast={projectForecast} />}
       </div>
     );
   }

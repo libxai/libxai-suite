@@ -93,6 +93,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     onViewModeChange: configOnViewModeChange,
     // v3.1.0: Forecast HUD
     projectForecast,
+    hideForecastHud,
     // UI events
     onThemeChange, // v0.9.0
     // Basic events
@@ -2121,6 +2122,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         onViewModeChange={handleViewModeChange}
         // v3.1.0: Forecast HUD
         projectForecast={projectForecast}
+        hideForecastHud={hideForecastHud}
         // v0.12.0: Export handlers
         onExportPNG={showExportButton ? handleExportPNG : undefined}
         onExportPDF={showExportButton ? handleExportPDF : undefined}

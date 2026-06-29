@@ -661,6 +661,12 @@ export interface GanttConfig {
    * When provided, replaces hardcoded placeholder values with real metrics
    */
   projectForecast?: ProjectForecast;
+  /**
+   * Oculta la barra interna del pronóstico (Forecast HUD) aunque se pase
+   * projectForecast. Útil cuando el consumidor muestra el pronóstico en su propia
+   * barra (p. ej. una barra de áreas del proyecto) y no quiere duplicarlo.
+   */
+  hideForecastHud?: boolean;
 
   /**
    * Callback for "Copy Snapshot Link" in the Share dropdown
