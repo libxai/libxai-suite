@@ -80,6 +80,11 @@ export function ProjectHealthSidebar({
         // after spending half the budget).
         const margin = offered - executed;
         const marginPct = offered > 0 ? Math.round((margin / offered) * 100) : 0;
+        // T6 (spec v4): MARGEN a plan = Ofertado − Estimado. Distinto de
+        // "Disponible" (Ofertado − Ejecutado, que es caja). Si es 0 ejecutas
+        // tal cual lo ofertado; si es negativo, pierdes.
+        const planMargin = offered - estimated;
+        const planMarginPct = offered > 0 ? Math.round((planMargin / offered) * 100) : 0;
         const consumedPct = offered > 0 ? Math.min(Math.round((executed / offered) * 100), 120) : 0;
         const isOverBudget = executed > offered && offered > 0;
         const barColor = isOverBudget ? '#F87171' : '#00E5CC';
@@ -173,16 +178,30 @@ export function ProjectHealthSidebar({
                   />
                 </div>
               )}
-              {/* Margin display */}
+              {/* T6: MARGEN (Ofertado − Estimado) — protagonista. Verde ≥0, rojo <0. */}
+              {estimated > 0 && (
+                <div className={cn(
+                  'mt-2 px-3 py-2 rounded-lg text-center font-mono font-bold',
+                  planMargin >= 0
+                    ? (isDark ? 'bg-[#00E5CC]/10 text-[#00E5CC]' : 'bg-emerald-50 text-emerald-600')
+                    : (isDark ? 'bg-[#F87171]/10 text-[#F87171]' : 'bg-red-50 text-red-600')
+                )}>
+                  <div className="text-[9px] uppercase tracking-wider opacity-60 mb-0.5">{isEs ? 'Margen (Ofertado − Estimado)' : 'Margin (Offered − Estimated)'}</div>
+                  <div className="text-base">
+                    {planMargin >= 0 ? '+' : ''}{fmtCurrency(planMargin)}
+                    {offered > 0 && <span className="text-[11px] ml-1 opacity-70">({planMargin >= 0 ? '+' : ''}{planMarginPct}%)</span>}
+                  </div>
+                  <div className="text-[9px] opacity-50 mt-0.5 font-sans">{isEs ? '0 = ejecutas tal cual lo ofertado' : '0 = you execute exactly as offered'}</div>
+                </div>
+              )}
+              {/* Disponible (caja: Ofertado − Ejecutado) — secundario, tono menor */}
               <div className={cn(
-                'mt-2 px-3 py-2 rounded-lg text-center font-mono text-sm font-bold',
-                margin >= 0
-                  ? (isDark ? 'bg-[#00E5CC]/10 text-[#00E5CC]' : 'bg-emerald-50 text-emerald-600')
-                  : (isDark ? 'bg-[#F87171]/10 text-[#F87171]' : 'bg-red-50 text-red-600')
+                'mt-1.5 px-3 py-1.5 rounded-lg text-center font-mono text-[12px]',
+                isDark ? 'text-white/50' : 'text-gray-500'
               )}>
                 {margin >= 0
-                  ? `+${fmtCurrency(margin)} ${isEs ? 'Disp.' : 'Avail.'}`
-                  : `${fmtCurrency(Math.abs(margin))} ${isEs ? 'Pérdida' : 'Loss'}`}
+                  ? `+${fmtCurrency(margin)} ${isEs ? 'disponible (caja)' : 'available (cash)'}`
+                  : `${fmtCurrency(Math.abs(margin))} ${isEs ? 'sobregirado' : 'overdrawn'}`}
                 {offered > 0 && (
                   <span className="text-[10px] ml-1 opacity-60">({marginPct}%)</span>
                 )}
