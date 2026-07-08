@@ -7613,6 +7613,16 @@ body {
 }
 
 
+.mb-0 {
+  margin-bottom: 0px;
+}
+
+
+.mb-0\.5 {
+  margin-bottom: 0.125rem;
+}
+
+
 .mb-1 {
   margin-bottom: 0.25rem;
 }
@@ -9932,6 +9942,11 @@ body {
 
 .font-mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+
+.font-sans {
+  font-family: Inter Variable, system-ui, sans-serif;
 }
 
 
