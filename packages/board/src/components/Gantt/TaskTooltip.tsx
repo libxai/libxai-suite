@@ -104,6 +104,10 @@ export function TaskTooltip({ tooltipData, theme, locale = 'en', workingDaysConf
     estimated: locale === 'es' ? 'Estimado' : 'Estimated',
     logged: locale === 'es' ? 'Registrado' : 'Logged',
     quoted: locale === 'es' ? 'Ofertado' : 'Quoted',
+    /* SINGULAR, y en los dos sitios: el rotulo nombra el CAMPO, no cuantas
+       etiquetas tiene puestas la tarea. Lo pidio Divar el 27-ago para que el
+       tooltip y la fila del panel digan lo mismo. */
+    tags: locale === 'es' ? 'Etiqueta' : 'Tag',
   };
 
   const formatDate = (date: Date) =>
@@ -197,6 +201,50 @@ export function TaskTooltip({ tooltipData, theme, locale = 'en', workingDaysConf
             <span style={{ color: labelColor }}>{t.assignees}: </span>
             <span style={{ color: valueColor, fontWeight: 500 }}>
               {task.assignees.map(a => a.name).join(', ')}
+            </span>
+          </div>
+        )}
+
+        {/*
+          * ═══ LAS ETIQUETAS ═══════════════════════════════════════════════
+          *
+          * Divar, 27-ago: «poder ver el campo etiqueta cuando marco o creo una
+          * al hacer hover en la tarea de gantt».
+          *
+          * `task.tags` YA LLEGABA hasta aqui —el SaaS las carga y las asigna al
+          * mapear la tarea— y este tooltip no las miraba. Otra de las que se
+          * escriben y nadie lee.
+          *
+          * Se pintan CON SU COLOR, que es como se distinguen en el resto de la
+          * app: una lista de nombres en gris obligaria a recordar cual es cual.
+          */}
+        {task.tags && task.tags.length > 0 && (
+          <div style={{ marginTop: 6, fontSize: 11 }}>
+            <span style={{ color: labelColor }}>{t.tags}: </span>
+            <span style={{ display: 'inline-flex', flexWrap: 'wrap', gap: 4, verticalAlign: 'middle' }}>
+              {task.tags.map(tag => (
+                <span
+                  key={tag.id}
+                  style={{
+                    padding: '1px 6px',
+                    borderRadius: 4,
+                    fontSize: 10,
+                    fontWeight: 600,
+                    /*
+                     * El color de la etiqueta como FONDO tenue y como texto: un
+                     * relleno solido obligaria a calcular si el texto va en
+                     * blanco o negro para cada color que elija el usuario, y
+                     * con un color claro quedaria ilegible.
+                     */
+                    backgroundColor: `${tag.color}22`,
+                    color: tag.color,
+                    border: `1px solid ${tag.color}55`,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {tag.name}
+                </span>
+              ))}
             </span>
           </div>
         )}
