@@ -98,6 +98,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     onThemeChange, // v0.9.0
     // Basic events
     onTaskClick,
+    onTaskSelectionChange, // v1.9.16: la seleccion sale del Gantt
     onTaskDblClick, // v0.8.0
     onTaskContextMenu, // v0.8.0
     onTaskUpdate,
@@ -2182,6 +2183,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
             templates={mergedTemplates}
             showCriticalPath={showCriticalPath}
             onTaskClick={onTaskClick}
+            onTaskSelectionChange={onTaskSelectionChange}
             onTaskDblClick={handleTaskDblClickInternal} // v0.10.0: Use internal handler that opens modal
             onTaskContextMenu={onTaskContextMenu} // v0.8.0
             onTaskToggle={handleTaskToggle}

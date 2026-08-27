@@ -21,6 +21,8 @@ interface TaskGridProps {
   availableUsers?: Array<{ id: string; name: string; initials: string; color: string }>;
   templates: Required<GanttTemplates>; // v0.8.0
   onTaskClick?: (task: Task) => void;
+  /** v1.9.16: la seleccion sale del Gantt — ver `onTaskSelectionChange` en types.ts */
+  onTaskSelectionChange?: (taskId: string | null) => void;
   onTaskDblClick?: (task: Task) => void; // v0.8.0
   onTaskContextMenu?: (task: Task, event: React.MouseEvent) => void; // v0.8.0
   onTaskToggle?: (taskId: string) => void;
@@ -69,6 +71,7 @@ export function TaskGrid({
   availableUsers = [],
   templates: _templates, // TODO: Use templates for custom rendering
   onTaskClick,
+  onTaskSelectionChange,
   onTaskDblClick, // v0.8.0
   onTaskContextMenu, // v0.8.0
   onTaskToggle,
@@ -219,6 +222,15 @@ export function TaskGrid({
       const flatTasks = flattenTasksUtil(tasks);
       const flatTaskIds = flatTasks.map(t => t.id);
       handleSelectionClick(taskId, flatTaskIds, multiSelect || false, false);
+      /*
+       * SE AVISA HACIA FUERA. Antes esta seleccion moria aqui dentro: quien
+       * montara el Gantt no tenia forma de seguir el resaltado, y el SaaS
+       * acabo con su propio recorrido en paralelo que se desincronizaba.
+       *
+       * En seleccion multiple (Shift) se manda la tarea a la que se acaba de
+       * llegar, que es la que el usuario esta mirando.
+       */
+      onTaskSelectionChange?.(taskId);
     },
     onTaskCreate: onTaskCreate || (() => {}),
     onTaskDelete: onMultiTaskDelete || (() => {}),
@@ -1637,6 +1649,10 @@ export function TaskGrid({
 
               // Handle multi-selection
               handleSelectionClick(task.id, flatTaskIds, ctrlOrCmd, e.shiftKey);
+              /* Pulsar tambien mueve el resaltado, asi que tambien se avisa:
+                 quien siga la seleccion no debe tener que distinguir si vino
+                 del raton o del teclado. */
+              onTaskSelectionChange?.(task.id);
 
               // v1.9.6: Ctrl/Shift+click = solo selección — NO disparar onTaskClick
               // (el consumidor abre un drawer/modal ahí, lo que rompía la

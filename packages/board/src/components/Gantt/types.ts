@@ -682,6 +682,26 @@ export interface GanttConfig {
 
   // ==================== Basic Events ====================
   onTaskClick?: (task: Task) => void;
+  /**
+   * ═══ LA SELECCION SALE DEL GANTT ══════════════════════════════════════════
+   *
+   * Divar, 27-ago, con dos capturas: el resaltado del Gantt marcaba una tarea y
+   * el panel lateral del SaaS enseñaba otra, dos filas mas abajo.
+   *
+   * La causa eran DOS NAVEGACIONES corriendo a la vez. El Gantt ya movia su
+   * resaltado con las flechas —`useGanttKeyboard`— pero esa seleccion se
+   * quedaba dentro: `useGanttSelection` no recibe ningun callback, asi que
+   * nadie fuera de la libreria podia enterarse. El SaaS, sin forma de seguirla,
+   * habia montado su propio recorrido en paralelo; cada uno con su lista, y de
+   * ahi el desfase.
+   *
+   * Con esto la seleccion tiene UNA sola fuente —la del Gantt, que es la que el
+   * usuario ve— y quien la consuma se limita a seguirla.
+   *
+   * Se emite tanto al pulsar como al navegar con el teclado: son la misma
+   * accion desde el punto de vista de quien mira la pantalla.
+   */
+  onTaskSelectionChange?: (taskId: string | null) => void;
   onTaskDblClick?: (task: Task) => void; // v0.8.0: Double-click event
   onTaskContextMenu?: (task: Task, event: React.MouseEvent) => void; // v0.8.0: Right-click event
   onTaskUpdate?: (task: Task) => void;
