@@ -1111,6 +1111,25 @@ export function TaskBar({
         const wPos = task.progress === 0 ? displayWidth : remainW;
         return (
           <>
+            {/*
+              * v1.9.15 · EL AREA SIN AVANCE LLEVA EL COLOR DE SU TAREA.
+              *
+              * Divar (Asakaa, 27-ago): «le puse color personalizado y se sigue
+              * viendo azul porque no se ha llenado nada».
+              *
+              * Con progreso 0 % esta capa cubre la barra ENTERA (`wPos =
+              * displayWidth`), asi que tapaba por completo el `taskColor` que
+              * se pinta debajo. La trama y el borde estaban los dos fijados a
+              * `#00E5CC`: daba igual el color de la tarea.
+              *
+              * ── SOLO EL BORDE, Y ES UNA DECISION DE PRODUCTO ────────────
+              *
+              * La trama diagonal se queda con su color fijo. Probamos tambien
+              * teñirla —un `<pattern>` por barra, porque `currentColor` dentro
+              * de un patron se resuelve DONDE SE DEFINE y no donde se usa— y
+              * Divar eligio el borde solo: la barra se identifica igual y la
+              * trama sigue leyendose sobre cualquier color.
+              */}
             {/* Diagonal lines fill */}
             <rect
               x={xPos}
@@ -1129,7 +1148,7 @@ export function TaskBar({
               height={height}
               rx={rx}
               fill="none"
-              stroke="#00E5CC"
+              stroke={taskColor}
               strokeWidth={0.8}
               strokeDasharray="5 3"
               style={{ pointerEvents: 'none' }}

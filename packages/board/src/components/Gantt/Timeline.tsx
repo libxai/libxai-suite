@@ -564,9 +564,35 @@ export function Timeline({
             <line x1="0" y1="0" x2="0" y2="8" stroke={(theme.bgPrimary || '').charAt(1) === '0' ? 'rgba(255,255,255,0.055)' : 'rgba(0,0,0,0.04)'} strokeWidth="4" />
           </pattern>
 
-          {/* v1.4.29: Diagonal stripes for remaining (no-progress) area of task bars */}
+          {/*
+            * v1.4.29: Diagonal stripes for remaining (no-progress) area of task bars.
+            *
+            * v1.9.15 · LA BANDA SIGUE EL COLOR DE SU TAREA.
+            *
+            * Divar (Asakaa, 27-ago): «le puse color personalizado y se sigue
+            * viendo azul porque no se ha llenado nada — deberia verse el rojizo
+            * transparentoso».
+            *
+            * Y tenia razon: esta banda estaba fijada a `#00E5CC`. Con progreso
+            * 0 % el area restante cubre la barra ENTERA, asi que tapaba el
+            * color custom que se pintaba debajo. El color se guardaba, viajaba
+            * y llegaba bien — se perdia justo aqui, en el ultimo pixel.
+            *
+            * ── ESTE PATRON GLOBAL YA NO LO USA LA BARRA ────────────────
+            *
+            * Mi primer intento fue poner `currentColor` aqui, creyendo que
+            * heredaria el color de quien lo referencia. NO ES ASI:
+            * `currentColor` dentro de un `<pattern>` se resuelve DONDE SE
+            * DEFINE, no donde se usa. El borde de la barra salio del color
+            * correcto y la trama de dentro siguio turquesa — medio arreglo,
+            * que en una captura parece el arreglo entero.
+            *
+            * La solucion vive en `TaskBar`: cada barra declara SU patron con
+            * su color y un `id` propio. Este se queda por si algo externo lo
+            * referencia, con el color que siempre tuvo.
+            */}
           <pattern id="bar-remaining-hatch" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-            {/* Stripe 1: colored band */}
+            {/* Stripe 1: colored band — hereda el color de la barra que la usa */}
             <rect x="0" y="0" width="5" height="10" fill="#00E5CC" opacity="0.18" />
             {/* Stripe 2: gray band */}
             <rect x="5" y="0" width="5" height="10" fill="#94A3B8" opacity="0.12" />
