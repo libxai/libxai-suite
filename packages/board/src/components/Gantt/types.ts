@@ -702,6 +702,22 @@ export interface GanttConfig {
    * accion desde el punto de vista de quien mira la pantalla.
    */
   onTaskSelectionChange?: (taskId: string | null) => void;
+  /**
+   * ═══ MOVER EL RESALTADO DESDE FUERA ═══════════════════════════════════════
+   *
+   * Divar, 27-ago: «al seleccionar el nombre de la subtarea, el selector en
+   * gantt tambien se reubique».
+   *
+   * El companero de `onTaskSelectionChange`: aquel SACA la seleccion, este la
+   * METE. Sin los dos, abrir una tarea desde fuera —una subtarea, el
+   * breadcrumb, una notificacion— dejaba el resaltado en una fila y el panel
+   * en otra.
+   *
+   * NO es una prop controlada del todo: el Gantt conserva su estado y sigue
+   * seleccionando solo con clic y flechas. Esto solo lo empuja a una fila
+   * cuando cambia.
+   */
+  selectedTaskId?: string | null;
   onTaskDblClick?: (task: Task) => void; // v0.8.0: Double-click event
   onTaskContextMenu?: (task: Task, event: React.MouseEvent) => void; // v0.8.0: Right-click event
   onTaskUpdate?: (task: Task) => void;

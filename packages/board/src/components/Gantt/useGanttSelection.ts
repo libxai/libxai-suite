@@ -1,8 +1,43 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 
-export function useGanttSelection() {
+/**
+ * ═══ LA SELECCION TAMBIEN ENTRA, NO SOLO SALE ═══════════════════════════════
+ *
+ * Divar, 27-ago: «al seleccionar el nombre de la subtarea, el selector en gantt
+ * tambien se reubique».
+ *
+ * En 1.9.16 la seleccion empezo a SALIR (`onTaskSelectionChange`), y con eso el
+ * panel del SaaS pudo seguir al resaltado. Pero el camino de vuelta no existia:
+ * quien abre una tarea desde fuera —una subtarea, el breadcrumb, una
+ * notificacion— no tenia forma de mover el resaltado, y las dos cosas quedaban
+ * diciendo tareas distintas. Es el mismo desajuste que se arreglo, del otro
+ * lado.
+ *
+ * `selectedTaskId` deja el resaltado gobernable desde fuera SIN quitarle su
+ * estado propio: el Gantt sigue seleccionando solo con clic y flechas, y quien
+ * lo monta puede ademas empujarlo a una fila concreta.
+ */
+export function useGanttSelection(selectedTaskId?: string | null) {
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
   const [lastSelectedId, setLastSelectedId] = useState<string | null>(null);
+
+  /*
+   * SE SINCRONIZA SOLO CUANDO DE VERDAD CAMBIA, y esto es lo que evita un
+   * bucle: el Gantt avisa hacia fuera al seleccionar, quien escucha abre esa
+   * tarea, y eso vuelve aqui como `selectedTaskId`. Si se reescribiera el
+   * estado sin comprobar, cada vuelta dispararia la siguiente.
+   *
+   * Comparando contra lo que YA hay, la segunda vuelta no hace nada y la
+   * cadena se para sola.
+   */
+  useEffect(() => {
+    if (!selectedTaskId) return;
+    setSelectedTaskIds(prev => {
+      if (prev.size === 1 && prev.has(selectedTaskId)) return prev;
+      return new Set([selectedTaskId]);
+    });
+    setLastSelectedId(prev => (prev === selectedTaskId ? prev : selectedTaskId));
+  }, [selectedTaskId]);
 
   // Select a single task
   const selectTask = useCallback((taskId: string) => {

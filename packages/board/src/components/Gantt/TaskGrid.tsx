@@ -23,6 +23,8 @@ interface TaskGridProps {
   onTaskClick?: (task: Task) => void;
   /** v1.9.16: la seleccion sale del Gantt — ver `onTaskSelectionChange` en types.ts */
   onTaskSelectionChange?: (taskId: string | null) => void;
+  /** v1.9.17: ...y tambien entra — ver `selectedTaskId` en types.ts */
+  selectedTaskId?: string | null;
   onTaskDblClick?: (task: Task) => void; // v0.8.0
   onTaskContextMenu?: (task: Task, event: React.MouseEvent) => void; // v0.8.0
   onTaskToggle?: (taskId: string) => void;
@@ -72,6 +74,7 @@ export function TaskGrid({
   templates: _templates, // TODO: Use templates for custom rendering
   onTaskClick,
   onTaskSelectionChange,
+  selectedTaskId,
   onTaskDblClick, // v0.8.0
   onTaskContextMenu, // v0.8.0
   onTaskToggle,
@@ -212,7 +215,7 @@ export function TaskGrid({
     selectedTaskIds,
     handleTaskClick: handleSelectionClick,
     isTaskSelected,
-  } = useGanttSelection();
+  } = useGanttSelection(selectedTaskId);
 
   // Keyboard shortcuts hook
   const { setIsEditing } = useGanttKeyboard({
