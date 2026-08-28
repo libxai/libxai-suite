@@ -46,6 +46,19 @@ interface Props {
   /** 'light' aplica la paleta clara; cualquier otro = oscuro. */
   themeMode?: 'dark' | 'light';
   hourlyRate: number;
+  /**
+   * ═══ EL FILTRO DE FASES ═════════════════════════════════════════════════
+   *
+   * Divar, 27-ago (punto 17 de la lista de Juan): en el producto simplificado
+   * no va.
+   *
+   * Las «fases» son las tareas-padre raíz, y filtrar por ellas tiene sentido
+   * en un proyecto de obra con estructura WBS. En uno de tareas simples es un
+   * desplegable que casi siempre está vacío.
+   *
+   * Por defecto SÍ se muestra: quien no pase nada se comporta como siempre.
+   */
+  mostrarFiltroDeFases?: boolean;
   /** money compartido con Gantt/Lista (lens global). */
   money: MoneyMode;
   onMoneyChange: (m: MoneyMode) => void;
@@ -74,6 +87,7 @@ const DEFAULT_PROJECT_COLOR = '#5B7FD4';
 
 export function CalendarView({
   tasks, projectName, projectId, projectColor, locale, themeMode, hourlyRate, money, onMoneyChange, onTaskOpen,
+  mostrarFiltroDeFases,
   canReschedule, onReschedule,
   members = [], holidayDates = [], timesheetSettings, onVisibleRangeChange,
 }: Props) {
@@ -134,12 +148,14 @@ export function CalendarView({
 
   // Fases disponibles (tareas-padre raíz) para el filtro de la toolbar.
   const phases = useMemo(() => {
+    /* Sin filtro, no se derivan: la barra solo lo pinta si recibe fases. */
+    if (mostrarFiltroDeFases === false) return [];
     const map = new Map<string, string>();
     for (const t of built.calTasks) {
       if (t.phaseId && t.phaseName) map.set(t.phaseId, t.phaseName);
     }
     return [...map.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
-  }, [built.calTasks]);
+  }, [built.calTasks, mostrarFiltroDeFases]);
 
   // Capas apagadas + filtro de fase determinan qué se muestra.
   const showTasks = !layersOff.includes('tareas');
