@@ -82,11 +82,24 @@ export function QuickTaskCreate({
     onCancel()
   }, [onCancel, closeAllDropdowns])
 
+  /**
+   * La fecha que se VE y la que se GUARDA son esta, y solo esta.
+   *
+   * Antes habia dos calculos distintos: lo que se pintaba caia en `new Date()`
+   * y lo que se enviaba caia en `undefined`. El compositor ensenaba «30 ago» y
+   * la tarea se creaba con otra fecha —quien recibe el `undefined` pone lo que
+   * le parece; en el SaaS, hoy + 7 dias, que es de donde salia el «6 sep»—.
+   *
+   * Un control que ensena un valor y guarda otro es peor que uno que no ensena
+   * nada: el usuario no tiene motivo para revisar lo que ya leyo.
+   */
+  const fechaDeLaTarea = selectedDate || defaultDate || new Date()
+
   const handleSubmit = useCallback(() => {
     const trimmed = name.trim()
     if (!trimmed) return
     const selectedUser = availableUsers.find(u => u.id === assigneeId)
-    const taskDate = selectedDate || defaultDate
+    const taskDate = fechaDeLaTarea
     onSubmit({
       name: trimmed,
       priority,
@@ -102,7 +115,7 @@ export function QuickTaskCreate({
     setSelectedDate(null)
     closeAllDropdowns()
     inputRef.current?.focus()
-  }, [name, priority, assigneeId, selectedDate, defaultDate, availableUsers, onSubmit, closeAllDropdowns])
+  }, [name, priority, assigneeId, fechaDeLaTarea, availableUsers, onSubmit, closeAllDropdowns])
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -117,7 +130,7 @@ export function QuickTaskCreate({
     [handleSubmit, resetAndClose, name]
   )
 
-  const displayDate = selectedDate || defaultDate || new Date()
+  const displayDate = fechaDeLaTarea
 
   return (
     <div

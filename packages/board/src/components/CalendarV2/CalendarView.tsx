@@ -61,6 +61,11 @@ interface Props {
   mostrarFiltroDeFases?: boolean;
   /** REQ-07 §2.7 · el par «Hrs / $» del calendario. Ver `CalendarChrome`. */
   mostrarConmutadorDeDinero?: boolean;
+  /**
+   * REQ-07 §2.5: crear la primera tarea desde el estado vacio del mes.
+   * Sin esto el mensaje describe pero no ofrece salida.
+   */
+  onCreateTask?: () => void;
   /** money compartido con Gantt/Lista (lens global). */
   money: MoneyMode;
   onMoneyChange: (m: MoneyMode) => void;
@@ -91,11 +96,45 @@ export function CalendarView({
   tasks, projectName, projectId, projectColor, locale, themeMode, hourlyRate, money, onMoneyChange, onTaskOpen,
   mostrarFiltroDeFases,
   mostrarConmutadorDeDinero,
+  onCreateTask,
   canReschedule, onReschedule,
   members = [], holidayDates = [], timesheetSettings, onVisibleRangeChange,
 }: Props) {
   const [view, setView] = useState<CalView>('mes');
-  const [cursor, setCursor] = useState(() => { const n = new Date(); return { y: n.getFullYear(), m: n.getMonth() }; });
+  /**
+   * REQ-07 §2.5 · el mes en el que abre el calendario.
+   *
+   * Antes abria SIEMPRE en el mes de hoy. Yesid: «el calendario de un proyecto
+   * que empieza el mes siguiente abre en ese mes, no en el actual: hoy muestra
+   * agosto para un proyecto que arranca en septiembre».
+   *
+   * Regla: si hay alguna tarea en el mes actual, se queda en el mes actual —lo
+   * que el usuario espera y lo que ya funcionaba—. Si no hay ninguna, abre en
+   * el mes de la tarea mas temprana. Un proyecto SIN tareas se queda en hoy:
+   * no hay nada mejor a lo que ir.
+   *
+   * Solo el arranque: navegar con ‹ › despues manda, porque `useState` con
+   * funcion solo la ejecuta en el primer render.
+   */
+  const [cursor, setCursor] = useState(() => {
+    const n = new Date();
+    const hoy = { y: n.getFullYear(), m: n.getMonth() };
+    const fechas = (tasks ?? [])
+      .map(t => t.startDate ? new Date(t.startDate) : null)
+      .filter((d): d is Date => !!d && !isNaN(d.getTime()));
+    if (fechas.length === 0) return hoy;
+    const hayEsteMes = (tasks ?? []).some(t => {
+      const ini = t.startDate ? new Date(t.startDate) : null;
+      const fin = t.endDate ? new Date(t.endDate) : ini;
+      if (!ini || isNaN(ini.getTime())) return false;
+      const desde = new Date(hoy.y, hoy.m, 1);
+      const hasta = new Date(hoy.y, hoy.m + 1, 0, 23, 59, 59);
+      return ini <= hasta && (fin ?? ini) >= desde;
+    });
+    if (hayEsteMes) return hoy;
+    const primera = fechas.reduce((a, b) => (a < b ? a : b));
+    return { y: primera.getFullYear(), m: primera.getMonth() };
+  });
   const [layersOpen, setLayersOpen] = useState(false);
   const [layersOff, setLayersOff] = useState<CalLayerId[]>([]);
   const [phaseFilter, setPhaseFilter] = useState('all');
@@ -334,7 +373,7 @@ export function CalendarView({
                     showFestivos={showFestivos} holidaySerials={holidaySerials} locale={locale} deadlineDays={new Set()} />
                 ))}
               </div>
-              <CalEmptyState monthLabel={mLabel} locale={locale} />
+              <CalEmptyState monthLabel={mLabel} locale={locale} onCreateTask={onCreateTask} />
             </>
           ) : (
             <>

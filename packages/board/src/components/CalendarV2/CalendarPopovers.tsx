@@ -173,16 +173,37 @@ export interface CalEmptyStateProps {
   monthLabel: string;
   upcomingMilestones?: UpcomingMilestone[];
   locale?: 'es' | 'en';
+  /**
+   * Crear la primera tarea. Sin esto el estado vacio solo describe; con esto
+   * ofrece la salida, que es lo que pide REQ-07 §2.5: «el mensaje debe decir
+   * que hacer y ofrecer hacerlo».
+   *
+   * Opcional a proposito: quien no lo pase mantiene el estado de solo lectura.
+   */
+  onCreateTask?: () => void;
 }
 
 const EMPTY_COPY = {
   es: {
     title: 'Sin tareas programadas este mes',
     upcoming: 'Próximos hitos',
+    /*
+     * REQ-07 §2.5. El texto anterior decia «arrastra tareas del BACKLOG o
+     * crealas en el GANTT» y «el plan CPM proyectara aqui...».
+     *
+     * Yesid: «no hay un backlog visible en ninguna parte, y 'el plan CPM' no
+     * significa nada para quien usa la herramienta».
+     *
+     * Lo nuevo nombra lo que el usuario SI ve —el mes— y ofrece la accion.
+     */
+    body: 'Las tareas con fecha en este mes aparecerán aquí.',
+    crear: 'Crear una tarea',
   },
   en: {
     title: 'No tasks scheduled this month',
     upcoming: 'Upcoming milestones',
+    body: 'Tasks with dates in this month will show up here.',
+    crear: 'Create a task',
   },
 };
 
@@ -194,27 +215,24 @@ export function CalEmptyState({
   monthLabel,
   upcomingMilestones = [],
   locale = 'es',
+  onCreateTask,
 }: CalEmptyStateProps) {
   const copy = EMPTY_COPY[locale] || EMPTY_COPY.es;
-  const isEs = locale !== 'en';
 
   return (
     <div className="cal-empty">
       <div className="glyph">◇ ◇ ◇</div>
       <h3>{copy.title}</h3>
-      {isEs ? (
-        <p>
-          Arrastra tareas del <b>backlog</b> o créalas en el <b>Gantt</b>.
-          <br />
-          El plan CPM proyectará aquí lo que toque ejecutar en <b>{monthLabel}</b>.
-        </p>
-      ) : (
-        <p>
-          Drag tasks from the <b>backlog</b> or create them in the <b>Gantt</b>.
-          <br />
-          The CPM plan will project here what needs running in <b>{monthLabel}</b>.
-        </p>
-      )}
+      <p>
+        {copy.body}
+        <br />
+        <b>{monthLabel}</b>
+      </p>
+      {onCreateTask ? (
+        <button type="button" className="cal-empty-crear" onClick={onCreateTask}>
+          {copy.crear}
+        </button>
+      ) : null}
       {upcomingMilestones.length > 0 ? (
         <div className="cal-empty-hitos">
           <div className="hd">{copy.upcoming}</div>

@@ -923,6 +923,21 @@
 }
 .cal-empty p { font-size: 12px; color: var(--txt2); margin: 0 0 18px; line-height: 1.55; }
 .cal-empty p b { color: var(--txt); font-weight: 500; }
+
+/* REQ-07 §2.5: la salida del estado vacio. */
+.cal-empty-crear {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--txt);
+  background: var(--surface-2, rgba(255,255,255,0.06));
+  border: 1px solid var(--border, rgba(255,255,255,0.12));
+  border-radius: 8px;
+  padding: 7px 16px;
+  cursor: pointer;
+  transition: background-color 160ms, border-color 160ms;
+}
+.cal-empty-crear:hover { background: var(--surface-3, rgba(255,255,255,0.10)); }
+.cal-empty-crear:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
 .cal-empty-hitos {
   pointer-events: auto;
   display: inline-block;
