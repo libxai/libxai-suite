@@ -1312,7 +1312,21 @@ function ForecastHUD({ theme, forecast }: { theme: any; forecast?: ProjectForeca
                 backgroundColor: delayColor.bg,
                 color: delayColor.text,
                 fontFamily: "'JetBrains Mono', monospace",
+                cursor: forecast?.causaDelDesvio ? 'help' : undefined,
               }}
+              /*
+               * REQ-05 §8.4 · la causa, al pasar el raton.
+               *
+               * Va en el `title` y no en la barra a proposito: la insignia
+               * vive en una fila apretada y una frase entera la desbordaria.
+               * El numero sigue siendo lo primero que se lee; la explicacion
+               * esta a un gesto, que es justo lo que §8.4 pide evitar —«un
+               * numero que obliga a ABRIR EL CRONOGRAMA»—.
+               *
+               * El bloque completo de §8.3 va en el Resumen del proyecto,
+               * que es REQ-02 y todavia no existe.
+               */
+              title={forecast?.causaDelDesvio || undefined}
             >
               {delayLabel}
             </span>

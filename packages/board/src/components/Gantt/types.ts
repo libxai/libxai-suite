@@ -447,6 +447,15 @@ export interface ProjectForecast {
   costAtCompletion?: number | null;
   budgetVariancePercent?: number | null;
   currency?: string;
+  /**
+   * REQ-05 §8.4 · la frase que explica el desvio, ya redactada.
+   *
+   * «Un desvio sin explicacion es un numero que genera una pregunta y obliga a
+   * abrir el cronograma». La libreria NO la calcula: la recibe hecha, porque
+   * la regla —ruta critica primero, luego mayor desvio— depende de datos del
+   * consumidor y §8.3 pide la misma frase en dos pantallas.
+   */
+  causaDelDesvio?: string | null;
 }
 
 /**
