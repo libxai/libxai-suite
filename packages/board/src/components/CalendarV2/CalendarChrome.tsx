@@ -18,6 +18,19 @@ export interface CalTopBarProps {
   onViewChange: (view: CalView) => void;
   money: CalMoney;
   onMoneyChange: (money: CalMoney) => void;
+  /**
+   * ═══ EL PAR «Hrs / $» SE PUEDE QUITAR ENTERO ════════════════════════════
+   *
+   * REQ-07 §2.7: en el producto sin finanzas el «$» es un resto financiero.
+   *
+   * Y se quita EL PAR COMPLETO, no solo el «$»: como dice Yesid, «un
+   * conmutador de una sola opcion no es un conmutador — si solo queda HRS,
+   * deja de ser un control y pasa a ser una etiqueta, que tampoco hace
+   * falta».
+   *
+   * Por defecto se muestra: quien no pase nada se comporta como siempre.
+   */
+  mostrarConmutadorDeDinero?: boolean;
   /** Etiqueta del proyecto seleccionado (sin dropdown funcional en S1). */
   projectLabel: string;
   locale?: string;
@@ -35,6 +48,7 @@ export function CalTopBar({
   onViewChange,
   money,
   onMoneyChange,
+  mostrarConmutadorDeDinero,
   projectLabel,
 }: CalTopBarProps) {
   return (
@@ -59,22 +73,24 @@ export function CalTopBar({
           </button>
         ))}
       </div>
-      <div className="cal-seg">
-        <button
-          type="button"
-          className={money === '$' ? '' : 'on'}
-          onClick={() => onMoneyChange('hrs')}
-        >
-          Hrs
-        </button>
-        <button
-          type="button"
-          className={money === '$' ? 'on' : ''}
-          onClick={() => onMoneyChange('$')}
-        >
-          $
-        </button>
-      </div>
+      {mostrarConmutadorDeDinero !== false && (
+        <div className="cal-seg">
+          <button
+            type="button"
+            className={money === '$' ? '' : 'on'}
+            onClick={() => onMoneyChange('hrs')}
+          >
+            Hrs
+          </button>
+          <button
+            type="button"
+            className={money === '$' ? 'on' : ''}
+            onClick={() => onMoneyChange('$')}
+          >
+            $
+          </button>
+        </div>
+      )}
     </div>
   );
 }

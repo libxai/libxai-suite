@@ -59,6 +59,8 @@ interface Props {
    * Por defecto SÍ se muestra: quien no pase nada se comporta como siempre.
    */
   mostrarFiltroDeFases?: boolean;
+  /** REQ-07 §2.7 · el par «Hrs / $» del calendario. Ver `CalendarChrome`. */
+  mostrarConmutadorDeDinero?: boolean;
   /** money compartido con Gantt/Lista (lens global). */
   money: MoneyMode;
   onMoneyChange: (m: MoneyMode) => void;
@@ -88,6 +90,7 @@ const DEFAULT_PROJECT_COLOR = '#5B7FD4';
 export function CalendarView({
   tasks, projectName, projectId, projectColor, locale, themeMode, hourlyRate, money, onMoneyChange, onTaskOpen,
   mostrarFiltroDeFases,
+  mostrarConmutadorDeDinero,
   canReschedule, onReschedule,
   members = [], holidayDates = [], timesheetSettings, onVisibleRangeChange,
 }: Props) {
@@ -263,6 +266,7 @@ export function CalendarView({
         view={view}
         onViewChange={setView}
         money={money === '$' ? '$' : 'hrs'}
+        mostrarConmutadorDeDinero={mostrarConmutadorDeDinero}
         onMoneyChange={(m) => onMoneyChange(m === '$' ? '$' : 'Hrs')}
         projectLabel={projectName}
         locale={locale}
