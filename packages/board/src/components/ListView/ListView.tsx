@@ -44,6 +44,9 @@ import { TextCell } from './cells/TextCell';
 import { NumberCell } from './cells/NumberCell';
 import { DropdownCell } from './cells/DropdownCell';
 import { CheckboxCell } from './cells/CheckboxCell';
+// v1.9.24: cells for the custom field types that had none
+import { MultiSelectCell } from './cells/MultiSelectCell';
+import { FileCell } from './cells/FileCell';
 import { TagsCell } from './cells/TagsCell';
 import { TimeCell } from './cells/TimeCell';
 // v2.0.0: Chronos Interactive Time Manager cells
@@ -1407,6 +1410,63 @@ export function ListView({
             value={getCustomFieldValue<boolean>(column.customFieldId) || false}
             onChange={(checked) => updateCustomField(column.customFieldId, checked)}
             isDark={isDark}
+          />
+        );
+
+      // v1.9.24 ── the three custom field types that had no cell ────────────
+
+      case 'multiselect':
+        return (
+          <MultiSelectCell
+            value={getCustomFieldValue<string[]>(column.customFieldId) || []}
+            options={column.options || []}
+            onChange={(values) => updateCustomField(column.customFieldId, values)}
+            isDark={isDark}
+            maxSelectable={column.maxSelectable}
+          />
+        );
+
+      /*
+       * `person` REUSES AssigneesCell rather than adding a near-identical
+       * component: it already resolves the member picker, the avatars and the
+       * initials. A second implementation would drift from this one within a
+       * release or two.
+       *
+       * The value is stored as a list of names, which is what AssigneesCell
+       * hands back, so what the field holds is what the cell shows.
+       */
+      case 'person': {
+        const stored = getCustomFieldValue<Array<{ name: string; initials?: string; color?: string; avatar?: string }>>(
+          column.customFieldId,
+        ) || [];
+        return (
+          <AssigneesCell
+            value={stored.map(p => ({
+              name: p.name,
+              avatar: p.avatar,
+              initials: p.initials || (p.name || '?').slice(0, 2).toUpperCase(),
+              color: p.color || '#00E5CC',
+            }))}
+            availableUsers={availableUsers}
+            onChange={(people) => updateCustomField(column.customFieldId, people)}
+            isDark={isDark}
+            locale={locale}
+          />
+        );
+      }
+
+      case 'file':
+        return (
+          <FileCell
+            value={getCustomFieldValue<any>(column.customFieldId)}
+            isDark={isDark}
+            onOpen={(f) => {
+              /*
+               * Opening is the host's call. With no URL there is nothing to
+               * open, and a dead click is better than a blank tab.
+               */
+              if (f.url) window.open(f.url, '_blank', 'noopener,noreferrer');
+            }}
           />
         );
 

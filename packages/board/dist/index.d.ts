@@ -378,11 +378,28 @@ interface AICommandResult {
  */
 interface ProjectForecast {
     expectedFinish?: Date | null;
+    /**
+     * REQ-02 §5.3.C · el fin SEGUN LA LINEA BASE, para la franja «Plan contra
+     * realidad»: «fin segun la linea base y fin vigente; desvio en dias».
+     *
+     * `null` cuando el proyecto no tiene linea base. No es cero: sin base no hay
+     * con que comparar.
+     */
+    finSegunPlan?: Date | null;
     delayDays?: number | null;
     confidencePercent?: number | null;
     costAtCompletion?: number | null;
     budgetVariancePercent?: number | null;
     currency?: string;
+    /**
+     * REQ-05 §8.4 · la frase que explica el desvio, ya redactada.
+     *
+     * «Un desvio sin explicacion es un numero que genera una pregunta y obliga a
+     * abrir el cronograma». La libreria NO la calcula: la recibe hecha, porque
+     * la regla —ruta critica primero, luego mayor desvio— depende de datos del
+     * consumidor y §8.3 pide la misma frase en dos pantallas.
+     */
+    causaDelDesvio?: string | null;
 }
 /**
  * v4.3.0 — Workspace working-day configuration consumed by the tooltip
@@ -582,6 +599,42 @@ interface GanttConfig {
     onZoomChange?: (zoom: number) => void;
     onDateRangeChange?: (startDate: Date, endDate: Date) => void;
     onTaskClick?: (task: Task) => void;
+    /**
+     * ═══ LA SELECCION SALE DEL GANTT ══════════════════════════════════════════
+     *
+     * Divar, 27-ago, con dos capturas: el resaltado del Gantt marcaba una tarea y
+     * el panel lateral del SaaS enseñaba otra, dos filas mas abajo.
+     *
+     * La causa eran DOS NAVEGACIONES corriendo a la vez. El Gantt ya movia su
+     * resaltado con las flechas —`useGanttKeyboard`— pero esa seleccion se
+     * quedaba dentro: `useGanttSelection` no recibe ningun callback, asi que
+     * nadie fuera de la libreria podia enterarse. El SaaS, sin forma de seguirla,
+     * habia montado su propio recorrido en paralelo; cada uno con su lista, y de
+     * ahi el desfase.
+     *
+     * Con esto la seleccion tiene UNA sola fuente —la del Gantt, que es la que el
+     * usuario ve— y quien la consuma se limita a seguirla.
+     *
+     * Se emite tanto al pulsar como al navegar con el teclado: son la misma
+     * accion desde el punto de vista de quien mira la pantalla.
+     */
+    onTaskSelectionChange?: (taskId: string | null) => void;
+    /**
+     * ═══ MOVER EL RESALTADO DESDE FUERA ═══════════════════════════════════════
+     *
+     * Divar, 27-ago: «al seleccionar el nombre de la subtarea, el selector en
+     * gantt tambien se reubique».
+     *
+     * El companero de `onTaskSelectionChange`: aquel SACA la seleccion, este la
+     * METE. Sin los dos, abrir una tarea desde fuera —una subtarea, el
+     * breadcrumb, una notificacion— dejaba el resaltado en una fila y el panel
+     * en otra.
+     *
+     * NO es una prop controlada del todo: el Gantt conserva su estado y sigue
+     * seleccionando solo con clic y flechas. Esto solo lo empuja a una fila
+     * cuando cambia.
+     */
+    selectedTaskId?: string | null;
     onTaskDblClick?: (task: Task) => void;
     onTaskContextMenu?: (task: Task, event: React.MouseEvent) => void;
     onTaskUpdate?: (task: Task) => void;
@@ -2810,6 +2863,10 @@ interface TaskGridProps {
     }>;
     templates: Required<GanttTemplates>;
     onTaskClick?: (task: Task) => void;
+    /** v1.9.16: la seleccion sale del Gantt — ver `onTaskSelectionChange` en types.ts */
+    onTaskSelectionChange?: (taskId: string | null) => void;
+    /** v1.9.17: ...y tambien entra — ver `selectedTaskId` en types.ts */
+    selectedTaskId?: string | null;
     onTaskDblClick?: (task: Task) => void;
     onTaskContextMenu?: (task: Task, event: React.MouseEvent) => void;
     onTaskToggle?: (taskId: string) => void;
@@ -2840,7 +2897,7 @@ interface TaskGridProps {
     showCriticalPath?: boolean;
 }
 declare function TaskGrid({ tasks, theme, rowHeight: ROW_HEIGHT, availableUsers, templates: _templates, // TODO: Use templates for custom rendering
-onTaskClick, onTaskDblClick, // v0.8.0
+onTaskClick, onTaskSelectionChange, selectedTaskId, onTaskDblClick, // v0.8.0
 onTaskContextMenu, // v0.8.0
 onTaskToggle, scrollTop: _scrollTop, columns, onToggleColumn, onColumnResize, onTaskUpdate, onBulkFill, onTaskIndent, onTaskOutdent, onTaskMove, onMultiTaskDelete, onTaskDuplicate, onTaskCreate, onTaskRename, onCreateSubtask, onOpenTaskModal, onDeleteRequest, // v0.17.34
 onTaskReparent, // v0.17.68
@@ -3764,7 +3821,7 @@ type SortDirection = 'asc' | 'desc';
  * - v1.2.0: effortMinutes, timeLoggedMinutes, soldEffortMinutes
  * - Custom: text, number, date, dropdown, checkbox
  */
-type ColumnType = 'name' | 'status' | 'priority' | 'assignees' | 'startDate' | 'endDate' | 'progress' | 'tags' | 'estimatedTime' | 'quotedTime' | 'elapsedTime' | 'effortMinutes' | 'timeLoggedMinutes' | 'soldEffortMinutes' | 'scheduleVariance' | 'hoursBar' | 'teamLoad' | 'blockers' | 'weight' | 'text' | 'number' | 'date' | 'dropdown' | 'checkbox';
+type ColumnType = 'name' | 'status' | 'priority' | 'assignees' | 'startDate' | 'endDate' | 'progress' | 'tags' | 'estimatedTime' | 'quotedTime' | 'elapsedTime' | 'effortMinutes' | 'timeLoggedMinutes' | 'soldEffortMinutes' | 'scheduleVariance' | 'hoursBar' | 'teamLoad' | 'blockers' | 'weight' | 'text' | 'number' | 'date' | 'dropdown' | 'checkbox' | 'multiselect' | 'person' | 'file';
 /**
  * Table column configuration for dynamic columns
  */
@@ -3789,6 +3846,8 @@ interface TableColumn {
     resizable?: boolean;
     /** For custom fields - reference to field definition */
     customFieldId?: string;
+    /** v1.9.24: for multiselect - cap on how many options can be picked */
+    maxSelectable?: number;
     /** For dropdown type - available options */
     options?: string[];
 }
@@ -4442,6 +4501,26 @@ interface Props {
     /** 'light' aplica la paleta clara; cualquier otro = oscuro. */
     themeMode?: 'dark' | 'light';
     hourlyRate: number;
+    /**
+     * ═══ EL FILTRO DE FASES ═════════════════════════════════════════════════
+     *
+     * Divar, 27-ago (punto 17 de la lista de Juan): en el producto simplificado
+     * no va.
+     *
+     * Las «fases» son las tareas-padre raíz, y filtrar por ellas tiene sentido
+     * en un proyecto de obra con estructura WBS. En uno de tareas simples es un
+     * desplegable que casi siempre está vacío.
+     *
+     * Por defecto SÍ se muestra: quien no pase nada se comporta como siempre.
+     */
+    mostrarFiltroDeFases?: boolean;
+    /** REQ-07 §2.7 · el par «Hrs / $» del calendario. Ver `CalendarChrome`. */
+    mostrarConmutadorDeDinero?: boolean;
+    /**
+     * REQ-07 §2.5: crear la primera tarea desde el estado vacio del mes.
+     * Sin esto el mensaje describe pero no ofrece salida.
+     */
+    onCreateTask?: () => void;
     /** money compartido con Gantt/Lista (lens global). */
     money: MoneyMode;
     onMoneyChange: (m: MoneyMode) => void;
@@ -4472,7 +4551,7 @@ interface Props {
         end: string;
     }) => void;
 }
-declare function CalendarView({ tasks, projectName, projectId, projectColor, locale, themeMode, hourlyRate, money, onMoneyChange, onTaskOpen, canReschedule, onReschedule, members, holidayDates, timesheetSettings, onVisibleRangeChange, }: Props): react_jsx_runtime.JSX.Element;
+declare function CalendarView({ tasks, projectName, projectId, projectColor, locale, themeMode, hourlyRate, money, onMoneyChange, onTaskOpen, mostrarFiltroDeFases, mostrarConmutadorDeDinero, onCreateTask, canReschedule, onReschedule, members, holidayDates, timesheetSettings, onVisibleRangeChange, }: Props): react_jsx_runtime.JSX.Element;
 
 /**
  * Simulación de reprogramación con CPM (Calendario, Sprint 3, regla C5).

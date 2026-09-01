@@ -48,7 +48,11 @@ export type ColumnType =
   | 'number'         // Custom number field
   | 'date'           // Custom date field
   | 'dropdown'       // Custom dropdown/select
-  | 'checkbox';      // Custom checkbox/boolean
+  | 'checkbox'       // Custom checkbox/boolean
+  // v1.9.24: the three custom field types that needed a cell of their own
+  | 'multiselect'    // Custom multi-option field
+  | 'person'         // Custom person field (reuses AssigneesCell)
+  | 'file';          // Custom file field (shows and opens; upload lives in the panel)
 
 /**
  * Table column configuration for dynamic columns
@@ -74,6 +78,8 @@ export interface TableColumn {
   resizable?: boolean;
   /** For custom fields - reference to field definition */
   customFieldId?: string;
+  /** v1.9.24: for multiselect - cap on how many options can be picked */
+  maxSelectable?: number;
   /** For dropdown type - available options */
   options?: string[];
 }

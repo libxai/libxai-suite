@@ -25,6 +25,7 @@ import {
   CalendarClock,
   BarChart3,
   AlertTriangle,
+  Paperclip,
 } from 'lucide-react';
 import type { TableColumn, CustomFieldDefinition, ColumnType } from './types';
 
@@ -71,6 +72,10 @@ const COLUMN_ICONS: Record<ColumnType, React.ReactNode> = {
   date: <Calendar className="w-4 h-4" />,
   dropdown: <ChevronDown className="w-4 h-4" />,
   checkbox: <CheckSquare className="w-4 h-4" />,
+  // v1.9.24
+  multiselect: <Tag className="w-4 h-4" />,
+  person: <Users className="w-4 h-4" />,
+  file: <Paperclip className="w-4 h-4" />,
 };
 
 // Standard fields that are always available
@@ -495,6 +500,9 @@ const translations = {
       date: 'Date',
       dropdown: 'Dropdown',
       checkbox: 'Checkbox',
+      multiselect: 'Multi-select',
+      person: 'Person',
+      file: 'File',
       weight: 'Weight',
     } as Record<ColumnType, string>,
   },
