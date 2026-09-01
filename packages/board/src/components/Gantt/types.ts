@@ -442,6 +442,14 @@ export interface AICommandResult {
  */
 export interface ProjectForecast {
   expectedFinish?: Date | null;
+  /**
+   * REQ-02 §5.3.C · el fin SEGUN LA LINEA BASE, para la franja «Plan contra
+   * realidad»: «fin segun la linea base y fin vigente; desvio en dias».
+   *
+   * `null` cuando el proyecto no tiene linea base. No es cero: sin base no hay
+   * con que comparar.
+   */
+  finSegunPlan?: Date | null;
   delayDays?: number | null;
   confidencePercent?: number | null;
   costAtCompletion?: number | null;
