@@ -30,6 +30,7 @@ import type {
   ContextMenuState,
   CustomFieldDefinition,
   CustomFieldValue,
+  FillColumn,
 } from './types';
 import { mergeListViewTranslations } from './i18n';
 import { cn } from '../../utils';
@@ -545,7 +546,7 @@ export function ListView({
   const [hoveredTaskId, setHoveredTaskId] = useState<string | null>(null);
   const [fillDrag, setFillDrag] = useState<{
     sourceTaskId: string;
-    column: 'assignees' | 'startDate' | 'endDate';
+    column: FillColumn;
     sourceIndex: number;
     targetIndex: number;
     // v1.9.7: ids de las filas dentro del rango del arrastre. El preview se
@@ -555,15 +556,45 @@ export function ListView({
     // equivocadas (o ninguna) y aplicaba el relleno a tareas incorrectas.
     rangeIds: Set<string>;
   } | null>(null);
-  // The visible "Equipo" column has type 'teamLoad' (it shows the assignee
-  // picker on leaf tasks); map it to 'assignees' for drag-fill. Returns the
-  // normalized fill column for a given column type, or null if not fillable.
-  const fillColumnFor = (colType: string): 'assignees' | 'startDate' | 'endDate' | null => {
+  /*
+   * The visible "Equipo" column has type 'teamLoad' (it shows the assignee
+   * picker on leaf tasks); map it to 'assignees' for drag-fill. Returns the
+   * normalized fill column for a column, or null if not fillable.
+   *
+   * ── v1.9.28 · LAS COLUMNAS DE CAMPO PERSONALIZADO ────────────────────────
+   *
+   * Hasta 1.9.27 esto sólo conocía tres columnas, así que NINGUNA columna de
+   * campo personalizado se dejaba arrastrar — ni siquiera una de tipo fecha,
+   * porque no se llama `startDate` ni `endDate`.
+   *
+   * Un campo personalizado NO es una propiedad de la tarea: su valor vive en
+   * `tasks.campos`, y por eso el relleno no puede devolver un nombre de
+   * propiedad. Devuelve `{ kind: 'customField', fieldId }` y quien recibe
+   * `onBulkFill` decide cómo guardarlo. Si esto devolviera un nombre de
+   * propiedad cualquiera, el tirador aparecería, la fila se pintaría y NO SE
+   * GUARDARÍA NADA: el fallo mudo de siempre.
+   *
+   * `file` queda fuera a propósito: copiar un adjunto a veinte tareas es
+   * copiar una referencia a un fichero cuyo permiso no se ha comprobado en el
+   * destino. No es un olvido.
+   */
+  const fillColumnFor = (column: TableColumn): FillColumn | null => {
+    const colType = column.type as string;
+    if (column.customFieldId) {
+      return colType === 'file'
+        ? null
+        : { kind: 'customField', fieldId: column.customFieldId };
+    }
     if (colType === 'assignees' || colType === 'teamLoad') return 'assignees';
     if (colType === 'startDate') return 'startDate';
     if (colType === 'endDate') return 'endDate';
     return null;
   };
+  /** Igualdad de columna de relleno: los objetos no se comparan con `===`. */
+  const mismaColumnaDeRelleno = (a: FillColumn, b: FillColumn): boolean =>
+    typeof a === 'string' || typeof b === 'string'
+      ? a === b
+      : a.fieldId === b.fieldId;
   // Latest display order, read inside the drag-fill mouse handlers (assigned
   // after displayTasks is computed, below).
   const displayTasksRef = useRef<Task[]>([]);
@@ -656,7 +687,23 @@ export function ListView({
   }, [rowDragId, rowDropTargetId, rowDropPosition, tasks, callbacks]);
 
   // ── Drag-fill handlers (mirror Gantt TaskGrid) ─────────────────────────────
-  const getFillValue = (task: Task, column: 'assignees' | 'startDate' | 'endDate') => {
+  const getFillValue = (task: Task, column: FillColumn) => {
+    /*
+     * v1.9.28: el valor de un campo personalizado NO está en la tarea sino en
+     * su documento de campos. `undefined` es legítimo —el campo está vacío— y
+     * rellenar con vacío BORRA en el destino, que es lo que Excel hace y lo
+     * que el usuario espera al arrastrar una celda vacía.
+     */
+    if (typeof column !== 'string') {
+      /*
+       * `customFields` es una LISTA de `{fieldId, value}`, no un objeto
+       * indexado por id. La primera versión hizo `customFields[fieldId]` y
+       * devolvía `undefined` siempre: el tirador salía, el arrastre corría y
+       * rellenaba vacío en todas las filas sin que nada fallara.
+       */
+      const cfs = (task as Task & { customFields?: CustomFieldValue[] }).customFields;
+      return cfs?.find(cf => cf.fieldId === column.fieldId)?.value;
+    }
     if (column === 'assignees') return (task as any).assignees;
     if (column === 'startDate') return (task as any).startDate;
     return (task as any).endDate;
@@ -665,7 +712,7 @@ export function ListView({
   const handleFillDragStart = (
     e: React.MouseEvent,
     sourceTaskId: string,
-    column: 'assignees' | 'startDate' | 'endDate',
+    column: FillColumn,
     sourceIndex: number,
   ) => {
     e.preventDefault();
@@ -2394,12 +2441,20 @@ export function ListView({
                     </div>
                   )}
                   {visibleColumns.map((column) => {
-                    // Drag-fill: handle + preview for assignees/date cells.
+                    // Drag-fill: handle + preview for fillable cells.
                     const isParentRow = !!(task.subtasks && task.subtasks.length > 0);
-                    const fillCol = fillColumnFor(column.type);
+                    const fillCol = fillColumnFor(column);
                     const canFill = !!fillCol && !isParentRow;
                     const showFillHandle = canFill && hoveredTaskId === task.id && !fillDrag;
-                    const cellInFill = !!fillDrag && !!fillCol && fillDrag.column === fillCol && isInFillRange(task.id);
+                    /*
+                     * v1.9.28: comparar con `mismaColumnaDeRelleno`, no con
+                     * `===`. Las columnas de campo son OBJETOS y dos objetos
+                     * iguales nunca son `===`: con `===` el resaltado del
+                     * rango no se pintaba jamás en esas columnas.
+                     */
+                    const cellInFill = !!fillDrag && !!fillCol
+                      && mismaColumnaDeRelleno(fillDrag.column, fillCol)
+                      && isInFillRange(task.id);
                     return (
                     <div
                       key={column.id}
@@ -2481,26 +2536,38 @@ export function ListView({
                             )}
                           </div>
                         </div>
+                      ) : showFillHandle && fillCol ? (
+                        /*
+                         * v1.9.28 · el tirador se ancla al CONTENIDO, no a la
+                         * celda. Antes iba en la esquina de la celda entera
+                         * (`right: 2`), y como las celdas van centradas, el
+                         * cuadrito aparecía a un dedo de distancia del avatar
+                         * — con dos columnas contiguas parecía que un mismo
+                         * control tuviera dos puntas. Este envoltorio se ajusta
+                         * al contenido (`inline-flex`), así que la esquina del
+                         * tirador es la esquina de lo que se arrastra.
+                         */
+                        <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+                          {renderCell(task, column)}
+                          <span
+                            title="Arrastrá hacia abajo para aplicar a varias tareas"
+                            onMouseDown={(e) => handleFillDragStart(e, task.id, fillCol, index)}
+                            style={{
+                              position: 'absolute',
+                              right: -5,
+                              bottom: -3,
+                              width: 8,
+                              height: 8,
+                              borderRadius: 2,
+                              background: '#00E5CC',
+                              border: '1px solid rgba(0,0,0,0.3)',
+                              cursor: 'crosshair',
+                              zIndex: 5,
+                            }}
+                          />
+                        </span>
                       ) : (
                         renderCell(task, column)
-                      )}
-                      {showFillHandle && fillCol && (
-                        <div
-                          title="Arrastrá hacia abajo para aplicar a varias tareas"
-                          onMouseDown={(e) => handleFillDragStart(e, task.id, fillCol, index)}
-                          style={{
-                            position: 'absolute',
-                            right: 2,
-                            bottom: 2,
-                            width: 8,
-                            height: 8,
-                            borderRadius: 2,
-                            background: '#00E5CC',
-                            border: '1px solid rgba(0,0,0,0.3)',
-                            cursor: 'crosshair',
-                            zIndex: 5,
-                          }}
-                        />
                       )}
                     </div>
                     );

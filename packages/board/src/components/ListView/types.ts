@@ -581,14 +581,35 @@ export interface ListViewCallbacks {
   onReportBlocker?: (task: Task) => void;
   /** Handler for copying task link to clipboard */
   onCopyTaskLink?: (task: Task) => void;
-  /** Drag-fill (Excel-style): a value (assignees / date) dragged from one cell
-   *  was applied to many tasks at once. */
+  /** Drag-fill (Excel-style): a value dragged from one cell was applied to
+   *  many tasks at once.
+   *
+   *  `column` is either a built-in task property name or, since v1.9.28, a
+   *  `{ kind: 'customField', fieldId }` descriptor. The two are NOT
+   *  interchangeable: a built-in one names a property of the task, while a
+   *  custom field's value lives outside the task (in the host's own store), so
+   *  the host must persist it by its own route. Handlers written before 1.9.28
+   *  only knew the string form — check `typeof column === 'string'` before
+   *  treating it as a property name. */
   onBulkFill?: (
     taskIds: string[],
-    column: 'assignees' | 'startDate' | 'endDate',
+    column: FillColumn,
     value: any,
   ) => void;
 }
+
+/**
+ * Qué columna se está rellenando en un arrastre (v1.9.28).
+ *
+ * Las de la izquierda son propiedades de la tarea; la de la derecha NO lo es
+ * — el valor de un campo personalizado vive fuera del objeto `Task`, así que
+ * el anfitrión tiene que guardarlo por su propia ruta.
+ */
+export type FillColumn =
+  | 'assignees'
+  | 'startDate'
+  | 'endDate'
+  | { kind: 'customField'; fieldId: string };
 
 /**
  * Available user for assignment

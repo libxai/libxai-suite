@@ -26,6 +26,8 @@ export type {
   ColumnType,
   CustomFieldDefinition,
   CustomFieldValue,
+  // v1.9.28: qué columna se rellena en un arrastre (incluye campos).
+  FillColumn,
   ContextMenuAction,
   ContextMenuState,
   AvailableUser,
