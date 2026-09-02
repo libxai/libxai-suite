@@ -86,7 +86,7 @@ export function CalendarAgenda({ grid, tasks, items, money, projColor, todaySeri
                 color: 'var(--txt)', fontSize: '12.5px',
               }}
             >
-              <span style={{ width: 8, height: 8, borderRadius: 2, background: projColor, flex: 'none' }} />
+              <span style={{ width: 8, height: 8, borderRadius: 2, background: (t as { color?: string }).color ?? projColor, flex: 'none' }} />
               {t.critical ? <span style={{ fontFamily: 'var(--mono)', fontSize: 8, letterSpacing: '0.1em', color: '#031', background: 'var(--cyan)', borderRadius: 3, padding: '1.5px 3.5px', fontWeight: 700 }}>CPM</span> : null}
               {t.id ? <span style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--txt2)' }}>{t.id}</span> : null}
               <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</span>

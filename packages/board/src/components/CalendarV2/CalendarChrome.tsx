@@ -223,7 +223,7 @@ export interface CalLayersPopProps {
 const LAYERS: { id: CalLayerId; nm: string; sub: string; sw: string }[] = [
   { id: 'tareas', nm: 'Tareas', sub: 'Barras del Gantt', sw: 'var(--p26011)' },
   { id: 'cpm', nm: 'Ruta crítica', sub: 'CPM · borde cian', sw: 'var(--cyan)' },
-  { id: 'hitos', nm: 'Milestones / Desembolsos', sub: 'Rombo cian', sw: 'var(--cyan)' },
+  { id: 'hitos', nm: 'Milestones', sub: 'Rombo cian', sw: 'var(--cyan)' },
   { id: 'ext', nm: 'Eventos externos', sub: 'Google / Outlook · lectura', sw: 'var(--subtle)' },
   { id: 'festivos', nm: 'Festivos', sub: 'Calendario Colombia', sw: 'var(--subtle)' },
   { id: 'aus', nm: 'Ausencias del equipo', sub: 'Vacaciones · permisos', sw: 'var(--orange)' },

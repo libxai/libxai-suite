@@ -18,6 +18,14 @@ export interface CalTask {
   id: string;            // ID VISIBLE (TK-xxx / wbs; vacío si solo hay UUID) — solo para mostrar
   name: string;
   projectId: string;     // para color por proyecto
+  /**
+   * v1.9.25 — color propio del evento, que gana sobre el del proyecto.
+   *
+   * P1 §6.4: «un campo de selección puede elegirse para colorear los
+   * eventos». Hasta ahora el calendario solo coloreaba por proyecto, así que
+   * esa regla no se podía cumplir sin tocar la librería.
+   */
+  color?: string;
   startSerial: number;   // día-serial de inicio dentro del mes visible
   endSerial: number;     // día-serial de fin
   hrs: number;

@@ -79,7 +79,15 @@ export function CalBar({ bar, ws, money, projColor, slotH = DEFAULT_SLOT_H }: Ca
     (bar.contR ? ' cont-r' : '');
   const val = money === '$' ? t.cost : `${t.hrs}h`;
   const style: ProjVars = {
-    '--proj': projColor,
+    /*
+     * v1.9.26 — P1 §6.4: «un campo de seleccion puede elegirse para colorear
+     * los eventos».
+     *
+     * El color de LA TAREA gana sobre el del proyecto. Si la app no lo manda
+     * —que es lo normal— se cae al de siempre, asi que ningun consumidor
+     * existente cambia.
+     */
+    '--proj': (bar as { color?: string }).color ?? projColor,
     left: `calc(${col}/7*100% + 3px)`,
     width: `calc(${span}/7*100% - 6px)`,
     top: `${bar.lane * slotH}px`,
@@ -162,7 +170,7 @@ export function CalLegend({ projects }: CalLegendProps): React.ReactElement {
         <i style={{ color: 'var(--cyan)' }}>▣</i> Ruta crítica
       </span>
       <span>
-        <i style={{ color: 'var(--cyan)' }}>◆</i> Hito / Desembolso
+        <i style={{ color: 'var(--cyan)' }}>◆</i> Hito
       </span>
       <span>
         <i style={{ color: 'var(--red)' }}>⚑</i> Vencimiento

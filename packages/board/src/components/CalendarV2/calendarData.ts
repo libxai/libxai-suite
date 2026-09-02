@@ -97,6 +97,15 @@ export function buildCalendar(opts: BuildOpts): BuiltCalendar {
       id: visibleId,        // solo para mostrar (vacío si es UUID)
       name: t.name,
       projectId,
+      /*
+       * v1.9.26 — P1 §6.4: «un campo de seleccion puede elegirse para colorear
+       * los eventos».
+       *
+       * La app decide el color y lo pone en la tarea; aqui solo se propaga.
+       * `undefined` cuando no lo manda, y entonces manda el del proyecto —el
+       * comportamiento de siempre—.
+       */
+      color: (t as { color?: string }).color,
       startSerial: Math.max(sSerial, 1),
       endSerial: Math.min(eSerial, gridEndSerial),
       hrs,

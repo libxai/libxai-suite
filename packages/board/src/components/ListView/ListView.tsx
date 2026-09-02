@@ -319,6 +319,8 @@ export function ListView({
     showSearch = true,
     showHierarchy = true,
     tableColumns,
+  /* v1.9.25 — see types.ts: Mesh hides these entirely. */
+  mostrarIndicadoresFinancieros = true,
     allowColumnCustomization = true,
     allowColumnResize = true,
     enableContextMenu = true,
@@ -2276,7 +2278,7 @@ export function ListView({
                               <span className={cn("text-[10px] font-mono", isDark ? "text-white/30" : "text-gray-500")}>
                                 ({subtaskCount} {locale === 'es' ? (subtaskCount === 1 ? 'Tarea' : 'Tareas') : (subtaskCount === 1 ? 'Item' : 'Items')})
                               </span>
-                              {spi !== null && (
+                              {spi !== null && mostrarIndicadoresFinancieros && (
                                 <span className={cn("text-[9px] font-mono px-1.5 py-0.5 rounded w-fit mt-0.5", spi >= 1 ? "text-[#32D74B] bg-[#32D74B]/10" : spi >= 0.8 ? "text-[#FFD60A] bg-[#FFD60A]/10" : "text-[#FF453A] bg-[#FF453A]/10")}>
                                   Avg SPI: {spi.toFixed(2)}
                                 </span>

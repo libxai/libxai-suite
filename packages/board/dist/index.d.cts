@@ -4020,6 +4020,16 @@ interface ProjectHealthData {
  * ListView configuration
  */
 interface ListViewConfig {
+    /**
+     * v1.9.25 — Hide financial indicators entirely, not just blur them.
+     *
+     * Mesh (the simplified product) must not show ANY financial term: not a
+     * budget, not a margin, and not an SPI badge either. Blurring is not enough
+     * — the label «Avg SPI» IS the problem, whatever the number reads.
+     *
+     * Defaults to true so existing consumers keep the badge they have.
+     */
+    mostrarIndicadoresFinancieros?: boolean;
     /** Theme: 'dark' | 'light' | 'neutral' */
     theme?: 'dark' | 'light' | 'neutral';
     /** Locale for i18n */
@@ -4431,6 +4441,14 @@ interface CalTask {
     id: string;
     name: string;
     projectId: string;
+    /**
+     * v1.9.25 — color propio del evento, que gana sobre el del proyecto.
+     *
+     * P1 §6.4: «un campo de selección puede elegirse para colorear los
+     * eventos». Hasta ahora el calendario solo coloreaba por proyecto, así que
+     * esa regla no se podía cumplir sin tocar la librería.
+     */
+    color?: string;
     startSerial: number;
     endSerial: number;
     hrs: number;

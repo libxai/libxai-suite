@@ -288,6 +288,17 @@ export interface ProjectHealthData {
  * ListView configuration
  */
 export interface ListViewConfig {
+  /**
+   * v1.9.25 — Hide financial indicators entirely, not just blur them.
+   *
+   * Mesh (the simplified product) must not show ANY financial term: not a
+   * budget, not a margin, and not an SPI badge either. Blurring is not enough
+   * — the label «Avg SPI» IS the problem, whatever the number reads.
+   *
+   * Defaults to true so existing consumers keep the badge they have.
+   */
+  mostrarIndicadoresFinancieros?: boolean;
+
   /** Theme: 'dark' | 'light' | 'neutral' */
   theme?: 'dark' | 'light' | 'neutral';
   /** Locale for i18n */
