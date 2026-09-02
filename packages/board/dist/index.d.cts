@@ -4030,6 +4030,18 @@ interface ListViewConfig {
      * Defaults to true so existing consumers keep the badge they have.
      */
     mostrarIndicadoresFinancieros?: boolean;
+    /**
+     * v1.9.27 — ¿se OFRECEN las columnas densas en el selector?
+     *
+     * Estimado, ejecutado, ofertado y peso. Va aparte de
+     * `mostrarIndicadoresFinancieros` A PROPOSITO: son DOS MOTIVOS DISTINTOS.
+     * Lo financiero se esconde por CONFIDENCIALIDAD; estas por SIMPLICIDAD —una
+     * lista con cuatro columnas de minutos deja de leerse—. Un cliente podria
+     * querer una cosa sin la otra.
+     *
+     * Por defecto `true`: no cambia a quien ya lo usaba.
+     */
+    mostrarColumnasDensas?: boolean;
     /** Theme: 'dark' | 'light' | 'neutral' */
     theme?: 'dark' | 'light' | 'neutral';
     /** Locale for i18n */

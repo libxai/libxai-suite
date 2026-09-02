@@ -321,6 +321,8 @@ export function ListView({
     tableColumns,
   /* v1.9.25 — see types.ts: Mesh hides these entirely. */
   mostrarIndicadoresFinancieros = true,
+  /* v1.9.27 — ver types.ts: se esconden por SIMPLICIDAD, no por dinero. */
+  mostrarColumnasDensas = true,
     allowColumnCustomization = true,
     allowColumnResize = true,
     enableContextMenu = true,
@@ -2201,6 +2203,8 @@ export function ListView({
                   onClose={() => setShowColumnSelector(false)}
                   columns={columns}
                   customFields={customFields}
+                  /* v1.9.27 — la capacidad decide si se ofrecen las densas. */
+                  mostrarColumnasDensas={mostrarColumnasDensas}
                   onColumnsChange={handleColumnsChange}
                   onCreateCustomField={() => {
                     setShowColumnSelector(false);

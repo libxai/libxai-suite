@@ -37,6 +37,17 @@ interface ColumnSelectorProps {
   onColumnsChange: (columns: TableColumn[]) => void;
   /** Callback to open create custom field modal */
   onCreateCustomField?: () => void;
+  /**
+   * v1.9.27 — las columnas DENSAS: estimado, ejecutado, ofertado y peso.
+   *
+   * Mesh las esconde POR SIMPLICIDAD, no por confidencialidad: una lista con
+   * cuatro columnas de minutos deja de leerse. Ofrecerlas en el selector
+   * cuando la Lista no las usa es peor que no tenerlas — la persona las marca
+   * y no pasa nada.
+   *
+   * Por defecto `true` para no cambiar a quien ya lo usaba.
+   */
+  mostrarColumnasDensas?: boolean;
   isDark: boolean;
   locale: string;
 }
@@ -88,6 +99,7 @@ export function ColumnSelector({
   customFields = [],
   onColumnsChange,
   onCreateCustomField: _onCreateCustomField, // Disabled - custom fields feature not active
+  mostrarColumnasDensas = true,
   isDark,
   locale,
 }: ColumnSelectorProps) {
@@ -218,8 +230,13 @@ export function ColumnSelector({
   };
 
   // Filter columns by search (exclude deprecated 'assignees')
+  /* v1.9.27 — las densas se esconden con la capacidad apagada. */
+  const DENSAS: ColumnType[] = ['effortMinutes', 'timeLoggedMinutes', 'soldEffortMinutes', 'weight'];
+
   const filteredStandardColumns = allColumnTypes.filter((type) =>
-    type !== 'assignees' && getColumnLabel(type).toLowerCase().includes(search.toLowerCase())
+    type !== 'assignees'
+    && (mostrarColumnasDensas || !DENSAS.includes(type))
+    && getColumnLabel(type).toLowerCase().includes(search.toLowerCase())
   );
 
   const filteredCustomFields = customFields.filter((field) =>
