@@ -2209,16 +2209,58 @@ export function ListView({
                   </span>
                 )}
 
-                {/* Resize handle */}
+                {/*
+                  * ═══ EL TIRADOR SE VE, Y SE AGARRA MAS FACIL · 08-sep ═════
+                  *
+                  * Reportado: «poner una pequena linea para ver donde esta la
+                  * fila para poder ampliarla o reducirla; como esta toca
+                  * buscarla con el mouse».
+                  *
+                  * Tenia razon y eran DOS problemas en el mismo elemento:
+                  *
+                  *   NO SE VEIA   el color solo aparecia en `hover`, asi que
+                  *                habia que encontrar el sitio A CIEGAS.
+                  *   ERA ESTRECHO `w-1` son 4 px. Aunque supieras donde esta,
+                  *                acertar cuesta.
+                  *
+                  * Se separan las dos cosas, que es lo que lo arregla bien:
+                  *
+                  *   LA ZONA SENSIBLE crece a 9 px (`w-[9px]` con `-mr-1`,
+                  *   asi se reparte a los dos lados del borde y no desplaza
+                  *   nada). Es invisible: solo es donde se puede agarrar.
+                  *
+                  *   LA LINEA VISIBLE es un hijo de 1 px, SIEMPRE presente,
+                  *   de ALTURA COMPLETA y al 40 %. Primero la puse al 18 % y a
+                  *   media altura «para que no compitiera con el contenido»:
+                  *   Arcadio lo probo y seguia sin verse. Una linea que hay que
+                  *   buscar no resuelve el problema de buscarla.
+                  *
+                  * Al pasar el raton, esa linea se vuelve del acento y a plena
+                  * opacidad: confirma que ahi es. Y mientras se arrastra,
+                  * tambien — si no, se pierde la referencia al mover.
+                  *
+                  * `pointer-events-none` en la linea: quien recibe el raton es
+                  * la zona de 9 px, no ella. Sin eso, el gesto se partiria en
+                  * dos segun donde cayera el pixel.
+                  */}
                 {allowColumnResize && column.resizable && (
                   <div
                     className={cn(
-                      "absolute right-0 top-0 bottom-0 w-1 cursor-col-resize group",
-                      "hover:bg-[#00E5CC]",
-                      resizingColumn === column.id && "bg-[#00E5CC]"
+                      "absolute right-0 top-0 bottom-0 w-[9px] -mr-1 cursor-col-resize group",
+                      "flex items-center justify-center"
                     )}
                     onMouseDown={(e) => handleResizeStart(e, column.id)}
-                  />
+                  >
+                    <div
+                      className={cn(
+                        "w-px h-full transition-colors",
+                        "pointer-events-none",
+                        resizingColumn === column.id
+                          ? "bg-[#00E5CC] w-0.5"
+                          : "bg-current opacity-40 group-hover:bg-[#00E5CC] group-hover:opacity-100 group-hover:w-0.5"
+                      )}
+                    />
+                  </div>
                 )}
               </div>
               );
