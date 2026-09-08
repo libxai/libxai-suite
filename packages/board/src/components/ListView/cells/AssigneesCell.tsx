@@ -4,6 +4,12 @@
  */
 
 import { useState, useRef, useEffect } from 'react';
+/*
+ * El menu se abre hacia donde cabe. La medicion vive en el hook porque el
+ * mismo defecto lo tienen NUEVE desplegables de las celdas: copiarla aqui
+ * significaria que la decima celda vuelve a nacer rota.
+ */
+import { useLadoDelMenu } from '../../../hooks/useLadoDelMenu';
 import { User, Plus, X, Search } from 'lucide-react';
 import { cn } from '../../../utils';
 import type { AvailableUser } from '../types';
@@ -57,9 +63,11 @@ export function AssigneesCell({
   disabled = false,
 }: AssigneesCellProps) {
   const [isOpen, setIsOpen] = useState(false);
+
   const [search, setSearch] = useState('');
   const ref = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const arriba = useLadoDelMenu(ref, isOpen);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -198,7 +206,10 @@ export function AssigneesCell({
 
       {isOpen && (
         <div
-          className="absolute z-50 top-full left-0 mt-1.5 rounded-lg overflow-hidden"
+          className={cn(
+            'absolute z-50 left-0 rounded-lg overflow-hidden',
+            arriba ? 'bottom-full mb-1.5' : 'top-full mt-1.5',
+          )}
           style={{
             width: 260,
             backgroundColor: isDark ? 'rgba(17, 17, 17, 0.98)' : 'rgba(255, 255, 255, 0.98)',

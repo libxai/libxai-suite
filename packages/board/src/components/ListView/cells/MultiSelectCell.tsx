@@ -13,6 +13,10 @@
  */
 
 import { useState, useRef, useEffect } from 'react';
+/* El menu se abre hacia donde cabe: en la ultima fila, `top-full` lo sacaba
+   fuera de la lista. La medicion vive en el hook — el mismo defecto lo tenian
+   nueve desplegables. */
+import { useLadoDelMenu } from '../../../hooks/useLadoDelMenu';
 import { ChevronDown, Check } from 'lucide-react';
 import { cn } from '../../../utils';
 
@@ -41,6 +45,7 @@ export function MultiSelectCell({
 }: MultiSelectCellProps) {
   const [isOpen, setIsOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const arriba = useLadoDelMenu(ref, isOpen, 220);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -113,7 +118,7 @@ export function MultiSelectCell({
       {isOpen && (
         <div
           className={cn(
-            'absolute z-50 top-full left-0 mt-1 py-1 rounded-lg shadow-lg border min-w-[140px] max-h-48 overflow-y-auto',
+            'absolute z-50 left-0 ' + (arriba ? 'bottom-full mb-1 ' : 'top-full mt-1 ') + 'py-1 rounded-lg shadow-lg border min-w-[140px] max-h-48 overflow-y-auto',
             isDark ? 'bg-[#1A1A1A] border-[#222]' : 'bg-white border-gray-200'
           )}
         >
