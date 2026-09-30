@@ -86,8 +86,12 @@ export function CalBar({ bar, ws, money, projColor, slotH = DEFAULT_SLOT_H }: Ca
      * El color de LA TAREA gana sobre el del proyecto. Si la app no lo manda
      * —que es lo normal— se cae al de siempre, asi que ningun consumidor
      * existente cambia.
+     *
+     * v1.9.32 — el color vive en LA TAREA (`bar.t.color`, lo copia
+     * calendarData), no en la barra: leer solo `bar.color` lo perdía siempre
+     * y el selector «Color de los eventos» no pintaba nada. La Agenda ya leía t.
      */
-    '--proj': (bar as { color?: string }).color ?? projColor,
+    '--proj': (bar as { color?: string }).color ?? (t as { color?: string }).color ?? projColor,
     left: `calc(${col}/7*100% + 3px)`,
     width: `calc(${span}/7*100% - 6px)`,
     top: `${bar.lane * slotH}px`,
