@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 /**
  * CalendarView — rediseño del Calendario (Asakaa Pulse, Sprint 1, SOLO LECTURA).
  *
@@ -37,6 +38,10 @@ const WEEK_MIN_H = 132; // alto mínimo por semana (5 slots × 26 + cabecera)
 const SLOT_H = 26;
 
 interface Props {
+  /** 1.9.34 · las vistas (Month/Week/Agenda) se pintan dentro de este elemento: cabeceras de una fila. */
+  toolbarContainer?: HTMLElement | null;
+  /** 1.9.34 · vistas que no se ofrecen en el selector (p. ej. ['lookahead']). */
+  hiddenViews?: CalView[];
   tasks: LibXAITask[];
   projectName: string;
   projectId: string;
@@ -93,7 +98,7 @@ interface Props {
 const DEFAULT_PROJECT_COLOR = '#5B7FD4';
 
 export function CalendarView({
-  tasks, projectName, projectId, projectColor, locale, themeMode, hourlyRate, money, onMoneyChange, onTaskOpen,
+  tasks, projectName, projectId, projectColor, locale, themeMode, hourlyRate, money, onMoneyChange, onTaskOpen, toolbarContainer, hiddenViews,
   mostrarFiltroDeFases,
   mostrarConmutadorDeDinero,
   onCreateTask,
@@ -301,6 +306,23 @@ export function CalendarView({
 
   return (
     <div className={`cal-app${themeMode === 'light' ? ' cal-light' : ''}`}>
+      {/* 1.9.34 · con `toolbarContainer`, las vistas suben a la cabecera de quien la pide (con las variables de .cal-app). */}
+      {toolbarContainer ? createPortal(
+        <div className={`cal-app cal-en-cabecera${themeMode === 'light' ? ' cal-light' : ''}`}>
+          <CalTopBar
+            enCabecera
+            hiddenViews={hiddenViews}
+            view={view}
+            onViewChange={setView}
+            money={money === '$' ? '$' : 'hrs'}
+            mostrarConmutadorDeDinero={mostrarConmutadorDeDinero}
+            onMoneyChange={(m) => onMoneyChange(m === '$' ? '$' : 'Hrs')}
+            projectLabel={projectName}
+            locale={locale}
+          />
+        </div>,
+        toolbarContainer,
+      ) : (
       <CalTopBar
         view={view}
         onViewChange={setView}
@@ -309,7 +331,9 @@ export function CalendarView({
         onMoneyChange={(m) => onMoneyChange(m === '$' ? '$' : 'Hrs')}
         projectLabel={projectName}
         locale={locale}
+        hiddenViews={hiddenViews}
       />
+      )}
       <CalToolbar
         monthLabel={mLabel}
         onPrev={goPrev}

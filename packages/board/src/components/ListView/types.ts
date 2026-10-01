@@ -426,6 +426,12 @@ export interface ListViewConfig {
 
   /** v2.5.0: Render content just before the Create Task button (e.g., share/export dropdown) */
   toolbarEndContent?: ReactNode;
+  /**
+   * 1.9.34 · Pinta la barra de herramientas DENTRO de este elemento (por
+   * portal) y en versión compacta: sin buscador (lo hace el de la app) ni
+   * botón de crear. Para cabeceras de una sola fila.
+   */
+  toolbarContainer?: HTMLElement | null;
 }
 
 /**
@@ -669,6 +675,12 @@ export interface ListViewProps {
   toolbarRightContent?: ReactNode;
   /** v2.5.0: Render content just before the Create Task button (e.g., share/export dropdown) */
   toolbarEndContent?: ReactNode;
+  /**
+   * 1.9.34 · Pinta la barra de herramientas DENTRO de este elemento (por
+   * portal) y en versión compacta: sin buscador (lo hace el de la app) ni
+   * botón de crear. Para cabeceras de una sola fila.
+   */
+  toolbarContainer?: HTMLElement | null;
 
   // v1.8.0: Column header actions (Linear/Airtable pattern)
   /**

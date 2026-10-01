@@ -1955,15 +1955,16 @@ export function ListView({
         ...style,
       }}
     >
-      {/* Toolbar */}
-      <div className={cn("flex-shrink-0 px-6 py-4 border-b", isDark ? "border-[#222]" : "border-gray-200")}>
-        <div className="flex items-center gap-4">
+      {/* Toolbar · 1.9.34: con `config.toolbarContainer`, compacta y en la cabecera de quien la pide */}
+      {(() => { const enCabecera = !!config.toolbarContainer; const barra = (
+      <div className={enCabecera ? "flex items-center" : cn("flex-shrink-0 px-6 py-4 border-b", isDark ? "border-[#222]" : "border-gray-200")}>
+        <div className={enCabecera ? "flex items-center gap-2" : "flex items-center gap-4"}>
           {/*
             * Task count · 1.9.33 (D-5, Yesid): el mismo número de tareas en
             * todas partes. Un padre con subtareas es un contenedor y no cuenta
             * como tarea: «33 tasks · 3 parent tasks».
             */}
-          <div className={cn("text-sm", isDark ? "text-white/60" : "text-gray-600")} data-cuenta-de-tareas>
+          <div className={cn("text-sm whitespace-nowrap", isDark ? "text-white/60" : "text-gray-600")} data-cuenta-de-tareas>
             {(() => {
               const padres = displayTasks.filter(dt => (dt.subtasks?.length ?? 0) > 0).length;
               const hojas = displayTasks.length - padres;
@@ -1978,7 +1979,7 @@ export function ListView({
           </div>
 
           {/* Search */}
-          {showSearch && (
+          {showSearch && !enCabecera && (
             <div className="relative flex-1 max-w-md">
               <Search className={cn("absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4", isDark ? "text-white/60" : "text-gray-400")} />
               <input
@@ -1997,7 +1998,7 @@ export function ListView({
           )}
 
           {/* Spacer to push right items */}
-          <div className="flex-1" />
+          {!enCabecera && <div className="flex-1" />}
 
           {/* v2.1.0: Custom right toolbar content (e.g., lens toggle) */}
           {toolbarRightContent && (
@@ -2097,7 +2098,7 @@ export function ListView({
           {config.toolbarEndContent}
 
           {/* Create Task Button - v0.18.0: Same style as GanttToolbar */}
-          {showCreateTaskButton && onCreateTask && (
+          {showCreateTaskButton && onCreateTask && !enCabecera && (
             <motion.button
               onClick={onCreateTask}
               className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-[transform,box-shadow]"
@@ -2120,6 +2121,9 @@ export function ListView({
           )}
         </div>
       </div>
+      );
+      return enCabecera ? createPortal(barra, config.toolbarContainer as HTMLElement) : barra;
+      })()}
 
       {/* Table + Sidebar Container */}
       <div style={{ display: 'flex', flex: '1 1 0%', overflow: 'hidden', minHeight: 0 }}>

@@ -34,6 +34,10 @@ export interface CalTopBarProps {
   /** Etiqueta del proyecto seleccionado (sin dropdown funcional en S1). */
   projectLabel: string;
   locale?: string;
+  /** 1.9.34 · dentro de la cabecera de quien la pide: solo las vistas (y Hrs/$); sin selector de proyecto. */
+  enCabecera?: boolean;
+  /** 1.9.34 · vistas que no se ofrecen (p. ej. 'lookahead' sin planificación de obra). */
+  hiddenViews?: CalView[];
 }
 
 /* 1.9.33 · las etiquetas siguen el `locale` (salían en español con la interfaz en inglés). */
@@ -52,8 +56,36 @@ export function CalTopBar({
   mostrarConmutadorDeDinero,
   projectLabel,
   locale = 'es',
+  enCabecera = false,
+  hiddenViews = [],
 }: CalTopBarProps) {
   const en = locale === 'en';
+  const vistas = VISTAS.filter((v) => !hiddenViews.includes(v.id));
+  if (enCabecera) {
+    return (
+      <>
+        <div className="cal-seg">
+          {vistas.map((v) => (
+            <button
+              type="button"
+              key={v.id}
+              className={view === v.id ? 'on' : ''}
+              onClick={() => onViewChange(v.id)}
+              title={`${en ? v.en : v.es} (${v.key})`}
+            >
+              {en ? v.en : v.es}
+            </button>
+          ))}
+        </div>
+        {mostrarConmutadorDeDinero !== false && (
+          <div className="cal-seg">
+            <button type="button" className={money === '$' ? '' : 'on'} onClick={() => onMoneyChange('hrs')}>Hrs</button>
+            <button type="button" className={money === '$' ? 'on' : ''} onClick={() => onMoneyChange('$')}>$</button>
+          </div>
+        )}
+      </>
+    );
+  }
   return (
     // El logo/marca "Asakaa Pulse" se omite aquí: ya está en el header global y
     // en el selector de workspace — sería redundante repetirlo en el calendario.
@@ -64,7 +96,7 @@ export function CalTopBar({
       </div>
       <div className="cal-spacer" />
       <div className="cal-seg">
-        {VISTAS.map((v) => (
+        {vistas.map((v) => (
           <button
             type="button"
             key={v.id}
