@@ -1958,9 +1958,23 @@ export function ListView({
       {/* Toolbar */}
       <div className={cn("flex-shrink-0 px-6 py-4 border-b", isDark ? "border-[#222]" : "border-gray-200")}>
         <div className="flex items-center gap-4">
-          {/* Task count */}
-          <div className={cn("text-sm", isDark ? "text-white/60" : "text-gray-600")}>
-            {displayTasks.length} {t.pagination.tasks}
+          {/*
+            * Task count · 1.9.33 (D-5, Yesid): el mismo número de tareas en
+            * todas partes. Un padre con subtareas es un contenedor y no cuenta
+            * como tarea: «33 tasks · 3 parent tasks».
+            */}
+          <div className={cn("text-sm", isDark ? "text-white/60" : "text-gray-600")} data-cuenta-de-tareas>
+            {(() => {
+              const padres = displayTasks.filter(dt => (dt.subtasks?.length ?? 0) > 0).length;
+              const hojas = displayTasks.length - padres;
+              const esEs = locale === 'es';
+              return (
+                <>
+                  {hojas} {t.pagination.tasks}
+                  {padres > 0 && <> · {padres} {esEs ? (padres === 1 ? 'tarea padre' : 'tareas padre') : (padres === 1 ? 'parent task' : 'parent tasks')}</>}
+                </>
+              );
+            })()}
           </div>
 
           {/* Search */}

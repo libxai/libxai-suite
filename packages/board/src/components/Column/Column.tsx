@@ -106,6 +106,13 @@ export const Column = memo<ColumnProps>(
       enabled: useVirtualization,
     })
 
+    /*
+     * 1.9.33 · una tarjeta CONTENEDOR (`metadata.isContainer`: una tarea padre)
+     * se ve y se mueve, pero no suma en el número de la columna. Así el tablero
+     * dice el mismo número de tareas que la lista. El límite WIP sigue igual.
+     */
+    const tarjetasQueCuentan = cards.filter(c => !(c.metadata as { isContainer?: boolean } | undefined)?.isContainer).length
+
     // Custom column renderer
     if (renderColumn) {
       return (
@@ -153,13 +160,13 @@ export const Column = memo<ColumnProps>(
       >
         {/* Header */}
         {renderHeader ? (
-          renderHeader(column, cards.length)
+          renderHeader(column, tarjetasQueCuentan)
         ) : (
           <div className="asakaa-column-header group">
             <h2 className="asakaa-column-title">{column.title}</h2>
             <div className="flex items-center gap-2">
               <span className={cn(getWipBadgeClasses())}>
-                {cards.length}
+                {tarjetasQueCuentan}
                 {column.wipLimit && ` / ${column.wipLimit}`}
               </span>
               {/* WIP limit status indicator */}
