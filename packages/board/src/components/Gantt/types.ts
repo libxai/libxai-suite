@@ -551,6 +551,8 @@ export interface GanttConfig {
    * una sola fila. Sin él, la barra de siempre.
    */
   toolbarContainer?: HTMLElement | null;
+  /** 1.9.35 · oculta el selector de nivel WBS (All / L1 / L2…) de la barra. */
+  hideWbsLevel?: boolean;
 
   // v0.8.0: Customizable templates (similar to DHTMLX gantt.templates.*)
   templates?: GanttTemplates;

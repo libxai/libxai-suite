@@ -89,6 +89,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     // Custom toolbar content
     toolbarRightContent,
     toolbarContainer,
+    hideWbsLevel,
     // v3.0.0: Baseline & WBS
     showBaseline: configShowBaseline,
     viewMode: configViewMode,
@@ -2120,11 +2121,13 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         toolbarRightContent={toolbarRightContent}
         // v3.0.0: WBS Level selector
         wbsLevel={wbsLevel}
-        onWbsLevelChange={handleWbsLevelChange}
+        /* 1.9.35 · quien no navega por fases (hideWbsLevel) no ve el selector. */
+        onWbsLevelChange={hideWbsLevel ? undefined : handleWbsLevelChange}
         maxWbsDepth={maxWbsDepth}
         // v3.0.0: Execution/Oracle view mode
         viewMode={viewMode}
-        onViewModeChange={handleViewModeChange}
+        /* 1.9.35 · el conmutador Execution/Pulse solo si la app lo pide: sin línea base, Pulse no hacía nada al pulsarlo. */
+        onViewModeChange={configOnViewModeChange ? handleViewModeChange : undefined}
         // v3.1.0: Forecast HUD
         projectForecast={projectForecast}
         hideForecastHud={hideForecastHud}
