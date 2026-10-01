@@ -109,6 +109,7 @@ export interface CalBacklogPanelProps {
   money: MoneyMode;
   /** color por defecto del proyecto (vista de un solo proyecto). */
   projColor?: string;
+  locale?: 'es' | 'en';
 }
 
 export function CalBacklogPanel({
@@ -117,17 +118,19 @@ export function CalBacklogPanel({
   onCollapse,
   money,
   projColor,
+  locale = 'es',
 }: CalBacklogPanelProps): React.ReactElement {
+  const en = locale === 'en';
   return (
     <div className="cal-side">
       <div className="cal-side-head">
-        <span className="t">⚡ Backlog · Sin fecha</span>
-        <button type="button" className="cal-pcollapse" onClick={onCollapse} title="Colapsar panel">
+        <span className="t">⚡ Backlog · {en ? 'No date' : 'Sin fecha'}</span>
+        <button type="button" className="cal-pcollapse" onClick={onCollapse} title={en ? 'Collapse panel' : 'Colapsar panel'}>
           ⟩
         </button>
       </div>
       <div className="cal-side-sec">
-        <span>Arrastra al calendario</span>
+        <span>{en ? 'Drag onto the calendar' : 'Arrastra al calendario'}</span>
         <span>{items.length}</span>
       </div>
 
@@ -186,11 +189,13 @@ export function CalBacklogPanel({
    ============================================================ */
 
 export interface CalPulseRailProps {
+  locale?: 'es' | 'en';
   /** expande el rail → panel. */
   onExpand: () => void;
 }
 
-export function CalPulseRail({ onExpand }: CalPulseRailProps): React.ReactElement {
+export function CalPulseRail({ onExpand, locale = 'es' }: CalPulseRailProps): React.ReactElement {
+  const en = locale === 'en';
   return (
     <div
       className="cal-rail"
@@ -203,11 +208,11 @@ export function CalPulseRail({ onExpand }: CalPulseRailProps): React.ReactElemen
           onExpand();
         }
       }}
-      title="Expandir backlog"
+      title={en ? 'Expand backlog' : 'Expandir backlog'}
     >
       <span className="pc">⟨</span>
       <span className="dot" />
-      <span className="vtxt">Backlog · Estado</span>
+      <span className="vtxt">Backlog · {en ? 'Status' : 'Estado'}</span>
     </div>
   );
 }

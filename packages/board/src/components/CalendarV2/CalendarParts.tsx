@@ -159,9 +159,11 @@ export function CalMoreChip({ more, ws, slotH = DEFAULT_SLOT_H, onClick }: CalMo
 /* ---------- Leyenda al pie ---------- */
 export interface CalLegendProps {
   projects: CalProject[];
+  locale?: 'es' | 'en';
 }
 
-export function CalLegend({ projects }: CalLegendProps): React.ReactElement {
+export function CalLegend({ projects, locale = 'es' }: CalLegendProps): React.ReactElement {
+  const en = locale === 'en';
   return (
     <div className="cal-legend">
       {projects.map((p) => (
@@ -171,19 +173,19 @@ export function CalLegend({ projects }: CalLegendProps): React.ReactElement {
         </span>
       ))}
       <span>
-        <i style={{ color: 'var(--cyan)' }}>▣</i> Ruta crítica
+        <i style={{ color: 'var(--cyan)' }}>▣</i> {en ? 'Critical path' : 'Ruta crítica'}
       </span>
       <span>
-        <i style={{ color: 'var(--cyan)' }}>◆</i> Hito
+        <i style={{ color: 'var(--cyan)' }}>◆</i> {en ? 'Milestone' : 'Hito'}
       </span>
       <span>
-        <i style={{ color: 'var(--red)' }}>⚑</i> Vencimiento
+        <i style={{ color: 'var(--red)' }}>⚑</i> {en ? 'Due date' : 'Vencimiento'}
       </span>
       <span>
-        <i style={{ color: 'var(--txt2)' }}>○</i> Evento externo
+        <i style={{ color: 'var(--txt2)' }}>○</i> {en ? 'External event' : 'Evento externo'}
       </span>
       <span>
-        <i style={{ color: 'var(--orange)' }}>⊘</i> Ausencia
+        <i style={{ color: 'var(--orange)' }}>⊘</i> {en ? 'Absence' : 'Ausencia'}
       </span>
     </div>
   );

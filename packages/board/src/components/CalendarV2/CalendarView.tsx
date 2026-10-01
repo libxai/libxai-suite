@@ -411,6 +411,7 @@ export function CalendarView({
               tasks={morePopover.tasks.map((t) => ({ swatch: projColor, taskId: t.id, label: t.name, critical: t.critical, value: money === '$' ? t.cost : `${t.hrs}h` }))}
               onClose={() => setMorePopover(null)}
               style={{ position: 'absolute', top: '80px', left: '50%', transform: 'translateX(-50%)', zIndex: 40 }}
+              locale={locale === 'en' ? 'en' : 'es'}
             />
           ) : null}
 
@@ -445,13 +446,14 @@ export function CalendarView({
             projColor={projColor}
             onItemClick={(id) => onTaskOpen?.(id)}
             onCollapse={() => setBacklogOpen(false)}
+            locale={locale === 'en' ? 'en' : 'es'}
           />
         ) : (
-          <CalPulseRail onExpand={() => setBacklogOpen(true)} />
+          <CalPulseRail onExpand={() => setBacklogOpen(true)} locale={locale === 'en' ? 'en' : 'es'} />
         )}
       </div>
 
-      <CalLegend projects={projects} />
+      <CalLegend projects={projects} locale={locale === 'en' ? 'en' : 'es'} />
     </div>
   );
 }

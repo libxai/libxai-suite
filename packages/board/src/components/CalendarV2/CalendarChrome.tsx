@@ -36,11 +36,12 @@ export interface CalTopBarProps {
   locale?: string;
 }
 
-const VISTAS: { id: CalView; lbl: string; key: string }[] = [
-  { id: 'mes', lbl: 'Mes', key: 'M' },
-  { id: 'semana', lbl: 'Semana', key: 'W' },
-  { id: 'lookahead', lbl: 'Lookahead', key: '2' },
-  { id: 'agenda', lbl: 'Agenda', key: 'A' },
+/* 1.9.33 · las etiquetas siguen el `locale` (salían en español con la interfaz en inglés). */
+const VISTAS: { id: CalView; es: string; en: string; key: string }[] = [
+  { id: 'mes', es: 'Mes', en: 'Month', key: 'M' },
+  { id: 'semana', es: 'Semana', en: 'Week', key: 'W' },
+  { id: 'lookahead', es: 'Lookahead', en: 'Lookahead', key: '2' },
+  { id: 'agenda', es: 'Agenda', en: 'Agenda', key: 'A' },
 ];
 
 export function CalTopBar({
@@ -50,7 +51,9 @@ export function CalTopBar({
   onMoneyChange,
   mostrarConmutadorDeDinero,
   projectLabel,
+  locale = 'es',
 }: CalTopBarProps) {
+  const en = locale === 'en';
   return (
     // El logo/marca "Asakaa Pulse" se omite aquí: ya está en el header global y
     // en el selector de workspace — sería redundante repetirlo en el calendario.
@@ -68,7 +71,7 @@ export function CalTopBar({
             className={view === v.id ? 'on' : ''}
             onClick={() => onViewChange(v.id)}
           >
-            {v.lbl}
+            {en ? v.en : v.es}
             <span className="key">{v.key}</span>
           </button>
         ))}

@@ -49,6 +49,7 @@ export interface CalMorePopoverProps {
   itemValue?: (it: DayItem) => string;
   onClose: () => void;
   style?: React.CSSProperties;
+  locale?: 'es' | 'en';
 }
 
 /**
@@ -62,7 +63,9 @@ export function CalMorePopover({
   itemValue,
   onClose,
   style,
+  locale = 'es',
 }: CalMorePopoverProps) {
+  const en = locale === 'en';
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -84,13 +87,13 @@ export function CalMorePopover({
   const defaultItemValue = (it: DayItem): string => {
     switch (it.type) {
       case 'hito':
-        return 'Hito';
+        return en ? 'Milestone' : 'Hito';
       case 'desembolso':
-        return 'Desemb.';
+        return en ? 'Disb.' : 'Desemb.';
       case 'deadline':
-        return 'Vence';
+        return en ? 'Due' : 'Vence';
       case 'aus':
-        return 'Ausencia';
+        return en ? 'Absence' : 'Ausencia';
       case 'ext':
       default:
         return '';
@@ -104,11 +107,11 @@ export function CalMorePopover({
       className="cal-pop"
       style={{ position: 'absolute', width: '320px', zIndex: 30, ...style }}
       role="dialog"
-      aria-label={`${dayLabel} · ${total} elementos`}
+      aria-label={`${dayLabel} · ${total} ${en ? 'items' : 'elementos'}`}
     >
       <div className="cal-pop-head">
         <div className="sup">
-          {dayLabel} · {total} {total === 1 ? 'elemento' : 'elementos'}
+          {dayLabel} · {total} {en ? (total === 1 ? 'item' : 'items') : (total === 1 ? 'elemento' : 'elementos')}
         </div>
       </div>
       <div className="cal-pop-list">
