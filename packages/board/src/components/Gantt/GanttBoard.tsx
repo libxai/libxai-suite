@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo, useContext, forwardRef, useImperativeHandle } from 'react';
 import { Task, TimeScale, Theme, GanttConfig, GanttColumn, ColumnType, RowDensity, TaskFilterType } from './types';
 import { deriveThemeFromCSS } from './deriveThemeFromCSS';
@@ -87,6 +88,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     onTaskFilterChange: externalOnTaskFilterChange,
     // Custom toolbar content
     toolbarRightContent,
+    toolbarContainer,
     // v3.0.0: Baseline & WBS
     showBaseline: configShowBaseline,
     viewMode: configViewMode,
@@ -2090,8 +2092,9 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       }}
     >
       {/* Toolbar — z-index ensures dropdowns render above the overflow:clip grid below */}
-      <div style={{ position: 'relative', zIndex: 100 }}>
+      {(() => { const barra = (
       <GanttToolbar
+        enCabecera={!!toolbarContainer}
         theme={theme}
         timeScale={timeScale}
         onTimeScaleChange={setTimeScale}
@@ -2147,7 +2150,12 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         onCopySnapshotLink={onCopySnapshotLink}
         hasDependencies={hasDependencies}
       />
-      </div>
+      );
+      /* 1.9.34 · con `toolbarContainer`, la barra compacta se pinta en la cabecera de quien la pide. */
+      return toolbarContainer
+        ? createPortal(barra, toolbarContainer)
+        : <div style={{ position: 'relative', zIndex: 100 }}>{barra}</div>;
+      })()}
 
       {/* Main Content - v0.13.9: TaskGrid has no scroll, Timeline has the unified vertical scroll */}
       {/* v0.17.31: Changed to clip to allow tooltips to render above header */}

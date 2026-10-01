@@ -45,6 +45,8 @@ export interface ExportOption {
 }
 
 interface GanttToolbarProps {
+  /** 1.9.34 · versión compacta para una cabecera de una fila (ver `toolbarContainer`). */
+  enCabecera?: boolean;
   theme: any;
   timeScale: TimeScale;
   onTimeScaleChange: (scale: TimeScale) => void;
@@ -1576,7 +1578,45 @@ function ViewOptionsDropdown({
   );
 }
 
+/** 1.9.34 · el «⋯» de la barra compacta: lo que se toca poco. */
+function MasHerramientas({ theme, etiqueta, children }: { theme: any; etiqueta: string; children: React.ReactNode }) {
+  const [abierto, setAbierto] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!abierto) return;
+    const fuera = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setAbierto(false); };
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setAbierto(false); };
+    document.addEventListener('mousedown', fuera);
+    document.addEventListener('keydown', esc);
+    return () => { document.removeEventListener('mousedown', fuera); document.removeEventListener('keydown', esc); };
+  }, [abierto]);
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setAbierto((v) => !v)}
+        aria-label={etiqueta}
+        aria-expanded={abierto}
+        title={etiqueta}
+        className="flex items-center justify-center rounded-md"
+        style={{ width: 32, height: 32, color: theme.textSecondary, border: `1px solid ${theme.borderLight}` }}
+      >
+        ⋯
+      </button>
+      {abierto && (
+        <div
+          className="absolute right-0 mt-1 p-1.5 rounded-lg shadow-lg"
+          style={{ top: '100%', minWidth: 200, zIndex: 300, backgroundColor: theme.bgPrimary, border: `1px solid ${theme.borderLight}` }}
+        >
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function GanttToolbar({
+  enCabecera = false,
   theme,
   timeScale,
   onTimeScaleChange,
@@ -1644,6 +1684,80 @@ export function GanttToolbar({
 
   // ─── Chronos V2 Layout (all themes) ──────────────────────────────────
   const isDark = theme.bgPrimary === '#050505' || theme.textPrimary === '#FFFFFF';
+
+  /*
+   * 1.9.34 · BARRA COMPACTA, para la cabecera de una fila de quien la pide
+   * (`toolbarContainer`). Lo de uso diario a la vista —escala, filtro, lo
+   * propio de la app, vista y compartir—; el modo de vista y el nivel WBS,
+   * que se tocan poco, en «⋯».
+   */
+  if (enCabecera) {
+    return (
+      <div className="flex items-center gap-2">
+        <TimeCapsule value={timeScale} onChange={onTimeScaleChange} theme={theme} />
+        {onTaskFilterChange && (
+          <FilterDropdown
+            theme={theme}
+            value={taskFilter}
+            onChange={onTaskFilterChange}
+            hideCompleted={hideCompleted}
+            onHideCompletedChange={onHideCompletedChange}
+          />
+        )}
+        {toolbarRightContent}
+        <ViewOptionsDropdown
+          theme={theme}
+          showCriticalPath={showCriticalPath}
+          onShowCriticalPathChange={onShowCriticalPathChange}
+          showBaseline={showBaseline}
+          onShowBaselineChange={onShowBaselineChange}
+          highlightWeekends={highlightWeekends}
+          onHighlightWeekendsChange={onHighlightWeekendsChange}
+          showDependencies={showDependencies}
+          onShowDependenciesChange={onShowDependenciesChange}
+          rowDensity={rowDensity}
+          onRowDensityChange={onRowDensityChange}
+          hasDependencies={hasDependencies}
+        />
+        <ShareExportDropdown
+          theme={theme}
+          onExportPNG={onExportPNG}
+          onExportPDF={onExportPDF}
+          onExportExcel={onExportExcel}
+          onExportMSProject={onExportMSProject}
+          onCopySnapshotLink={onCopySnapshotLink}
+        />
+        {(onViewModeChange || onWbsLevelChange) && (
+          <MasHerramientas theme={theme} etiqueta={t.toolbar.today === 'Hoy' ? 'Más opciones' : 'More options'}>
+            {onViewModeChange && (
+              <div className="flex flex-col gap-1">
+                {(['execution', 'oracle'] as const).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => onViewModeChange(m)}
+                    className="flex items-center justify-between gap-3 px-2 py-1.5 rounded-md text-[12px] text-left"
+                    style={{
+                      color: theme.textPrimary,
+                      backgroundColor: viewMode === m ? (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)') : 'transparent',
+                    }}
+                  >
+                    {m === 'execution' ? t.toolbar.viewExecution : t.toolbar.viewOracle}
+                    {viewMode === m && <Check className="w-3.5 h-3.5" />}
+                  </button>
+                ))}
+              </div>
+            )}
+            {onWbsLevelChange && (
+              <div className="pt-1 mt-1" style={{ borderTop: `1px solid ${theme.borderLight}` }}>
+                <WbsLevelDropdown theme={theme} value={wbsLevel ?? 'all'} onChange={onWbsLevelChange} maxDepth={maxWbsDepth} />
+              </div>
+            )}
+          </MasHerramientas>
+        )}
+      </div>
+    );
+  }
 
   if (isChronos) {
     const dividerColor = isDark ? 'rgba(255,255,255,0.08)' : theme.borderLight;

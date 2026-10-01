@@ -544,6 +544,13 @@ export interface GanttConfig {
 
   /** Render custom content on the right side of toolbar (e.g. lens toggle) */
   toolbarRightContent?: ReactNode;
+  /**
+   * 1.9.34 · Pinta la barra de herramientas DENTRO de este elemento (por
+   * portal) y en versión compacta: escala, filtro, contenido propio, vista y
+   * compartir; el modo de vista y el nivel WBS van a «⋯». Para cabeceras de
+   * una sola fila. Sin él, la barra de siempre.
+   */
+  toolbarContainer?: HTMLElement | null;
 
   // v0.8.0: Customizable templates (similar to DHTMLX gantt.templates.*)
   templates?: GanttTemplates;
