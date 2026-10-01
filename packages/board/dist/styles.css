@@ -5167,6 +5167,22 @@
 .cal-legend .dot { width: 7px; height: 7px; border-radius: 50%; }
 
 
+/* 1.9.34 · las vistas del calendario dentro de la cabecera de quien la pide:
+   se conservan las variables de .cal-app, no su tamaño ni su fondo. */
+
+
+.cal-app.cal-en-cabecera {
+  width: auto;
+  height: auto;
+  background: transparent;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  overflow: visible;
+}
+
+
 /**
  * Attachment Uploader Styles
  * Premium glassmorphism design

@@ -471,6 +471,15 @@ interface GanttConfig {
     onTaskFilterChange?: (filter: TaskFilterType) => void;
     /** Render custom content on the right side of toolbar (e.g. lens toggle) */
     toolbarRightContent?: ReactNode;
+    /**
+     * 1.9.34 · Pinta la barra de herramientas DENTRO de este elemento (por
+     * portal) y en versión compacta: escala, filtro, contenido propio, vista y
+     * compartir; el modo de vista y el nivel WBS van a «⋯». Para cabeceras de
+     * una sola fila. Sin él, la barra de siempre.
+     */
+    toolbarContainer?: HTMLElement | null;
+    /** 1.9.35 · oculta el selector de nivel WBS (All / L1 / L2…) de la barra. */
+    hideWbsLevel?: boolean;
     templates?: GanttTemplates;
     permissions?: GanttPermissions;
     disableScrollSync?: boolean;
@@ -2783,6 +2792,17 @@ interface GanttBoardRef {
      * the project's date range.
      */
     scrollToToday: () => void;
+    /**
+     * 1.9.35 · Desplaza la línea de tiempo a una fecha. `align` 'start' la deja
+     * cerca del borde izquierdo (con un pequeño margen); 'center', centrada.
+     * Para abrir el Timeline encuadrado en las fechas del proyecto.
+     */
+    scrollToDate: (date: Date, align?: 'start' | 'center') => void;
+    /**
+     * 1.9.35 · Encuadra un rango: elige la escala (≤3 semanas día, ≤4 meses semana,
+     * si no mes) y desplaza al inicio del rango.
+     */
+    fitToDates: (start: Date, end: Date) => void;
 }
 
 interface GanttBoardProps {
@@ -2793,6 +2813,8 @@ interface GanttBoardProps {
 declare const GanttBoard: React$1.ForwardRefExoticComponent<GanttBoardProps & React$1.RefAttributes<GanttBoardRef>>;
 
 interface GanttToolbarProps {
+    /** 1.9.34 · versión compacta para una cabecera de una fila (ver `toolbarContainer`). */
+    enCabecera?: boolean;
     theme: any;
     timeScale: TimeScale;
     onTimeScaleChange: (scale: TimeScale) => void;
@@ -2845,7 +2867,7 @@ interface ExportDropdownProps {
     onExportMSProject?: () => void;
 }
 declare function ExportDropdown({ theme, onExportPNG, onExportPDF, onExportExcel, onExportCSV, onExportJSON, onExportMSProject }: ExportDropdownProps): react_jsx_runtime.JSX.Element | null;
-declare function GanttToolbar({ theme, timeScale, onTimeScaleChange, zoom, onZoomChange, currentTheme, onThemeChange, rowDensity, onRowDensityChange, showThemeSelector, // v0.17.29: Default to false - themes should be in app settings
+declare function GanttToolbar({ enCabecera, theme, timeScale, onTimeScaleChange, zoom, onZoomChange, currentTheme, onThemeChange, rowDensity, onRowDensityChange, showThemeSelector, // v0.17.29: Default to false - themes should be in app settings
 showCreateTaskButton, createTaskLabel, // v0.15.0: Will use translations if not provided
 onCreateTask, taskFilter, // v0.17.300: Task filter
 onTaskFilterChange, hideCompleted, // v0.18.0: Hide completed toggle
@@ -4141,6 +4163,12 @@ interface ListViewConfig {
     };
     /** v2.5.0: Render content just before the Create Task button (e.g., share/export dropdown) */
     toolbarEndContent?: ReactNode;
+    /**
+     * 1.9.34 · Pinta la barra de herramientas DENTRO de este elemento (por
+     * portal) y en versión compacta: sin buscador (lo hace el de la app) ni
+     * botón de crear. Para cabeceras de una sola fila.
+     */
+    toolbarContainer?: HTMLElement | null;
 }
 /**
  * ListView translations
@@ -4342,6 +4370,12 @@ interface ListViewProps {
     /** v2.5.0: Render content just before the Create Task button (e.g., share/export dropdown) */
     toolbarEndContent?: ReactNode;
     /**
+     * 1.9.34 · Pinta la barra de herramientas DENTRO de este elemento (por
+     * portal) y en versión compacta: sin buscador (lo hace el de la app) ni
+     * botón de crear. Para cabeceras de una sola fila.
+     */
+    toolbarContainer?: HTMLElement | null;
+    /**
      * Fires when the user clicks anywhere on a column header. The consumer
      * renders its own dropdown (Sort + Filter + Hide) anchored to `anchorRect`.
      * If unset, the header keeps the legacy behavior (click on the sort icon
@@ -4529,6 +4563,10 @@ interface MonthGrid {
 /** Modo del valor mostrado en el extremo de la barra. */
 type MoneyMode = '$' | 'Hrs';
 
+type CalView = 'mes' | 'semana' | 'lookahead' | 'agenda';
+type CalMoney = 'hrs' | '$';
+type CalLayerId = 'tareas' | 'cpm' | 'hitos' | 'ext' | 'festivos' | 'aus';
+
 interface DailyLog {
     date: string;
     hours: number;
@@ -4541,6 +4579,10 @@ interface TeamMember {
 }
 
 interface Props {
+    /** 1.9.34 · las vistas (Month/Week/Agenda) se pintan dentro de este elemento: cabeceras de una fila. */
+    toolbarContainer?: HTMLElement | null;
+    /** 1.9.34 · vistas que no se ofrecen en el selector (p. ej. ['lookahead']). */
+    hiddenViews?: CalView[];
     tasks: Task[];
     projectName: string;
     projectId: string;
@@ -4600,7 +4642,7 @@ interface Props {
         end: string;
     }) => void;
 }
-declare function CalendarView({ tasks, projectName, projectId, projectColor, locale, themeMode, hourlyRate, money, onMoneyChange, onTaskOpen, mostrarFiltroDeFases, mostrarConmutadorDeDinero, onCreateTask, canReschedule, onReschedule, members, holidayDates, timesheetSettings, onVisibleRangeChange, }: Props): react_jsx_runtime.JSX.Element;
+declare function CalendarView({ tasks, projectName, projectId, projectColor, locale, themeMode, hourlyRate, money, onMoneyChange, onTaskOpen, toolbarContainer, hiddenViews, mostrarFiltroDeFases, mostrarConmutadorDeDinero, onCreateTask, canReschedule, onReschedule, members, holidayDates, timesheetSettings, onVisibleRangeChange, }: Props): react_jsx_runtime.JSX.Element;
 
 /**
  * Simulación de reprogramación con CPM (Calendario, Sprint 3, regla C5).
@@ -4642,10 +4684,6 @@ interface RescheduleSimulation {
  * Simula mover una tarea a [newStart, newEnd]. Devuelve el impacto SIN persistir.
  */
 declare function simulateReschedule(tasks: Task[], taskId: string, newStart: Date, newEnd: Date): RescheduleSimulation | null;
-
-type CalView = 'mes' | 'semana' | 'lookahead' | 'agenda';
-type CalMoney = 'hrs' | '$';
-type CalLayerId = 'tareas' | 'cpm' | 'hitos' | 'ext' | 'festivos' | 'aus';
 
 /**
  * Mapeo de datos reales del Gantt → estructuras del Calendario (Sprint 1).

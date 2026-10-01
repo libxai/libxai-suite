@@ -246,4 +246,16 @@ export interface GanttBoardRef {
    * the project's date range.
    */
   scrollToToday: () => void;
+  /**
+   * 1.9.35 · Desplaza la línea de tiempo a una fecha. `align` 'start' la deja
+   * cerca del borde izquierdo (con un pequeño margen); 'center', centrada.
+   * Para abrir el Timeline encuadrado en las fechas del proyecto.
+   */
+  scrollToDate: (date: Date, align?: 'start' | 'center') => void;
+
+  /**
+   * 1.9.35 · Encuadra un rango: elige la escala (≤3 semanas día, ≤4 meses semana,
+   * si no mes) y desplaza al inicio del rango.
+   */
+  fitToDates: (start: Date, end: Date) => void;
 }

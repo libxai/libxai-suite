@@ -816,6 +816,19 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   });
 
   // Expose imperative API via ref (similar to DHTMLX gantt.* methods)
+  // 1.9.35 · scrollToDate / fitToDates: misma fórmula de ancho de día que scrollToToday.
+  const pendingScrollRef = useRef<Date | null>(null);
+  const desplazarA = (date: Date, align: 'start' | 'center' = 'start') => {
+    const scrollEl = timelineScrollRef.current;
+    const sd = scrollToTodayDepsRef.current;
+    if (!scrollEl || !sd) return;
+    const days = (date.getTime() - sd.startDate.getTime()) / (1000 * 60 * 60 * 24);
+    const dayWidth = sd.timeScale === 'day' ? 60 : sd.timeScale === 'week' ? 20 : 8;
+    const x = days * dayWidth * sd.zoom;
+    const target = align === 'center' ? x - scrollEl.clientWidth / 2 : x - dayWidth * sd.zoom * 2;
+    scrollEl.scrollTo({ left: Math.max(0, target), behavior: 'auto' });
+  };
+
   useImperativeHandle(ref, () => ({
     // ==================== CRUD Methods ====================
     getTask: (id: string) => ganttUtils.findTaskById(localTasks, id),
@@ -1144,6 +1157,23 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
 
     clearAll: () => {
       setLocalTasks([]);
+    },
+
+    scrollToDate: (date: Date, align: 'start' | 'center' = 'start') => desplazarA(date, align),
+
+    fitToDates: (start: Date, end: Date) => {
+      const dias = Math.max(1, (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+      const escala: TimeScale = dias <= 21 ? 'day' : dias <= 122 ? 'week' : 'month';
+      pendingScrollRef.current = start;
+      setTimeScale(escala);
+      // Misma escala: no hay re-render que consuma el desplazamiento.
+      if (escala === scrollToTodayDepsRef.current?.timeScale) {
+        requestAnimationFrame(() => {
+          const d = pendingScrollRef.current;
+          pendingScrollRef.current = null;
+          if (d) desplazarA(d);
+        });
+      }
     },
 
     scrollToToday: () => {
@@ -2069,6 +2099,14 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       timelineScroll.scrollLeft = Math.max(0, scrollX);
     }
   }, [localTasks.length, startDate, timeScale, zoom]); // Re-run when tasks load
+
+  // 1.9.35 · fitToDates cambió la escala: desplazar cuando ya se pintó con la nueva.
+  useLayoutEffect(() => {
+    const d = pendingScrollRef.current;
+    if (!d || scrollToTodayDepsRef.current?.timeScale !== timeScale) return;
+    pendingScrollRef.current = null;
+    desplazarA(d);
+  }, [timeScale, startDate, zoom]);
 
   return (
     <GanttI18nContext.Provider value={translations}>
