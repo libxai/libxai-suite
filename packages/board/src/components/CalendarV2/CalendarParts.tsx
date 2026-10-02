@@ -66,9 +66,13 @@ export interface CalBarProps {
   /** Color del proyecto de esta barra (resuelto fuera). */
   projColor?: string;
   slotH?: number;
+  /** 1.9.42 · chip de vencimiento (neutro, con ✓ / alerta / bandera). */
+  due?: boolean;
+  /** 1.9.42 · `false` nunca pinta horas ni coste en la barra. */
+  showValues?: boolean;
 }
 
-export function CalBar({ bar, ws, money, projColor, slotH = DEFAULT_SLOT_H }: CalBarProps): React.ReactElement {
+export function CalBar({ bar, ws, money, projColor, slotH = DEFAULT_SLOT_H, due = false, showValues = true }: CalBarProps): React.ReactElement {
   const { t } = bar;
   const col = bar.s - ws;
   const span = bar.e - bar.s + 1;
@@ -76,8 +80,14 @@ export function CalBar({ bar, ws, money, projColor, slotH = DEFAULT_SLOT_H }: Ca
     'cal-bar' +
     (t.critical ? ' cpm' : '') +
     (bar.contL ? ' cont-l' : '') +
-    (bar.contR ? ' cont-r' : '');
+    (bar.contR ? ' cont-r' : '') +
+    (due ? ' due' : '') +
+    (due && t.done ? ' done' : '') +
+    (due && t.overdue ? ' overdue' : '') +
+    (due && t.milestone ? ' hito' : '');
   const val = money === '$' ? t.cost : `${t.hrs}h`;
+  /* 1.9.42 · «0h» no dice nada: las horas solo si hay. */
+  const conValor = showValues && (money === '$' || t.hrs > 0);
   const style: ProjVars = {
     /*
      * v1.9.26 — P1 §6.4: «un campo de seleccion puede elegirse para colorear
@@ -99,9 +109,23 @@ export function CalBar({ bar, ws, money, projColor, slotH = DEFAULT_SLOT_H }: Ca
   return (
     <div className={cls} style={style}>
       {t.critical && span >= 3 ? <span className="cpm-tag">CPM</span> : null}
+      {due && t.done ? <span className="ico" aria-hidden>✓</span> : null}
+      {due && t.overdue ? (
+        <svg className="ico" width="11" height="11" viewBox="0 0 12 12" aria-hidden>
+          <circle cx="6" cy="6" r="5.25" fill="none" stroke="currentColor" strokeWidth="1.5" />
+          <line x1="6" y1="3.4" x2="6" y2="6.6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          <circle cx="6" cy="8.6" r="0.8" fill="currentColor" />
+        </svg>
+      ) : null}
+      {due && t.milestone ? (
+        <svg className="ico" width="11" height="11" viewBox="0 0 24 24" aria-hidden fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" /><line x1="4" y1="22" x2="4" y2="15" />
+        </svg>
+      ) : null}
       {t.id ? <span className="tk">{t.id}</span> : null}
       <span className="nom">{t.name}</span>
-      {span >= 3 ? <span className="val">{val}</span> : null}
+      {span >= 3 && conValor ? <span className="val">{val}</span> : null}
+      {due && t.overdue ? <span className="sr-only">Overdue</span> : null}
     </div>
   );
 }
@@ -135,23 +159,25 @@ export interface CalMoreChipProps {
   ws: number;
   slotH?: number;
   onClick?: (more: LaidMore) => void;
+  /** 1.9.42 · en la fila del número del día, a la derecha (no gasta una fila de chips). */
+  enCabecera?: boolean;
+  locale?: 'es' | 'en';
 }
 
-export function CalMoreChip({ more, ws, slotH = DEFAULT_SLOT_H, onClick }: CalMoreChipProps): React.ReactElement {
+export function CalMoreChip({ more, ws, slotH = DEFAULT_SLOT_H, onClick, enCabecera = false, locale = 'es' }: CalMoreChipProps): React.ReactElement {
   const col = more.day - ws;
-  const style: CSSProperties = {
-    left: `calc(${col}/7*100% + 3px)`,
-    top: `${more.lane * slotH}px`,
-  };
+  const style: CSSProperties = enCabecera
+    ? { left: `calc(${col + 1}/7*100% - 4px)`, top: '-25px', transform: 'translateX(-100%)' }
+    : { left: `calc(${col}/7*100% + 3px)`, top: `${more.lane * slotH}px` };
   return (
     <div
-      className="cal-more"
+      className={enCabecera ? 'cal-more en-cabecera' : 'cal-more'}
       style={style}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
       onClick={onClick ? () => onClick(more) : undefined}
     >
-      +{more.count} más
+      +{more.count} {locale === 'en' ? 'more' : 'más'}
     </div>
   );
 }

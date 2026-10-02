@@ -1020,3 +1020,21 @@
   gap: 8px;
   overflow: visible;
 }
+
+/* ---------- 1.9.42 · chips del modo vencimiento (mes «qué vence cada día») ---------- */
+.cal-bar.due {
+  background: var(--lane2);
+  box-shadow: inset 0 0 0 1px var(--border-soft);
+  color: var(--txt);
+  cursor: pointer;
+}
+.cal-bar.due .ico { flex: none; display: inline-flex; }
+.cal-bar.due.done { opacity: 0.55; }
+.cal-bar.due.overdue {
+  color: #C22F35;
+  box-shadow: inset 0 0 0 1.5px color-mix(in oklab, #C22F35 70%, transparent);
+}
+.cal-app:not(.cal-light) .cal-bar.due.overdue { color: #FF7A7F; }
+.cal-bar .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.cal-bar.due { height: 19px; font-size: 11px; }
+.cal-more.en-cabecera { height: 18px; padding: 0 6px; font-size: 9px; }

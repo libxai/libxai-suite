@@ -14,7 +14,7 @@ import { createPortal } from 'react-dom';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Task as LibXAITask } from '../Gantt/types';
 import {
-  buildMonthGrid, layoutWeek, isWeekendSerial,
+  buildMonthGrid, layoutWeek, layoutDueWeek, isWeekendSerial,
   type CalTask, type DayItem,
 } from './calendarLayout';
 import { buildCalendar, monthLabel } from './calendarData';
@@ -36,6 +36,8 @@ function toLocalISODate(d: Date): string {
 
 const WEEK_MIN_H = 132; // alto mínimo por semana (5 slots × 26 + cabecera)
 const SLOT_H = 26;
+/** 1.9.42 · el modo vencimiento usa chips más bajos para que a 639 px quepan 2 por día. */
+const SLOT_H_DUE = 20;
 
 interface Props {
   /** 1.9.34 · las vistas (Month/Week/Agenda) se pintan dentro de este elemento: cabeceras de una fila. */
@@ -92,6 +94,14 @@ interface Props {
   /** se llama cuando cambia el rango visible (mes) para que el consumidor
    *  recargue la capacidad de ese rango. */
   onVisibleRangeChange?: (range: { start: string; end: string }) => void;
+  /**
+   * 1.9.42 · 'due': el Mes responde «qué vence cada día» — un chip por tarea en
+   * su fecha de fin, tantos como quepan y «+N more»; la rejilla llena el alto sin
+   * scroll. 'span' (por defecto): las barras de siempre.
+   */
+  monthMode?: 'span' | 'due';
+  /** 1.9.42 · `false`: ni horas ni coste en las barras. */
+  showValues?: boolean;
 }
 
 // Color por defecto si el proyecto no define uno (paleta del diseño).
@@ -104,7 +114,20 @@ export function CalendarView({
   onCreateTask,
   canReschedule, onReschedule,
   members = [], holidayDates = [], timesheetSettings, onVisibleRangeChange,
+  monthMode = 'span', showValues = true,
 }: Props) {
+  /* 1.9.42 · en modo vencimiento, cuántos chips caben por día según el alto real. */
+  const semanasRef = useRef<HTMLDivElement>(null);
+  const [altoSemanas, setAltoSemanas] = useState(0);
+  useEffect(() => {
+    if (monthMode !== 'due') return;
+    const el = semanasRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => setAltoSemanas(el.clientHeight));
+    ro.observe(el);
+    setAltoSemanas(el.clientHeight);
+    return () => ro.disconnect();
+  });
   const [view, setView] = useState<CalView>('mes');
   /**
    * REQ-07 §2.5 · el mes en el que abre el calendario.
@@ -393,8 +416,11 @@ export function CalendarView({
               <CalDow locale={locale} />
               <div className="cal-weeks">
                 {grid.weeks.map((w) => (
-                  <WeekBg key={w.ws} grid={grid} ws={w.ws} we={w.we} todaySerial={todaySerial}
-                    showFestivos={showFestivos} holidaySerials={holidaySerials} locale={locale} deadlineDays={new Set()} />
+                  /* 1.9.42 · sin su `.cal-week` el fondo (absoluto) se montaba sobre las cabeceras. */
+                  <div key={w.ws} className="cal-week" style={{ minHeight: monthMode === 'due' ? 0 : `${WEEK_MIN_H}px` }}>
+                    <WeekBg grid={grid} ws={w.ws} we={w.we} todaySerial={todaySerial}
+                      showFestivos={showFestivos} holidaySerials={holidaySerials} locale={locale} deadlineDays={new Set()} />
+                  </div>
                 ))}
               </div>
               <CalEmptyState monthLabel={mLabel} locale={locale} onCreateTask={onCreateTask} />
@@ -402,9 +428,12 @@ export function CalendarView({
           ) : (
             <>
               <CalDow locale={locale} />
-              <div className="cal-weeks">
+              <div className="cal-weeks" ref={semanasRef} style={monthMode === 'due' ? { minHeight: 0, overflow: 'hidden' } : undefined}>
                 {grid.weeks.map((w) => (
                   <WeekRow
+                    due={monthMode === 'due'}
+                    slots={altoSemanas > 0 ? Math.max(1, Math.floor((altoSemanas / grid.weeks.length - 26) / SLOT_H_DUE)) : 2}
+                    showValues={showValues}
                     key={w.ws}
                     grid={grid}
                     ws={w.ws}
@@ -538,11 +567,18 @@ interface WeekRowProps {
   /** tarea con reprogramación pendiente de confirmar: se queda como fantasma
    *  en la posición destino (no vuelve al origen hasta confirmar/cancelar). */
   pendingGhost?: { uid: string; days: number } | null;
+  /** 1.9.42 · modo vencimiento: chips de un día y `slots` filas como mucho. */
+  due?: boolean;
+  slots?: number;
+  showValues?: boolean;
 }
-function WeekRow({ grid, ws, we, tasks, items, money, projColor, todaySerial, showFestivos, holidaySerials, locale, onTaskOpen, onMore, canReschedule, onDragReschedule, pendingGhost }: WeekRowProps) {
-  const lay = useMemo(() => layoutWeek(tasks, items, ws, we), [tasks, items, ws, we]);
+function WeekRow({ grid, ws, we, tasks, items, money, projColor, todaySerial, showFestivos, holidaySerials, locale, onTaskOpen, onMore, canReschedule, onDragReschedule, pendingGhost, due = false, slots = 2, showValues = true }: WeekRowProps) {
+  const lay = useMemo(
+    () => (due ? layoutDueWeek(tasks, items, ws, we, slots) : layoutWeek(tasks, items, ws, we)),
+    [tasks, items, ws, we, due, slots],
+  );
   const deadlineDays = useMemo(() => new Set(items.filter((i) => i.type === 'deadline').map((i) => i.serial)), [items]);
-  const minH = Math.max(WEEK_MIN_H, lay.laneCount * SLOT_H + 36);
+  const minH = due ? 0 : Math.max(WEEK_MIN_H, lay.laneCount * SLOT_H + 36);
   const rowRef = useRef<HTMLDivElement>(null);
   const [dragOffset, setDragOffset] = useState<{ id: string; days: number } | null>(null);
 
@@ -592,7 +628,7 @@ function WeekRow({ grid, ws, we, tasks, items, money, projColor, todaySerial, sh
               onPointerDown={(e) => onBarPointerDown(e, b.t.uid)}
               style={{ cursor: canReschedule ? 'grab' : (onTaskOpen ? 'pointer' : 'default'), display: 'contents', opacity: isGhost ? 0.6 : 1 }}
             >
-              <CalBar bar={shifted} ws={ws} money={money} projColor={projColor} slotH={SLOT_H} />
+              <CalBar bar={shifted} ws={ws} money={money} projColor={projColor} slotH={due ? SLOT_H_DUE : SLOT_H} due={due} showValues={showValues} />
             </div>
           );
         })}
@@ -604,11 +640,15 @@ function WeekRow({ grid, ws, we, tasks, items, money, projColor, todaySerial, sh
             key={`m${i}`}
             more={m}
             ws={ws}
-            slotH={SLOT_H}
+            slotH={due ? SLOT_H_DUE : SLOT_H}
+            enCabecera={due}
+            locale={locale}
             onClick={() => onMore(
               m.day,
               m.items,
-              tasks.filter((t) => t.startSerial <= m.day && t.endSerial >= m.day),
+              due
+                ? tasks.filter((t) => !t.container && t.endSerial === m.day)
+                : tasks.filter((t) => t.startSerial <= m.day && t.endSerial >= m.day),
             )}
           />
         ))}

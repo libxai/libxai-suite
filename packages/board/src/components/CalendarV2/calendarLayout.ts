@@ -38,6 +38,12 @@ export interface CalTask {
    *  si la tarea es de primer nivel, su propia fase es ella misma. */
   phaseId?: string;
   phaseName?: string;
+  /** 1.9.42 · estado para los chips del modo vencimiento. */
+  done?: boolean;
+  overdue?: boolean;
+  milestone?: boolean;
+  /** 1.9.42 · tarea padre (contenedor): el modo vencimiento no la pinta. */
+  container?: boolean;
 }
 
 export interface DayItem {
@@ -196,4 +202,48 @@ export function buildMonthGrid(year: number, month: number): MonthGrid {
 
 export function isWeekendSerial(grid: MonthGrid, serial: number): boolean {
   return mondayIndex(grid.serialToDate(serial)) >= 5;
+}
+
+/**
+ * 1.9.42 · MODO VENCIMIENTO DEL MES: «qué vence cada día».
+ *
+ * Cada tarea (no contenedora) es un chip de UN día en su fecha de fin. Por día
+ * caben `maxSlots` filas; si hay más, la última es «+N more» con el resto.
+ * Las barras de varios días quedan para la Semana.
+ */
+export function layoutDueWeek(
+  tasks: CalTask[],
+  items: DayItem[],
+  ws: number,
+  we: number,
+  maxSlots: number,
+): WeekLayout {
+  const bars: LaidBar[] = [];
+  const chips: LaidChip[] = [];
+  const more: LaidMore[] = [];
+  const slots = Math.max(1, maxSlots);
+  let laneCount = 0;
+  for (let d = ws; d <= we; d++) {
+    const delDia = tasks
+      .filter((t) => !t.container && t.endSerial === d)
+      .sort((a, b) => Number(!!a.done) - Number(!!b.done) || a.name.localeCompare(b.name));
+    const itemsDia = items.filter((it) => it.serial === d);
+    const total = delDia.length + itemsDia.length;
+    if (total === 0) continue;
+    /* «+N more» va en la fila del número del día (enCabecera): todas las filas son chips. */
+    const caben = Math.min(total, slots);
+    let lane = 0;
+    for (const t of delDia.slice(0, caben)) {
+      bars.push({ t, s: d, e: d, lane: lane++, contL: false, contR: false });
+    }
+    for (const it of itemsDia.slice(0, Math.max(0, caben - Math.min(delDia.length, caben)))) {
+      chips.push({ it, day: d, lane: lane++ });
+    }
+    if (total > caben) {
+      const restoItems = itemsDia.slice(Math.max(0, caben - Math.min(delDia.length, caben)));
+      more.push({ day: d, lane: -1, count: total - caben, items: restoItems });
+    }
+    laneCount = Math.max(laneCount, lane);
+  }
+  return { bars, chips, more, laneCount: Math.max(laneCount, 1) };
 }

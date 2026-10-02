@@ -116,6 +116,15 @@ export function buildCalendar(opts: BuildOpts): BuiltCalendar {
       realEnd: end,
       phaseId,
       phaseName,
+      /* 1.9.42 · para los chips del modo vencimiento. */
+      done: t.progress === 100 || (t as { status?: string }).status === 'completed',
+      overdue: !(t.progress === 100 || (t as { status?: string }).status === 'completed') && (() => {
+        const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+        const fin = new Date(end); fin.setHours(0, 0, 0, 0);
+        return fin < hoy;
+      })(),
+      milestone: !!(t as { isMilestone?: boolean }).isMilestone,
+      container: !!(t.subtasks && t.subtasks.length > 0),
     });
   }
   // color por proyecto se aplica en el render; aquí solo dejamos el projectId.
