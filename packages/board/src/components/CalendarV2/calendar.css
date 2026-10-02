@@ -907,7 +907,11 @@
   width: 420px;
   text-align: center;
   pointer-events: none;
+  /* 1.9.44 · por encima de las semanas (posicionadas desde 1.9.42): si no, sus
+     celdas tapaban los botones y no se podían pulsar. */
+  z-index: 5;
 }
+.cal-empty button { pointer-events: auto; }
 .cal-empty .glyph {
   font-family: var(--mono);
   font-size: 18px;

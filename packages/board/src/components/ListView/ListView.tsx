@@ -1270,6 +1270,65 @@ export function ListView({
       flatTasks = flatTasks.filter(task => matchingIds.has(task.id));
     }
 
+    /*
+     * 1.9.44 · AGRUPAR POR PERSONA O POR FECHA (Yesid, 2-oct).
+     *
+     * Aquí no hay jerarquía: cada tarea, padre o hija, va al grupo de su
+     * responsable o de su fecha, y la hija lleva delante «Padre ›» en gris.
+     * Con varios responsables sale en el grupo de cada uno, pero cuenta UNA vez
+     * en el total. La fecha la clasifica la app (config.dueBucket), con su
+     * regla de vencida, la del Overview.
+     */
+    if (config.groupBy === 'assignee' || config.groupBy === 'due') {
+      const porPersona = config.groupBy === 'assignee';
+      const todas: FlattenedTask[] = [];
+      const recorrer = (lista: Task[], nivel: number, camino: string[], padre?: string) => {
+        for (const t of lista) {
+          const ruta = [...camino, t.id];
+          todas.push({ ...t, level: nivel, hasChildren: (t.subtasks?.length || 0) > 0, parentPath: ruta, ...(padre ? { __padre: padre } : {}) } as FlattenedTask);
+          if (t.subtasks?.length) recorrer(t.subtasks, nivel + 1, ruta, t.name);
+        }
+      };
+      recorrer(tasks, 0, []);
+      const q = searchQuery.trim().toLowerCase();
+      const visibles = q ? todas.filter(t => t.name.toLowerCase().includes(q)) : todas;
+      const es = locale === 'es';
+      const FECHA: Array<[string, string, string]> = [
+        ['overdue', 'Vencidas', 'Overdue'], ['today', 'Hoy', 'Today'], ['week', 'Esta semana', 'This week'],
+        ['later', 'Más adelante', 'Later'],
+        /* Terminadas con fecha pasada: no están vencidas (la regla las excluye) y no son «más adelante». */
+        ['past', 'Anteriores', 'Earlier'],
+        ['none', 'Sin fecha', 'No date'],
+      ];
+      const grupos = new Map<string, { titulo: string; filas: FlattenedTask[] }>();
+      for (const t of visibles) {
+        const claves = porPersona
+          ? (() => { const n = (t.assignees ?? []).map(a => a.name).filter(Boolean); return n.length ? n : ['__sin']; })()
+          : [config.dueBucket?.(t) ?? 'none'];
+        for (const c of claves) {
+          const clave = porPersona ? `user:${c}` : `due:${c}`;
+          const titulo = porPersona
+            ? (c === '__sin' ? (es ? 'Sin responsable' : 'Unassigned') : c)
+            : (FECHA.find(f => f[0] === c)?.[es ? 1 : 2] ?? c);
+          if (!grupos.has(clave)) grupos.set(clave, { titulo, filas: [] });
+          grupos.get(clave)!.filas.push({ ...t, level: 0, hasChildren: false, __claveFila: `${clave}|${t.id}` } as FlattenedTask);
+        }
+      }
+      const orden = porPersona
+        ? [...grupos.keys()].sort((a, b) => (a === 'user:__sin' ? 1 : b === 'user:__sin' ? -1 : grupos.get(a)!.titulo.localeCompare(grupos.get(b)!.titulo)))
+        : FECHA.map(f => `due:${f[0]}`).filter(k => grupos.has(k));
+      const fin = (t: FlattenedTask) => t.endDate ? new Date(t.endDate).getTime() : Infinity;
+      const lista: FlattenedTask[] = [];
+      const cabeceras = new Map<number, Array<{ clave: string; cuenta: number; plegado: boolean; titulo?: string }>>();
+      for (const clave of orden) {
+        const g = grupos.get(clave)!;
+        const plegado = gruposPlegados.has(clave);
+        cabeceras.set(lista.length, [...(cabeceras.get(lista.length) ?? []), { clave, cuenta: g.filas.length, plegado, titulo: g.titulo }]);
+        if (!plegado) lista.push(...g.filas.sort((a, b) => fin(a) - fin(b)));
+      }
+      return { lista, cabeceras, todas: visibles };
+    }
+
     if (agrupar) {
       const ORDEN = ['todo', 'in-progress', 'completed'] as const;
       const bloques = new Map<string, FlattenedTask[]>();
@@ -1282,7 +1341,7 @@ export function ListView({
       }
       const fin = (t: FlattenedTask) => t.endDate ? new Date(t.endDate).getTime() : Infinity;
       const lista: FlattenedTask[] = [];
-      const cabeceras = new Map<number, Array<{ clave: string; cuenta: number; plegado: boolean }>>();
+      const cabeceras = new Map<number, Array<{ clave: string; cuenta: number; plegado: boolean; titulo?: string }>>();
       for (const clave of ORDEN) {
         const delGrupo = raices.filter(r => getTaskStatus(r) === clave).sort((a, b) => fin(a) - fin(b));
         const filas = delGrupo.flatMap(r => bloques.get(r.id) ?? [r]);
@@ -1339,8 +1398,8 @@ export function ListView({
       return 0;
     });
 
-    return { lista: flatTasks, cabeceras: new Map<number, Array<{ clave: string; cuenta: number; plegado: boolean }>>(), todas: flatTasks };
-  }, [tasks, searchQuery, statusFilter, hideCompleted, sortField, sortOrder, getTaskStatus, config.showStatusFilter, agrupar, gruposPlegados]);
+    return { lista: flatTasks, cabeceras: new Map<number, Array<{ clave: string; cuenta: number; plegado: boolean; titulo?: string }>>(), todas: flatTasks };
+  }, [tasks, searchQuery, statusFilter, hideCompleted, sortField, sortOrder, getTaskStatus, config.showStatusFilter, agrupar, gruposPlegados, config.groupBy, config.dueBucket, locale]);
 
   // Keep the latest display order accessible inside the drag-fill mouse handlers.
   displayTasksRef.current = displayTasks;
@@ -1404,7 +1463,7 @@ export function ListView({
             isDark ? 'text-white/80 hover:bg-white/[0.05]' : 'text-gray-700 hover:bg-gray-100')}
         >
           {c.plegado ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-          {TITULO_GRUPO[c.clave]?.[locale === 'es' ? 'es' : 'en'] ?? c.clave}
+          {c.titulo ?? TITULO_GRUPO[c.clave]?.[locale === 'es' ? 'es' : 'en'] ?? c.clave}
           <span className={cn('font-normal tabular-nums', isDark ? 'text-white/40' : 'text-gray-400')}>{c.cuenta}</span>
         </button>
       </div>
@@ -2606,7 +2665,7 @@ export function ListView({
 
               return (
                 <motion.div
-                  key={task.id}
+                  key={(task as { __claveFila?: string }).__claveFila ?? task.id}
                   data-task-id={task.id}
                   data-listview-row={task.id}
                   initial={{ opacity: 0 }}
@@ -2735,6 +2794,9 @@ export function ListView({
                                   ? (isDark ? "text-white" : "text-gray-900")
                                   : (isDark ? "text-[#D1D5DB]" : "text-gray-600")
                             )}>
+                              {(task as { __padre?: string }).__padre && (
+                                <span data-prefijo-padre className={isDark ? 'text-white/35' : 'text-gray-400'}>{(task as { __padre?: string }).__padre} › </span>
+                              )}
                               {task.name}
                             </span>
                             {/* Line 3: First tag badge */}

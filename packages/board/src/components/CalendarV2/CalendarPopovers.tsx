@@ -174,6 +174,11 @@ export interface UpcomingMilestone {
 export interface CalEmptyStateProps {
   /** Etiqueta del mes visible, ej. "Junio 2026". */
   monthLabel: string;
+  /**
+   * 1.9.44 · Yesid, 2-oct: el calendario abre SIEMPRE en el mes de hoy; si ese mes
+   * no tiene tareas, se ofrece ir al de la primera: «Ir a la primera (marzo) →».
+   */
+  irAPrimera?: { mes: string; onClick: () => void };
   upcomingMilestones?: UpcomingMilestone[];
   locale?: 'es' | 'en';
   /**
@@ -219,6 +224,7 @@ export function CalEmptyState({
   upcomingMilestones = [],
   locale = 'es',
   onCreateTask,
+  irAPrimera,
 }: CalEmptyStateProps) {
   const copy = EMPTY_COPY[locale] || EMPTY_COPY.es;
 
@@ -231,6 +237,11 @@ export function CalEmptyState({
         <br />
         <b>{monthLabel}</b>
       </p>
+      {irAPrimera ? (
+        <button type="button" data-ir-a-primera className="cal-empty-crear" onClick={irAPrimera.onClick}>
+          {locale === 'en' ? `Go to the first (${irAPrimera.mes}) →` : `Ir a la primera (${irAPrimera.mes}) →`}
+        </button>
+      ) : null}
       {onCreateTask ? (
         <button type="button" className="cal-empty-crear" onClick={onCreateTask}>
           {copy.crear}

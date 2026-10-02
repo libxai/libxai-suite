@@ -78,6 +78,8 @@ export interface GanttTranslations {
     share: string;
     copySnapshotLink: string;
     copied: string;
+    /** 1.9.44 · tooltip del gestor de columnas de la rejilla. */
+    columns: string;
   };
 
   // v0.16.0: Context menu labels (right-click menu)
@@ -253,6 +255,7 @@ export const en: GanttTranslations = {
     share: 'Share',
     copySnapshotLink: 'Copy Snapshot Link',
     copied: 'Copied!',
+    columns: 'Columns',
   },
 
   // v0.16.0: Context menu labels (right-click menu)
@@ -422,6 +425,7 @@ export const es: GanttTranslations = {
     share: 'Compartir',
     copySnapshotLink: 'Copiar enlace de vista',
     copied: '¡Copiado!',
+    columns: 'Columnas',
   },
 
   // v0.16.0: Context menu labels (right-click menu)

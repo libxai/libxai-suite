@@ -100,6 +100,11 @@ interface Props {
    * scroll. 'span' (por defecto): las barras de siempre.
    */
   monthMode?: 'span' | 'due';
+  /**
+   * 1.9.44 · abrir SIEMPRE en el mes de hoy (Yesid, 2-oct). Sin esto se mantiene
+   * REQ-07 §2.5: si el mes actual no tiene tareas, abrir en el de la primera.
+   */
+  openOnToday?: boolean;
   /** 1.9.42 · `false`: ni horas ni coste en las barras. */
   showValues?: boolean;
 }
@@ -114,7 +119,7 @@ export function CalendarView({
   onCreateTask,
   canReschedule, onReschedule,
   members = [], holidayDates = [], timesheetSettings, onVisibleRangeChange,
-  monthMode = 'span', showValues = true,
+  monthMode = 'span', showValues = true, openOnToday = false,
 }: Props) {
   /* 1.9.42 · en modo vencimiento, cuántos chips caben por día según el alto real. */
   const semanasRef = useRef<HTMLDivElement>(null);
@@ -147,6 +152,7 @@ export function CalendarView({
   const [cursor, setCursor] = useState(() => {
     const n = new Date();
     const hoy = { y: n.getFullYear(), m: n.getMonth() };
+    if (openOnToday) return hoy;
     const fechas = (tasks ?? [])
       .map(t => t.startDate ? new Date(t.startDate) : null)
       .filter((d): d is Date => !!d && !isNaN(d.getTime()));
@@ -255,6 +261,14 @@ export function CalendarView({
   const goPrev = () => setCursor((c) => { const d = new Date(c.y, c.m - 1, 1); return { y: d.getFullYear(), m: d.getMonth() }; });
   const goNext = () => setCursor((c) => { const d = new Date(c.y, c.m + 1, 1); return { y: d.getFullYear(), m: d.getMonth() }; });
   const goToday = () => { const n = new Date(); setCursor({ y: n.getFullYear(), m: n.getMonth() }); };
+  /* 1.9.44 · la fecha más temprana de las tareas, para «Ir a la primera». */
+  const primeraTarea = useMemo(() => {
+    const fechas = (tasks ?? [])
+      .flatMap((t) => [t.startDate, t.endDate])
+      .map((d) => (d ? new Date(d) : null))
+      .filter((d): d is Date => !!d && !isNaN(d.getTime()));
+    return fechas.length ? fechas.reduce((a, b) => (a < b ? a : b)) : null;
+  }, [tasks]);
 
   // S3 (C5): al soltar una barra movida `deltaDays` días → simula y pide confirmar.
   const beginReschedule = (uid: string, deltaDays: number, anchor: DOMRect) => {
@@ -423,7 +437,15 @@ export function CalendarView({
                   </div>
                 ))}
               </div>
-              <CalEmptyState monthLabel={mLabel} locale={locale} onCreateTask={onCreateTask} />
+              <CalEmptyState
+                monthLabel={mLabel}
+                locale={locale}
+                onCreateTask={onCreateTask}
+                irAPrimera={primeraTarea ? {
+                  mes: primeraTarea.toLocaleDateString(locale === 'en' ? 'en' : 'es', { month: 'long', year: primeraTarea.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined }),
+                  onClick: () => setCursor({ y: primeraTarea.getFullYear(), m: primeraTarea.getMonth() }),
+                } : undefined}
+              />
             </>
           ) : (
             <>

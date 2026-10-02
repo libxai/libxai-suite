@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Check } from 'lucide-react';
+import { Columns3, Check } from 'lucide-react';
+import { useGanttI18n } from './GanttI18nContext';
 import { Portal } from '../Portal';
 import { GanttColumn, ColumnType } from './types';
 
@@ -11,6 +12,7 @@ interface ColumnManagerProps {
 }
 
 export function ColumnManager({ columns, onToggleColumn, theme }: ColumnManagerProps) {
+  const tr = useGanttI18n();
   const [isOpen, setIsOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const menuRef = useRef<HTMLDivElement>(null);
@@ -43,6 +45,8 @@ export function ColumnManager({ columns, onToggleColumn, theme }: ColumnManagerP
           setIsOpen(!isOpen);
         }}
         className="p-2 rounded-md transition-colors flex items-center gap-1"
+        title={tr.toolbar.columns || 'Columns'}
+        aria-label={tr.toolbar.columns || 'Columns'}
         style={{
           backgroundColor: theme.bgSecondary,
           border: `1px solid ${theme.borderLight}`,
@@ -54,7 +58,8 @@ export function ColumnManager({ columns, onToggleColumn, theme }: ColumnManagerP
         }}
         whileTap={{ scale: 0.95 }}
       >
-        <Plus className="w-4 h-4" />
+        {/* 1.9.44 · Yesid: «+» se entiende como «crear»; esto abre las columnas. */}
+        <Columns3 className="w-4 h-4" />
       </motion.button>
 
       <AnimatePresence>

@@ -981,6 +981,8 @@ function FilterDropdown({ theme, value, onChange, hideCompleted = false, onHideC
   ];
 
   const hasActiveFilter = value !== 'all' || hideCompleted;
+  /* 1.9.44 · el botón dice cuántos filtros hay activos («Filters · 1»). */
+  const filtrosActivos = (value !== 'all' ? 1 : 0) + (hideCompleted ? 1 : 0);
   const isDark = theme.bgPrimary === '#0F1117' || theme.bgPrimary === '#0a0a0a' || theme.bgPrimary === '#050505' || theme.textPrimary === '#FFFFFF';
 
   return (
@@ -1013,13 +1015,7 @@ function FilterDropdown({ theme, value, onChange, hideCompleted = false, onHideC
         whileTap={{ scale: 0.98 }}
       >
         <Filter className="w-4 h-4" />
-        <span>{t.toolbar.filter || 'Filters'}</span>
-        {hasActiveFilter && (
-          <span
-            className="w-2 h-2 rounded-full"
-            style={{ backgroundColor: '#00E5CC' }}
-          />
-        )}
+        <span>{t.toolbar.filter || 'Filters'}{filtrosActivos > 0 ? ` · ${filtrosActivos}` : ''}</span>
       </motion.button>
 
       {/* Dropdown */}

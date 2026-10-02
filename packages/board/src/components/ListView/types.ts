@@ -451,7 +451,12 @@ export interface ListViewConfig {
    * 1.9.40 · 'status' agrupa las tareas raíz en To do · In progress · Completed
    * (las subtareas van con su padre); dentro, por fin ascendente. Por defecto, sin agrupar.
    */
-  groupBy?: 'none' | 'status';
+  groupBy?: 'none' | 'status' | 'assignee' | 'due';
+  /**
+   * 1.9.44 · con groupBy 'due', a qué grupo va cada tarea. La regla la pone la app
+   * (la de vencida del Overview). Sin ella, todas caen en 'none' (Sin fecha).
+   */
+  dueBucket?: (task: Task) => 'overdue' | 'today' | 'week' | 'later' | 'past' | 'none';
   /** 1.9.40 · grupos plegados al empezar (por defecto ['completed']). */
   defaultCollapsedGroups?: string[];
   /** 1.9.40 · si se da, qué grupos están plegados se recuerda en localStorage con esta clave. */
