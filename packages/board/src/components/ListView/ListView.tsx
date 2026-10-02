@@ -21,6 +21,7 @@ import {
   GripVertical,
   Layers,
   Info,
+  AlertCircle,
 } from 'lucide-react';
 import type { Task } from '../Gantt/types';
 import type {
@@ -347,6 +348,8 @@ export function ListView({
     // v2.5.2: Optional dollar-totals override for the footer
     totalsDollarOverride,
   } = config;
+  /** 1.9.38 · filas de una línea y 40 px (ID + título en la misma línea). */
+  const compacta = config.rowDensity === 'compact';
 
   const t = mergeListViewTranslations(locale, customTranslations);
   const isDark = themeName === 'dark';
@@ -1377,8 +1380,8 @@ export function ListView({
           />
         );
 
-      case 'endDate':
-        return (
+      case 'endDate': {
+        const celda = (
           <DateCell
             value={task.endDate}
             onChange={(endDate) => handleUpdate({ endDate })}
@@ -1389,6 +1392,15 @@ export function ListView({
             endDate={task.endDate}
           />
         );
+        /* 1.9.38 · vencida: rojo con icono, con la regla que pasa la app. */
+        if (!config.isTaskOverdue?.(task)) return celda;
+        return (
+          <span data-vencida="true" className="inline-flex items-center gap-1" style={{ color: isDark ? '#FF7A7F' : '#C22F35' }}>
+            <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" aria-hidden />
+            {celda}
+          </span>
+        );
+      }
 
       case 'progress': {
         const isParent = !!(task.subtasks && task.subtasks.length > 0);
@@ -2358,7 +2370,7 @@ export function ListView({
                     {visibleColumns.map((column) => (
                       <div
                         key={column.id}
-                        className={cn("flex items-center px-4 py-3 min-h-[56px]", column.type !== 'name' && "justify-center")}
+                        className={cn("flex items-center px-4", compacta ? "py-1.5 min-h-[40px]" : "py-3 min-h-[56px]", column.type !== 'name' && "justify-center")}
                         style={{ width: columnWidthPercent[column.id], minWidth: column.minWidth }}
                       >
                         {column.type === 'name' ? (
@@ -2382,11 +2394,11 @@ export function ListView({
                                 {task.wbsCode}
                               </span>
                             )}
-                            <div className="flex flex-col min-w-0">
-                              <span className={cn("text-[13px] font-bold uppercase tracking-wide", isDark ? "text-white" : "text-gray-900")} style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                            <div className={cn("flex min-w-0", compacta ? "flex-row items-baseline gap-2" : "flex-col")}>
+                              <span className={cn("text-[13px] font-bold uppercase tracking-wide", compacta && "truncate", isDark ? "text-white" : "text-gray-900")} style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
                                 {task.name}
                               </span>
-                              <span className={cn("text-[10px] font-mono", isDark ? "text-white/30" : "text-gray-500")}>
+                              <span className={cn(compacta ? "text-[12px] flex-shrink-0" : "text-[10px] font-mono", isDark ? "text-white/30" : "text-gray-500")}>
                                 ({subtaskCount} {locale === 'es' ? (subtaskCount === 1 ? 'Tarea' : 'Tareas') : (subtaskCount === 1 ? 'Item' : 'Items')})
                               </span>
                               {spi !== null && mostrarIndicadoresFinancieros && (
@@ -2518,7 +2530,7 @@ export function ListView({
                     return (
                     <div
                       key={column.id}
-                      className={cn("flex items-center px-4 py-3 min-h-[56px]", column.type !== 'name' && "justify-center")}
+                      className={cn("flex items-center px-4", compacta ? "py-1.5 min-h-[40px]" : "py-3 min-h-[56px]", column.type !== 'name' && "justify-center")}
                       style={{
                         width: columnWidthPercent[column.id], minWidth: column.minWidth,
                         position: 'relative',
@@ -2550,8 +2562,8 @@ export function ListView({
                           )}
                           {showHierarchy && !task.hasChildren && <div className="w-5 flex-shrink-0" />}
 
-                          {/* Two-line name layout */}
-                          <div className="flex flex-col min-w-0 flex-1">
+                          {/* Two-line name layout · 1.9.38: en compacta, una sola línea (ID + título + etiqueta) */}
+                          <div className={cn("flex min-w-0 flex-1", compacta ? "flex-row items-center gap-2" : "flex-col")}>
                             {/* Line 1: WBS code + Task code */}
                             {(task.wbsCode || task.taskCode) && (
                               <div className="flex items-center gap-1.5">
@@ -2561,7 +2573,8 @@ export function ListView({
                                   </span>
                                 )}
                                 {task.taskCode && (
-                                  <span className={cn("text-[10px] font-mono", isDark ? "text-white/40" : "text-gray-400")}>
+                                  <span data-codigo-tarea className={cn(compacta ? "text-[12px] whitespace-nowrap" : "text-[10px] font-mono", isDark ? "text-white/40" : "text-gray-400")}
+                                    style={compacta && !isDark ? { color: 'var(--pj-texto-3, #646B78)' } : undefined}>
                                     {task.taskCode}
                                   </span>
                                 )}
@@ -2575,7 +2588,9 @@ export function ListView({
                               "truncate",
                               task.hasChildren ? "text-[14px] font-bold" : "text-[13px] font-normal",
                               task.progress === 100
-                                ? (isDark ? "line-through text-white/50" : "line-through text-gray-400")
+                                ? (config.completedStyle === 'dim'
+                                    ? (isDark ? "text-white/45" : "text-gray-400")
+                                    : (isDark ? "line-through text-white/50" : "line-through text-gray-400"))
                                 : task.hasChildren
                                   ? (isDark ? "text-white" : "text-gray-900")
                                   : (isDark ? "text-[#D1D5DB]" : "text-gray-600")
@@ -2585,7 +2600,7 @@ export function ListView({
                             {/* Line 3: First tag badge */}
                             {task.tags?.[0] && (
                               <span
-                                className="text-[9px] font-mono uppercase tracking-wide px-1.5 py-0.5 rounded w-fit"
+                                className={cn("text-[9px] font-mono uppercase tracking-wide px-1.5 py-0.5 rounded w-fit", compacta && "flex-shrink-0")}
                                 style={{
                                   backgroundColor: `${task.tags[0].color}20`,
                                   color: task.tags[0].color,

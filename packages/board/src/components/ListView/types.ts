@@ -432,6 +432,16 @@ export interface ListViewConfig {
    * botón de crear. Para cabeceras de una sola fila.
    */
   toolbarContainer?: HTMLElement | null;
+  /**
+   * 1.9.38 · la app decide qué es «vencida» (su zona, su regla de terminada).
+   * Con ella, la fecha de fin vencida sale en rojo con icono y la celda lleva
+   * `data-vencida`. Sin ella, nada cambia.
+   */
+  isTaskOverdue?: (task: Task) => boolean;
+  /** 1.9.38 · cómo se ve una completada: 'strike' (tachada, por defecto) o 'dim' (atenuada, sin tachar). */
+  completedStyle?: 'strike' | 'dim';
+  /** 1.9.38 · 'compact': filas de una línea y 40 px; 'comfortable' (por defecto) las de dos líneas y 56 px. */
+  rowDensity?: 'comfortable' | 'compact';
 }
 
 /**
