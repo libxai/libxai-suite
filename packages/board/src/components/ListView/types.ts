@@ -442,6 +442,11 @@ export interface ListViewConfig {
   completedStyle?: 'strike' | 'dim';
   /** 1.9.38 · 'compact': filas de una línea y 40 px; 'comfortable' (por defecto) las de dos líneas y 56 px. */
   rowDensity?: 'comfortable' | 'compact';
+  /**
+   * 1.9.39 · `false` quita el botón «Filters» (estado / ocultar completadas) de
+   * la barra, para la app que tiene su propio sistema de filtros. Por defecto se pinta.
+   */
+  showStatusFilter?: boolean;
 }
 
 /**

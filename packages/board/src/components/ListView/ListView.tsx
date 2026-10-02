@@ -1210,7 +1210,9 @@ export function ListView({
     // while keeping its matching descendants, which the renderer then
     // visually nests under the previous sibling phase (the "fase 4 dentro
     // de fase 3" bug).
-    if (statusFilter !== 'all') {
+    /* 1.9.39 · con el botón oculto, lo guardado no filtra: no habría cómo quitarlo. */
+    const filtroDeEstadoVisible = config.showStatusFilter !== false;
+    if (filtroDeEstadoVisible && statusFilter !== 'all') {
       const matchingIds = new Set(
         flatTasks
           .filter(task => getTaskStatus(task) === statusFilter)
@@ -1220,7 +1222,7 @@ export function ListView({
     }
 
     // Hide completed tasks — same ancestor-preserving logic
-    if (hideCompleted) {
+    if (filtroDeEstadoVisible && hideCompleted) {
       const matchingIds = new Set(
         flatTasks
           .filter(task => getTaskStatus(task) !== 'completed')
@@ -1273,7 +1275,7 @@ export function ListView({
     });
 
     return flatTasks;
-  }, [tasks, searchQuery, statusFilter, hideCompleted, sortField, sortOrder, getTaskStatus]);
+  }, [tasks, searchQuery, statusFilter, hideCompleted, sortField, sortOrder, getTaskStatus, config.showStatusFilter]);
 
   // Keep the latest display order accessible inside the drag-fill mouse handlers.
   displayTasksRef.current = displayTasks;
@@ -2080,15 +2082,15 @@ export function ListView({
             </div>
           )}
 
-          {/* Status Filter - Right side (matching Gantt toolbar position) */}
-          <StatusFilter
+          {/* Status Filter - Right side (matching Gantt toolbar position) · 1.9.39: config.showStatusFilter */}
+          {config.showStatusFilter !== false && <StatusFilter
             value={statusFilter}
             hideCompleted={hideCompleted}
             onChange={setStatusFilter}
             onHideCompletedChange={setHideCompleted}
             isDark={isDark}
             locale={locale}
-          />
+          />}
 
           {/* v2.3.1: Reopen health sidebar button — visible only when sidebar is enabled and closed */}
           {healthSidebarWithTotal?.enabled && healthSidebarWithTotal.data && !sidebarOpen && (
