@@ -408,6 +408,7 @@ export function KanbanBoard({
                       allCards={board.cards}
                       enableVirtualization={config?.enableVirtualization}
                       cardHeight={config?.cardHeight}
+                      isCollapsed={config?.collapsedColumnIds?.includes(column.id)}
                     />
                     {columnFooter}
                   </div>

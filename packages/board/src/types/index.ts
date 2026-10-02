@@ -345,6 +345,12 @@ export interface BoardConfig {
   columnWidth?: number
   /** Estimated card height for virtualization */
   cardHeight?: number
+  /**
+   * 1.9.37 · columnas plegadas: no pintan sus tarjetas pero siguen aceptando
+   * arrastres. La app decide cuáles y pinta su propio aviso (p. ej. en
+   * renderColumnFooter, «27 completed · Show»).
+   */
+  collapsedColumnIds?: string[]
   /** Enable keyboard shortcuts */
   enableKeyboardShortcuts?: boolean
   /** Show card count in column headers */
