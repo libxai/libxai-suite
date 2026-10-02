@@ -671,6 +671,9 @@ export function TaskBar({
     <g
       ref={svgRef}
       data-task-bar="true"
+      /* 1.9.36 · estado y tipo por barra, para que la app pinte con CSS sin tocar task.color. */
+      data-estado={isCompleted ? 'completed' : isOverdue ? 'overdue' : 'planned'}
+      data-resumen={isSummaryTask ? 'true' : undefined}
       style={{ opacity: cpmOpacity, transition: 'opacity 300ms ease' }}
       onClick={() => {
         // v2.3.0: Only fire click if no real drag movement occurred
@@ -972,6 +975,7 @@ export function TaskBar({
           >
             {/* Ghost background — full duration */}
             <rect
+              data-parte="pista"
               x={displayX}
               y={masterY}
               width={displayWidth}
@@ -982,6 +986,7 @@ export function TaskBar({
             {/* Progress fill — SPI-colored */}
             {progress > 0 && (
               <rect
+                data-parte="avance"
                 x={displayX}
                 y={masterY}
                 width={fillWidth}
@@ -1023,6 +1028,7 @@ export function TaskBar({
             strokeWidth={1}
             data-task-class={customClass}
             data-bar-background="true"
+            data-parte="pista"
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{
               opacity: isDragging && !isConnecting ? 0.15 : task.parentId ? 0.6 : 1,
@@ -1048,6 +1054,7 @@ export function TaskBar({
           rx={borderRadius}
           fill={taskColor}
           data-task-class={customClass}
+          data-parte="pista"
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{
             opacity: isDragging && !isConnecting
@@ -1079,8 +1086,19 @@ export function TaskBar({
           fill="none"
           stroke={theme.criticalPath}
           strokeWidth={2}
+          data-parte="alerta"
           style={{ pointerEvents: 'none', filter: `drop-shadow(0 0 6px ${theme.criticalPathLight || 'rgba(255,46,46,0.4)'})` }}
         />
+      )}
+
+      {/* 1.9.36 · icono «vencida» (alert-circle), oculto: la app lo enciende con CSS (display). */}
+      {isOverdue && !isCompleted && !task.segments && !isSummaryTask && (
+        <g data-parte="icono-vencida" display="none" style={{ pointerEvents: 'none' }}
+           transform={`translate(${displayX + displayWidth + 4}, ${y + height / 2 - 6})`}>
+          <circle cx={6} cy={6} r={5.25} fill="none" stroke="currentColor" strokeWidth={1.5} />
+          <line x1={6} y1={3.5} x2={6} y2={6.5} stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" />
+          <circle cx={6} cy={8.6} r={0.8} fill="currentColor" />
+        </g>
       )}
 
       {/* Progress Fill (non-summary tasks only — summary has its own fill above) */}
@@ -1096,6 +1114,7 @@ export function TaskBar({
             rx={isChronos ? borderRadius : borderRadius}
             fill={taskColor}
             opacity={isChronos ? 1 : 1}
+            data-parte="avance"
             style={{ pointerEvents: 'none' }}
           />
         )
@@ -1138,6 +1157,7 @@ export function TaskBar({
               height={height}
               rx={rx}
               fill="url(#bar-remaining-hatch)"
+              data-parte="trama"
               style={{ pointerEvents: 'none' }}
             />
             {/* Dashed border */}
@@ -1151,6 +1171,7 @@ export function TaskBar({
               stroke={taskColor}
               strokeWidth={0.8}
               strokeDasharray="5 3"
+              data-parte="borde-restante"
               style={{ pointerEvents: 'none' }}
             />
           </>
@@ -1164,7 +1185,7 @@ export function TaskBar({
           const avatarR = 8;
           const assignee = task.assignees?.[0];
           return (
-            <g style={{ pointerEvents: 'none' }}>
+            <g data-parte="avatar" style={{ pointerEvents: 'none' }}>
               <circle
                 cx={progressEndX}
                 cy={y + height / 2}
@@ -1229,6 +1250,7 @@ export function TaskBar({
               />
               {/* Visible handle circle */}
               <circle
+                data-parte="asa-avance"
                 cx={handleX}
                 cy={handleY}
                 r={visibleRadius}
@@ -1395,6 +1417,7 @@ export function TaskBar({
 
         return (
           <text
+            data-parte="etiqueta"
             x={displayX + 8}
             y={y + height / 2}
             dominantBaseline="middle"
@@ -1450,7 +1473,7 @@ export function TaskBar({
       {/* v0.8.1: Hide status badge for split tasks to avoid blocking segment clicks */}
       {/* Chronos: Hidden for summary tasks (thin-line style) */}
       {task.status && displayWidth > 80 && !isDragging && !task.segments && !(isChronos && isSummaryTask) && (
-        <g style={{ pointerEvents: 'none' }}>
+        <g data-parte="insignia-estado" style={{ pointerEvents: 'none' }}>
           {task.status === 'completed' && (
             <circle
               cx={displayX + displayWidth - 8}

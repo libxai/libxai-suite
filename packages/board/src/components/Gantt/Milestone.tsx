@@ -26,6 +26,7 @@ export function Milestone({ task, x, y, theme, onClick }: MilestoneProps) {
   return (
     <g
       data-task-bar="true"
+      data-estado="milestone"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={() => onClick?.(task)}
@@ -46,6 +47,7 @@ export function Milestone({ task, x, y, theme, onClick }: MilestoneProps) {
 
       {/* Diamond Shape (rotated square) */}
       <motion.rect
+        data-parte="rombo"
         x={x - size / 2}
         y={y + 16 - size / 2}
         width={size}

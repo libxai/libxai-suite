@@ -30,6 +30,8 @@ interface TimelineProps {
   showCriticalPath?: boolean;
   showDependencies?: boolean;
   highlightWeekends?: boolean;
+  /** 1.9.36 · 'range' pinta «Sep 1–7» en la escala W. */
+  weekHeaderFormat?: 'number' | 'range';
   /** v4.1.0: Per-task edit check — returns false for read-only bars */
   canEditTask?: (task: Task) => boolean;
   /** v4.2.0: Committed on pointerup after dragging the progress edge of a task bar. */
@@ -68,6 +70,7 @@ export function Timeline({
   showCriticalPath = true,
   showDependencies = true,
   highlightWeekends = true,
+  weekHeaderFormat = 'number',
   canEditTask,
   onTaskProgressDrag,
   workingDaysConfig,
@@ -425,7 +428,16 @@ export function Timeline({
         const weekNum = getWeekNumber(current);
         result.push({
           date: new Date(current),
-          label: `${t.labels.week} ${weekNum}`,
+          label: weekHeaderFormat === 'range'
+            ? (() => {
+                const fin = new Date(current);
+                fin.setDate(fin.getDate() + 6);
+                const mes = (d: Date) => d.toLocaleDateString(locale, { month: 'short' });
+                return mes(current) === mes(fin)
+                  ? `${mes(current)} ${current.getDate()}–${fin.getDate()}`
+                  : `${mes(current)} ${current.getDate()}–${mes(fin)} ${fin.getDate()}`;
+              })()
+            : `${t.labels.week} ${weekNum}`,
           x,
         });
         current.setDate(current.getDate() + 7);
@@ -441,7 +453,7 @@ export function Timeline({
     }
 
     return result;
-  }, [startDate, endDate, timeScale, dayWidth, zoom, locale, t.labels.week]);
+  }, [startDate, endDate, timeScale, dayWidth, zoom, locale, t.labels.week, weekHeaderFormat]);
 
   // Today position
   const todayX = useMemo(() => {
@@ -457,6 +469,8 @@ export function Timeline({
     <div
       className="w-full flex flex-col"
       data-gantt-chart
+      /* 1.9.36 · la escala visible, para que la app ajuste por CSS (rayado solo en D, etc.). */
+      data-escala={timeScale}
       style={{ backgroundColor: theme.bgPrimary }}
     >
       {/* v0.13.7: Sticky Header - stays visible during vertical scroll */}
@@ -521,7 +535,7 @@ export function Timeline({
 
           {/* Today marker in header — Chronos V2: Badge instead of circle */}
           {todayX >= 0 && todayX <= timelineWidth && (
-            <g>
+            <g data-hoy="cabecera">
               {/* Neon glow circle */}
               <circle cx={todayX} cy={HEADER_HEIGHT - 10} r={4} fill={theme.today} opacity={1} />
               {theme.neonRedGlow && (
@@ -653,7 +667,7 @@ export function Timeline({
           const shouldShade = isWeekendDay || isHolidayDay;
 
           return shouldShade ? (
-            <g key={`we-overlay-${index}`}>
+            <g key={`we-overlay-${index}`} data-finde="true">
               <rect
                 x={header.x}
                 y={0}
@@ -886,6 +900,9 @@ export function Timeline({
                 }}
                 onMouseLeave={() => handleTooltipChange(null)}
                 style={{ cursor: 'default', opacity: masterCpmOpacity, transition: 'opacity 300ms ease' }}
+                /* 1.9.36 · barra resumen: mismo estado que las hojas (la app pinta por CSS). */
+                data-barra-resumen="true"
+                data-estado={progress >= 100 ? 'completed' : (isOverduePhase ? 'overdue' : 'planned')}
               >
                 {/* Invisible hover area — full row height for easy targeting */}
                 <rect
@@ -904,6 +921,7 @@ export function Timeline({
                   height={masterH}
                   rx={masterR}
                   fill={isDarkTheme ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.08)"}
+                  data-parte="pista"
                 />
                 {/* Progress fill — SPI-colored */}
                 {progress > 0 && (
@@ -914,6 +932,7 @@ export function Timeline({
                     height={masterH}
                     rx={masterR}
                     fill={fillColor}
+                    data-parte="avance"
                   />
                 )}
                 {/* v5.1.0: CPM critical border + glow on master bar */}
@@ -1121,7 +1140,7 @@ export function Timeline({
 
         {/* v0.17.179: Today Line — Chronos V2: Neon red with glow */}
         {todayX >= 0 && todayX <= timelineWidth && (
-          <g style={{ pointerEvents: 'none' }}>
+          <g data-hoy="linea" style={{ pointerEvents: 'none' }}>
             {/* Glow effect (wider, transparent) */}
             {theme.neonRedGlow && (
               <line

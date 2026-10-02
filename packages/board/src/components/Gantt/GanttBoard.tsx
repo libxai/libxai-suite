@@ -524,6 +524,14 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     { id: 'priority', label: t.columns.priority, width: 90, minWidth: 70, maxWidth: 150, visible: false, sortable: true, resizable: true }, // v0.17.29
   ], []);
 
+  // 1.9.36 · config.defaultVisibleColumns cambia el punto de partida (no lo guardado).
+  const visiblesPorDefecto = config.defaultVisibleColumns;
+  const conVisiblesPorDefecto = useCallback((cols: GanttColumn[]): GanttColumn[] =>
+    visiblesPorDefecto
+      ? cols.map(c => c.id === 'name' ? c : { ...c, visible: visiblesPorDefecto.includes(c.id) })
+      : cols,
+  [visiblesPorDefecto]);
+
   // Persist columns config in localStorage (same pattern as persistFilter /
   // persistExpandedState). Only the per-column `visible` + `width` are restored;
   // labels are always re-derived from translations so locale changes still work.
@@ -533,7 +541,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   }, [persistColumns]);
 
   const [columns, setColumns] = useState<GanttColumn[]>(() => {
-    const defaults = getDefaultColumns(translations);
+    const defaults = conVisiblesPorDefecto(getDefaultColumns(translations));
     if (!persistColumns) return defaults;
     try {
       const key = typeof persistColumns === 'string' ? persistColumns : 'gantt-columns-state';
@@ -561,7 +569,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   useEffect(() => {
     if (prevColumnsKeyRef.current === columnsStorageKey) return;
     prevColumnsKeyRef.current = columnsStorageKey;
-    const defaults = getDefaultColumns(translations);
+    const defaults = conVisiblesPorDefecto(getDefaultColumns(translations));
     if (!columnsStorageKey) {
       setColumns(defaults);
       return;
@@ -770,7 +778,8 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
 
         // v0.18.0: Handle hideCompleted filter
         if (hideCompleted) {
-          matches = task.progress < 100; // Only show non-completed tasks
+          // 1.9.36 · terminada = estado completed O 100 %, igual que la barra (isCompleted).
+          matches = task.progress < 100 && task.status !== 'completed';
         } else {
           switch (taskFilter) {
             case 'all':
@@ -2311,6 +2320,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
             showCriticalPath={showCriticalPath}
             showDependencies={showDependencies}
             highlightWeekends={highlightWeekends}
+            weekHeaderFormat={config.weekHeaderFormat}
             canEditTask={permissions?.canEditTask}
             workingDaysConfig={config?.workingDaysConfig}
           />

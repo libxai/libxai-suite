@@ -553,6 +553,13 @@ export interface GanttConfig {
   toolbarContainer?: HTMLElement | null;
   /** 1.9.35 · oculta el selector de nivel WBS (All / L1 / L2…) de la barra. */
   hideWbsLevel?: boolean;
+  /** 1.9.36 · cabecera de la escala W: 'number' («Week 36», por defecto) o 'range' («Sep 1–7»). */
+  weekHeaderFormat?: 'number' | 'range';
+  /**
+   * 1.9.36 · columnas visibles por defecto (además de «name»). Solo cambia el
+   * punto de partida: lo que el usuario guardó con persistColumns manda.
+   */
+  defaultVisibleColumns?: ColumnType[];
 
   // v0.8.0: Customizable templates (similar to DHTMLX gantt.templates.*)
   templates?: GanttTemplates;
