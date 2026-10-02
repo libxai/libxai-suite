@@ -456,6 +456,10 @@ export interface ListViewConfig {
   defaultCollapsedGroups?: string[];
   /** 1.9.40 · si se da, qué grupos están plegados se recuerda en localStorage con esta clave. */
   groupStateKey?: string;
+  /** 1.9.41 · una casilla por fila y Shift+clic para un rango; avisa con callbacks.onSelectionChange. */
+  selectable?: boolean;
+  /** 1.9.41 · selección controlada por la app (p. ej. para vaciarla tras una acción en masa). */
+  selectedIds?: string[];
 }
 
 /**

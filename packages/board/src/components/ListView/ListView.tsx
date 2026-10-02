@@ -1218,6 +1218,20 @@ export function ListView({
     });
   }, [claveGrupos]);
 
+  /*
+   * 1.9.41 · SELECCIÓN MÚLTIPLE (config.selectable). Una casilla por fila,
+   * visible al pasar el ratón o si ya hay alguna marcada; Shift+clic marca el
+   * RANGO en el orden que se ve. Controlada si la app pasa `selectedIds`; la app
+   * decide qué hacer con ella (callbacks.onSelectionChange).
+   */
+  const seleccionable = !!config.selectable;
+  const [seleccionInterna, setSeleccionInterna] = useState<Set<string>>(new Set());
+  const seleccion = useMemo(
+    () => (config.selectedIds ? new Set(config.selectedIds) : seleccionInterna),
+    [config.selectedIds, seleccionInterna],
+  );
+  const ultimaMarcadaRef = useRef<string | null>(null);
+
   // Filter and sort tasks
   const { lista: displayTasks, cabeceras: cabecerasDeGrupo, todas: tareasSinPlegar } = useMemo(() => {
     let flatTasks = flattenTasksWithLevel(tasks);
@@ -1330,6 +1344,40 @@ export function ListView({
 
   // Keep the latest display order accessible inside the drag-fill mouse handlers.
   displayTasksRef.current = displayTasks;
+
+  const alternarSeleccion = (id: string, conShift: boolean) => {
+    const siguiente = new Set(seleccion);
+    const ancla = ultimaMarcadaRef.current;
+    const orden = displayTasksRef.current.map(t => t.id);
+    if (conShift && ancla && ancla !== id && orden.includes(ancla) && orden.includes(id)) {
+      const i1 = orden.indexOf(ancla), i2 = orden.indexOf(id);
+      const desde = Math.min(i1, i2), hasta = Math.max(i1, i2);
+      const marcar = !seleccion.has(id);
+      for (const tid of orden.slice(desde, hasta + 1)) { if (marcar) siguiente.add(tid); else siguiente.delete(tid); }
+    } else if (siguiente.has(id)) {
+      siguiente.delete(id);
+    } else {
+      siguiente.add(id);
+    }
+    ultimaMarcadaRef.current = id;
+    if (!config.selectedIds) setSeleccionInterna(siguiente);
+    callbacks.onSelectionChange?.([...siguiente]);
+  };
+  const haySeleccion = seleccion.size > 0;
+  const casillaDeFila = (id: string) => (
+    <div className="w-6 flex-shrink-0 flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+      <input
+        type="checkbox"
+        data-casilla-fila={id}
+        aria-label={locale === 'es' ? 'Seleccionar tarea' : 'Select task'}
+        checked={seleccion.has(id)}
+        onChange={() => { /* lo decide onClick, que sabe si va con Shift */ }}
+        onClick={(e) => { e.stopPropagation(); alternarSeleccion(id, e.shiftKey); }}
+        className={cn('w-3.5 h-3.5 cursor-pointer transition-opacity',
+          haySeleccion ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus:opacity-100')}
+      />
+    </div>
+  );
 
   /* 1.9.40 · la cabecera de cada grupo, delante de la fila donde empieza. */
   const TITULO_GRUPO: Record<string, { es: string; en: string }> = {
@@ -2237,6 +2285,7 @@ export function ListView({
             )}
           >
             {/* Spacer to align with drag handle in child rows */}
+            {seleccionable && <div className="w-6 flex-shrink-0" />}
             {canDragRows && <div className="w-5 flex-shrink-0" />}
             {visibleColumns.map((column) => {
               const isDraggable = column.id !== 'name';
@@ -2446,12 +2495,13 @@ export function ListView({
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.15, delay: animationDelay }}
                     className={cn(
-                      "flex items-center border-y cursor-pointer transition-colors duration-500",
+                      "flex items-center border-y cursor-pointer transition-colors duration-500 group",
                       isDark ? "border-[#222] bg-[#222]" : "border-gray-200 bg-gray-100",
                       highlightedTaskId === task.id && (isDark ? "!bg-[#FFD60A]/15" : "!bg-yellow-100")
                     )}
                     onClick={() => callbacks.onTaskClick?.(task)}
                   >
+                    {seleccionable && casillaDeFila(task.id)}
                     {/* Spacer to align with drag handle in child rows */}
                     {canDragRows && <div className="w-5 flex-shrink-0" />}
                     {visibleColumns.map((column) => (
@@ -2568,8 +2618,10 @@ export function ListView({
                     isDark
                       ? "border-[#222] hover:bg-white/[0.05]"
                       : "border-gray-100 hover:bg-gray-50",
-                    highlightedTaskId === task.id && (isDark ? "!bg-[#FFD60A]/15" : "!bg-yellow-100")
+                    highlightedTaskId === task.id && (isDark ? "!bg-[#FFD60A]/15" : "!bg-yellow-100"),
+                    seleccionable && seleccion.has(task.id) && (isDark ? "bg-white/[0.06]" : "bg-blue-50/60")
                   )}
+                  data-seleccionada={seleccionable && seleccion.has(task.id) ? 'true' : undefined}
                   style={{
                     opacity: isBeingDragged ? 0.4 : 1,
                     backgroundColor: showDropChild ? (isDark ? 'rgba(0, 229, 204,0.08)' : 'rgba(0, 229, 204,0.05)') : undefined,
@@ -2589,6 +2641,7 @@ export function ListView({
                   {showDropBelow && (
                     <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 2, backgroundColor: '#00E5CC', zIndex: 10 }} />
                   )}
+                  {seleccionable && casillaDeFila(task.id)}
                   {/* Drag handle */}
                   {canDragRows && (
                     <div
@@ -2806,6 +2859,7 @@ export function ListView({
                 }}
               >
                 {/* Spacer to align with drag handle in child rows */}
+                {seleccionable && <div className="w-6 flex-shrink-0" />}
                 {canDragRows && <div className="w-5 flex-shrink-0" />}
                 {visibleColumns.map((column) => (
                   <div
