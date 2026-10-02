@@ -562,6 +562,8 @@ export interface GanttConfig {
   defaultVisibleColumns?: ColumnType[];
   /** 1.9.43 · texto del buscador de la app: oculta (sin tocar datos) las tareas que no coinciden por nombre. */
   searchQuery?: string;
+  /** 1.9.45 · pinta una fila «+ Add task» al final de la rejilla; la app decide qué hace al pulsarla. */
+  addTaskRow?: { label: string; onClick: () => void };
 
   // v0.8.0: Customizable templates (similar to DHTMLX gantt.templates.*)
   templates?: GanttTemplates;

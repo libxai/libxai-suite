@@ -2258,6 +2258,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
           }}
         >
           <TaskGrid
+            addTaskRow={config.addTaskRow}
             tasks={filteredTasks}
             allTasks={tasksWithStableWbs} // v1.9.10: árbol completo para reordenar bien con filtros
             theme={theme}

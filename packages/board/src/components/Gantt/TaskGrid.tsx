@@ -48,6 +48,8 @@ interface TaskGridProps {
   onTaskDuplicate?: (taskIds: string[]) => void;
   onTaskCreate?: (afterTaskId: string, direction: 'above' | 'below') => void;
   onTaskRename?: (taskId: string, newName: string) => void;
+  /** 1.9.45 · fila «+ Add task» al final de la rejilla (la app decide qué hace). */
+  addTaskRow?: { label: string; onClick: () => void };
   onCreateSubtask?: (parentTaskId: string) => void;
   onOpenTaskModal?: (task: Task) => void;
   // v0.17.34: Delete confirmation request (shows modal instead of deleting directly)
@@ -91,6 +93,7 @@ export function TaskGrid({
   onTaskDuplicate,
   onTaskCreate,
   onTaskRename,
+  addTaskRow,
   onCreateSubtask,
   onOpenTaskModal,
   onDeleteRequest, // v0.17.34
@@ -1780,6 +1783,21 @@ export function TaskGrid({
           </motion.div>
         );
       })}
+      {/* 1.9.45 · «+ Add task» en línea, al final (ESPEC pestañas §4.10). */}
+      {addTaskRow && (
+        <button
+          type="button"
+          data-anadir-tarea
+          onClick={addTaskRow.onClick}
+          className="w-full flex items-center gap-2 px-3 text-left text-[13px] transition-colors"
+          style={{ height: `${ROW_HEIGHT}px`, color: theme.textTertiary, borderBottom: `1px solid ${theme.borderLight}` }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = theme.textPrimary; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = theme.textTertiary; }}
+        >
+          <Plus className="w-3.5 h-3.5" />
+          {addTaskRow.label}
+        </button>
+      )}
       </div>
 
       {/* Context Menu */}
