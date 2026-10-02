@@ -1193,8 +1193,33 @@ export function ListView({
     return 'todo';
   }, []);
 
+  /*
+   * 1.9.40 · AGRUPAR POR ESTADO (config.groupBy = 'status').
+   *
+   * Cada tarea RAÍZ cae en To do · In progress · Completed según su estado, y
+   * sus subtareas viajan con ella (dentro del grupo del padre, cada una con su
+   * propio chip). Dentro del grupo, por fin ascendente; sin fecha, al final.
+   * `displayTasks` sigue siendo SOLO tareas (lo usan el relleno por arrastre y
+   * el teclado): las cabeceras se pintan antes del índice donde empieza su grupo.
+   */
+  const agrupar = config.groupBy === 'status';
+  const claveGrupos = config.groupStateKey ? `listview-grupos-plegados:${config.groupStateKey}` : null;
+  const [gruposPlegados, setGruposPlegados] = useState<Set<string>>(() => {
+    const porDefecto = new Set(config.defaultCollapsedGroups ?? ['completed']);
+    if (!claveGrupos) return porDefecto;
+    try { const g = localStorage.getItem(claveGrupos); return g ? new Set(JSON.parse(g) as string[]) : porDefecto; } catch { return porDefecto; }
+  });
+  const alternarGrupo = useCallback((clave: string) => {
+    setGruposPlegados(prev => {
+      const n = new Set(prev);
+      if (n.has(clave)) n.delete(clave); else n.add(clave);
+      if (claveGrupos) { try { localStorage.setItem(claveGrupos, JSON.stringify([...n])); } catch { /* sin almacenamiento */ } }
+      return n;
+    });
+  }, [claveGrupos]);
+
   // Filter and sort tasks
-  const displayTasks = useMemo(() => {
+  const { lista: displayTasks, cabeceras: cabecerasDeGrupo, todas: tareasSinPlegar } = useMemo(() => {
     let flatTasks = flattenTasksWithLevel(tasks);
 
     // Filter by search
@@ -1229,6 +1254,32 @@ export function ListView({
           .flatMap(task => task.parentPath)
       );
       flatTasks = flatTasks.filter(task => matchingIds.has(task.id));
+    }
+
+    if (agrupar) {
+      const ORDEN = ['todo', 'in-progress', 'completed'] as const;
+      const bloques = new Map<string, FlattenedTask[]>();
+      const raices: FlattenedTask[] = [];
+      for (const t of flatTasks) {
+        const raiz = t.parentPath[0] ?? t.id;
+        if (t.level === 0) raices.push(t);
+        if (!bloques.has(raiz)) bloques.set(raiz, []);
+        bloques.get(raiz)!.push(t);
+      }
+      const fin = (t: FlattenedTask) => t.endDate ? new Date(t.endDate).getTime() : Infinity;
+      const lista: FlattenedTask[] = [];
+      const cabeceras = new Map<number, Array<{ clave: string; cuenta: number; plegado: boolean }>>();
+      for (const clave of ORDEN) {
+        const delGrupo = raices.filter(r => getTaskStatus(r) === clave).sort((a, b) => fin(a) - fin(b));
+        const filas = delGrupo.flatMap(r => bloques.get(r.id) ?? [r]);
+        const cuenta = filas.filter(f => !f.hasChildren).length;
+        if (cuenta === 0 && delGrupo.length === 0) continue;
+        const plegado = gruposPlegados.has(clave);
+        const en = lista.length;
+        cabeceras.set(en, [...(cabeceras.get(en) ?? []), { clave, cuenta, plegado }]);
+        if (!plegado) lista.push(...filas);
+      }
+      return { lista, cabeceras, todas: flatTasks };
     }
 
     // Sort
@@ -1274,11 +1325,44 @@ export function ListView({
       return 0;
     });
 
-    return flatTasks;
-  }, [tasks, searchQuery, statusFilter, hideCompleted, sortField, sortOrder, getTaskStatus, config.showStatusFilter]);
+    return { lista: flatTasks, cabeceras: new Map<number, Array<{ clave: string; cuenta: number; plegado: boolean }>>(), todas: flatTasks };
+  }, [tasks, searchQuery, statusFilter, hideCompleted, sortField, sortOrder, getTaskStatus, config.showStatusFilter, agrupar, gruposPlegados]);
 
   // Keep the latest display order accessible inside the drag-fill mouse handlers.
   displayTasksRef.current = displayTasks;
+
+  /* 1.9.40 · la cabecera de cada grupo, delante de la fila donde empieza. */
+  const TITULO_GRUPO: Record<string, { es: string; en: string }> = {
+    'todo': { es: 'Por hacer', en: 'To do' },
+    'in-progress': { es: 'En curso', en: 'In progress' },
+    'completed': { es: 'Completadas', en: 'Completed' },
+  };
+  const conCabecerasDeGrupo = (index: number, fila: React.ReactNode) => {
+    const cabs = cabecerasDeGrupo.get(index);
+    if (!cabs?.length) return fila;
+    const nodos = cabs.map(c => (
+      <div
+        key={`grupo-${c.clave}`}
+        data-grupo-de-estado={c.clave}
+        data-plegado={c.plegado ? 'true' : 'false'}
+        className={cn('flex items-center gap-2 px-4 h-9 border-b select-none',
+          isDark ? 'border-[#222] bg-[#111]' : 'border-gray-200 bg-white')}
+      >
+        <button
+          type="button"
+          onClick={() => alternarGrupo(c.clave)}
+          aria-expanded={!c.plegado}
+          className={cn('inline-flex items-center gap-1.5 text-[12px] font-semibold rounded px-1 -ml-1',
+            isDark ? 'text-white/80 hover:bg-white/[0.05]' : 'text-gray-700 hover:bg-gray-100')}
+        >
+          {c.plegado ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          {TITULO_GRUPO[c.clave]?.[locale === 'es' ? 'es' : 'en'] ?? c.clave}
+          <span className={cn('font-normal tabular-nums', isDark ? 'text-white/40' : 'text-gray-400')}>{c.cuenta}</span>
+        </button>
+      </div>
+    ));
+    return fila ? [...nodos, fila] : nodos;
+  };
 
   // Render cell based on column type
   const renderCell = useCallback((task: Task, column: TableColumn) => {
@@ -1980,8 +2064,9 @@ export function ListView({
             */}
           <div className={cn("text-sm whitespace-nowrap", isDark ? "text-white/60" : "text-gray-600")} data-cuenta-de-tareas>
             {(() => {
-              const padres = displayTasks.filter(dt => (dt.subtasks?.length ?? 0) > 0).length;
-              const hojas = displayTasks.length - padres;
+              /* 1.9.40 · plegar un grupo no cambia el número: se cuentan antes de plegar. */
+              const padres = tareasSinPlegar.filter(dt => (dt.subtasks?.length ?? 0) > 0).length;
+              const hojas = tareasSinPlegar.length - padres;
               const esEs = locale === 'es';
               return (
                 <>
@@ -2340,7 +2425,7 @@ export function ListView({
 
           {/* Task List */}
           <AnimatePresence mode="popLayout">
-            {displayTasks.map((task, index) => {
+            {displayTasks.map((task, index) => conCabecerasDeGrupo(index, (() => {
               const isExpanded = expandedTasks.has(task.id);
               // v0.18.3: Limit animation delay to max 200ms for better filter responsiveness
               const animationDelay = Math.min(index * 0.01, 0.2);
@@ -2656,7 +2741,8 @@ export function ListView({
                   )}
                 </motion.div>
               );
-            })}
+            })()))}
+            {conCabecerasDeGrupo(displayTasks.length, null)}
           </AnimatePresence>
 
           {/* v2.4.0: Project Totals Sticky Footer */}

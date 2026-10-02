@@ -447,6 +447,15 @@ export interface ListViewConfig {
    * la barra, para la app que tiene su propio sistema de filtros. Por defecto se pinta.
    */
   showStatusFilter?: boolean;
+  /**
+   * 1.9.40 · 'status' agrupa las tareas raíz en To do · In progress · Completed
+   * (las subtareas van con su padre); dentro, por fin ascendente. Por defecto, sin agrupar.
+   */
+  groupBy?: 'none' | 'status';
+  /** 1.9.40 · grupos plegados al empezar (por defecto ['completed']). */
+  defaultCollapsedGroups?: string[];
+  /** 1.9.40 · si se da, qué grupos están plegados se recuerda en localStorage con esta clave. */
+  groupStateKey?: string;
 }
 
 /**
