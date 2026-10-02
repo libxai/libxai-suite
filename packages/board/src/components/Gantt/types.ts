@@ -560,6 +560,8 @@ export interface GanttConfig {
    * punto de partida: lo que el usuario guardó con persistColumns manda.
    */
   defaultVisibleColumns?: ColumnType[];
+  /** 1.9.43 · texto del buscador de la app: oculta (sin tocar datos) las tareas que no coinciden por nombre. */
+  searchQuery?: string;
 
   // v0.8.0: Customizable templates (similar to DHTMLX gantt.templates.*)
   templates?: GanttTemplates;

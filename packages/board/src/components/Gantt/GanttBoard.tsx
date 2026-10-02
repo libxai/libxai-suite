@@ -760,7 +760,30 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
 
   // v0.17.300: Filter tasks based on taskFilter state
   // v0.18.0: Added hideCompleted filter
+  /*
+   * 1.9.43 · config.searchQuery: la app pasa lo que se escribe en SU buscador y
+   * aquí solo se OCULTA lo que no coincide (como hideCompleted: los datos no se
+   * tocan). Una tarea que coincide se ve entera; si coincide una hija, su padre
+   * se queda con las ramas que coinciden. Sin tildes ni mayúsculas.
+   */
+  const busquedaExterna = (config.searchQuery ?? '').trim();
   const filteredTasks = useMemo((): Task[] => {
+    const base = filtrarPorEstado();
+    if (!busquedaExterna) return base;
+    const normal = (x: string) => x.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const q = normal(busquedaExterna);
+    const porNombre = (lista: Task[]): Task[] => {
+      const out: Task[] = [];
+      for (const t of lista) {
+        if (normal(t.name || '').includes(q)) { out.push(t); continue; }
+        const hijas = t.subtasks?.length ? porNombre(t.subtasks) : [];
+        if (hijas.length) out.push({ ...t, subtasks: hijas });
+      }
+      return out;
+    };
+    return porNombre(base);
+
+    function filtrarPorEstado(): Task[] {
     // If no filters active, return all tasks
     if (taskFilter === 'all' && !hideCompleted) return tasksWithStableWbs;
 
@@ -810,7 +833,8 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     };
 
     return filterTasksRecursively(tasksWithStableWbs);
-  }, [tasksWithStableWbs, taskFilter, hideCompleted]);
+    }
+  }, [tasksWithStableWbs, taskFilter, hideCompleted, busquedaExterna]);
 
   // Calculate row height based on density
   const rowHeight = getRowHeight(rowDensity);
