@@ -6,6 +6,7 @@ import { GanttToolbar } from './GanttToolbar';
 import { TaskGrid } from './TaskGrid';
 import { Timeline } from './Timeline';
 import { inicioDeLaEscala } from './rangoDeLaEscala';
+import { ajustarAPredecesoras } from './restriccionDeDependencias';
 import { ContextMenu, MenuIcons } from './ContextMenu'; // v0.8.0: Split task context menu
 import { TaskDetailModal } from '../TaskDetailModal'; // v0.17.244: Unified task detail modal (replaces TaskFormModal)
 import { GanttAIAssistant } from './GanttAIAssistant'; // v0.14.0: AI Assistant
@@ -1500,6 +1501,15 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   // When you move a task, all dependent tasks are automatically rescheduled
   // This is BETTER than DHTMLX - they require manual configuration
   const handleTaskDateChange = useCallback((task: Task, newStart: Date, newEnd: Date) => {
+    // QA Asakaa E14: no antes de que termine aquello de lo que depende. Se
+    // ajusta al primer día posible y la app avisa (restriccionDeDependencias.ts).
+    const ajustadas = ajustarAPredecesoras(task, newStart, newEnd, localTasks);
+    if (ajustadas.ajuste) {
+      newStart = ajustadas.inicio;
+      newEnd = ajustadas.fin;
+      config?.onDependencyConstraint?.({ task, predecessor: ajustadas.ajuste.predecesora, earliestStart: ajustadas.ajuste.fecha });
+    }
+
     // v1.4.18: Check if this is creating a new bar for a task without dates (ClickUp-style)
     const isCreatingNewBar = !task.startDate && !task.endDate;
 
@@ -2288,6 +2298,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
             onTaskCreate={handleTaskCreate}
             onTaskRename={handleTaskRename}
             onCreateSubtask={handleCreateSubtask}
+            onTaskDependencies={config.onTaskDependencies}
             onOpenTaskModal={onTaskClick ? (task: Task) => onTaskClick(task) : undefined}
             onDeleteRequest={(taskIds: string[], label: string) => setDeleteConfirmation({ taskIds, taskName: label })} // v1.9.6: bulk-aware
             onTaskReparent={handleTaskReparent} // v0.17.68
@@ -2479,6 +2490,20 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
                   } else {
                     handleCreateSubtask(task.id);
                   }
+                },
+              });
+            }
+
+            // QA Asakaa E14: las dependencias también se editan después de crear la tarea.
+            if (canUpdateTask && (config.onTaskDependencies || onTaskEdit)) {
+              items.push({
+                id: 'dependencies',
+                label: translations.contextMenu?.dependencies || 'Dependencies…',
+                icon: MenuIcons.Link,
+                onClick: () => {
+                  if (config.onTaskDependencies) config.onTaskDependencies(task);
+                  else onTaskEdit?.(task);
+                  setContextMenu({ isOpen: false, x: 0, y: 0, task: null });
                 },
               });
             }

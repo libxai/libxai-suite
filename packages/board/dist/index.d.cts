@@ -697,6 +697,14 @@ interface GanttConfig {
     onTaskDelete?: (taskId: string) => void;
     onMultiTaskDelete?: (taskIds: string[]) => void;
     onTaskDuplicate?: (task: Task) => void;
+    /** 1.9.47 · QA Asakaa E14: el menú contextual «Dependencias…» (si falta, abre onTaskEdit). */
+    onTaskDependencies?: (task: Task) => void;
+    /** 1.9.47 · QA Asakaa E14: una tarea se soltó antes de que acabe su predecesora y se ajustó al primer día posible. */
+    onDependencyConstraint?: (info: {
+        task: Task;
+        predecessor: Task;
+        earliestStart: Date;
+    }) => void;
     onTaskMove?: (taskId: string, direction: 'up' | 'down') => void;
     onTaskIndent?: (taskId: string) => void;
     onTaskOutdent?: (taskId: string) => void;
@@ -2931,6 +2939,8 @@ interface TaskGridProps {
         onClick: () => void;
     };
     onCreateSubtask?: (parentTaskId: string) => void;
+    /** 1.9.47 · QA Asakaa E14: «Dependencias…» en el menú contextual. */
+    onTaskDependencies?: (task: Task) => void;
     onOpenTaskModal?: (task: Task) => void;
     /** v1.9.6: ahora recibe TODOS los ids a borrar (bulk desde el menú contextual
      *  con multi-selección) + una etiqueta para el modal de confirmación. */
@@ -2946,7 +2956,7 @@ interface TaskGridProps {
 declare function TaskGrid({ tasks, theme, rowHeight: ROW_HEIGHT, availableUsers, templates: _templates, // TODO: Use templates for custom rendering
 onTaskClick, onTaskSelectionChange, selectedTaskId, onTaskDblClick, // v0.8.0
 onTaskContextMenu, // v0.8.0
-onTaskToggle, scrollTop: _scrollTop, columns, onToggleColumn, onColumnResize, onTaskUpdate, onBulkFill, onTaskIndent, onTaskOutdent, onTaskMove, onMultiTaskDelete, onTaskDuplicate, onTaskCreate, onTaskRename, addTaskRow, onCreateSubtask, onOpenTaskModal, onDeleteRequest, // v0.17.34
+onTaskToggle, scrollTop: _scrollTop, columns, onToggleColumn, onColumnResize, onTaskUpdate, onBulkFill, onTaskIndent, onTaskOutdent, onTaskMove, onMultiTaskDelete, onTaskDuplicate, onTaskCreate, onTaskRename, addTaskRow, onCreateSubtask, onTaskDependencies, onOpenTaskModal, onDeleteRequest, // v0.17.34
 onTaskReparent, // v0.17.68
 allTasks, // v1.9.10: árbol completo para traducir posición con filtros activos
 scrollContainerRef, // v0.18.15
@@ -3734,6 +3744,8 @@ interface GanttTranslations {
         duplicateTask: string;
         splitTask: string;
         deleteTask: string;
+        /** 1.9.47 · QA Asakaa E14 */
+        dependencies?: string;
     };
     actions: {
         edit: string;

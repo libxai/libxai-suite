@@ -806,6 +806,10 @@ export interface GanttConfig {
   onTaskDelete?: (taskId: string) => void;
   onMultiTaskDelete?: (taskIds: string[]) => void; // Batch delete multiple tasks
   onTaskDuplicate?: (task: Task) => void; // v1.4.14: Now receives full Task with subtasks
+  /** 1.9.47 · QA Asakaa E14: el menú contextual «Dependencias…» (si falta, abre onTaskEdit). */
+  onTaskDependencies?: (task: Task) => void;
+  /** 1.9.47 · QA Asakaa E14: una tarea se soltó antes de que acabe su predecesora y se ajustó al primer día posible. */
+  onDependencyConstraint?: (info: { task: Task; predecessor: Task; earliestStart: Date }) => void;
   onTaskMove?: (taskId: string, direction: 'up' | 'down') => void;
   onTaskIndent?: (taskId: string) => void;
   onTaskOutdent?: (taskId: string) => void;

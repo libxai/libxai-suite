@@ -92,6 +92,8 @@ export interface GanttTranslations {
     duplicateTask: string;
     splitTask: string;
     deleteTask: string;
+    /** 1.9.47 · QA Asakaa E14 */
+    dependencies?: string;
   };
 
   // Task actions (context menu)
@@ -268,6 +270,7 @@ export const en: GanttTranslations = {
     duplicateTask: 'Duplicate Task',
     splitTask: 'Split Task',
     deleteTask: 'Delete Task',
+    dependencies: 'Dependencies…',
   },
 
   actions: {
@@ -438,6 +441,7 @@ export const es: GanttTranslations = {
     duplicateTask: 'Duplicar Tarea',
     splitTask: 'Dividir Tarea',
     deleteTask: 'Eliminar Tarea',
+    dependencies: 'Dependencias…',
   },
 
   actions: {

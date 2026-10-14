@@ -51,6 +51,8 @@ interface TaskGridProps {
   /** 1.9.45 · fila «+ Add task» al final de la rejilla (la app decide qué hace). */
   addTaskRow?: { label: string; onClick: () => void };
   onCreateSubtask?: (parentTaskId: string) => void;
+  /** 1.9.47 · QA Asakaa E14: «Dependencias…» en el menú contextual. */
+  onTaskDependencies?: (task: Task) => void;
   onOpenTaskModal?: (task: Task) => void;
   // v0.17.34: Delete confirmation request (shows modal instead of deleting directly)
   /** v1.9.6: ahora recibe TODOS los ids a borrar (bulk desde el menú contextual
@@ -95,6 +97,7 @@ export function TaskGrid({
   onTaskRename,
   addTaskRow,
   onCreateSubtask,
+  onTaskDependencies,
   onOpenTaskModal,
   onDeleteRequest, // v0.17.34
   onTaskReparent, // v0.17.68
@@ -1334,6 +1337,13 @@ export function TaskGrid({
           onCreateSubtask?.(task.id);
         },
       },
+      // QA Asakaa E14: las dependencias también se editan después de crear la tarea.
+      ...(onTaskDependencies ? [{
+        id: 'dependencies',
+        label: translations?.contextMenu?.dependencies || 'Dependencies…',
+        icon: MenuIcons.Link,
+        onClick: () => onTaskDependencies(task),
+      }] : []),
       // Separator before status changes
       { id: 'sep1', label: '', onClick: () => {}, separator: true },
       // Mark Incomplete (status: 'todo', progress: 0) — bulk-aware
