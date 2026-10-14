@@ -6,6 +6,7 @@
  */
 
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import { anchoMinimoDeColumna, anchoMinimoDeLaTabla } from './anchoDeColumnas';
 import { computeWeightedProgress, collectLeaves } from '../../utils/avanceFisico';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -2018,6 +2019,18 @@ export function ListView({
     return map;
   }, [visibleColumns, allowColumnCustomization]);
 
+  // QA Asakaa E39: sin mínimo, al abrir el panel de salud las columnas encogían hasta
+  // montarse. Ninguna baja de su ancho de diseño; si no caben, la tabla se desplaza.
+  const anchoMinimo = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const col of visibleColumns) map[col.id] = anchoMinimoDeColumna(col);
+    return map;
+  }, [visibleColumns]);
+  const anchoMinimoTabla = useMemo(
+    () => anchoMinimoDeLaTabla(visibleColumns, (allowColumnCustomization ? 48 : 0) + (seleccionable ? 24 : 0) + (canDragRows ? 20 : 0)),
+    [visibleColumns, allowColumnCustomization, seleccionable, canDragRows],
+  );
+
   // Loading state
   if (isLoading) {
     return (
@@ -2279,7 +2292,7 @@ export function ListView({
       <div style={{ display: 'flex', flex: '1 1 0%', overflow: 'hidden', minHeight: 0 }}>
       {/* Table Container */}
       <div style={{ flex: '1 1 0%', overflow: 'auto', minHeight: 0 }}>
-        <div style={{ width: '100%' }}>
+        <div style={{ width: '100%', minWidth: anchoMinimoTabla }}>
           {/* List Header */}
           <div
             className={cn(
@@ -2306,7 +2319,7 @@ export function ListView({
                     ? "bg-[#00E5CC]/20 border-l-2 border-l-[#00E5CC]"
                     : "bg-[#00E5CC]/15 border-l-2 border-l-[#00E5CC]")
                 )}
-                style={{ width: columnWidthPercent[column.id], minWidth: column.minWidth }}
+                style={{ width: columnWidthPercent[column.id], minWidth: anchoMinimo[column.id] }}
                 draggable={isDraggable}
                 onDragStart={isDraggable ? (e) => handleColumnDragStart(e, column.id) : undefined}
                 onDragEnd={isDraggable ? handleColumnDragEnd : undefined}
@@ -2511,7 +2524,7 @@ export function ListView({
                       <div
                         key={column.id}
                         className={cn("flex items-center px-4", compacta ? "py-1.5 min-h-[40px]" : "py-3 min-h-[56px]", column.type !== 'name' && "justify-center")}
-                        style={{ width: columnWidthPercent[column.id], minWidth: column.minWidth }}
+                        style={{ width: columnWidthPercent[column.id], minWidth: anchoMinimo[column.id] }}
                       >
                         {column.type === 'name' ? (
                           // Name cell — folder icon + wbs + name + count + SPI + conflicts
@@ -2675,7 +2688,7 @@ export function ListView({
                       key={column.id}
                       className={cn("flex items-center px-4", compacta ? "py-1.5 min-h-[40px]" : "py-3 min-h-[56px]", column.type !== 'name' && "justify-center")}
                       style={{
-                        width: columnWidthPercent[column.id], minWidth: column.minWidth,
+                        width: columnWidthPercent[column.id], minWidth: anchoMinimo[column.id],
                         position: 'relative',
                         backgroundColor: cellInFill ? 'rgba(0, 229, 204, 0.13)' : undefined,
                         boxShadow: cellInFill ? 'inset 0 0 0 1px rgba(0, 229, 204, 0.45)' : undefined,
@@ -2880,7 +2893,7 @@ export function ListView({
                       "flex items-center px-4 py-3",
                       column.type !== 'name' && "justify-center"
                     )}
-                    style={{ width: columnWidthPercent[column.id], minWidth: column.minWidth }}
+                    style={{ width: columnWidthPercent[column.id], minWidth: anchoMinimo[column.id] }}
                   >
                     {column.type === 'name' ? (
                       <div className="flex flex-col">
