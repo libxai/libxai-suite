@@ -1,4 +1,5 @@
 import { Task } from './types';
+import { computeWeightedProgress, collectLeaves } from '../../utils/avanceFisico';
 
 /**
  * Re-index position properties for all tasks at each level
@@ -570,7 +571,7 @@ export function canReparent(
  * Parent tasks with subtasks become read-only containers:
  * - startDate = min(children startDates)
  * - endDate = max(children endDates)
- * - progress = average(children progress)
+ * - progress = la fórmula única sobre sus HOJAS (utils/avanceFisico, = SQL 319). QA Asakaa E6.
  * Recurses bottom-up so grandparents also roll up correctly.
  */
 export function rollUpParentDates(tasks: Task[]): Task[] {
@@ -597,8 +598,10 @@ export function rollUpParentDates(tasks: Task[]): Task[] {
     const rolledEnd = childDates.ends.length > 0
       ? new Date(Math.max(...childDates.ends))
       : task.endDate;
+    // QA Asakaa E6: antes la media simple de las hijas (Fase 2 de Torre Alpha: 36 % aquí,
+    // 28 % en el reporte y la base). Ahora la misma fórmula que la Lista y la base.
     const rolledProgress = childDates.progresses.length > 0
-      ? Math.round(childDates.progresses.reduce((a, b) => a + b, 0) / childDates.progresses.length)
+      ? computeWeightedProgress(collectLeaves(updatedSubtasks))
       : task.progress;
 
     return {
