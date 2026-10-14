@@ -2162,6 +2162,26 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     return undefined;
   }, [localTasks.length, startDate, timeScale, zoom, reintentoScroll, primeraTarea, ultimaTarea]); // Re-run when tasks load
 
+  /*
+   * QA Asakaa E22: «tras asignar fechas con un clic o arrastrar una barra, el
+   * cronograma se desplaza hasta 380 px». El rango empieza en «primera tarea −
+   * margen» (7 días × 54 px = 378 px en escala Día): si la tarea movida era la
+   * primera, cambia el inicio del rango, todo se corre y el scroll no. Con la
+   * misma escala y zoom, se compensa el scroll por los días que se movió el inicio.
+   */
+  const inicioAnteriorRef = useRef<{ t: number; timeScale: TimeScale; zoom: number } | null>(null);
+  useLayoutEffect(() => {
+    const antes = inicioAnteriorRef.current;
+    inicioAnteriorRef.current = { t: startDate.getTime(), timeScale, zoom };
+    if (!antes || !hasScrolledToToday.current) return;
+    if (antes.timeScale !== timeScale || antes.zoom !== zoom || antes.t === startDate.getTime()) return;
+    const el = timelineScrollRef.current;
+    if (!el) return;
+    const dayWidth = timeScale === 'day' ? 60 : timeScale === 'week' ? 20 : 8;
+    const dias = (antes.t - startDate.getTime()) / (1000 * 60 * 60 * 24);
+    el.scrollLeft = Math.max(0, el.scrollLeft + dias * dayWidth * zoom);
+  }, [startDate, timeScale, zoom]);
+
   // 1.9.35 · fitToDates cambió la escala: desplazar cuando ya se pintó con la nueva.
   useLayoutEffect(() => {
     const d = pendingScrollRef.current;

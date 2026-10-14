@@ -8,6 +8,7 @@ import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react
 import { createPortal } from 'react-dom';
 import { Calendar, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '../../../utils';
+import { motivoDeBloqueo } from './fechaPermitida';
 
 export interface DateRangePickerProps {
   /** Start date value */
@@ -25,6 +26,8 @@ export interface DateRangePickerProps {
   disabled?: boolean;
   /** Placeholder text when no date selected */
   placeholder?: string;
+  /** 1.9.47 · QA Asakaa E21: ninguna fecha antes de esta (el inicio del proyecto). */
+  minDate?: Date | string | null;
 }
 
 export function DateRangePicker({
@@ -37,6 +40,7 @@ export function DateRangePicker({
   locale,
   disabled = false,
   placeholder,
+  minDate,
 }: DateRangePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectingField, setSelectingField] = useState<'start' | 'end'>(singleDateField);
@@ -165,8 +169,17 @@ export function DateRangePicker({
     return days;
   }, [viewMonth]);
 
+  /* QA Asakaa E21: el día no válido no se elige (antes, un fin anterior al inicio
+     MOVÍA el inicio en silencio). */
+  const minimo = minDate ? (minDate instanceof Date ? minDate : new Date(minDate)) : null;
+  const bloqueo = (date: Date) => motivoDeBloqueo(date, {
+    campo: singleDateMode ? singleDateField : selectingField,
+    inicio: startDateValue, fin: endDateValue, minimo, locale,
+  });
+
   // Handle date selection
   const handleDateSelect = (date: Date) => {
+    if (bloqueo(date)) return;
     if (singleDateMode) {
       if (singleDateField === 'start') {
         onChange(date, endDateValue || undefined);
@@ -314,6 +327,9 @@ export function DateRangePicker({
                     isDark ? 'hover:bg-white/[0.05] text-white' : 'hover:bg-gray-50 text-gray-900'
                   )}
                   onClick={() => handleDateSelect(option.date)}
+                  disabled={!!bloqueo(option.date)}
+                  title={bloqueo(option.date) ?? undefined}
+                  style={bloqueo(option.date) ? { opacity: 0.35, cursor: 'not-allowed' } : undefined}
                 >
                   <span>{option.label}</span>
                   <span className={cn('text-xs', isDark ? 'text-white/30' : 'text-gray-400')}>
@@ -418,6 +434,9 @@ export function DateRangePicker({
                     <button
                       key={i}
                       onClick={() => handleDateSelect(new Date(d.date))}
+                      disabled={!!bloqueo(d.date)}
+                      title={bloqueo(d.date) ?? undefined}
+                      style={bloqueo(d.date) ? { opacity: 0.3, cursor: 'not-allowed' } : undefined}
                       className={cn(
                         'w-8 h-8 rounded-full flex items-center justify-center text-sm transition-colors',
                         !d.isCurrentMonth && (isDark ? 'text-white/20' : 'text-gray-300'),

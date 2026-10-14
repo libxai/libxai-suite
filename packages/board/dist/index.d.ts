@@ -4088,6 +4088,8 @@ interface ProjectHealthData {
  * ListView configuration
  */
 interface ListViewConfig {
+    /** 1.9.47 · QA Asakaa E21: las fechas de inicio y fin no pueden ser anteriores a esta (el inicio del proyecto). */
+    minTaskDate?: Date | string | null;
     /**
      * v1.9.25 — Hide financial indicators entirely, not just blur them.
      *

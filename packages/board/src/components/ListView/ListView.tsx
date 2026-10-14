@@ -1498,6 +1498,7 @@ export function ListView({
             dateField="start"
             startDate={task.startDate}
             endDate={task.endDate}
+            minDate={config.minTaskDate}
           />
         );
 
@@ -1511,6 +1512,7 @@ export function ListView({
             dateField="end"
             startDate={task.startDate}
             endDate={task.endDate}
+            minDate={config.minTaskDate}
           />
         );
         /* 1.9.38 · vencida: rojo con icono, con la regla que pasa la app. */

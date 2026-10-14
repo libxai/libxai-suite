@@ -17,6 +17,8 @@ interface DateCellProps {
   startDate?: Date | string | null;
   /** End date (for range display context) */
   endDate?: Date | string | null;
+  /** 1.9.47 · QA Asakaa E21: ninguna fecha antes de esta. */
+  minDate?: Date | string | null;
 }
 
 export function DateCell({
@@ -28,6 +30,7 @@ export function DateCell({
   dateField = 'end',
   startDate,
   endDate,
+  minDate,
 }: DateCellProps) {
   // Convert value to proper date
   const dateValue = value ? (value instanceof Date ? value : new Date(value)) : null;
@@ -58,6 +61,7 @@ export function DateCell({
       locale={locale}
       disabled={disabled || !onChange}
       placeholder="-"
+      minDate={minDate}
     />
   );
 }
