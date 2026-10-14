@@ -1862,6 +1862,7 @@ export function ListView({
             isDark={isDark}
             locale={locale}
             hasTimeAllocated={hasTime}
+            sinEmpezar={(task.progress ?? 0) === 0 && task.status !== 'completed'}
           />
         );
       }
@@ -2812,9 +2813,15 @@ export function ListView({
             // leading minus sign read as a loss to users. The semantic is
             // already in the word (EXCEDIDO vs AHORRADO), so the sign should
             // always be positive (the magnitude of the variance).
+            /* 1.9.47 · QA Asakaa E10: «+$664.000 AHORRADO» sin haber gastado nada. Lo que
+               no se ha consumido es AHORRO solo cuando todo está terminado; antes es lo
+               que RESTA por hacer (como el Portafolio: «restantes» / «ahorro»). */
+            const hojasDelProyecto = collectLeaves(tasks);
+            const todoTerminado = hojasDelProyecto.length > 0 && hojasDelProyecto.every((h) => (h.progress ?? 0) >= 100);
+            const palabraDeSobra = todoTerminado ? (locale === 'es' ? 'AHORRADO' : 'SAVED') : (locale === 'es' ? 'RESTANTE' : 'REMAINING');
             const varianceLabel = isOver
               ? `+${formatGroupHours(Math.abs(varianceMinutes))} ${locale === 'es' ? 'EXCEDIDO' : 'OVER'}`
-              : `+${formatGroupHours(varianceMinutes)} ${locale === 'es' ? 'AHORRADO' : 'SAVED'}`;
+              : `+${formatGroupHours(varianceMinutes)} ${palabraDeSobra}`;
             const isFinancial = lens === 'financial' && hourlyRate > 0;
             // v2.5.2: Prefer consumer-supplied dollar totals when provided (canonical
             // time_logs × rate_at_time figures). Falls back to the internal per-task
@@ -2839,7 +2846,7 @@ export function ListView({
             };
             const varianceDollars = isFinancial ? Math.abs(effDollarAllocated - effDollarSpent) : 0;
             const varianceLabelFinancial = isFinancial
-              ? `+$${varianceDollars.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} ${isOver ? (locale === 'es' ? 'EXCEDIDO' : 'OVER') : (locale === 'es' ? 'AHORRADO' : 'SAVED')}`
+              ? `+$${varianceDollars.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} ${isOver ? (locale === 'es' ? 'EXCEDIDO' : 'OVER') : palabraDeSobra}`
               : varianceLabel;
 
             // Small note under "TOTAL PROYECTO" clarifying the footer is labor-only;

@@ -13,6 +13,8 @@ interface ScheduleVarianceCellProps {
   locale?: string;
   /** Whether the task has any time allocated (estimated or quoted hours) */
   hasTimeAllocated?: boolean;
+  /** 1.9.47 · QA Asakaa E10: una tarea sin empezar no puede ir «Adelante». */
+  sinEmpezar?: boolean;
 }
 
 export function ScheduleVarianceCell({
@@ -22,6 +24,7 @@ export function ScheduleVarianceCell({
   isDark,
   locale = 'en',
   hasTimeAllocated = true,
+  sinEmpezar = false,
 }: ScheduleVarianceCellProps) {
   if (!startDate && !endDate) {
     return (
@@ -55,6 +58,14 @@ export function ScheduleVarianceCell({
       return (
         <span className="font-mono" style={{ fontSize: '10px', color: '#10B981', fontWeight: 600 }}>
           {isEs ? 'En Tiempo' : 'On Track'}
+        </span>
+      );
+    }
+
+    if (scheduleVariance > 0 && sinEmpezar) {
+      return (
+        <span className="font-mono" style={{ fontSize: '10px', color: isDark ? 'rgba(255,255,255,0.3)' : '#94A3B8', fontWeight: 500 }}>
+          {isEs ? 'Sin iniciar' : 'Not started'}
         </span>
       );
     }
