@@ -69,7 +69,7 @@ function formatTime(minutes: number | null | undefined, _locale: string = 'en'):
  * Parse time string to minutes
  * Supports formats: "2h 30m", "2h30m", "2.5h", "150m", "150", "2:30"
  */
-function parseTimeToMinutes(input: string): number | null {
+export function parseTimeToMinutes(input: string): number | null {
   const trimmed = input.trim().toLowerCase();
 
   if (!trimmed || trimmed === '-') {
@@ -129,6 +129,14 @@ export function TimeCell({
 }: TimeCellProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState('');
+  /* QA Asakaa E7: «-5» se guardaba (-300 min → total del proyecto en negativo) y
+     «abc» BORRABA el valor sin decir nada. Ahora se rechaza y se dice por qué. */
+  const [rechazo, setRechazo] = useState<string | null>(null);
+  useEffect(() => {
+    if (!rechazo || isEditing) return;
+    const t = setTimeout(() => setRechazo(null), 4000);
+    return () => clearTimeout(t);
+  }, [rechazo, isEditing]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Micro-interaction: flash green on save
@@ -168,8 +176,17 @@ export function TimeCell({
     }
   }, [value, isEditing]);
 
-  const handleSave = () => {
+  const handleSave = (cerrarSiNoVale = true) => {
     const parsedMinutes = parseTimeToMinutes(editValue);
+    const escrito = editValue.trim() !== '' && editValue.trim() !== '-';
+    if (escrito && (parsedMinutes == null || parsedMinutes < 0)) {
+      setRechazo(parsedMinutes != null && parsedMinutes < 0
+        ? (locale === 'es' ? 'No puede ser negativo: no se guardó' : "Can't be negative: not saved")
+        : (locale === 'es' ? `«${editValue.trim()}» no es una duración (usa 8, 2h 30m o 2:30): no se guardó` : `"${editValue.trim()}" is not a duration (use 8, 2h 30m or 2:30): not saved`));
+      if (cerrarSiNoVale) setIsEditing(false);
+      return;
+    }
+    setRechazo(null);
     if (parsedMinutes !== value) {
       onChange?.(parsedMinutes);
       // Trigger flash after save
@@ -182,7 +199,7 @@ export function TimeCell({
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
-      handleSave();
+      handleSave(false);
     } else if (e.key === 'Escape') {
       setIsEditing(false);
     }
@@ -236,7 +253,8 @@ export function TimeCell({
         type="text"
         value={editValue}
         onChange={(e) => setEditValue(e.target.value)}
-        onBlur={handleSave}
+        onBlur={() => handleSave(true)}
+        title={rechazo ?? undefined}
         onKeyDown={handleKeyDown}
         onClick={(e) => e.stopPropagation()}
         placeholder={locale === 'es' ? '8 (=8h), 1h 30m' : '8 (=8h), 1h 30m'}
@@ -244,7 +262,8 @@ export function TimeCell({
           'w-full px-2 py-1 text-sm rounded border outline-none',
           isDark
             ? 'bg-white/[0.03] border-[#00E5CC] text-white placeholder:text-white/30'
-            : 'bg-white border-[#00E5CC] text-gray-900 placeholder:text-gray-400'
+            : 'bg-white border-[#00E5CC] text-gray-900 placeholder:text-gray-400',
+          rechazo && '!border-red-500'
         )}
       />
     );
@@ -257,6 +276,7 @@ export function TimeCell({
         e.stopPropagation();
         setIsEditing(true);
       }}
+      title={rechazo ?? undefined}
       className={cn(
         'flex items-center justify-center gap-1 text-sm w-full px-1.5 py-1 rounded transition-[background-color] duration-300 overflow-hidden',
         isDark ? 'hover:bg-white/[0.05]' : 'hover:bg-gray-100',
@@ -264,7 +284,8 @@ export function TimeCell({
           ? (isDark ? 'text-white/60' : 'text-gray-600')
           : (isDark ? 'text-white/30' : 'text-gray-400'),
         // Flash animation
-        isFlashing && (isDark ? 'bg-green-500/30' : 'bg-green-500/20')
+        isFlashing && (isDark ? 'bg-green-500/30' : 'bg-green-500/20'),
+        rechazo && 'ring-1 ring-red-500 bg-red-500/10'
       )}
     >
       {value != null && value > 0 && (

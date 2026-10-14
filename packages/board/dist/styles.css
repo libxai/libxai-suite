@@ -8940,6 +8940,12 @@ body {
 }
 
 
+.\!border-red-500 {
+  --tw-border-opacity: 1 !important;
+  border-color: rgb(239 68 68 / var(--tw-border-opacity, 1)) !important;
+}
+
+
 .border-\[\#00C4AE\]\/50 {
   border-color: rgb(0 196 174 / 0.5);
 }
@@ -10822,6 +10828,12 @@ body {
 
 .ring-green-500\/50 {
   --tw-ring-color: rgb(34 197 94 / 0.5);
+}
+
+
+.ring-red-500 {
+  --tw-ring-opacity: 1;
+  --tw-ring-color: rgb(239 68 68 / var(--tw-ring-opacity, 1));
 }
 
 
