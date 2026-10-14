@@ -264,7 +264,12 @@ export function Timeline({
           // Filter subtasks that have dates
           const subtasksWithDates = updatedSubtasks.filter(st => st.startDate && st.endDate);
 
-          if (subtasksWithDates.length > 0) {
+          /* QA Asakaa E18: «con ‹Ocultar completadas›, el grupo dice Inicio 18/05 y su
+             barra arranca el 18 de agosto». Aquí llegan las hijas YA FILTRADAS; las
+             fechas del padre ya vienen calculadas con TODAS (rollUpParentDates), que
+             es lo que muestra la rejilla. Solo se recalculan si el padre no las trae. */
+          const yaTraeFechas = !!(task.startDate && task.endDate);
+          if (subtasksWithDates.length > 0 && !yaTraeFechas) {
             // Calculate earliest start and latest end from subtasks
             const startDates = subtasksWithDates.map(st => st.startDate!.getTime());
             const endDates = subtasksWithDates.map(st => st.endDate!.getTime());
@@ -812,13 +817,19 @@ export function Timeline({
           const isContainer = task.subtasks && task.subtasks.length > 0 && !task.isMilestone;
 
           if (task.isMilestone) {
+            /* QA Asakaa E17 (decisión de Arcadio, 14-oct): el hito es la ENTREGA, su
+               fecha de fin. Antes el rombo iba a la mitad de la barra (16–22 oct →
+               el 19) y 19 px por debajo del centro de la fila. Milestone dibuja el
+               centro del rombo en y + 16; la barra de 18 px tiene el centro en y + 9. */
+            const xFin = ((task.endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24) + 0.5) * dayWidth * zoom;
             return (
               <Milestone
                 key={task.id}
                 task={task}
-                x={x + width / 2}
-                y={y + 12}
+                x={xFin}
+                y={y + 9 - 16}
                 theme={theme}
+                locale={locale}
                 onClick={onTaskClick}
               />
             );

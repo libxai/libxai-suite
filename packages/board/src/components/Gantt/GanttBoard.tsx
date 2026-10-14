@@ -94,6 +94,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     hideWbsLevel,
     // v3.0.0: Baseline & WBS
     showBaseline: configShowBaseline,
+    onShowBaselineChange: configOnShowBaselineChange,
     viewMode: configViewMode,
     onViewModeChange: configOnViewModeChange,
     // v3.1.0: Forecast HUD
@@ -2246,6 +2247,8 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         onHighlightWeekendsChange={handleHighlightWeekendsChange}
         showBaseline={showBaseline}
         onShowBaselineChange={(show) => {
+          // QA Asakaa E20: la app decide (la línea base se ve también en Ejecución).
+          if (configOnShowBaselineChange) { configOnShowBaselineChange(show); return; }
           if (show && viewMode !== 'oracle') handleViewModeChange('oracle');
           if (!show && viewMode === 'oracle') handleViewModeChange('execution');
         }}

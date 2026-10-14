@@ -595,6 +595,8 @@ interface GanttConfig {
      * @default false
      */
     showBaseline?: boolean;
+    /** 1.9.47 · QA Asakaa E20: si se pasa, el ojo «Líneas Base» llama aquí en vez de cambiar a Vista Pulse. */
+    onShowBaselineChange?: (show: boolean) => void;
     /**
      * v3.0.0: Gantt view mode — Execution (actual) vs Oracle (baseline comparison)
      * Controls the Execution/Oracle toggle in the Chronos toolbar
@@ -3101,9 +3103,11 @@ interface MilestoneProps {
     x: number;
     y: number;
     theme: any;
+    /** QA Asakaa E17: la fecha de la etiqueta en el idioma de la app (antes, siempre en inglés). */
+    locale?: string;
     onClick?: (task: Task) => void;
 }
-declare function Milestone({ task, x, y, theme, onClick }: MilestoneProps): react_jsx_runtime.JSX.Element;
+declare function Milestone({ task, x, y, theme, locale, onClick }: MilestoneProps): react_jsx_runtime.JSX.Element;
 
 interface ColumnManagerProps {
     columns: GanttColumn[];

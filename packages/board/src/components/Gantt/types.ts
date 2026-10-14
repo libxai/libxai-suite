@@ -685,6 +685,8 @@ export interface GanttConfig {
    * @default false
    */
   showBaseline?: boolean;
+  /** 1.9.47 · QA Asakaa E20: si se pasa, el ojo «Líneas Base» llama aquí en vez de cambiar a Vista Pulse. */
+  onShowBaselineChange?: (show: boolean) => void;
 
   /**
    * v3.0.0: Gantt view mode — Execution (actual) vs Oracle (baseline comparison)

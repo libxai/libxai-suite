@@ -117,7 +117,7 @@ export function CalBar({ bar, ws, money, projColor, slotH = DEFAULT_SLOT_H, due 
           <circle cx="6" cy="8.6" r="0.8" fill="currentColor" />
         </svg>
       ) : null}
-      {due && t.milestone ? (
+      {t.milestone ? ( /* QA Asakaa E17: la marca de hito también fuera del modo vencimiento */
         <svg className="ico" width="11" height="11" viewBox="0 0 24 24" aria-hidden fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" /><line x1="4" y1="22" x2="4" y2="15" />
         </svg>

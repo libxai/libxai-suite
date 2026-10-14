@@ -23,7 +23,7 @@ export const TASK_COLORS: TaskColor[] = [
   { name: 'Lima', value: '#84CC16', light: '#A3E635' },
   { name: 'Verde', value: '#10B981', light: '#34D399' },
   { name: 'Esmeralda', value: '#059669', light: '#10B981' },
-  { name: 'Cyan', value: '#00E5CC', light: '#00E5CC' },
+  { name: 'Cyan', value: '#06B6D4', light: '#22D3EE' }, // QA Asakaa E19: antes repetía #00E5CC (el de «Azul»)
   { name: 'Azul Cielo', value: '#0EA5E9', light: '#38BDF8' },
   { name: 'Índigo', value: '#4F46E5', light: '#6366F1' },
   { name: 'Violeta', value: '#8B5CF6', light: '#A78BFA' },

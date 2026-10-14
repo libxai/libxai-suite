@@ -7,16 +7,18 @@ interface MilestoneProps {
   x: number;
   y: number;
   theme: any;
+  /** QA Asakaa E17: la fecha de la etiqueta en el idioma de la app (antes, siempre en inglés). */
+  locale?: string;
   onClick?: (task: Task) => void;
 }
 
-export function Milestone({ task, x, y, theme, onClick }: MilestoneProps) {
+export function Milestone({ task, x, y, theme, locale = 'en', onClick }: MilestoneProps) {
   const [isHovered, setIsHovered] = useState(false);
   const size = 16;
 
   // Format date for tooltip
   const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', {
+    return date.toLocaleDateString(locale, {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
@@ -147,7 +149,7 @@ export function Milestone({ task, x, y, theme, onClick }: MilestoneProps) {
               fontSize="10"
               fontFamily="Inter, sans-serif"
             >
-              {formatDate(task.startDate!)}
+              {formatDate(task.endDate ?? task.startDate!) /* QA Asakaa E17: la fecha del hito es la de fin */}
             </text>
 
             {/* Critical Path Badge */}

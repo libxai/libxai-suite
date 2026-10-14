@@ -76,6 +76,8 @@ export function buildCalendar(opts: BuildOpts): BuiltCalendar {
     const eSerial = grid.dateToSerial(end);
     // Omite tareas totalmente fuera de la ventana visible.
     if (eSerial < 1 || sSerial > gridEndSerial) continue;
+    // QA Asakaa E17: un hito se pinta en su día de fin; si cae fuera de la rejilla, no se ve.
+    if ((t as { isMilestone?: boolean }).isMilestone && eSerial > gridEndSerial) continue;
 
     const mins = (t as { effortMinutes?: number | null }).effortMinutes ?? 0;
     const hrs = Math.round((mins / 60) * 10) / 10;
@@ -106,7 +108,8 @@ export function buildCalendar(opts: BuildOpts): BuiltCalendar {
        * comportamiento de siempre—.
        */
       color: (t as { color?: string }).color,
-      startSerial: Math.max(sSerial, 1),
+      /* QA Asakaa E17: un hito es su día de fin; antes se pintaba con sus 7 días. */
+      startSerial: Math.max((t as { isMilestone?: boolean }).isMilestone ? eSerial : sSerial, 1),
       endSerial: Math.min(eSerial, gridEndSerial),
       hrs,
       cost,
