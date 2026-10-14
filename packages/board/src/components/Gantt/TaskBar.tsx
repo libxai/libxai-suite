@@ -1001,7 +1001,7 @@ export function TaskBar({
                 x={displayX + fillWidth + 6}
                 y={masterY + masterH / 2}
                 dominantBaseline="central"
-                fill="rgba(255,255,255,0.7)"
+                fill={theme.textSecondary /* QA Asakaa E33: va sobre el fondo, no sobre la barra */}
                 fontSize="9"
                 fontWeight="700"
                 fontFamily="'JetBrains Mono', monospace"
@@ -1444,7 +1444,7 @@ export function TaskBar({
             x={displayX + displayWidth + 6}
             y={y + height / 2}
             dominantBaseline="middle"
-            fill="#FFFFFF"
+            fill={theme.textSecondary /* QA Asakaa E33: fuera de la barra, sobre el fondo */}
             fontSize="9"
             fontWeight="500"
             fontFamily="'JetBrains Mono', monospace"
