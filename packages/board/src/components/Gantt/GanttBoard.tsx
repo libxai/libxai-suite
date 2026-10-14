@@ -5,6 +5,7 @@ import { deriveThemeFromCSS } from './deriveThemeFromCSS';
 import { GanttToolbar } from './GanttToolbar';
 import { TaskGrid } from './TaskGrid';
 import { Timeline } from './Timeline';
+import { inicioDeLaEscala } from './rangoDeLaEscala';
 import { ContextMenu, MenuIcons } from './ContextMenu'; // v0.8.0: Split task context menu
 import { TaskDetailModal } from '../TaskDetailModal'; // v0.17.244: Unified task detail modal (replaces TaskFormModal)
 import { GanttAIAssistant } from './GanttAIAssistant'; // v0.14.0: AI Assistant
@@ -1724,7 +1725,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       start.setDate(start.getDate() - 30);
       const end = new Date(today);
       end.setDate(end.getDate() + 60);
-      return { startDate: start, endDate: end };
+      return { startDate: inicioDeLaEscala(start, timeScale), endDate: end };
     }
 
     const allDates = tasksWithDates.flatMap((t) => [t.startDate, t.endDate]).filter((d): d is Date => d !== undefined);
@@ -1735,7 +1736,8 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     minDate.setDate(minDate.getDate() - padding);
     maxDate.setDate(maxDate.getDate() + padding);
 
-    return { startDate: minDate, endDate: maxDate };
+    // QA Asakaa E13: Semana empieza en lunes y Mes en el día 1 (rangoDeLaEscala.ts).
+    return { startDate: inicioDeLaEscala(minDate, timeScale), endDate: maxDate };
   }, [localTasks, timeScale]);
 
   // v1.5.1: Notify consumer of computed date range

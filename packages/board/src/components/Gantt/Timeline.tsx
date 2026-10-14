@@ -661,7 +661,7 @@ export function Timeline({
             los fines de semana. Solo aplica en escala de día. */}
         {headers.map((header, index) => {
           const nextX = headers[index + 1]?.x || timelineWidth;
-          const isWeekendDay = highlightWeekends && isWeekend(header.date);
+          const isWeekendDay = timeScale === 'day' && highlightWeekends && isWeekend(header.date);
           // Solo marcar festivo si NO es ya fin de semana (evita doble pintado).
           const isHolidayDay = timeScale === 'day' && !isWeekend(header.date) && isHoliday(header.date);
           const shouldShade = isWeekendDay || isHolidayDay;
