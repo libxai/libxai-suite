@@ -2130,7 +2130,10 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   useLayoutEffect(() => {
     // Only scroll once, when we have tasks and a valid startDate
     if (hasScrolledToToday.current) return undefined;
-    if (localTasks.length === 0) return undefined;
+    /* QA Asakaa E32: un proyecto recién creado (sin tareas) abría un mes antes de hoy,
+       con «Hoy →» a la derecha. Sin tareas se centra hoy, pero sin darlo por hecho:
+       si luego llegan tareas, manda la regla de siempre (fechaAlAbrir). */
+    const sinTareas = localTasks.length === 0;
     if (!timelineScrollRef.current) return undefined;
     // QA Asakaa E16: sin ancho todavía no se puede centrar; antes se daba por hecho
     // y el Gantt se quedaba al principio del rango. Se reintenta al siguiente cuadro.
@@ -2141,12 +2144,14 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     }
 
     // Mark as scrolled immediately to prevent re-runs
-    hasScrolledToToday.current = true;
-    initialStartDateRef.current = startDate;
+    if (!sinTareas) {
+      hasScrolledToToday.current = true;
+      initialStartDateRef.current = startDate;
+    }
 
     const timelineScroll = timelineScrollRef.current;
     // Hoy si cae dentro de las tareas; si no, el borde de las tareas más cercano.
-    const today = fechaAlAbrir(primeraTarea, ultimaTarea, new Date());
+    const today = sinTareas ? new Date() : fechaAlAbrir(primeraTarea, ultimaTarea, new Date());
     const dayWidth = timeScale === 'day' ? 60 : timeScale === 'week' ? 20 : 8;
     const daysFromStart = (today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
 
