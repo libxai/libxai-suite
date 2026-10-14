@@ -2101,9 +2101,22 @@ export function ListView({
             */}
           <div className={cn("text-sm whitespace-nowrap", isDark ? "text-white/60" : "text-gray-600")} data-cuenta-de-tareas>
             {(() => {
-              /* 1.9.40 · plegar un grupo no cambia el número: se cuentan antes de plegar. */
-              const padres = tareasSinPlegar.filter(dt => (dt.subtasks?.length ?? 0) > 0).length;
-              const hojas = tareasSinPlegar.length - padres;
+              /* 1.9.40 · plegar un grupo no cambia el número: se cuentan antes de plegar.
+                 1.9.47 · QA Asakaa E8 («38 tareas · 5 padre» en Lista, «48 · 6» en Tablero):
+                 tampoco plegar una FASE. Sus descendientes no salen como filas, así que se
+                 suman aparte. Hojas = tareas, padres = fases, a cualquier profundidad. */
+              let padres = 0; let hojas = 0;
+              const contarDebajo = (lista: Task[]) => {
+                for (const h of lista) {
+                  if (h.subtasks && h.subtasks.length > 0) { padres++; contarDebajo(h.subtasks); } else hojas++;
+                }
+              };
+              for (const dt of tareasSinPlegar) {
+                if ((dt.subtasks?.length ?? 0) > 0) {
+                  padres++;
+                  if (dt.isExpanded === false) contarDebajo(dt.subtasks!);
+                } else hojas++;
+              }
               const esEs = locale === 'es';
               return (
                 <>
