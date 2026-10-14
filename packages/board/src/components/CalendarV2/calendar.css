@@ -910,6 +910,13 @@
   /* 1.9.44 · por encima de las semanas (posicionadas desde 1.9.42): si no, sus
      celdas tapaban los botones y no se podían pulsar. */
   z-index: 5;
+  /* 1.9.47 · QA Asakaa E27: el aviso se superponía a los números de la cuadrícula.
+     Tarjeta con fondo propio: se lee entera y tapa limpio lo que hay debajo. */
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 22px 24px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
 }
 .cal-empty button { pointer-events: auto; }
 .cal-empty .glyph {
