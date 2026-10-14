@@ -220,75 +220,49 @@ function WeightCellInline({ value, onChange, isDark }: { value: number; onChange
   );
 }
 
+type HojaConAvance = { progress: number; weight: number; effort_minutes?: number | null; sold_effort_minutes?: number | null };
+
 /**
- * Computes weighted progress from a list of leaf tasks.
- *
- * Two-path priority (matches user mental model: weight wins when declared):
- *   1. Manual weight  — used when weight sum ≥ 99 AND ≥95% of leaves carry weight.
- *                       This honors a fully-declared weight scheme like 90/10.
- *   2. Effort_minutes — peso virtual; used when weight is missing or partially
- *                       declared. Each leaf contributes proportional to its hours.
- *   3. Simple average — last-resort fallback when neither weight nor effort exists.
- *
- * Why this order: when the project lead bothered to type weights, the weight
- * is intent (e.g. "this small task is critical, give it 90%"). Effort-based
- * weighting is the right default only when no intent is recorded.
+ * QA de Asakaa (8-oct), E4 · ES LA FÓRMULA DE LA BASE (sql/319 progress_pct), copia
+ * exacta, y la del front de la app (src/lib/avanceFisico.ts):
+ *   1) pesos manuales si suman ≥ 99 y los tienen ≥ 95 % de las hojas;
+ *   2) si no, ponderado por effort_minutes ?? sold_effort_minutes ?? 60;
+ *   3) sin hojas, 0. Redondeado a ENTERO.
+ * Antes: `effort || 60` (0 h pesaba 60), sin respaldo en las horas vendidas, un
+ * camino de media simple y un decimal: Roadmap Asakaa daba 99,3 % aquí y 99 % en
+ * el Portafolio.
  */
-function computeWeightedProgress(
-  leaves: { progress: number; weight: number; effort_minutes?: number }[]
-): number {
+function computeWeightedProgress(leaves: HojaConAvance[]): number {
   if (leaves.length === 0) return 0;
 
-  // 1. Manual weight path — intent of the project lead wins
-  let weightedSum = 0;
-  let totalW = 0;
-  let weightedCount = 0;
-  for (const leaf of leaves) {
-    const w = leaf.weight || 0;
-    if (w > 0) {
-      weightedSum += (leaf.progress || 0) * w;
-      totalW += w;
-      weightedCount += 1;
-    }
-  }
-  const weightCoverage = weightedCount / leaves.length;
-  if (totalW >= 99 && weightCoverage >= 0.95) {
-    return Math.round((weightedSum / totalW) * 10) / 10;
+  const conPeso = leaves.filter((l) => (l.weight || 0) > 0);
+  const sumaPesos = conPeso.reduce((s, l) => s + l.weight, 0);
+  if (sumaPesos >= 99 && conPeso.length / leaves.length >= 0.95) {
+    return Math.round(conPeso.reduce((s, l) => s + (l.progress || 0) * l.weight, 0) / sumaPesos);
   }
 
-  // 2. Effort-weighted path — peso virtual based on hours
-  const totalEffort = leaves.reduce((s, l) => s + (l.effort_minutes || 0), 0);
-  if (totalEffort > 0) {
-    let num = 0;
-    let den = 0;
-    for (const leaf of leaves) {
-      const w = leaf.effort_minutes || 60;
-      num += (leaf.progress || 0) * w;
-      den += w;
-    }
-    return Math.round((num / den) * 10) / 10;
+  const peso = (l: HojaConAvance) => l.effort_minutes ?? l.sold_effort_minutes ?? 60;
+  const den = leaves.reduce((s, l) => s + peso(l), 0);
+  if (den > 0) {
+    return Math.round(leaves.reduce((s, l) => s + (l.progress || 0) * peso(l), 0) / den);
   }
-
-  // 3. Simple average fallback
-  const simpleSum = leaves.reduce((s, l) => s + (l.progress || 0), 0);
-  return Math.round((simpleSum / leaves.length) * 10) / 10;
+  return 0;
 }
 
 /**
  * Collects all leaf tasks (tasks without subtasks) from a tree.
  */
-function collectLeaves(
-  list: Task[],
-  out: { progress: number; weight: number; effort_minutes?: number }[] = []
-): { progress: number; weight: number; effort_minutes?: number }[] {
+function collectLeaves(list: Task[], out: HojaConAvance[] = []): HojaConAvance[] {
   for (const t of list) {
     if (t.subtasks && t.subtasks.length > 0) {
       collectLeaves(t.subtasks, out);
     } else {
+      const x = t as any;
       out.push({
         progress: t.progress || 0,
-        weight: (t as any).weight || 0,
-        effort_minutes: (t as any).effort_minutes ?? (t as any).effortMinutes,
+        weight: x.weight || 0,
+        effort_minutes: x.effort_minutes ?? x.effortMinutes ?? null,
+        sold_effort_minutes: x.sold_effort_minutes ?? x.soldEffortMinutes ?? null,
       });
     }
   }

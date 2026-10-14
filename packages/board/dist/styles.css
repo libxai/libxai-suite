@@ -5024,7 +5024,13 @@
   width: 420px;
   text-align: center;
   pointer-events: none;
+  /* 1.9.44 · por encima de las semanas (posicionadas desde 1.9.42): si no, sus
+     celdas tapaban los botones y no se podían pulsar. */
+  z-index: 5;
 }
+
+
+.cal-empty button { pointer-events: auto; }
 
 
 .cal-empty .glyph {
@@ -5181,6 +5187,41 @@
   gap: 8px;
   overflow: visible;
 }
+
+
+/* ---------- 1.9.42 · chips del modo vencimiento (mes «qué vence cada día») ---------- */
+
+
+.cal-bar.due {
+  background: var(--lane2);
+  box-shadow: inset 0 0 0 1px var(--border-soft);
+  color: var(--txt);
+  cursor: pointer;
+}
+
+
+.cal-bar.due .ico { flex: none; display: inline-flex; }
+
+
+.cal-bar.due.done { opacity: 0.55; }
+
+
+.cal-bar.due.overdue {
+  color: #C22F35;
+  box-shadow: inset 0 0 0 1.5px color-mix(in oklab, #C22F35 70%, transparent);
+}
+
+
+.cal-app:not(.cal-light) .cal-bar.due.overdue { color: #FF7A7F; }
+
+
+.cal-bar .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+
+.cal-bar.due { height: 19px; font-size: 11px; }
+
+
+.cal-more.en-cabecera { height: 18px; padding: 0 6px; font-size: 9px; }
 
 
 /**
@@ -7362,6 +7403,19 @@ body {
   }
 
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+
 .pointer-events-none {
   pointer-events: none;
 }
@@ -8014,6 +8068,11 @@ body {
 }
 
 
+.min-h-\[40px\] {
+  min-height: 40px;
+}
+
+
 .min-h-\[56px\] {
   min-height: 56px;
 }
@@ -8551,6 +8610,11 @@ body {
 
 .items-center {
   align-items: center;
+}
+
+
+.items-baseline {
+  align-items: baseline;
 }
 
 
@@ -9351,6 +9415,11 @@ body {
 
 .bg-black\/60 {
   background-color: rgb(0 0 0 / 0.6);
+}
+
+
+.bg-blue-50\/60 {
+  background-color: rgb(239 246 255 / 0.6);
 }
 
 
@@ -10474,6 +10543,11 @@ body {
 }
 
 
+.text-white\/45 {
+  color: rgb(255 255 255 / 0.45);
+}
+
+
 .text-white\/50 {
   color: rgb(255 255 255 / 0.5);
 }
@@ -10576,6 +10650,11 @@ body {
 
 .opacity-0 {
   opacity: 0;
+}
+
+
+.opacity-100 {
+  opacity: 1;
 }
 
 
@@ -12013,6 +12092,11 @@ body {
 }
 
 
+.focus\:opacity-100:focus {
+  opacity: 1;
+}
+
+
 .focus\:outline-none:focus {
   outline: 2px solid transparent;
   outline-offset: 2px;
@@ -12407,11 +12491,6 @@ body {
 .\[\&\:\:-webkit-slider-thumb\]\:bg-\[\#00E5CC\]::-webkit-slider-thumb {
   --tw-bg-opacity: 1;
   background-color: rgb(0 229 204 / var(--tw-bg-opacity, 1));
-}
-
-
-.\[\&\>svg\]\:h-3>svg {
-  height: 0.75rem;
 }
 
 
