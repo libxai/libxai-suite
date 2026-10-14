@@ -5,7 +5,7 @@ import { deriveThemeFromCSS } from './deriveThemeFromCSS';
 import { GanttToolbar } from './GanttToolbar';
 import { TaskGrid } from './TaskGrid';
 import { Timeline } from './Timeline';
-import { inicioDeLaEscala } from './rangoDeLaEscala';
+import { conHoy, fechaAlAbrir, inicioDeLaEscala, ladoDeHoy } from './rangoDeLaEscala';
 import { ajustarAPredecesoras } from './restriccionDeDependencias';
 import { ContextMenu, MenuIcons } from './ContextMenu'; // v0.8.0: Split task context menu
 import { TaskDetailModal } from '../TaskDetailModal'; // v0.17.244: Unified task detail modal (replaces TaskFormModal)
@@ -1724,7 +1724,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   }, [onDependencyDelete]);
 
   // Calculate date range (memoized)
-  const { startDate, endDate } = useMemo(() => {
+  const { startDate, endDate, primeraTarea, ultimaTarea } = useMemo(() => {
     // Filter tasks that have dates
     const tasksWithDates = localTasks.filter(t => t.startDate && t.endDate);
 
@@ -1735,19 +1735,25 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       start.setDate(start.getDate() - 30);
       const end = new Date(today);
       end.setDate(end.getDate() + 60);
-      return { startDate: inicioDeLaEscala(start, timeScale), endDate: end };
+      return { startDate: inicioDeLaEscala(start, timeScale), endDate: end, primeraTarea: null as Date | null, ultimaTarea: null as Date | null };
     }
 
     const allDates = tasksWithDates.flatMap((t) => [t.startDate, t.endDate]).filter((d): d is Date => d !== undefined);
     const minDate = new Date(Math.min(...allDates.map((d) => d.getTime())));
     const maxDate = new Date(Math.max(...allDates.map((d) => d.getTime())));
+    const primeraTarea = new Date(minDate);
+    const ultimaTarea = new Date(maxDate);
+    // QA Asakaa E16: el rango siempre incluye hoy, o «Hoy» no tiene adónde ir.
+    const r = conHoy(minDate, maxDate, new Date());
+    minDate.setTime(r.inicio.getTime());
+    maxDate.setTime(r.fin.getTime());
 
     const padding = timeScale === 'day' ? 7 : timeScale === 'week' ? 14 : 30;
     minDate.setDate(minDate.getDate() - padding);
     maxDate.setDate(maxDate.getDate() + padding);
 
     // QA Asakaa E13: Semana empieza en lunes y Mes en el día 1 (rangoDeLaEscala.ts).
-    return { startDate: inicioDeLaEscala(minDate, timeScale), endDate: maxDate };
+    return { startDate: inicioDeLaEscala(minDate, timeScale), endDate: maxDate, primeraTarea, ultimaTarea };
   }, [localTasks, timeScale]);
 
   // v1.5.1: Notify consumer of computed date range
@@ -2086,7 +2092,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   // viewport. Powers floating "go to today" affordances in apps that
   // render their own UI on top of the Gantt.
   const onTodayVisibilityChange = config.onTodayVisibilityChange;
-  const todayVisibleRef = useRef<boolean | null>(null);
+  const todayVisibleRef = useRef<'left' | 'right' | null | undefined>(undefined);
   useEffect(() => {
     if (!onTodayVisibilityChange) return;
     const scrollEl = timelineScrollRef.current;
@@ -2098,10 +2104,10 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       const todayX = daysFromStart * dayWidth * zoom;
       const left = scrollEl.scrollLeft;
       const right = left + scrollEl.clientWidth;
-      const visible = todayX >= left && todayX <= right;
-      if (todayVisibleRef.current !== visible) {
-        todayVisibleRef.current = visible;
-        onTodayVisibilityChange(visible);
+      const lado = ladoDeHoy(todayX, left, right);
+      if (todayVisibleRef.current !== lado) {
+        todayVisibleRef.current = lado;
+        onTodayVisibilityChange(lado === null, lado);
       }
     };
     compute();
@@ -2116,21 +2122,30 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   // v0.17.377: Scroll to today on initial mount (like ClickUp)
   // Uses useLayoutEffect to scroll BEFORE the browser paints, avoiding visible jump
   const hasScrolledToToday = useRef(false);
+  const [reintentoScroll, setReintentoScroll] = useState(0);
   const initialStartDateRef = useRef<Date | null>(null);
 
   // Capture the first valid startDate (when tasks are loaded)
   useLayoutEffect(() => {
     // Only scroll once, when we have tasks and a valid startDate
-    if (hasScrolledToToday.current) return;
-    if (localTasks.length === 0) return;
-    if (!timelineScrollRef.current) return;
+    if (hasScrolledToToday.current) return undefined;
+    if (localTasks.length === 0) return undefined;
+    if (!timelineScrollRef.current) return undefined;
+    // QA Asakaa E16: sin ancho todavía no se puede centrar; antes se daba por hecho
+    // y el Gantt se quedaba al principio del rango. Se reintenta al siguiente cuadro.
+    if (timelineScrollRef.current.clientWidth === 0) {
+      if (reintentoScroll > 120) return undefined; // ~2 s oculto: se deja (al volver, «Hoy» funciona)
+      const id = requestAnimationFrame(() => setReintentoScroll((n) => n + 1));
+      return () => cancelAnimationFrame(id);
+    }
 
     // Mark as scrolled immediately to prevent re-runs
     hasScrolledToToday.current = true;
     initialStartDateRef.current = startDate;
 
     const timelineScroll = timelineScrollRef.current;
-    const today = new Date();
+    // Hoy si cae dentro de las tareas; si no, el borde de las tareas más cercano.
+    const today = fechaAlAbrir(primeraTarea, ultimaTarea, new Date());
     const dayWidth = timeScale === 'day' ? 60 : timeScale === 'week' ? 20 : 8;
     const daysFromStart = (today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
 
@@ -2143,7 +2158,8 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     if (daysFromStart >= 0 && viewportWidth > 0) {
       timelineScroll.scrollLeft = Math.max(0, scrollX);
     }
-  }, [localTasks.length, startDate, timeScale, zoom]); // Re-run when tasks load
+    return undefined;
+  }, [localTasks.length, startDate, timeScale, zoom, reintentoScroll, primeraTarea, ultimaTarea]); // Re-run when tasks load
 
   // 1.9.35 · fitToDates cambió la escala: desplazar cuando ya se pintó con la nueva.
   useLayoutEffect(() => {
