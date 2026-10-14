@@ -4,6 +4,7 @@
  */
 
 import { useState, useRef, useEffect } from 'react';
+import { inicialesDe } from '../../../utils/iniciales';
 /*
  * El menu se abre hacia donde cabe. La medicion vive en el hook porque el
  * mismo defecto lo tienen NUEVE desplegables de las celdas: copiarla aqui
@@ -34,12 +35,7 @@ interface AssigneesCellProps {
 }
 
 function getInitials(name: string): string {
-  return name
-    .split(' ')
-    .map(n => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
+  return inicialesDe(name); // QA Asakaa E41
 }
 
 function getAvatarColor(name: string): string {

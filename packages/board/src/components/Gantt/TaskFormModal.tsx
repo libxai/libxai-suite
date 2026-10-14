@@ -9,6 +9,7 @@
  */
 
 import { useState, useEffect, useRef } from 'react'
+import { inicialesDe } from '../../utils/iniciales';
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   X,
@@ -594,7 +595,7 @@ export function TaskFormModal({
                                         : [...(formData.assignees || []), {
                                             name: user.name,
                                             avatar: user.avatar,
-                                            initials: user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2),
+                                            initials: inicialesDe(user.name),
                                             color: themeColors.accent,
                                           }]
                                       handleChange('assignees', newAssignees)
@@ -604,7 +605,7 @@ export function TaskFormModal({
                                       className="w-6 h-6 rounded-full flex items-center justify-center text-xs text-white font-medium flex-shrink-0"
                                       style={{ backgroundColor: themeColors.accent }}
                                     >
-                                      {user.name.charAt(0).toUpperCase()}
+                                      {inicialesDe(user.name)}
                                     </div>
                                     <span className="truncate flex-1 text-left">{user.name}</span>
                                     {/* Fixed width checkmark area for consistent alignment */}

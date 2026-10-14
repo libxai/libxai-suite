@@ -8,6 +8,7 @@
  * llega cuando existan sus entidades — S2/S3).
  */
 import type { Task as LibXAITask } from '../Gantt/types';
+import { inicialesDe } from '../../utils/iniciales';
 import type { CalTask, DayItem, MonthGrid } from './calendarLayout';
 
 /** Aplana el árbol llevando la FASE (tarea-padre raíz) de cada tarea, para el
@@ -148,9 +149,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 function isUuid(s: string): boolean { return UUID_RE.test(s) || /^task-\d+/.test(s); }
 
 function initials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  if (parts.length >= 2) return (parts[0]![0]! + parts[parts.length - 1]![0]!).toUpperCase();
-  return name.slice(0, 2).toUpperCase();
+  return inicialesDe(name); // QA Asakaa E41
 }
 
 const MONTHS_ES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];

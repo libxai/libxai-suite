@@ -6,6 +6,7 @@
  */
 
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import { inicialesDe } from '../../utils/iniciales';
 import { anchoMinimoDeColumna, anchoMinimoDeLaTabla } from './anchoDeColumnas';
 import { computeWeightedProgress, collectLeaves } from '../../utils/avanceFisico';
 import { createPortal } from 'react-dom';
@@ -1631,7 +1632,7 @@ export function ListView({
             value={stored.map(p => ({
               name: p.name,
               avatar: p.avatar,
-              initials: p.initials || (p.name || '?').slice(0, 2).toUpperCase(),
+              initials: p.initials || inicialesDe(p.name),
               color: p.color || '#00E5CC',
             }))}
             availableUsers={availableUsers}

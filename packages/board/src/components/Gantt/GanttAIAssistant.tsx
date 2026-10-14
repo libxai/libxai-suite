@@ -25,6 +25,7 @@
  */
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { inicialesDe } from '../../utils/iniciales';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Portal } from '../Portal';
 import {
@@ -875,7 +876,7 @@ export function GanttAIAssistant({
                                   color: '#00E5CC',
                                 }}
                               >
-                                {user.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
+                                {inicialesDe(user.name)}
                               </div>
                               <div className="flex-1 min-w-0">
                                 <div className="text-sm font-medium truncate">{user.name}</div>

@@ -8,6 +8,7 @@
  */
 
 import { User } from 'lucide-react';
+import { inicialesDe } from '../../../utils/iniciales';
 import { cn } from '../../../utils';
 import type { Task } from '../../Gantt/types';
 
@@ -69,7 +70,7 @@ function Avatar({ assignee, size = 28, isDark }: {
       className={cn(sizeClass, "rounded-full flex items-center justify-center font-bold text-white ring-1 flex-shrink-0", fontSize, isDark ? "ring-white/10" : "ring-gray-200")}
       style={{ backgroundColor: assignee.color || '#6B7280' }}
     >
-      {assignee.initials || assignee.name?.charAt(0)?.toUpperCase() || '?'}
+      {assignee.initials || inicialesDe(assignee.name)}
     </div>
   );
 }

@@ -10,6 +10,7 @@
  */
 
 import type React from 'react';
+import { inicialesDe } from '../../utils/iniciales';
 import type { Task as GanttTask } from '../Gantt/types';
 import type { MoneyMode } from './CalendarParts';
 
@@ -38,9 +39,7 @@ function isUuid(s: string): boolean {
 }
 
 function initials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  if (parts.length >= 2) return (parts[0]![0]! + parts[parts.length - 1]![0]!).toUpperCase();
-  return name.slice(0, 2).toUpperCase();
+  return inicialesDe(name); // QA Asakaa E41
 }
 
 /** "$1.9k" / "$475" — formato compacto coherente con el resto del calendario. */

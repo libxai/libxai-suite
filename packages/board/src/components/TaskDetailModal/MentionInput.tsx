@@ -5,6 +5,7 @@
  */
 
 import { useState, useRef, useEffect, useCallback, KeyboardEvent, ChangeEvent } from 'react';
+import { inicialesDe } from '../../utils/iniciales';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Smile, Paperclip, X, File, Image, FileText } from 'lucide-react';
 import { cn } from '../../utils';
@@ -148,12 +149,7 @@ export function extractMentionedUserIds(text: string, users: MentionUser[]): str
  * Get initials from name
  */
 function getInitials(name: string): string {
-  return name
-    .split(' ')
-    .map(n => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
+  return inicialesDe(name); // QA Asakaa E41
 }
 
 /**
@@ -457,7 +453,7 @@ export function MentionInput({
             className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-medium flex-shrink-0"
             style={{ backgroundColor: currentUser.color || '#8B5CF6' }}
           >
-            {currentUser.name?.slice(0, 2).toUpperCase() || 'U'}
+            {currentUser.name ? inicialesDe(currentUser.name) : 'U'}
           </div>
         )}
 

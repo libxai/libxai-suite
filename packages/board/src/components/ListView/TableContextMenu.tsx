@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import { inicialesDe } from '../../utils/iniciales';
 import {
   Edit3,
   Copy,
@@ -35,12 +36,7 @@ interface TaskAssignee {
 
 // Helper to get initials from name
 function getInitials(name: string): string {
-  return name
-    .split(' ')
-    .map(n => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
+  return inicialesDe(name); // QA Asakaa E41
 }
 
 // Helper to get color from name
@@ -271,7 +267,7 @@ export function TableContextMenu({
               <div
                 className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] text-white bg-[#00E5CC]"
               >
-                {user.name.charAt(0).toUpperCase()}
+                {inicialesDe(user.name)}
               </div>
             ),
             onClick: () => {

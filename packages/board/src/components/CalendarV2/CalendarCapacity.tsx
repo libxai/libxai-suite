@@ -15,6 +15,7 @@
  */
 
 import { useEffect, useRef } from 'react';
+import { inicialesDe } from '../../utils/iniciales';
 import type { CSSProperties } from 'react';
 export interface DailyLog { date: string; hours: number }
 export interface TeamMember { userId: string; name: string; weeklyCapacity?: number; dailyEstimated: DailyLog[] }
@@ -54,10 +55,7 @@ function toLocalISO(d: Date): string {
 
 /** Iniciales (máx. 2) a partir del nombre — fallback consistente con el avatar del equipo. */
 function initialsOf(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return '?';
-  if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase();
-  return (parts[0]![0]! + parts[parts.length - 1]![0]!).toUpperCase();
+  return inicialesDe(name); // QA Asakaa E41
 }
 
 /** Paleta determinista por persona (mismo color para el mismo userId entre renders). */

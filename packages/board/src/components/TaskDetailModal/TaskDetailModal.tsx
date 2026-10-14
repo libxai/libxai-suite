@@ -11,6 +11,7 @@
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { inicialesDe } from '../../utils/iniciales';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   CheckCircle2,
@@ -912,7 +913,7 @@ export function TaskDetailModal({
                               style={{ backgroundColor: assignee.color || '#8B5CF6' }}
                               title={assignee.name}
                             >
-                              {assignee.initials || assignee.name.slice(0, 2).toUpperCase()}
+                              {assignee.initials || inicialesDe(assignee.name)}
                             </div>
                           ))}
                           {selectedTask.assignees.length > 3 && (
@@ -969,7 +970,7 @@ export function TaskDetailModal({
                                       className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-medium flex-shrink-0"
                                       style={{ backgroundColor: user.color || '#8B5CF6' }}
                                     >
-                                      {user.initials || user.name.slice(0, 2).toUpperCase()}
+                                      {user.initials || inicialesDe(user.name)}
                                     </div>
                                     <span className={cn("flex-1", isDark ? "text-white" : "text-gray-900")}>
                                       {user.name}
@@ -2251,7 +2252,7 @@ export function TaskDetailModal({
                           className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-medium flex-shrink-0"
                           style={{ backgroundColor: comment.user?.color || '#8B5CF6' }}
                         >
-                          {comment.user?.name?.slice(0, 2).toUpperCase() || 'U'}
+                          {comment.user?.name ? inicialesDe(comment.user.name) : 'U'}
                         </div>
                         {/* Comment Content */}
                         <div className="flex-1 min-w-0">

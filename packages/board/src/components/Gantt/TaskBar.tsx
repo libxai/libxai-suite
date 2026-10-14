@@ -1,4 +1,5 @@
 import { useRef, useCallback, useEffect, useState } from 'react';
+import { inicialesDe } from '../../utils/iniciales';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Task, GanttTemplates } from './types';
 import { TaskPosition } from './Timeline';
@@ -1204,7 +1205,7 @@ export function TaskBar({
                 fontWeight="600"
                 fontFamily="Inter, sans-serif"
               >
-                {assignee?.initials || assignee?.name?.charAt(0)?.toUpperCase() || ''}
+                {assignee?.initials || (assignee?.name ? inicialesDe(assignee.name) : '')}
               </text>
             </g>
           );

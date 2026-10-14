@@ -5,6 +5,7 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react'
+import { inicialesDe } from '../../utils/iniciales';
 import { motion, AnimatePresence } from 'framer-motion'
 import { Flag, CalendarDays, User, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '../../utils'
@@ -400,7 +401,7 @@ export function QuickTaskCreate({
                   style={{ backgroundColor: availableUsers.find(u => u.id === assigneeId)?.color || '#007FFF' }}
                 >
                   {availableUsers.find(u => u.id === assigneeId)?.initials ||
-                   availableUsers.find(u => u.id === assigneeId)?.name?.slice(0, 2).toUpperCase()}
+                   inicialesDe(availableUsers.find(u => u.id === assigneeId)?.name)}
                 </div>
               ) : (
                 <User className="w-3.5 h-3.5" />
@@ -450,7 +451,7 @@ export function QuickTaskCreate({
                         className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[9px] font-mono font-bold"
                         style={{ backgroundColor: user.color || '#007FFF' }}
                       >
-                        {user.initials || user.name?.slice(0, 2).toUpperCase()}
+                        {user.initials || inicialesDe(user.name)}
                       </div>
                       <span className={isDark ? 'text-white' : 'text-gray-900'}>{user.name}</span>
                     </button>
