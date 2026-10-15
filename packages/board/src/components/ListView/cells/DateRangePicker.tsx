@@ -8,6 +8,7 @@ import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react
 import { createPortal } from 'react-dom';
 import { Calendar, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '../../../utils';
+import { fecha } from '../../../utils/formato';
 import { motivoDeBloqueo } from './fechaPermitida';
 
 export interface DateRangePickerProps {
@@ -122,10 +123,8 @@ export function DateRangePicker({
 
   const formatDate = (date: Date | null) => {
     if (!date) return placeholder || '-';
-    return date.toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', {
-      day: 'numeric',
-      month: 'short',
-    });
+    // QA Asakaa 2.2: «6 jul» / «Jul 6», con el año si no es el actual
+    return fecha(date, locale === 'es' ? 'es' : 'en');
   };
 
   // Generate calendar days
@@ -240,17 +239,17 @@ export function DateRangePicker({
       {
         label: locale === 'es' ? 'Próximo fin de semana' : 'Next weekend',
         date: nextWeekend,
-        display: nextWeekend.toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', { day: 'numeric', month: 'short' }),
+        display: fecha(nextWeekend, locale === 'es' ? 'es' : 'en'),
       },
       {
         label: locale === 'es' ? '2 semanas' : '2 weeks',
         date: twoWeeks,
-        display: twoWeeks.toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', { day: 'numeric', month: 'short' }),
+        display: fecha(twoWeeks, locale === 'es' ? 'es' : 'en'),
       },
       {
         label: locale === 'es' ? '4 semanas' : '4 weeks',
         date: fourWeeks,
-        display: fourWeeks.toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', { day: 'numeric', month: 'short' }),
+        display: fecha(fourWeeks, locale === 'es' ? 'es' : 'en'),
       },
     ];
   };

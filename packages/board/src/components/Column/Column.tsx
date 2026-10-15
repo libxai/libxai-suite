@@ -13,6 +13,7 @@ import type { User } from '../Card/UserAssignmentSelector'
 import { Card } from '../Card'
 import { ColumnMenu } from './ColumnMenu'
 import { cn, shouldVirtualize } from '../../utils'
+import { porcentaje } from '../../utils/formato'
 
 export interface ColumnProps {
   /** Column data */
@@ -173,7 +174,7 @@ export const Column = memo<ColumnProps>(
               {column.wipLimit && wipStatus.state !== 'none' && (
                 <span
                   className="text-xs font-medium flex items-center"
-                  title={`${wipStatus.percentage.toFixed(0)}% capacity${
+                  title={`${porcentaje(wipStatus.percentage, locale === 'es' ? 'es' : 'en') /* QA Asakaa 2.2 */} capacity${
                     column.wipLimitType === 'hard'
                       ? ' (Hard limit - blocks new cards)'
                       : ' (Soft limit - shows warning)'

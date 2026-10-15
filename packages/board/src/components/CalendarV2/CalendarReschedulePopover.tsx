@@ -9,6 +9,7 @@
 import { useEffect, useRef } from 'react';
 import type { CSSProperties } from 'react';
 import type { RescheduleSimulation } from './calendarReschedule';
+import { fecha } from '../../utils/formato';
 
 interface Props {
   taskName: string;
@@ -21,8 +22,9 @@ interface Props {
   style?: CSSProperties;
 }
 
+/** QA Asakaa 2.2: «6 jul» / «Jul 6», con el año si no es el actual. */
 function fmt(d: Date, locale: 'es' | 'en'): string {
-  return d.toLocaleDateString(locale === 'es' ? 'es-CO' : 'en-US', { day: 'numeric', month: 'short' });
+  return fecha(d, locale);
 }
 
 export function CalendarReschedulePopover({ taskName, taskId, sim, busy, locale, onConfirm, onCancel, style }: Props) {

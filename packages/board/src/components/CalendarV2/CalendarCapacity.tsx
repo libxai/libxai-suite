@@ -16,6 +16,7 @@
 
 import { useEffect, useRef } from 'react';
 import { inicialesDe } from '../../utils/iniciales';
+import { fecha, horas } from '../../utils/formato';
 import type { CSSProperties } from 'react';
 export interface DailyLog { date: string; hours: number }
 export interface TeamMember { userId: string; name: string; weeklyCapacity?: number; dailyEstimated: DailyLog[] }
@@ -73,10 +74,19 @@ function levelClass(pct: number): 'ok' | 'warn' | 'over' {
 
 const NBSP = ' ';
 
-/** Redondea a 1 decimal y limpia el ".0" para mostrar (12.0 → "12", 12.5 → "12.5"). */
+/**
+ * Horas → texto. QA Asakaa 2.2: un solo formato de horas («12 h 30 min»,
+ * «45 min», «0 h»); antes «12.5h». El panel va en español, como el resto de
+ * sus textos.
+ */
 function fmtH(h: number): string {
-  const r = Math.round(h * 10) / 10;
-  return Number.isInteger(r) ? String(r) : r.toFixed(1);
+  return horas(Math.round(h * 60), 'es');
+}
+
+/** QA Asakaa 2.2: «lun 6 jul» (con el año si no es el actual). */
+function fmtDia(d: Date): string {
+  const dia = d.toLocaleDateString('es', { weekday: 'short' }).replace(/\.$/, '');
+  return `${dia} ${fecha(d, 'es')}`;
 }
 
 // ─── Helper export: agregación por día ───
@@ -174,7 +184,7 @@ export function CalCapRow({
         const lvl = off ? 'off' : levelClass(pct);
         const cls = 'cal-cap-cell ' + lvl + (selectedKey === key ? ' sel' : '');
 
-        const dayLabel = d.date.toLocaleDateString('es', { weekday: 'short', day: 'numeric', month: 'short' });
+        const dayLabel = fmtDia(d.date);
 
         return (
           <div
@@ -197,11 +207,11 @@ export function CalCapRow({
           >
             <div className="nums">
               {off || !hasData ? (
-                <span>{off ? '—' : `0h${NBSP}/${NBSP}—`}</span>
+                <span>{off ? '—' : `${fmtH(0)}${NBSP}/${NBSP}—`}</span>
               ) : (
                 <>
-                  <b>{fmtH(cap!.assigned)}h</b>
-                  <span>/{NBSP}{fmtH(cap!.capacity)}h</span>
+                  <b>{fmtH(cap!.assigned)}</b>
+                  <span>/{NBSP}{fmtH(cap!.capacity)}</span>
                 </>
               )}
             </div>
@@ -266,10 +276,10 @@ export function CalBreakdownPopover({
       <div className="cal-pop-head">
         <div className="sup">Capacidad · {dayLabel}</div>
         <div className="tit" style={over ? { color: 'var(--red)' } : undefined}>
-          {fmtH(assigned)}h asignadas / {fmtH(capacity)}h
+          {fmtH(assigned)} asignadas / {fmtH(capacity)}
         </div>
         {over ? (
-          <div className="rng"><b>+{fmtH(delta)}h sobre capacidad</b></div>
+          <div className="rng"><b>+{fmtH(delta)} sobre capacidad</b></div>
         ) : (
           <div className="rng">{perPerson.length} {perPerson.length === 1 ? 'persona' : 'personas'}</div>
         )}
@@ -288,7 +298,7 @@ export function CalBreakdownPopover({
                   style={{ width: Math.min((p.hours / denom) * 100, 100) + '%' }}
                 />
               </div>
-              <span className="hrs">{fmtH(p.hours)}h / {fmtH(p.capacity)}h</span>
+              <span className="hrs">{fmtH(p.hours)} / {fmtH(p.capacity)}</span>
             </div>
           );
         })}

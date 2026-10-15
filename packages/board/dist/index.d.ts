@@ -616,6 +616,12 @@ interface GanttConfig {
      */
     hideForecastHud?: boolean;
     /**
+     * QA Asakaa 2.2 · código de la moneda que se pinta TRAS la cifra del costo
+     * («$20,1 M COP»). Lo da la app (la moneda del espacio). Sin código, la cifra
+     * va sola: mejor que un código falso.
+     */
+    currencyCode?: string | null;
+    /**
      * Callback for "Copy Snapshot Link" in the Share dropdown
      * When provided, shows the option in the export/share menu
      */
@@ -2873,6 +2879,8 @@ interface GanttToolbarProps {
     onViewModeChange?: (mode: 'execution' | 'oracle') => void;
     projectForecast?: ProjectForecast;
     hideForecastHud?: boolean;
+    /** QA Asakaa 2.2 · código de moneda tras la cifra del costo («$20,1 M COP») */
+    currencyCode?: string | null;
     onExportPNG?: () => Promise<void>;
     onExportPDF?: () => Promise<void>;
     onExportExcel?: () => Promise<void>;
@@ -2904,7 +2912,7 @@ declare function GanttToolbar({ enCabecera, theme, timeScale, onTimeScaleChange,
 showCreateTaskButton, createTaskLabel, // v0.15.0: Will use translations if not provided
 onCreateTask, taskFilter, // v0.17.300: Task filter
 onTaskFilterChange, hideCompleted, // v0.18.0: Hide completed toggle
-onHideCompletedChange, toolbarRightContent, wbsLevel, onWbsLevelChange, maxWbsDepth, viewMode, onViewModeChange, projectForecast, hideForecastHud, onExportPNG, onExportPDF, onExportExcel, onExportCSV, onExportJSON, onExportMSProject, showCriticalPath, onShowCriticalPathChange, showDependencies, onShowDependenciesChange, highlightWeekends, onHighlightWeekendsChange, showBaseline, onShowBaselineChange, onCopySnapshotLink, hasDependencies, }: GanttToolbarProps): react_jsx_runtime.JSX.Element;
+onHideCompletedChange, toolbarRightContent, wbsLevel, onWbsLevelChange, maxWbsDepth, viewMode, onViewModeChange, projectForecast, hideForecastHud, currencyCode, onExportPNG, onExportPDF, onExportExcel, onExportCSV, onExportJSON, onExportMSProject, showCriticalPath, onShowCriticalPathChange, showDependencies, onShowDependenciesChange, highlightWeekends, onHighlightWeekendsChange, showBaseline, onShowBaselineChange, onCopySnapshotLink, hasDependencies, }: GanttToolbarProps): react_jsx_runtime.JSX.Element;
 
 interface TaskGridProps {
     tasks: Task[];
@@ -4181,6 +4189,12 @@ interface ListViewConfig {
     hourlyRate?: number;
     /** Per-user hourly rate map (userId → rate). When provided, uses the task assignee's rate instead of the global hourlyRate */
     rateMap?: Record<string, number>;
+    /**
+     * QA Asakaa 2.2 · código de la moneda que se pinta TRAS la cifra
+     * («$20.122.500 COP»). Lo da la app (la moneda del espacio). Sin código, la
+     * cifra va sola: mejor que un código falso.
+     */
+    currencyCode?: string | null;
     /** Show a sticky "TOTAL PROJECT" row at the bottom of the list */
     showProjectTotals?: boolean;
     /**
@@ -4682,6 +4696,11 @@ interface Props {
     themeMode?: 'dark' | 'light';
     hourlyRate: number;
     /**
+     * QA Asakaa 2.2 · código de la moneda que se pinta TRAS la cifra («$1,9 mil
+     * COP»). Lo da la app (la moneda del espacio). Sin código, la cifra va sola.
+     */
+    currencyCode?: string | null;
+    /**
      * ═══ EL FILTRO DE FASES ═════════════════════════════════════════════════
      *
      * Divar, 27-ago (punto 17 de la lista de Juan): en el producto simplificado
@@ -4744,7 +4763,7 @@ interface Props {
     /** 1.9.42 · `false`: ni horas ni coste en las barras. */
     showValues?: boolean;
 }
-declare function CalendarView({ tasks, projectName, projectId, projectColor, locale, themeMode, hourlyRate, money, onMoneyChange, onTaskOpen, toolbarContainer, hiddenViews, mostrarFiltroDeFases, mostrarConmutadorDeDinero, onCreateTask, canReschedule, onReschedule, members, holidayDates, timesheetSettings, onVisibleRangeChange, monthMode, showValues, openOnToday, }: Props): react_jsx_runtime.JSX.Element;
+declare function CalendarView({ tasks, projectName, projectId, projectColor, locale, themeMode, hourlyRate, money, onMoneyChange, onTaskOpen, toolbarContainer, hiddenViews, mostrarFiltroDeFases, mostrarConmutadorDeDinero, onCreateTask, canReschedule, onReschedule, members, holidayDates, timesheetSettings, onVisibleRangeChange, monthMode, showValues, openOnToday, currencyCode, }: Props): react_jsx_runtime.JSX.Element;
 
 /**
  * Simulación de reprogramación con CPM (Calendario, Sprint 3, regla C5).
@@ -4806,6 +4825,10 @@ interface BuildOpts {
     hourlyRate: number;
     /** id de proyecto de las tareas (el calendario es por proyecto en S1). */
     projectId: string;
+    /** QA Asakaa 2.2 · idioma de las cifras (por defecto 'es'). */
+    locale?: 'es' | 'en';
+    /** QA Asakaa 2.2 · código de moneda tras la cifra; sin él, la cifra va sola. */
+    currencyCode?: string | null;
 }
 interface BuiltCalendar {
     calTasks: CalTask[];

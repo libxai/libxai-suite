@@ -4,6 +4,7 @@ import { ZoomIn, ZoomOut, Sun, Moon, Palette, Download, FileImage, FileSpreadshe
 import { TimeScale, Theme, RowDensity, TaskFilterType, ProjectForecast } from './types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGanttI18n } from './GanttI18nContext'; // v0.15.0: i18n
+import { fecha, moneda, porcentaje } from '../../utils/formato'; // QA Asakaa 2.2
 
 /**
  * v3.0.1: Hook to position dropdown menus via portal at document.body.
@@ -81,6 +82,8 @@ interface GanttToolbarProps {
   // Oculta la barra interna del pronóstico (el consumidor la muestra en otro sitio,
   // p. ej. una barra de áreas propia). Si es true, no se renderiza aunque haya forecast.
   hideForecastHud?: boolean;
+  /** QA Asakaa 2.2 · código de moneda tras la cifra del costo («$20,1 M COP») */
+  currencyCode?: string | null;
   // Export handlers
   onExportPNG?: () => Promise<void>;
   onExportPDF?: () => Promise<void>;
@@ -1224,13 +1227,15 @@ function TimeCapsule({ value, onChange, theme }: { value: TimeScale; onChange: (
 /**
  * Chronos V2: Forecast HUD Panel — real KPIs bar (v3.1.0)
  */
-function ForecastHUD({ theme, forecast }: { theme: any; forecast?: ProjectForecast }) {
+function ForecastHUD({ theme, forecast, currencyCode }: { theme: any; forecast?: ProjectForecast; currencyCode?: string | null }) {
   const t = useGanttI18n();
   const isDark = theme.bgPrimary === '#050505' || theme.textPrimary === '#FFFFFF';
+  // QA Asakaa 2.2: un solo formato de números, dinero, porcentajes y fechas
+  const idioma: 'es' | 'en' = t.toolbar.visibility === 'Visibilidad' ? 'es' : 'en';
 
-  // Format expected finish date
+  // Format expected finish date — «6 jul» / «Jul 6», con el año si no es el actual
   const finishLabel = forecast?.expectedFinish
-    ? forecast.expectedFinish.toLocaleDateString(t.toolbar.visibility === 'Visibilidad' ? 'es-CO' : 'en-US', { month: 'short', day: 'numeric' })
+    ? fecha(forecast.expectedFinish, idioma)
     : '—';
 
   // Delay badge — always show when baseline is active (including "On Time" at 0)
@@ -1251,22 +1256,22 @@ function ForecastHUD({ theme, forecast }: { theme: any; forecast?: ProjectForeca
     ? conf >= 75 ? '#22C55E' : conf >= 40 ? '#F59E0B' : '#EF4444'
     : theme.textTertiary;
 
-  // Format cost
+  // Format cost — QA Asakaa 2.2: compacto y con el código detrás («$20,1 M COP»).
+  // `forecast.currency` es un SÍMBOLO (por defecto «$»); si llega otro, se respeta.
   const cost = forecast?.costAtCompletion;
   const currency = forecast?.currency || '$';
   const costLabel = cost != null
-    ? cost >= 1_000_000
-      ? `${currency}${(cost / 1_000_000).toFixed(2)}M`
-      : cost >= 1_000
-        ? `${currency}${(cost / 1_000).toFixed(1)}K`
-        : `${currency}${cost.toFixed(0)}`
+    ? (() => {
+        const txt = moneda(cost, currencyCode, idioma, { compacto: true });
+        return currency !== '$' ? txt.replace('$', currency) : txt;
+      })()
     : '—';
 
   // Budget variance badge
   const variance = forecast?.budgetVariancePercent;
   const hasVariance = variance != null && variance !== 0;
   const varianceLabel = variance != null
-    ? (variance > 0 ? `+${variance.toFixed(0)}% ${t.toolbar.budgetOver}` : `${variance.toFixed(0)}% ${t.toolbar.budgetUnder}`)
+    ? (variance > 0 ? `+${porcentaje(variance, idioma)} ${t.toolbar.budgetOver}` : `${porcentaje(variance, idioma)} ${t.toolbar.budgetUnder}`)
     : null;
   const varianceColor = variance != null && variance > 0
     ? { bg: isDark ? 'rgba(239,68,68,0.15)' : 'rgba(220,38,38,0.1)', text: isDark ? '#EF4444' : '#DC2626' }
@@ -1348,7 +1353,7 @@ function ForecastHUD({ theme, forecast }: { theme: any; forecast?: ProjectForeca
               fontFamily: "'JetBrains Mono', monospace",
             }}
           >
-            {conf != null ? `${conf.toFixed(0)}%` : '—'}
+            {conf != null ? porcentaje(conf, idioma) : '—'}
           </span>
         </div>
 
@@ -1641,6 +1646,7 @@ export function GanttToolbar({
   // v3.1.0: Forecast HUD data
   projectForecast,
   hideForecastHud,
+  currencyCode,
   onExportPNG,
   onExportPDF,
   onExportExcel,
@@ -1904,7 +1910,7 @@ export function GanttToolbar({
         </div>
 
         {/* Bar 2: Forecast HUD Panel (48px) — only if forecast data provided */}
-        {projectForecast && !hideForecastHud && <ForecastHUD theme={theme} forecast={projectForecast} />}
+        {projectForecast && !hideForecastHud && <ForecastHUD theme={theme} forecast={projectForecast} currencyCode={currencyCode} />}
       </div>
     );
   }

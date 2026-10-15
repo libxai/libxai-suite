@@ -4,6 +4,7 @@
  */
 
 import { cn } from '../../../utils';
+import { fecha } from '../../../utils/formato';
 
 interface ScheduleVarianceCellProps {
   startDate?: Date;
@@ -34,12 +35,8 @@ export function ScheduleVarianceCell({
     );
   }
 
-  const formatShortDate = (date: Date) => {
-    return date.toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', {
-      month: 'short',
-      day: 'numeric',
-    });
-  };
+  // QA Asakaa 2.2: «6 jul» / «Jul 6», con el año si no es el actual
+  const formatShortDate = (date: Date) => fecha(date, locale === 'es' ? 'es' : 'en');
 
   const getVarianceBadge = () => {
     if (scheduleVariance === undefined || scheduleVariance === null) return null;

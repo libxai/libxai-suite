@@ -11,6 +11,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Clock, DollarSign } from 'lucide-react';
 import { cn } from '../../../utils';
 import { useSaveFlash } from '../../../hooks/useMicroInteractions';
+import { horas, moneda } from '../../../utils/formato';
 
 interface TimeCellProps {
   /** Time value in minutes */
@@ -38,31 +39,20 @@ interface TimeCellProps {
    * per-row cells with authoritative totals from time_logs × rate_at_time.
    */
   financialOverride?: number;
+  /** QA Asakaa 2.2 · código de moneda tras la cifra («$1.500 COP»); sin él, la cifra va sola */
+  currencyCode?: string | null;
 }
 
 /**
- * Format minutes to human-readable time string
- * @param minutes - Time in minutes
- * @param locale - Locale for formatting ('en' or 'es')
- * @returns Formatted string like "2h 30m" (compact format for both locales)
+ * Minutos → texto de la celda. QA Asakaa 2.2: un solo formato de horas
+ * («12 h 30 min», «45 min»), el de utils/formato. Vacío o 0 → «-».
  */
-function formatTime(minutes: number | null | undefined, _locale: string = 'en'): string {
+function formatTime(minutes: number | null | undefined, locale: string = 'en'): string {
   // Handle null, undefined, 0, empty string, or falsy values
   if (minutes === null || minutes === undefined || minutes === 0 || !minutes || Number(minutes) === 0) {
     return '-';
   }
-
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-
-  // Use compact format for both locales to fit in cells
-  if (hours === 0) {
-    return `${mins}m`;
-  }
-  if (mins === 0) {
-    return `${hours}h`;
-  }
-  return `${hours}h ${mins}m`;
+  return horas(minutes, locale === 'es' ? 'es' : 'en');
 }
 
 /**
@@ -126,6 +116,7 @@ export function TimeCell({
   lens = 'hours',
   hourlyRate = 0,
   financialOverride,
+  currencyCode,
 }: TimeCellProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState('');
@@ -149,7 +140,7 @@ export function TimeCell({
     ? financialOverride
     : (value ? (value / 60) * hourlyRate : 0);
   const formattedValue = isFin && (financialOverride != null ? financialOverride > 0 : value)
-    ? `$${Math.round(financialDollars).toLocaleString('en-US')}`
+    ? moneda(Math.round(financialDollars), currencyCode, locale === 'es' ? 'es' : 'en')
     : formatTime(value, locale);
 
   useEffect(() => {

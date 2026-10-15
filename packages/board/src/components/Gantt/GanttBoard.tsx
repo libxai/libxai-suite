@@ -100,6 +100,8 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     // v3.1.0: Forecast HUD
     projectForecast,
     hideForecastHud,
+    // QA Asakaa 2.2: código de moneda tras la cifra del costo
+    currencyCode,
     // UI events
     onThemeChange, // v0.9.0
     // Basic events
@@ -2256,6 +2258,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         // v3.1.0: Forecast HUD
         projectForecast={projectForecast}
         hideForecastHud={hideForecastHud}
+        currencyCode={currencyCode}
         // v0.12.0: Export handlers
         onExportPNG={showExportButton ? handleExportPNG : undefined}
         onExportPDF={showExportButton ? handleExportPDF : undefined}

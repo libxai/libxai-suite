@@ -7,6 +7,7 @@
 
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { inicialesDe } from '../../utils/iniciales';
+import { horas, moneda, numero, porcentaje } from '../../utils/formato';
 import { anchoMinimoDeColumna, anchoMinimoDeLaTabla } from './anchoDeColumnas';
 import { computeWeightedProgress, collectLeaves } from '../../utils/avanceFisico';
 import { createPortal } from 'react-dom';
@@ -167,17 +168,24 @@ function calculateGroupHours(task: Task): { spent: number; allocated: number; qu
   return { spent, allocated, quoted };
 }
 
-function formatGroupHours(minutes: number): string {
-  if (minutes <= 0) return '0h';
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  return m > 0 ? `${h}h ${m}m` : `${h}h`;
+/** QA Asakaa 2.2: «12 h 30 min», «45 min», «0 h» (un solo formato de horas). */
+function formatGroupHours(minutes: number, idioma: 'es' | 'en' = 'en'): string {
+  if (minutes <= 0) return horas(0, idioma);
+  return horas(minutes, idioma);
+}
+
+/**
+ * QA Asakaa 2.2: la insignia de margen («+$725,3 mil COP», «-$500 COP»).
+ * Antes «+$725.3K» / «$-500». El signo `+` va solo cuando `conMas`.
+ */
+function formatMargin(margin: number, codigo: string | null | undefined, idioma: 'es' | 'en', conMas: boolean): string {
+  return `${conMas ? '+' : ''}${moneda(margin, codigo, idioma, { compacto: true })}`;
 }
 
 /**
  * Inline weight cell — click to edit, Enter/blur to save
  */
-function WeightCellInline({ value, onChange, isDark }: { value: number; onChange: (v: number) => void; isDark: boolean }) {
+function WeightCellInline({ value, onChange, isDark, idioma = 'en' }: { value: number; onChange: (v: number) => void; isDark: boolean; idioma?: 'es' | 'en' }) {
   const [editing, setEditing] = useState(false);
   const [editVal, setEditVal] = useState(String(value || ''));
 
@@ -218,7 +226,7 @@ function WeightCellInline({ value, onChange, isDark }: { value: number; onChange
       )}
       style={{ fontFamily: 'JetBrains Mono, monospace' }}
     >
-      {value > 0 ? `${value}%` : '—'}
+      {value > 0 ? porcentaje(value, idioma, 2) : '—'}
     </button>
   );
 }
@@ -277,7 +285,11 @@ export function ListView({
     showProjectTotals = false,
     // v2.5.2: Optional dollar-totals override for the footer
     totalsDollarOverride,
+    // QA Asakaa 2.2: código de moneda tras la cifra (la moneda del espacio)
+    currencyCode,
   } = config;
+  /** QA Asakaa 2.2: el idioma de los números, con la misma regla que el resto de la lista. */
+  const idioma: 'es' | 'en' = locale === 'es' ? 'es' : 'en';
   /** 1.9.38 · filas de una línea y 40 px (ID + título en la misma línea). */
   const compacta = config.rowDensity === 'compact';
 
@@ -1669,7 +1681,7 @@ export function ListView({
             locale={locale}
             disabled={isCompleted}
             lens={lens}
-            hourlyRate={getTaskRate(task)}
+            hourlyRate={getTaskRate(task)} currencyCode={currencyCode}
           />
         );
       }
@@ -1690,7 +1702,7 @@ export function ListView({
             disabled={isCompleted}
             isBlurred={shouldBlurQuoted}
             lens={lens}
-            hourlyRate={getTaskRate(task)}
+            hourlyRate={getTaskRate(task)} currencyCode={currencyCode}
           />
         );
       }
@@ -1709,7 +1721,7 @@ export function ListView({
             locale={locale}
             disabled={isCompleted}
             lens={lens}
-            hourlyRate={getTaskRate(task)}
+            hourlyRate={getTaskRate(task)} currencyCode={currencyCode}
             financialOverride={canonicalDollars}
           />
         );
@@ -1729,20 +1741,20 @@ export function ListView({
               <div className="flex flex-col">
                 {estDollars > 0 ? (
                   <span className={cn('text-sm font-mono', isDark ? 'text-white/60' : 'text-gray-500')}>
-                    ${estDollars.toLocaleString('es-CO')}
+                    {moneda(estDollars, currencyCode, idioma)}
                   </span>
                 ) : null}
                 {margin !== 0 && estDollars > 0 && offDollars > 0 && (
                   <span className={cn('text-[9px] font-mono font-bold px-1.5 py-0.5 rounded whitespace-nowrap mt-0.5',
                     margin > 0 ? 'bg-[#064e3b] text-[#10b981] border border-[#065f46]/30' : 'bg-[#451a03] text-[#f59e0b] border border-[#78350f]/30'
                   )}>
-                    {margin > 0 ? '+' : ''}{Math.abs(margin) >= 1000 ? `$${(margin/1000).toFixed(1)}K` : `$${margin}`}
+                    {formatMargin(margin, currencyCode, idioma, margin > 0)}
                   </span>
                 )}
               </div>
             );
           }
-          return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={hourlyRate} />;
+          return <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={hourlyRate} currencyCode={currencyCode} />;
         }
         const isCompleted = task.status === 'completed' || task.progress === 100;
         const estMins = (task as any).effortMinutes || 0;
@@ -1762,13 +1774,13 @@ export function ListView({
                 locale={locale}
                 disabled={isCompleted}
                 lens={lens}
-                hourlyRate={getTaskRate(task)}
+                hourlyRate={getTaskRate(task)} currencyCode={currencyCode}
               />
               {margin !== 0 && (
                 <span className={cn('text-[9px] font-mono font-bold px-1.5 py-0.5 rounded whitespace-nowrap mt-0.5',
                   margin >= 0 ? 'bg-[#064e3b] text-[#10b981] border border-[#065f46]/30' : 'bg-[#451a03] text-[#f59e0b] border border-[#78350f]/30'
                 )}>
-                  {margin > 0 ? '+' : ''}{Math.abs(margin) >= 1000 ? `$${(margin/1000).toFixed(1)}K` : `$${margin}`}
+                  {formatMargin(margin, currencyCode, idioma, margin > 0)}
                 </span>
               )}
             </div>
@@ -1782,7 +1794,7 @@ export function ListView({
             locale={locale}
             disabled={isCompleted}
             lens={lens}
-            hourlyRate={getTaskRate(task)}
+            hourlyRate={getTaskRate(task)} currencyCode={currencyCode}
           />
         );
       }
@@ -1801,7 +1813,7 @@ export function ListView({
               locale={locale}
               disabled
               lens={lens}
-              hourlyRate={getTaskRate(task)}
+              hourlyRate={getTaskRate(task)} currencyCode={currencyCode}
               financialOverride={canonicalDollars}
             />
           );
@@ -1819,7 +1831,7 @@ export function ListView({
             placeholder={locale === 'es' ? 'Agregar' : 'Add'}
             disabled={isCompleted}
             lens={lens}
-            hourlyRate={getTaskRate(task)}
+            hourlyRate={getTaskRate(task)} currencyCode={currencyCode}
             financialOverride={canonicalDollars}
           />
         );
@@ -1829,7 +1841,7 @@ export function ListView({
         if (aggregateParentHours && task.subtasks && task.subtasks.length > 0) {
           const { quoted } = calculateGroupHours(task);
           const shouldBlurSold = financialBlur?.enabled && (!financialBlur.columns || financialBlur.columns.includes('soldEffortMinutes'));
-          return <TimeCell value={quoted > 0 ? quoted : undefined} isDark={isDark} locale={locale} disabled isBlurred={shouldBlurSold} lens={lens} hourlyRate={getTaskRate(task)} />;
+          return <TimeCell value={quoted > 0 ? quoted : undefined} isDark={isDark} locale={locale} disabled isBlurred={shouldBlurSold} lens={lens} hourlyRate={getTaskRate(task)} currencyCode={currencyCode} />;
         }
         const isCompleted = task.status === 'completed' || task.progress === 100;
         // v1.4.9: Governance v2.0 - Check if this column should be blurred
@@ -1845,7 +1857,7 @@ export function ListView({
             disabled={isCompleted}
             isBlurred={shouldBlurSold}
             lens={lens}
-            hourlyRate={getTaskRate(task)}
+            hourlyRate={getTaskRate(task)} currencyCode={currencyCode}
           />
         );
       }
@@ -1877,13 +1889,13 @@ export function ListView({
           return (
             <span className={cn('text-[11px] font-mono flex items-center gap-1.5', isDark ? 'text-white/50' : 'text-gray-500')}>
               <span className={cn('font-bold', isOver ? 'text-[#FF453A]' : isDark ? 'text-white/80' : 'text-gray-800')}>
-                {formatGroupHours(spent)}
+                {formatGroupHours(spent, idioma)}
               </span>
               {allocated > 0 && (
                 <>
                   {' / '}
                   <span className={isDark ? 'text-white/60' : 'text-gray-600'}>
-                    {formatGroupHours(allocated)}
+                    {formatGroupHours(allocated, idioma)}
                   </span>
                 </>
               )}
@@ -1891,7 +1903,7 @@ export function ListView({
                 <>
                   {' / '}
                   <span className={isDark ? 'text-amber-400/70' : 'text-amber-600'}>
-                    {formatGroupHours(quoted)}
+                    {formatGroupHours(quoted, idioma)}
                   </span>
                 </>
               )}
@@ -1909,7 +1921,7 @@ export function ListView({
             showSoldEffort={config.showSoldEffort}
             onOpenTimeLog={callbacks.onOpenTimeLog}
             lens={lens}
-            hourlyRate={getTaskRate(task)}
+            hourlyRate={getTaskRate(task)} currencyCode={currencyCode}
           />
         );
       }
@@ -1956,7 +1968,7 @@ export function ListView({
           return (
             <span className={cn("text-xs font-mono", parentSum > 0 ? (isDark ? "text-white/50" : "text-gray-400") : (isDark ? "text-white/30" : "text-gray-300"))}
               style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-              {parentSum > 0 ? `${Number(parentSum.toFixed(2))}%` : '—'}
+              {parentSum > 0 ? porcentaje(parentSum, idioma, 2) : '—'}
             </span>
           );
         }
@@ -1967,6 +1979,7 @@ export function ListView({
             value={weightVal}
             onChange={(v) => handleUpdate({ weight: v } as any)}
             isDark={isDark}
+            idioma={idioma}
           />
         );
       }
@@ -1974,7 +1987,7 @@ export function ListView({
       default:
         return <span className={cn("text-sm", isDark ? "text-white/60" : "text-gray-500")}>-</span>;
     }
-  }, [callbacks, isDark, locale, availableUsers, t, aggregateParentHours, parentWeightSums]);
+  }, [callbacks, isDark, locale, availableUsers, t, aggregateParentHours, parentWeightSums, currencyCode]);
 
   // Get column label with translations
   const getColumnLabel = useCallback((column: TableColumn): string => {
@@ -2557,7 +2570,7 @@ export function ListView({
                               </span>
                               {spi !== null && mostrarIndicadoresFinancieros && (
                                 <span className={cn("text-[9px] font-mono px-1.5 py-0.5 rounded w-fit mt-0.5", spi >= 1 ? "text-[#32D74B] bg-[#32D74B]/10" : spi >= 0.8 ? "text-[#FFD60A] bg-[#FFD60A]/10" : "text-[#FF453A] bg-[#FF453A]/10")}>
-                                  Avg SPI: {spi.toFixed(2)}
+                                  Avg SPI: {numero(spi, idioma, 2)}
                                 </span>
                               )}
                             </div>
@@ -2571,14 +2584,14 @@ export function ListView({
                             const val = canonicalDollars != null
                               ? Math.round(canonicalDollars)
                               : Math.round(calculateGroupDollars(task).dollarSpent);
-                            return val > 0 ? <span className={cn('text-sm font-mono', isDark ? 'text-white/60' : 'text-gray-500')}>${val.toLocaleString('en-US')}</span> : null;
-                          })() : <TimeCell value={spent > 0 ? spent : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={getTaskRate(task)} />
+                            return val > 0 ? <span className={cn('text-sm font-mono', isDark ? 'text-white/60' : 'text-gray-500')}>{moneda(val, currencyCode, idioma)}</span> : null;
+                          })() : <TimeCell value={spent > 0 ? spent : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={getTaskRate(task)} currencyCode={currencyCode} />
                         ) : column.type === 'soldEffortMinutes' ? (
                           lens === 'financial' ? (() => {
                             const groupDollars = calculateGroupDollars(task);
                             const val = Math.round(groupDollars.dollarQuoted);
-                            return val > 0 ? <span className={cn('text-sm font-mono', isDark ? 'text-white/60' : 'text-gray-500')}>${val.toLocaleString('en-US')}</span> : null;
-                          })() : <TimeCell value={quoted > 0 ? quoted : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={getTaskRate(task)} />
+                            return val > 0 ? <span className={cn('text-sm font-mono', isDark ? 'text-white/60' : 'text-gray-500')}>{moneda(val, currencyCode, idioma)}</span> : null;
+                          })() : <TimeCell value={quoted > 0 ? quoted : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={getTaskRate(task)} currencyCode={currencyCode} />
                         ) : column.type === 'effortMinutes' ? (
                           lens === 'financial' ? (() => {
                             const groupDollars = calculateGroupDollars(task);
@@ -2589,19 +2602,19 @@ export function ListView({
                               <div className="flex flex-col">
                                 {estDollars > 0 ? (
                                   <span className={cn('text-sm font-mono', isDark ? 'text-white/60' : 'text-gray-500')}>
-                                    ${estDollars.toLocaleString('es-CO')}
+                                    {moneda(estDollars, currencyCode, idioma)}
                                   </span>
                                 ) : null}
                                 {margin !== 0 && estDollars > 0 && offDollars > 0 && (
                                   <span className={cn('text-[9px] font-mono font-bold px-1.5 py-0.5 rounded whitespace-nowrap mt-0.5',
                                     margin > 0 ? 'bg-[#064e3b] text-[#10b981] border border-[#065f46]/30' : 'bg-[#451a03] text-[#f59e0b] border border-[#78350f]/30'
                                   )}>
-                                    {margin > 0 ? '+' : ''}{Math.abs(margin) >= 1000 ? `$${(margin/1000).toFixed(1)}K` : `$${margin}`}
+                                    {formatMargin(margin, currencyCode, idioma, margin > 0)}
                                   </span>
                                 )}
                               </div>
                             );
-                          })() : <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={getTaskRate(task)} />
+                          })() : <TimeCell value={allocated > 0 ? allocated : undefined} isDark={isDark} locale={locale} disabled lens={lens} hourlyRate={getTaskRate(task)} currencyCode={currencyCode} />
                         ) : (
                           // v2.4.0: Render remaining column types (scheduleVariance, hoursBar, teamLoad, blockers, etc.)
                           renderCell(task, column)
@@ -2834,8 +2847,8 @@ export function ListView({
             const todoTerminado = hojasDelProyecto.length > 0 && hojasDelProyecto.every((h) => (h.progress ?? 0) >= 100);
             const palabraDeSobra = todoTerminado ? (locale === 'es' ? 'AHORRADO' : 'SAVED') : (locale === 'es' ? 'RESTANTE' : 'REMAINING');
             const varianceLabel = isOver
-              ? `+${formatGroupHours(Math.abs(varianceMinutes))} ${locale === 'es' ? 'EXCEDIDO' : 'OVER'}`
-              : `+${formatGroupHours(varianceMinutes)} ${palabraDeSobra}`;
+              ? `+${formatGroupHours(Math.abs(varianceMinutes), idioma)} ${locale === 'es' ? 'EXCEDIDO' : 'OVER'}`
+              : `+${formatGroupHours(varianceMinutes, idioma)} ${palabraDeSobra}`;
             const isFinancial = lens === 'financial' && hourlyRate > 0;
             // v2.5.2: Prefer consumer-supplied dollar totals when provided (canonical
             // time_logs × rate_at_time figures). Falls back to the internal per-task
@@ -2854,13 +2867,13 @@ export function ListView({
             const formatValue = (mins: number, dollarOverride?: number) => {
               if (isFinancial) {
                 const dollars = dollarOverride != null ? dollarOverride : (mins / 60) * hourlyRate;
-                return `$${Math.round(dollars).toLocaleString('es-CO')}`;
+                return moneda(Math.round(dollars), currencyCode, idioma);
               }
-              return formatGroupHours(mins);
+              return formatGroupHours(mins, idioma);
             };
             const varianceDollars = isFinancial ? Math.abs(effDollarAllocated - effDollarSpent) : 0;
             const varianceLabelFinancial = isFinancial
-              ? `+$${varianceDollars.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} ${isOver ? (locale === 'es' ? 'EXCEDIDO' : 'OVER') : palabraDeSobra}`
+              ? `+${moneda(varianceDollars, currencyCode, idioma)} ${isOver ? (locale === 'es' ? 'EXCEDIDO' : 'OVER') : palabraDeSobra}`
               : varianceLabel;
 
             // Small note under "TOTAL PROYECTO" clarifying the footer is labor-only;
@@ -2962,8 +2975,8 @@ export function ListView({
                             <span className={cn('text-[9px] font-mono font-bold px-1.5 py-0.5 rounded whitespace-nowrap mt-0.5',
                               margin >= 0 ? 'bg-[#064e3b] text-[#10b981] border border-[#065f46]/30' : 'bg-[#451a03] text-[#f59e0b] border border-[#78350f]/30'
                             )}>
-                              {margin >= 0 ? '+' : ''}{Math.abs(margin) >= 1000 ? `$${(margin/1000).toFixed(1)}K` : `$${margin}`}
-                              <span className="ml-0.5 opacity-60">({marginPct}%)</span>
+                              {formatMargin(margin, currencyCode, idioma, margin >= 0)}
+                              <span className="ml-0.5 opacity-60">({porcentaje(marginPct, idioma)})</span>
                             </span>
                           </div>
                         );
@@ -2985,7 +2998,7 @@ export function ListView({
                       return (
                         <span className={cn("text-[12px] font-bold font-mono", isDark ? "text-[#00E5CC]" : "text-[#00C4AE]")}
                           style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-                          {weightedPct}%
+                          {porcentaje(weightedPct, idioma)}
                         </span>
                       );
                     })() : column.type === 'weight' ? (() => {
@@ -2999,7 +3012,7 @@ export function ListView({
                       return (
                         <span className={cn("text-[12px] font-bold font-mono", isValid ? (isDark ? "text-[#22C55E]" : "text-green-600") : "text-[#EF4444]")}
                           style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-                          {Number(totalWeight.toFixed(1))}%
+                          {porcentaje(totalWeight, idioma, 1)}
                         </span>
                       );
                     })() : (
@@ -3036,6 +3049,7 @@ export function ListView({
           locale={locale}
           onClose={() => setSidebarOpen(false)}
           lens={config?.lens}
+          currencyCode={currencyCode}
           onUnassignedTaskClick={(taskId) => {
             // Scroll to the task row and highlight it briefly
             const el = document.querySelector(`[data-task-id="${taskId}"]`);

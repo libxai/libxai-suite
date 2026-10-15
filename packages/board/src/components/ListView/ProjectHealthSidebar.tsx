@@ -4,6 +4,7 @@
  */
 
 import { cn } from '../../utils';
+import { horas, moneda, porcentaje } from '../../utils/formato';
 import type { ProjectHealthData } from './types';
 
 interface ProjectHealthSidebarProps {
@@ -13,17 +14,8 @@ interface ProjectHealthSidebarProps {
   onClose?: () => void;
   lens?: 'hours' | 'financial';
   onUnassignedTaskClick?: (taskId: string) => void;
-}
-
-function fmtMinutes(minutes: number): string {
-  if (minutes <= 0) return '0h';
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  return m > 0 ? `${h}h ${m}m` : `${h}h`;
-}
-
-function fmtCurrency(value: number): string {
-  return `$${Math.round(value).toLocaleString('es-CO')}`;
+  /** QA Asakaa 2.2 · código de moneda tras la cifra («$1.500 COP»); sin él, la cifra va sola */
+  currencyCode?: string | null;
 }
 
 export function ProjectHealthSidebar({
@@ -33,9 +25,15 @@ export function ProjectHealthSidebar({
   onClose,
   lens = 'hours',
   onUnassignedTaskClick,
+  currencyCode,
 }: ProjectHealthSidebarProps) {
   const isEs = locale === 'es';
   const isFinancial = lens === 'financial';
+  // QA Asakaa 2.2: un solo formato — «12 h 30 min», «$20.122.500 COP», «77%»
+  const idioma: 'es' | 'en' = isEs ? 'es' : 'en';
+  const fmtMinutes = (minutes: number): string => horas(minutes <= 0 ? 0 : minutes, idioma);
+  const fmtCurrency = (value: number): string => moneda(Math.round(value), currencyCode, idioma);
+  const fmtPct = (value: number): string => porcentaje(value, idioma);
 
   return (
     <div className={cn(
@@ -189,7 +187,7 @@ export function ProjectHealthSidebar({
                   <div className="text-[9px] uppercase tracking-wider opacity-60 mb-0.5">{isEs ? 'Margen (Ofertado − Estimado)' : 'Margin (Offered − Estimated)'}</div>
                   <div className="text-base">
                     {planMargin >= 0 ? '+' : ''}{fmtCurrency(planMargin)}
-                    {offered > 0 && <span className="text-[11px] ml-1 opacity-70">({planMargin >= 0 ? '+' : ''}{planMarginPct}%)</span>}
+                    {offered > 0 && <span className="text-[11px] ml-1 opacity-70">({planMargin >= 0 ? '+' : ''}{fmtPct(planMarginPct)})</span>}
                   </div>
                   <div className="text-[9px] opacity-50 mt-0.5 font-sans">{isEs ? '0 = ejecutas tal cual lo ofertado' : '0 = you execute exactly as offered'}</div>
                 </div>
@@ -203,7 +201,7 @@ export function ProjectHealthSidebar({
                   ? `+${fmtCurrency(margin)} ${isEs ? 'disponible (caja)' : 'available (cash)'}`
                   : `${fmtCurrency(Math.abs(margin))} ${isEs ? 'sobregirado' : 'overdrawn'}`}
                 {offered > 0 && (
-                  <span className="text-[10px] ml-1 opacity-60">({marginPct}%)</span>
+                  <span className="text-[10px] ml-1 opacity-60">({fmtPct(marginPct)})</span>
                 )}
               </div>
             </div>
@@ -293,7 +291,7 @@ export function ProjectHealthSidebar({
                   'text-[11px] font-mono font-bold',
                   data.submittalsApprovalPercent >= 80 ? 'text-[#3BF06E]' : 'text-[#FFD60A]'
                 )}>
-                  {data.submittalsApprovalPercent}%
+                  {fmtPct(data.submittalsApprovalPercent)}
                 </span>
               </div>
             )}
@@ -422,7 +420,7 @@ export function ProjectHealthSidebar({
                       {team.name}
                     </span>
                     <span className={cn('text-[10px] font-mono', isDark ? 'text-white/40' : 'text-gray-500')}>
-                      {team.utilizationPercent}%
+                      {fmtPct(team.utilizationPercent)}
                     </span>
                   </div>
                   <div className={cn('w-full h-1.5 rounded-full overflow-hidden', isDark ? 'bg-white/[0.06]' : 'bg-gray-200')}>

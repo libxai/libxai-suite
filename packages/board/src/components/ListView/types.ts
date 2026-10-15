@@ -392,6 +392,12 @@ export interface ListViewConfig {
   hourlyRate?: number;
   /** Per-user hourly rate map (userId → rate). When provided, uses the task assignee's rate instead of the global hourlyRate */
   rateMap?: Record<string, number>;
+  /**
+   * QA Asakaa 2.2 · código de la moneda que se pinta TRAS la cifra
+   * («$20.122.500 COP»). Lo da la app (la moneda del espacio). Sin código, la
+   * cifra va sola: mejor que un código falso.
+   */
+  currencyCode?: string | null;
 
   // v2.4.0: Project totals sticky footer row
   /** Show a sticky "TOTAL PROJECT" row at the bottom of the list */

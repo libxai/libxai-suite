@@ -707,6 +707,12 @@ export interface GanttConfig {
    * barra (p. ej. una barra de áreas del proyecto) y no quiere duplicarlo.
    */
   hideForecastHud?: boolean;
+  /**
+   * QA Asakaa 2.2 · código de la moneda que se pinta TRAS la cifra del costo
+   * («$20,1 M COP»). Lo da la app (la moneda del espacio). Sin código, la cifra
+   * va sola: mejor que un código falso.
+   */
+  currencyCode?: string | null;
 
   /**
    * Callback for "Copy Snapshot Link" in the Share dropdown

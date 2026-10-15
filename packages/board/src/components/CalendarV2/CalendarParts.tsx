@@ -13,6 +13,7 @@ import type React from 'react';
 import type { CSSProperties } from 'react';
 import type { DayItemType, LaidBar, LaidChip, LaidMore } from './calendarLayout';
 import { dowLabels } from './calendarLayout';
+import { fmtHrs } from './calendarData';
 
 const DEFAULT_SLOT_H = 26;
 
@@ -70,9 +71,11 @@ export interface CalBarProps {
   due?: boolean;
   /** 1.9.42 · `false` nunca pinta horas ni coste en la barra. */
   showValues?: boolean;
+  /** QA Asakaa 2.2 · idioma de las cifras (por defecto 'es'). */
+  locale?: 'es' | 'en';
 }
 
-export function CalBar({ bar, ws, money, projColor, slotH = DEFAULT_SLOT_H, due = false, showValues = true }: CalBarProps): React.ReactElement {
+export function CalBar({ bar, ws, money, projColor, slotH = DEFAULT_SLOT_H, due = false, showValues = true, locale = 'es' }: CalBarProps): React.ReactElement {
   const { t } = bar;
   const col = bar.s - ws;
   const span = bar.e - bar.s + 1;
@@ -85,7 +88,7 @@ export function CalBar({ bar, ws, money, projColor, slotH = DEFAULT_SLOT_H, due 
     (due && t.done ? ' done' : '') +
     (due && t.overdue ? ' overdue' : '') +
     (due && t.milestone ? ' hito' : '');
-  const val = money === '$' ? t.cost : `${t.hrs}h`;
+  const val = money === '$' ? t.cost : fmtHrs(t.hrs, locale); // QA Asakaa 2.2: «12 h 30 min»
   /* 1.9.42 · «0h» no dice nada: las horas solo si hay. */
   const conValor = showValues && (money === '$' || t.hrs > 0);
   const style: ProjVars = {

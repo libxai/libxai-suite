@@ -72,6 +72,7 @@ export function WeekGridView({
               todaySerial={todaySerial}
               onTaskOpen={onTaskOpen}
               onMore={onMore}
+              locale={locale}
             />
             {capRows && capRows[wi] ? (
               <CalCapRow days={capRows[wi].days} capByDay={capRows[wi].capByDay} onSelectDay={onCapDay} />
@@ -108,10 +109,12 @@ interface WeekRowTallProps {
   todaySerial: number;
   onTaskOpen?: (taskId: string) => void;
   onMore: (day: number, items: DayItem[], tasksOfDay: CalTask[]) => void;
+  /** QA Asakaa 2.2 · idioma de las cifras de las barras. */
+  locale?: 'es' | 'en';
 }
 
 function WeekRowTall({
-  grid, ws, we, tasks, items, money, projColor, todaySerial, onTaskOpen, onMore,
+  grid, ws, we, tasks, items, money, projColor, todaySerial, onTaskOpen, onMore, locale = 'es',
 }: WeekRowTallProps): React.ReactElement {
   const lay = useMemo(() => layoutWeek(tasks, items, ws, we), [tasks, items, ws, we]);
   const deadlineDays = useMemo(
@@ -149,7 +152,7 @@ function WeekRowTall({
             onClick={() => onTaskOpen?.(b.t.uid)}
             style={{ cursor: onTaskOpen ? 'pointer' : 'default', display: 'contents' }}
           >
-            <CalBar bar={b} ws={ws} money={money} projColor={projColor} slotH={WEEK_SLOT_H} />
+            <CalBar bar={b} ws={ws} money={money} projColor={projColor} slotH={WEEK_SLOT_H} locale={locale} />
           </div>
         ))}
         {lay.chips.map((c, i) => (

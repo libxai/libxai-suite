@@ -13,6 +13,7 @@ import type React from 'react';
 import { inicialesDe } from '../../utils/iniciales';
 import type { Task as GanttTask } from '../Gantt/types';
 import type { MoneyMode } from './CalendarParts';
+import { fmtCost, fmtHrs } from './calendarData';
 
 /** Ficha de backlog ya proyectada (datos reales, no del modelo del diseño). */
 export interface BacklogItem {
@@ -42,11 +43,8 @@ function initials(name: string): string {
   return inicialesDe(name); // QA Asakaa E41
 }
 
-/** "$1.9k" / "$475" — formato compacto coherente con el resto del calendario. */
-function fmtCost(amount: number): string {
-  if (amount >= 1000) return `$${(amount / 1000).toFixed(1).replace(/\.0$/, '')}k`;
-  return `$${Math.round(amount)}`;
-}
+// QA Asakaa 2.2: el dinero y las horas, con el formato del resto del calendario
+// (fmtCost / fmtHrs de calendarData, que a su vez usan utils/formato).
 
 function flatten(tasks: GanttTask[]): GanttTask[] {
   const out: GanttTask[] = [];
@@ -65,7 +63,13 @@ function flatten(tasks: GanttTask[]): GanttTask[] {
  * y las mapea a fichas. Aplana subtareas. No inventa nada: si la tarea tiene
  * ambas fechas, no es backlog y se omite.
  */
-export function buildBacklog(tasks: GanttTask[], hourlyRate: number): BacklogItem[] {
+export function buildBacklog(
+  tasks: GanttTask[],
+  hourlyRate: number,
+  /** QA Asakaa 2.2 · idioma de las cifras y código de moneda tras la cifra. */
+  locale: 'es' | 'en' = 'es',
+  currencyCode?: string | null,
+): BacklogItem[] {
   const flat = flatten(tasks);
   const items: BacklogItem[] = [];
   for (const t of flat) {
@@ -74,7 +78,7 @@ export function buildBacklog(tasks: GanttTask[], hourlyRate: number): BacklogIte
     const mins = (t as { effortMinutes?: number | null }).effortMinutes ?? 0;
     const hrs = Math.round((mins / 60) * 10) / 10;
     const explicitCost = (t as { costAtCompletion?: number | null }).costAtCompletion;
-    const cost = explicitCost != null ? fmtCost(explicitCost) : fmtCost(hrs * hourlyRate);
+    const cost = explicitCost != null ? fmtCost(explicitCost, locale, currencyCode) : fmtCost(hrs * hourlyRate, locale, currencyCode);
     const assignee = t.assignees?.[0];
     const who = assignee?.initials || (assignee?.name ? initials(assignee.name) : undefined);
 
@@ -148,7 +152,7 @@ export function CalBacklogPanel({
         </div>
       ) : (
         items.map((b) => {
-          const val = money === '$' ? b.cost : `${b.hrs}h`;
+          const val = money === '$' ? b.cost : fmtHrs(b.hrs, locale);
           return (
             <div
               key={b.taskId}
@@ -170,7 +174,7 @@ export function CalBacklogPanel({
               <div className="nom">{b.name}</div>
               <div className="meta">
                 <span>
-                  <b>{b.hrs}h</b> est
+                  <b>{fmtHrs(b.hrs, locale)}</b> est
                 </span>
                 <span>{val}</span>
                 {b.who ? <span className="cal-ava">{b.who}</span> : null}

@@ -1,4 +1,5 @@
 import { Task, TaskSegment } from './types';
+import { fecha, numero, porcentaje } from '../../utils/formato';
 
 /**
  * Public utility functions for Gantt operations
@@ -523,12 +524,15 @@ export const ganttUtils = {
           ? ganttUtils.calculateDuration(task.startDate, task.endDate)
           : 0;
 
+        // QA Asakaa 2.2: el PDF es para leerlo — «Jul 6» (con el año si no es
+        // el actual), no «2026-07-06». El documento va en inglés, como sus
+        // cabeceras. CSV/Excel/MS Project siguen con AAAA-MM-DD: son datos.
         return [
           task.name,
-          task.startDate ? ganttUtils.formatDate(task.startDate) : 'N/A',
-          task.endDate ? ganttUtils.formatDate(task.endDate) : 'N/A',
-          duration > 0 ? `${duration} days` : 'N/A',
-          `${task.progress}%`,
+          task.startDate ? fecha(task.startDate, 'en') : 'N/A',
+          task.endDate ? fecha(task.endDate, 'en') : 'N/A',
+          duration > 0 ? `${numero(duration, 'en')} days` : 'N/A',
+          porcentaje(task.progress ?? 0, 'en'),
           task.status || 'N/A',
         ];
       });

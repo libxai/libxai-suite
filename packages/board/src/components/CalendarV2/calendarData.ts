@@ -9,6 +9,7 @@
  */
 import type { Task as LibXAITask } from '../Gantt/types';
 import { inicialesDe } from '../../utils/iniciales';
+import { horas, moneda } from '../../utils/formato';
 import type { CalTask, DayItem, MonthGrid } from './calendarLayout';
 
 /** Aplana el árbol llevando la FASE (tarea-padre raíz) de cada tarea, para el
@@ -34,10 +35,17 @@ function toDate(v: Date | string | undefined | null): Date | null {
   return isNaN(d.getTime()) ? null : d;
 }
 
-/** "$1.9k" / "$475" — formato compacto coherente con el resto de Asakaa. */
-function fmtCost(amount: number): string {
-  if (amount >= 1000) return `$${(amount / 1000).toFixed(1).replace(/\.0$/, '')}k`;
-  return `$${Math.round(amount)}`;
+/**
+ * QA Asakaa 2.2: «$1,9 mil COP» / «$475 COP» (en: «$1.9K USD») — el formato
+ * compacto de utils/formato, el mismo del resto de Asakaa. Antes «$1.9k».
+ */
+export function fmtCost(amount: number, locale: 'es' | 'en' = 'es', currencyCode?: string | null): string {
+  return moneda(Math.round(amount), currencyCode, locale, { compacto: true });
+}
+
+/** QA Asakaa 2.2: horas de una barra («12 h 30 min», «45 min», «0 h»). */
+export function fmtHrs(hrs: number, locale: 'es' | 'en' = 'es'): string {
+  return horas(Math.round(hrs * 60), locale);
 }
 
 export interface BuildOpts {
@@ -49,6 +57,10 @@ export interface BuildOpts {
   hourlyRate: number;
   /** id de proyecto de las tareas (el calendario es por proyecto en S1). */
   projectId: string;
+  /** QA Asakaa 2.2 · idioma de las cifras (por defecto 'es'). */
+  locale?: 'es' | 'en';
+  /** QA Asakaa 2.2 · código de moneda tras la cifra; sin él, la cifra va sola. */
+  currencyCode?: string | null;
 }
 
 export interface BuiltCalendar {
@@ -63,7 +75,7 @@ export interface BuiltCalendar {
  * Recorta tareas a la ventana de la grilla; las que no intersectan se omiten.
  */
 export function buildCalendar(opts: BuildOpts): BuiltCalendar {
-  const { tasks, grid, projectColor, hourlyRate, projectId } = opts;
+  const { tasks, grid, projectColor, hourlyRate, projectId, locale = 'es', currencyCode } = opts;
   const flat = flatten(tasks);
   const gridEndSerial = 6 * 7; // 6 semanas
 
@@ -83,7 +95,7 @@ export function buildCalendar(opts: BuildOpts): BuiltCalendar {
     const mins = (t as { effortMinutes?: number | null }).effortMinutes ?? 0;
     const hrs = Math.round((mins / 60) * 10) / 10;
     const explicitCost = (t as { costAtCompletion?: number | null }).costAtCompletion;
-    const cost = explicitCost != null ? fmtCost(explicitCost) : fmtCost(hrs * hourlyRate);
+    const cost = explicitCost != null ? fmtCost(explicitCost, locale, currencyCode) : fmtCost(hrs * hourlyRate, locale, currencyCode);
     const assignee = t.assignees?.[0];
     const who = assignee?.initials || (assignee?.name ? initials(assignee.name) : undefined);
 

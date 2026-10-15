@@ -54,6 +54,11 @@ interface Props {
   themeMode?: 'dark' | 'light';
   hourlyRate: number;
   /**
+   * QA Asakaa 2.2 · código de la moneda que se pinta TRAS la cifra («$1,9 mil
+   * COP»). Lo da la app (la moneda del espacio). Sin código, la cifra va sola.
+   */
+  currencyCode?: string | null;
+  /**
    * ═══ EL FILTRO DE FASES ═════════════════════════════════════════════════
    *
    * Divar, 27-ago (punto 17 de la lista de Juan): en el producto simplificado
@@ -120,6 +125,7 @@ export function CalendarView({
   canReschedule, onReschedule,
   members = [], holidayDates = [], timesheetSettings, onVisibleRangeChange,
   monthMode = 'span', showValues = true, openOnToday = false,
+  currencyCode,
 }: Props) {
   /* 1.9.42 · en modo vencimiento, cuántos chips caben por día según el alto real. */
   const semanasRef = useRef<HTMLDivElement>(null);
@@ -218,8 +224,8 @@ export function CalendarView({
   }, [timesheetSettings]);
 
   const built = useMemo(
-    () => buildCalendar({ tasks, grid, projectColor: () => projColor, hourlyRate, projectId }),
-    [tasks, grid, projColor, hourlyRate, projectId],
+    () => buildCalendar({ tasks, grid, projectColor: () => projColor, hourlyRate, projectId, locale, currencyCode }),
+    [tasks, grid, projColor, hourlyRate, projectId, locale, currencyCode],
   );
 
   // Fases disponibles (tareas-padre raíz) para el filtro de la toolbar.
@@ -301,7 +307,7 @@ export function CalendarView({
   const projects = [{ id: '', name: projectName, color: projColor }];
 
   // Backlog: tareas reales sin fecha (C8). Solo lista en S2 (drag → S3).
-  const backlog = useMemo(() => buildBacklog(tasks, hourlyRate), [tasks, hourlyRate]);
+  const backlog = useMemo(() => buildBacklog(tasks, hourlyRate, locale, currencyCode), [tasks, hourlyRate, locale, currencyCode]);
 
   // ── Vistas Semana / Lookahead: rangos de semana + capacidad por día ──
   // Semana: la semana de la grilla que contiene HOY (o la primera). Lookahead: 2.
@@ -650,7 +656,7 @@ function WeekRow({ grid, ws, we, tasks, items, money, projColor, todaySerial, sh
               onPointerDown={(e) => onBarPointerDown(e, b.t.uid)}
               style={{ cursor: canReschedule ? 'grab' : (onTaskOpen ? 'pointer' : 'default'), display: 'contents', opacity: isGhost ? 0.6 : 1 }}
             >
-              <CalBar bar={shifted} ws={ws} money={money} projColor={projColor} slotH={due ? SLOT_H_DUE : SLOT_H} due={due} showValues={showValues} />
+              <CalBar bar={shifted} ws={ws} money={money} projColor={projColor} slotH={due ? SLOT_H_DUE : SLOT_H} due={due} showValues={showValues} locale={locale} />
             </div>
           );
         })}

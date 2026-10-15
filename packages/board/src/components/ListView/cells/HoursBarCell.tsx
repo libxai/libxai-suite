@@ -10,6 +10,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Plus, Clock, Target, DollarSign } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { cn } from '../../../utils';
+import { horas, moneda } from '../../../utils/formato';
 import { TimeInputPopover } from '../../TimeTracking/TimeInputPopover';
 import type { Task } from '../../Gantt/types';
 
@@ -30,6 +31,8 @@ interface HoursBarCellProps {
   lens?: 'hours' | 'financial';
   /** Rate used to convert hours → dollars when lens='financial' */
   hourlyRate?: number;
+  /** QA Asakaa 2.2 · código de moneda tras la cifra («$1.500 COP»); sin él, la cifra va sola */
+  currencyCode?: string | null;
 }
 
 export function HoursBarCell({
@@ -43,13 +46,19 @@ export function HoursBarCell({
   onOpenTimeLog,
   lens = 'hours',
   hourlyRate = 0,
+  currencyCode,
 }: HoursBarCellProps) {
   const isEs = locale === 'es';
   const isFin = lens === 'financial' && hourlyRate > 0;
-  /** Format a value as hours or dollars depending on lens */
-  const fmt = (hours: number) => isFin
-    ? `$${Math.round(hours * hourlyRate).toLocaleString('en-US')}`
-    : `${hours}h`;
+  /**
+   * Format a value as hours or dollars depending on lens.
+   * QA Asakaa 2.2: el dinero sale con `moneda` (código tras la cifra) y las
+   * horas con `horas` («12 h 30 min»), desde los minutos y no desde las horas
+   * redondeadas a la décima. El cálculo del dinero no cambia.
+   */
+  const fmt = (hours: number, minutes: number) => isFin
+    ? moneda(Math.round(hours * hourlyRate), currencyCode, isEs ? 'es' : 'en')
+    : horas(minutes, isEs ? 'es' : 'en');
   const [isHovered, setIsHovered] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [popoverMode, setPopoverMode] = useState<PopoverMode>(null);
@@ -273,11 +282,11 @@ export function HoursBarCell({
                     : (isDark ? '#FFFFFF' : '#111827'),
                 }}
               >
-                {fmt(spentHours)}
+                {fmt(spentHours, spentMinutes)}
               </span>
               {allocatedMinutes > 0 && (
                 <span className="font-mono" style={{ fontSize: 11, color: isDark ? 'rgba(255,255,255,0.3)' : '#9CA3AF' }}>
-                  / {fmt(allocatedHours)}
+                  / {fmt(allocatedHours, allocatedMinutes)}
                 </span>
               )}
               {overHours > 0 && (
@@ -289,7 +298,7 @@ export function HoursBarCell({
                     backgroundColor: isSignificantlyOver ? 'rgba(239,68,68,0.15)' : 'transparent',
                   }}
                 >
-                  +{fmt(overHours)} {isEs ? 'Excedido' : 'Over'}
+                  +{fmt(overHours, spentMinutes - allocatedMinutes)} {isEs ? 'Excedido' : 'Over'}
                 </span>
               )}
             </div>
