@@ -197,6 +197,22 @@ export function TaskFormModal({
   // v0.18.0: Dependencies dropdown state (same UI as TaskDetailModal)
   const [showDependenciesDropdown, setShowDependenciesDropdown] = useState(false)
   const [dependencySearch, setDependencySearch] = useState('')
+  // QA Asakaa 2.3.7: clic fuera o Escape cierran el desplegable sin tragarse el clic.
+  const desplegableDepsRef = useRef<HTMLDivElement>(null)
+  const botonDepsRef = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    if (!showDependenciesDropdown) return
+    const fuera = (e: MouseEvent) => {
+      const n = e.target as Node
+      if (desplegableDepsRef.current?.contains(n) || botonDepsRef.current?.contains(n)) return
+      setShowDependenciesDropdown(false)
+      setDependencySearch('')
+    }
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); setShowDependenciesDropdown(false) } }
+    document.addEventListener('mousedown', fuera)
+    document.addEventListener('keydown', esc, true)
+    return () => { document.removeEventListener('mousedown', fuera); document.removeEventListener('keydown', esc, true) }
+  }, [showDependenciesDropdown])
 
   // Refs for click outside
   const statusRef = useRef<HTMLDivElement>(null)
@@ -1229,7 +1245,7 @@ export function TaskFormModal({
                                             color: themeColors.accent,
                                           }}
                                         >
-                                          {depTask?.name || depId.slice(0, 8)}
+                                          {depTask ? `${(depTask as Task & { wbsCode?: string }).wbsCode ? (depTask as Task & { wbsCode?: string }).wbsCode + ' · ' : ''}${depTask.name}` : '—'}
                                           <button
                                             type="button"
                                             onClick={() => {
@@ -1249,6 +1265,7 @@ export function TaskFormModal({
 
                                 {/* Add dependency button */}
                                 <button
+                                  ref={botonDepsRef}
                                   type="button"
                                   onClick={() => {
                                     setShowDependenciesDropdown(!showDependenciesDropdown)
@@ -1269,14 +1286,11 @@ export function TaskFormModal({
                                 <AnimatePresence>
                                   {showDependenciesDropdown && (
                                     <>
-                                      <div
-                                        className="fixed inset-0 z-40"
-                                        onClick={() => {
-                                          setShowDependenciesDropdown(false)
-                                          setDependencySearch('')
-                                        }}
-                                      />
+                                      {/* QA Asakaa 2.3.7: aquí iba una capa invisible a pantalla completa para
+                                          cerrar el desplegable; se tragaba el primer clic en «Crear Tarea». Ahora
+                                          lo cierra un clic fuera escuchado en el documento (no tapa nada). */}
                                       <motion.div
+                                        ref={desplegableDepsRef}
                                         initial={{ opacity: 0, y: -5 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         exit={{ opacity: 0, y: -5 }}
@@ -1359,7 +1373,8 @@ export function TaskFormModal({
                                                       className="text-[10px]"
                                                       style={{ color: themeColors.textTertiary }}
                                                     >
-                                                      {depTask.id.slice(0, 8)}
+                                                      {/* QA Asakaa 2.3.7: el número de la tarea («4.1»), no el id interno («c638469b»). */}
+                                                      {(depTask as Task & { wbsCode?: string }).wbsCode ?? ''}
                                                     </span>
                                                   </div>
                                                 </button>

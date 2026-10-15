@@ -3161,6 +3161,7 @@ declare const MenuIcons: {
     Settings: react_jsx_runtime.JSX.Element;
     Split: react_jsx_runtime.JSX.Element;
     Duplicate: react_jsx_runtime.JSX.Element;
+    Milestone: react_jsx_runtime.JSX.Element;
     MarkIncomplete: react_jsx_runtime.JSX.Element;
     SetInProgress: react_jsx_runtime.JSX.Element;
     MarkComplete: react_jsx_runtime.JSX.Element;

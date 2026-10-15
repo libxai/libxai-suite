@@ -512,6 +512,8 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   const translations: GanttTranslations = useMemo(() => {
     return mergeTranslations(locale, customTranslations);
   }, [locale, customTranslations]);
+  // QA Asakaa 2.3.4: el idioma del aviso de proyecto vacío (el contexto de i18n lo crea ESTE componente).
+  const esVacio = translations.toolbar.visibility === 'Visibilidad';
 
   // Column configuration - Default: Only show task name
   // v0.13.8: Name column is resizable with min/max width constraints
@@ -2302,6 +2304,34 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
           overflowClipMargin: '100px', // Allow tooltip to overflow above
         }}
       >
+        {/* QA Asakaa 2.3.4: «un proyecto nuevo abre una cuadrícula en blanco, sin invitar a
+            crear la primera tarea». Sin tareas, un aviso con el mismo botón que «Nueva tarea». */}
+        {localTasks.length === 0 && onCreateTask && (
+          <div
+            data-gantt-vacio
+            style={{ position: 'absolute', inset: 0, zIndex: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}
+          >
+            <div
+              style={{ pointerEvents: 'auto', textAlign: 'center', padding: '28px 32px', borderRadius: 14, maxWidth: 360,
+                background: theme.bgSecondary || theme.bgPrimary, border: `1px solid ${theme.border}`, boxShadow: '0 10px 30px rgba(0,0,0,0.10)' }}
+            >
+              <div style={{ fontSize: 15, fontWeight: 600, color: theme.textPrimary, marginBottom: 6 }}>
+                {esVacio ? 'Este proyecto aún no tiene tareas' : 'This project has no tasks yet'}
+              </div>
+              <div style={{ fontSize: 12.5, color: theme.textSecondary, marginBottom: 16, lineHeight: 1.45 }}>
+                {esVacio ? 'Crea la primera y el cronograma empezará a dibujarse desde hoy.' : 'Create the first one and the timeline starts from today.'}
+              </div>
+              <button
+                type="button"
+                onClick={onCreateTask}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                  background: theme.accent || '#00E5CC', color: '#fff', fontSize: 13, fontWeight: 600 }}
+              >
+                + {esVacio ? 'Crear la primera tarea' : 'Create the first task'}
+              </button>
+            </div>
+          </div>
+        )}
         {/* Task Grid - v0.17.194: Horizontal scroll when columns exceed width (ClickUp style) */}
         {/* v0.17.222: Real scroll instead of transform - synced bidirectionally with Timeline */}
         {/* v0.17.223: Hide scrollbar visually but keep scroll functional */}

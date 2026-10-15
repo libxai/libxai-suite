@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
+import { Diamond,
   Plus,
   Minus,
   Edit3,
@@ -212,6 +212,7 @@ export const MenuIcons = {
   Settings: <Settings className="w-4 h-4" />,
   Split: <Scissors className="w-4 h-4" />, // v0.8.0: Split task
   Duplicate: <Copy className="w-4 h-4" />, // v1.4.3: Duplicate task
+  Milestone: <Diamond className="w-4 h-4" />, // 1.9.47 · QA Asakaa 2.3.5
   // v0.16.0: Task status icons
   MarkIncomplete: <Circle className="w-4 h-4" />,
   SetInProgress: <PlayCircle className="w-4 h-4" />,

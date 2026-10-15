@@ -141,8 +141,9 @@ export function DependencyLine({
   // v5.0.0: Dependencies ALWAYS neutral — never inherit task state color
   // v5.1.0: CPM can override color for critical dependencies
   const isDarkTheme = !theme.bgPrimary || theme.bgPrimary.startsWith('#0') || theme.bgPrimary.startsWith('#1');
-  const lineColor = colorOverride || (isDarkTheme ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.20)');
-  const baseStrokeWidth = strokeWidthOverride || 1;
+  // QA Asakaa 2.3.6: «un gris fino casi invisible sobre el fondo oscuro». Más contraste y 1,5 px.
+  const lineColor = colorOverride || (isDarkTheme ? 'rgba(255,255,255,0.55)' : 'rgba(15,23,42,0.45)');
+  const baseStrokeWidth = strokeWidthOverride || 1.5;
   const hoverColor = theme.dependencyHover || (isDarkTheme ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.45)');
 
   // Delete button colors

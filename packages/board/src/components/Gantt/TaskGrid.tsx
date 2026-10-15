@@ -1346,6 +1346,13 @@ export function TaskGrid({
         icon: MenuIcons.Link,
         onClick: () => onTaskDependencies(task),
       }] : []),
+      // QA Asakaa 2.3.5: «añadir "Convertir en hito" al menú contextual». Solo en tareas sin hijas.
+      ...(onTaskUpdate && !(task.subtasks && task.subtasks.length > 0) ? [{
+        id: 'milestone',
+        label: task.isMilestone ? (esGrid ? 'Quitar hito' : 'Remove milestone') : (esGrid ? 'Convertir en hito' : 'Convert to milestone'),
+        icon: MenuIcons.Milestone,
+        onClick: () => onTaskUpdate(task.id, { isMilestone: !task.isMilestone }),
+      }] : []),
       // Separator before status changes
       { id: 'sep1', label: '', onClick: () => {}, separator: true },
       // Mark Incomplete (status: 'todo', progress: 0) — bulk-aware

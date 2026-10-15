@@ -1018,7 +1018,12 @@ function FilterDropdown({ theme, value, onChange, hideCompleted = false, onHideC
         whileTap={{ scale: 0.98 }}
       >
         <Filter className="w-4 h-4" />
-        <span>{t.toolbar.filter || 'Filters'}{filtrosActivos > 0 ? ` · ${filtrosActivos}` : ''}</span>
+        {/* QA Asakaa 2.3.3: «"Filtros · 1" no dice cuál». Con filtro, se nombra. */}
+        <span>{filtrosActivos === 0
+          ? (t.toolbar.filter || 'Filters')
+          : [value !== 'all' ? filterOptions.find((o) => o.value === value)?.label : null,
+             hideCompleted ? (t.toolbar.visibility === 'Visibilidad' ? 'sin completadas' : 'no completed') : null,
+            ].filter(Boolean).join(' · ')}</span>
       </motion.button>
 
       {/* Dropdown */}
@@ -1412,6 +1417,15 @@ interface ViewOptionsDropdownProps {
   hasDependencies?: boolean;
 }
 
+/** QA Asakaa 2.3.2 · lo que significa cada marca del Gantt (mismos colores que el dibujo). */
+const MUESTRA_BASE: React.CSSProperties = { width: 22, height: 10, borderRadius: 2, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' };
+const LEYENDA_DEL_GANTT: Array<{ es: string; en: string; muestra: React.CSSProperties; texto?: string }> = [
+  { es: 'Festivo (el día en ámbar)', en: 'Holiday (amber day)', muestra: { ...MUESTRA_BASE, color: '#F59E0B', fontSize: 10, fontWeight: 700 }, texto: '12' },
+  { es: 'Vencida o en ruta crítica', en: 'Overdue or on the critical path', muestra: { ...MUESTRA_BASE, background: '#EF4444' } },
+  { es: 'Fin de semana o día no laborable', en: 'Weekend or non-working day', muestra: { ...MUESTRA_BASE, background: 'repeating-linear-gradient(45deg, rgba(148,163,184,0.45) 0 2px, transparent 2px 5px)' } },
+  { es: 'Parte de la barra sin avanzar', en: 'Unfinished part of the bar', muestra: { ...MUESTRA_BASE, background: 'repeating-linear-gradient(45deg, rgba(0,229,204,0.55) 0 3px, rgba(148,163,184,0.25) 3px 6px)' } },
+];
+
 function ViewOptionsDropdown({
   theme,
   showCriticalPath,
@@ -1444,8 +1458,14 @@ function ViewOptionsDropdown({
         setIsOpen(false);
       }
     };
+    // QA Asakaa 2.3.8: «Escape no cierra Líneas Base ni Opciones de vista».
+    const handleEscape = (e: KeyboardEvent) => { if (e.key === 'Escape') setIsOpen(false); };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
   }, [isOpen]);
 
   const isSpanish = t.toolbar.visibility === 'Visibilidad';
@@ -1467,15 +1487,21 @@ function ViewOptionsDropdown({
       <motion.button
         ref={triggerRef}
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-center w-8 h-8 rounded-lg"
+        /* QA Asakaa 2.3.1: densidad, ruta crítica, fines de semana y dependencias estaban
+           tras un ojo sin nombre. El botón dice lo que abre. */
+        className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-xs font-medium"
         style={{
-          color: isOpen ? theme.accent : theme.textTertiary,
+          color: isOpen ? theme.accent : theme.textSecondary,
           backgroundColor: isOpen ? theme.accentLight : 'transparent',
         }}
         whileHover={{ color: theme.textPrimary, backgroundColor: theme.hoverBg }}
-        title={t.toolbar.visibility}
+        title={isSpanish ? 'Opciones de vista, densidad y leyenda' : 'Display options, density and legend'}
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
       >
         <Eye className="w-4 h-4" />
+        <span>{isSpanish ? 'Vista' : 'View'}</span>
+        <ChevronDown className="w-3 h-3" />
       </motion.button>
 
       {createPortal(
@@ -1569,6 +1595,22 @@ function ViewOptionsDropdown({
                     </motion.button>
                   );
                 })}
+              </div>
+              {/* QA Asakaa 2.3.2: «el ámbar es festivo, el borde rojo es vencida y el rayado
+                  sirve para dos cosas; nada lo explica». La leyenda, con las mismas marcas. */}
+              <div className="py-0.5" style={{ borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : theme.border || '#E2E8F0'}` }}>
+                <div className="px-3 pt-2 pb-1">
+                  <span className="text-[10px] font-medium uppercase tracking-[0.1em]"
+                    style={{ color: isDark ? 'rgba(255,255,255,0.35)' : theme.textTertiary }}>
+                    {isSpanish ? 'LEYENDA' : 'LEGEND'}
+                  </span>
+                </div>
+                {LEYENDA_DEL_GANTT.map((x) => (
+                  <div key={x.es} className="flex items-center gap-2.5 px-3 py-1.5 text-[11px]" style={{ color: isDark ? 'rgba(255,255,255,0.75)' : theme.textSecondary }}>
+                    <span aria-hidden style={x.muestra}>{x.texto ?? null}</span>
+                    <span>{isSpanish ? x.es : x.en}</span>
+                  </div>
+                ))}
               </div>
             </motion.div>
           )}
