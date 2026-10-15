@@ -794,11 +794,11 @@ function WbsLevelDropdown({ theme, value, onChange, maxDepth }: WbsLevelDropdown
     { value: 'all', label: t.toolbar.wbsAllLevels || 'All' },
     ...Array.from({ length: Math.min(maxDepth, 5) }, (_, i) => ({
       value: i + 1,
-      label: `L${i + 1}`,
+      label: t.toolbar.wbsLevel === 'Nivel' ? `Nivel ${i + 1}` : `L${i + 1}`, // QA Asakaa 2.1: «L1» era jerga
     })),
   ];
 
-  const currentLabel = value === 'all' ? (t.toolbar.wbsAllLevels || 'All') : `L${value}`;
+  const currentLabel = value === 'all' ? (t.toolbar.wbsAllLevels || 'All') : (t.toolbar.wbsLevel === 'Nivel' ? `Nivel ${value}` : `L${value}`);
 
   return (
     <>

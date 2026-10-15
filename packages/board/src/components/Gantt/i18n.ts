@@ -409,10 +409,10 @@ export const es: GanttTranslations = {
     toDo: 'Por Hacer / Pendiente',
     // v3.0.0: WBS Level selector
     wbsLevel: 'Nivel',
-    wbsAllLevels: 'Todos',
+    wbsAllLevels: 'Todos los niveles',
     // v3.1.0: Chronos view modes & forecast
     viewExecution: 'Ejecución',
-    viewOracle: 'Vista Pulse',
+    viewOracle: 'Vista de seguimiento',
     simulateScenario: 'Simular Escenario',
     projectForecast: 'PRONÓSTICO DEL PROYECTO',
     expectedFinish: 'Fin Estimado',

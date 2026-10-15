@@ -832,7 +832,7 @@ export function TaskGrid({
                     }} />
                   )}
                   {showCriticalPath && task.cpmData && (
-                    <span style={{
+                    <span title={esGrid ? 'Días que la tarea puede retrasarse sin mover el fin del proyecto' : 'Total float: days the task can slip without moving the project end'} style={{
                       color: task.cpmData.totalFloat <= 0 ? '#EF4444'
                         : task.cpmData.totalFloat <= 5 ? '#F59E0B'
                         : '#6B7280',
@@ -843,7 +843,7 @@ export function TaskGrid({
                       whiteSpace: 'nowrap',
                       marginLeft: '4px',
                     }}>
-                      TF: {Math.round(task.cpmData.totalFloat)}d
+                      {esGrid ? `Holgura: ${Math.round(task.cpmData.totalFloat)} d` : `TF: ${Math.round(task.cpmData.totalFloat)}d`}
                     </span>
                   )}
                 </span>
