@@ -28,7 +28,7 @@ const darkTheme: KanbanToolbarTheme = {
   textPrimary: 'rgba(255, 255, 255, 0.92)',
   textSecondary: 'rgba(255, 255, 255, 0.60)',
   textTertiary: 'rgba(255, 255, 255, 0.35)',
-  accent: '#007FFF',
+  accent: '#00E5CC', // QA Asakaa 2.4.2 (antes azul)
   accentLight: 'rgba(0, 229, 204, 0.15)',
   hoverBg: 'rgba(255, 255, 255, 0.04)',
 };
@@ -101,6 +101,9 @@ export interface KanbanToolbarProps {
   toolbarRightContent?: React.ReactNode;
   /** v2.5.0: Render content just before the Create Task button (e.g., share/export dropdown) */
   toolbarEndContent?: React.ReactNode;
+  /** QA Asakaa 2.4.8: contenido a la IZQUIERDA de la fila (p. ej. el selector de vista).
+   *  Antes ocupaba una fila propia encima: 41 px menos antes de la primera tarjeta. */
+  toolbarLeftContent?: React.ReactNode;
 }
 
 // Column Selector Dropdown
@@ -141,7 +144,7 @@ function ColumnSelector({ columns, onSelect, theme, t, createTaskLabel }: Column
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-all"
         style={{
-          background: 'linear-gradient(135deg, #007FFF 0%, #0055CC 100%)',
+          background: 'linear-gradient(135deg, var(--marca-acento, #00E5CC) 0%, var(--marca-acento-hover, #00C4AE) 100%)', // QA Asakaa 2.4.2: el mismo color que «Nueva tarea» en el resto
           color: '#FFFFFF',
           fontFamily: 'Inter, sans-serif',
           fontWeight: 500,
@@ -414,7 +417,7 @@ function SimpleCreateButton({ onClick, label }: SimpleCreateButtonProps) {
       onClick={onClick}
       className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-all"
       style={{
-        background: 'linear-gradient(135deg, #007FFF 0%, #0055CC 100%)',
+        background: 'linear-gradient(135deg, var(--marca-acento, #00E5CC) 0%, var(--marca-acento-hover, #00C4AE) 100%)', // QA Asakaa 2.4.2: el mismo color que «Nueva tarea» en el resto
         color: '#FFFFFF',
         fontFamily: 'Inter, sans-serif',
         fontWeight: 500,
@@ -445,6 +448,7 @@ export function KanbanToolbar({
   translations,
   toolbarRightContent,
   toolbarEndContent,
+  toolbarLeftContent,
 }: KanbanToolbarProps) {
   const themeStyles = theme === 'dark' ? darkTheme : lightTheme;
   const t: KanbanToolbarI18n = {
@@ -458,12 +462,13 @@ export function KanbanToolbar({
 
   return (
     <div
-      className="h-12 px-4 flex items-center justify-end border-b sticky top-0 z-10"
+      className={`h-12 px-4 flex items-center ${toolbarLeftContent ? 'justify-between gap-3' : 'justify-end'} border-b sticky top-0 z-10`}
       style={{
         backgroundColor: themeStyles.bgGrid,
         borderColor: themeStyles.border,
       }}
     >
+      {toolbarLeftContent && <div className="flex items-center gap-2 min-w-0">{toolbarLeftContent}</div>}
       {/* Right Section - Custom content + Create Task + Export */}
       <div className="flex items-center gap-3">
         {toolbarRightContent && (

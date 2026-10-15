@@ -240,7 +240,7 @@ export function QuickTaskCreate({
               className={cn(
                 'flex items-center gap-1 text-xs px-1.5 py-0.5 rounded transition-colors font-mono',
                 selectedDate
-                  ? isDark ? 'bg-[#007FFF]/20 text-[#007FFF]' : 'bg-[#00E5CC]/20 text-[#00C4AE]'
+                  ? isDark ? 'bg-[#00C4AE]/20 text-[#00C4AE]' : 'bg-[#00E5CC]/20 text-[#00C4AE]'
                   : isDark ? 'bg-white/5 text-white/30 hover:bg-white/10' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
               )}
             >
@@ -360,8 +360,8 @@ export function QuickTaskCreate({
                                 'w-6 h-6 rounded-full flex items-center justify-center text-[10px] transition-colors font-mono',
                                 !d.isCurrent && (isDark ? 'text-white/20' : 'text-gray-300'),
                                 d.isCurrent && (isDark ? 'text-white' : 'text-gray-900'),
-                                isToday && 'ring-1 ring-[#007FFF]',
-                                isSel && 'bg-[#007FFF] text-white',
+                                isToday && 'ring-1 ring-[#00C4AE]',
+                                isSel && 'bg-[#00C4AE] text-white',
                                 !isSel && (isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100')
                               )}
                               onClick={() => { setSelectedDate(d.date); setShowDatePicker(false) }}
@@ -391,14 +391,14 @@ export function QuickTaskCreate({
               className={cn(
                 'p-1 rounded transition-colors',
                 assigneeId
-                  ? 'text-[#007FFF] bg-[#007FFF]/20'
+                  ? 'text-[#00C4AE] bg-[#00C4AE]/20'
                   : isDark ? 'hover:bg-white/10 text-white/30' : 'hover:bg-gray-100 text-gray-400'
               )}
             >
               {assigneeId ? (
                 <div
                   className="w-4 h-4 rounded-full flex items-center justify-center text-white text-[8px] font-mono font-bold"
-                  style={{ backgroundColor: availableUsers.find(u => u.id === assigneeId)?.color || '#007FFF' }}
+                  style={{ backgroundColor: availableUsers.find(u => u.id === assigneeId)?.color || '#00C4AE' }}
                 >
                   {availableUsers.find(u => u.id === assigneeId)?.initials ||
                    inicialesDe(availableUsers.find(u => u.id === assigneeId)?.name)}
@@ -449,7 +449,7 @@ export function QuickTaskCreate({
                     >
                       <div
                         className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[9px] font-mono font-bold"
-                        style={{ backgroundColor: user.color || '#007FFF' }}
+                        style={{ backgroundColor: user.color || '#00C4AE' }}
                       >
                         {user.initials || inicialesDe(user.name)}
                       </div>
@@ -475,7 +475,7 @@ export function QuickTaskCreate({
           className={cn(
             'px-2.5 py-1 rounded text-xs font-mono font-medium transition-colors',
             name.trim()
-              ? 'bg-[#007FFF] hover:bg-[#0066CC] text-white'
+              ? 'bg-[#00C4AE] hover:bg-[#00A896] text-white'
               : isDark ? 'bg-white/5 text-white/20' : 'bg-gray-100 text-gray-400'
           )}
         >

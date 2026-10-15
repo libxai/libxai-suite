@@ -920,14 +920,14 @@ export function TaskFormModal({
                                   </button>
                                 </div>
                                 <div className="grid grid-cols-7 gap-1 mb-1">
-                                  {['D', 'L', 'M', 'M', 'J', 'V', 'S'].map((d, i) => (
+                                  {/* QA Asakaa 2.4.5: semana en LUNES */}{['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((d, i) => (
                                     <div key={i} className="w-7 h-7 flex items-center justify-center text-xs" style={{ color: themeColors.textTertiary }}>{d}</div>
                                   ))}
                                 </div>
                                 <div className="grid grid-cols-7 gap-1">
                                   {(() => {
                                     const year = datePickerMonth.getFullYear(), month = datePickerMonth.getMonth()
-                                    const firstDay = new Date(year, month, 1).getDay()
+                                    const firstDay = (new Date(year, month, 1).getDay() + 6) % 7 // lunes = 0
                                     const daysInMonth = new Date(year, month + 1, 0).getDate()
                                     const today = new Date()
                                     const days: { day: number; date: Date; isCurrentMonth: boolean }[] = []

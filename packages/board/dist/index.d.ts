@@ -1781,8 +1781,11 @@ interface KanbanToolbarProps {
     toolbarRightContent?: React.ReactNode;
     /** v2.5.0: Render content just before the Create Task button (e.g., share/export dropdown) */
     toolbarEndContent?: React.ReactNode;
+    /** QA Asakaa 2.4.8: contenido a la IZQUIERDA de la fila (p. ej. el selector de vista).
+     *  Antes ocupaba una fila propia encima: 41 px menos antes de la primera tarjeta. */
+    toolbarLeftContent?: React.ReactNode;
 }
-declare function KanbanToolbar({ columns, onCreateTask, createTaskLabel, theme, locale, useColumnSelector, onExportCSV, onExportJSON, onExportExcel, translations, toolbarRightContent, toolbarEndContent, }: KanbanToolbarProps): react_jsx_runtime.JSX.Element;
+declare function KanbanToolbar({ columns, onCreateTask, createTaskLabel, theme, locale, useColumnSelector, onExportCSV, onExportJSON, onExportExcel, translations, toolbarRightContent, toolbarEndContent, toolbarLeftContent, }: KanbanToolbarProps): react_jsx_runtime.JSX.Element;
 
 /**
  * AddColumnButton Component

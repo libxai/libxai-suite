@@ -1020,7 +1020,7 @@ export function TaskGrid({
                       </button>
                     </div>
                     <div className="grid grid-cols-7 gap-0.5 mb-1">
-                      {['D', 'L', 'M', 'M', 'J', 'V', 'S'].map((d, i) => (
+                      {/* QA Asakaa 2.4.5: semana en LUNES */}{['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((d, i) => (
                         <div key={i} className="w-6 h-6 flex items-center justify-center text-[10px]" style={{ color: theme.textTertiary }}>{d}</div>
                       ))}
                     </div>
@@ -1028,7 +1028,7 @@ export function TaskGrid({
                       {(() => {
                         const month = datePickerState?.month || new Date();
                         const year = month.getFullYear(), m = month.getMonth();
-                        const firstDay = new Date(year, m, 1).getDay();
+                        const firstDay = (new Date(year, m, 1).getDay() + 6) % 7; // lunes = 0
                         const daysInMonth = new Date(year, m + 1, 0).getDate();
                         const today = new Date();
                         const days: { day: number; date: Date; isCurrentMonth: boolean }[] = [];

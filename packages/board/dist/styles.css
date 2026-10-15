@@ -9208,19 +9208,19 @@ body {
 }
 
 
-.bg-\[\#007FFF\] {
-  --tw-bg-opacity: 1;
-  background-color: rgb(0 127 255 / var(--tw-bg-opacity, 1));
-}
-
-
-.bg-\[\#007FFF\]\/20 {
-  background-color: rgb(0 127 255 / 0.2);
-}
-
-
 .bg-\[\#00A893\]\/30 {
   background-color: rgb(0 168 147 / 0.3);
+}
+
+
+.bg-\[\#00C4AE\] {
+  --tw-bg-opacity: 1;
+  background-color: rgb(0 196 174 / var(--tw-bg-opacity, 1));
+}
+
+
+.bg-\[\#00C4AE\]\/20 {
+  background-color: rgb(0 196 174 / 0.2);
 }
 
 
@@ -10249,12 +10249,6 @@ body {
 }
 
 
-.text-\[\#007FFF\] {
-  --tw-text-opacity: 1;
-  color: rgb(0 127 255 / var(--tw-text-opacity, 1));
-}
-
-
 .text-\[\#00C4AE\] {
   --tw-text-opacity: 1;
   color: rgb(0 196 174 / var(--tw-text-opacity, 1));
@@ -10803,9 +10797,9 @@ body {
 }
 
 
-.ring-\[\#007FFF\] {
+.ring-\[\#00C4AE\] {
   --tw-ring-opacity: 1;
-  --tw-ring-color: rgb(0 127 255 / var(--tw-ring-opacity, 1));
+  --tw-ring-color: rgb(0 196 174 / var(--tw-ring-opacity, 1));
 }
 
 
@@ -11831,9 +11825,9 @@ body {
 }
 
 
-.hover\:bg-\[\#0066CC\]:hover {
+.hover\:bg-\[\#00A896\]:hover {
   --tw-bg-opacity: 1;
-  background-color: rgb(0 102 204 / var(--tw-bg-opacity, 1));
+  background-color: rgb(0 168 150 / var(--tw-bg-opacity, 1));
 }
 
 
