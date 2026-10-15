@@ -763,6 +763,10 @@ export function TaskDetailModal({
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.98 }}
+            /* QA Asakaa 2.6.2 · que se anuncie como ventana emergente. */
+            role="dialog"
+            aria-modal="true"
+            aria-label={locale === 'es' ? 'Detalle de la tarea' : 'Task details'}
             className={cn(
               "fixed inset-4 md:inset-8 lg:inset-12 rounded-xl shadow-2xl z-50 flex overflow-hidden",
               isDark ? "bg-[#1A1D25]" : "bg-white"

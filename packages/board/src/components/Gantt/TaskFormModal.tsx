@@ -196,6 +196,16 @@ export function TaskFormModal({
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
   // v0.18.0: Dependencies dropdown state (same UI as TaskDetailModal)
   const [showDependenciesDropdown, setShowDependenciesDropdown] = useState(false)
+
+  /* QA Asakaa 2.6.2 · una ventana de diálogo se cierra con Escape. Si hay un desplegable
+     abierto, Escape cierra ESE (su propio manejador) y la ventana se queda. */
+  const hayDesplegable = showStatusDropdown || showPriorityDropdown || showAssigneesDropdown || showColorPicker || showDatePicker !== null || showDependenciesDropdown
+  useEffect(() => {
+    if (!isOpen || hayDesplegable) return
+    const alPulsar = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', alPulsar)
+    return () => document.removeEventListener('keydown', alPulsar)
+  }, [isOpen, hayDesplegable, onClose])
   const [dependencySearch, setDependencySearch] = useState('')
   // QA Asakaa 2.3.7: clic fuera o Escape cierran el desplegable sin tragarse el clic.
   const desplegableDepsRef = useRef<HTMLDivElement>(null)
@@ -390,7 +400,11 @@ export function TaskFormModal({
             transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
             className="fixed inset-0 z-[9999] flex items-center justify-center p-4 pointer-events-none"
           >
+            {/* QA Asakaa 2.6.2 · «"Nueva Tarea" no se anuncia como ventana emergente». */}
             <div
+              role="dialog"
+              aria-modal="true"
+              aria-label={mode === 'create' ? (esForm ? 'Nueva tarea' : 'New task') : (esForm ? 'Editar tarea' : 'Edit task')}
               className="w-full max-w-[640px] rounded-xl pointer-events-auto flex flex-col"
               data-theme={theme}
               style={{
@@ -408,6 +422,7 @@ export function TaskFormModal({
                   <input
                     type="text"
                     value={formData.name}
+                    aria-label={esForm ? 'Nombre de la tarea' : 'Task name'}
                     onChange={(e) => handleChange('name', e.target.value)}
                     className="w-full bg-transparent border-none p-0 focus:outline-none focus:ring-0"
                     style={{

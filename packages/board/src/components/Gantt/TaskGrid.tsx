@@ -706,6 +706,9 @@ export function TaskGrid({
                   e.stopPropagation();
                   onTaskToggle?.(task.id);
                 }}
+                /* QA Asakaa 2.6.1 · un botón de solo icono necesita nombre para los lectores de pantalla. */
+                aria-label={esGrid ? (task.isExpanded ? `Contraer ${task.name}` : `Desplegar ${task.name}`) : (task.isExpanded ? `Collapse ${task.name}` : `Expand ${task.name}`)}
+                aria-expanded={!!task.isExpanded}
                 className="p-0.5 hover:bg-opacity-10 rounded transition-colors flex-shrink-0"
                 style={{ color: theme.textSecondary }}
               >

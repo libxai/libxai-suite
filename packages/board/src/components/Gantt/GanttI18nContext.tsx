@@ -30,5 +30,10 @@ export function useGanttI18n(): GanttTranslations {
 
 /** QA Asakaa (mejora 2.1): ¿el Gantt está en español? Para fechas y textos que no viven en `i18n`. */
 export function useGanttEnEspanol(): boolean {
-  return useContext(GanttI18nContext).toolbar.visibility === 'Visibilidad';
+  const t = useContext(GanttI18nContext);
+  /* QA Asakaa 2.6.2 · sin proveedor (p. ej. TaskFormModal abierto desde la app, fuera del
+     Gantt) el contexto es el inglés por defecto aunque la app esté en español: entonces
+     manda el idioma de la página, que la app fija en <html lang>. */
+  if (t === en && typeof document !== 'undefined') return document.documentElement.lang?.startsWith('es') ?? false;
+  return t.toolbar.visibility === 'Visibilidad';
 }
