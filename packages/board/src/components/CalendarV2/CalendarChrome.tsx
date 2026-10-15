@@ -44,7 +44,7 @@ export interface CalTopBarProps {
 const VISTAS: { id: CalView; es: string; en: string; key: string }[] = [
   { id: 'mes', es: 'Mes', en: 'Month', key: 'M' },
   { id: 'semana', es: 'Semana', en: 'Week', key: 'W' },
-  { id: 'lookahead', es: 'Lookahead', en: 'Lookahead', key: '2' },
+  { id: 'lookahead', es: 'Próximas semanas', en: 'Lookahead', key: '2' }, // QA Asakaa 2.1
   { id: 'agenda', es: 'Agenda', en: 'Agenda', key: 'A' },
 ];
 

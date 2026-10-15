@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useContext } from 'react';
+import { useGanttEnEspanol } from './GanttI18nContext';
 import { createPortal } from 'react-dom';
 import { ChevronDown, ChevronRight, ChevronLeft, Plus, Edit3, GripVertical, Calendar, Keyboard } from 'lucide-react';
 import { Task, GanttColumn, ColumnType, GanttTemplates } from './types';
@@ -105,6 +106,7 @@ export function TaskGrid({
   scrollContainerRef, // v0.18.15
   showCriticalPath = false, // v5.1.0
 }: TaskGridProps) {
+  const esGrid = useGanttEnEspanol(); // QA Asakaa 2.1
   // v0.16.2: Get translations from context
   const translations = useContext(GanttI18nContext);
 
@@ -1515,7 +1517,7 @@ export function TaskGrid({
                   setResizeStartX(e.clientX);
                   setResizeStartWidth(column.width);
                 }}
-                title="Drag to resize column"
+                title={esGrid ? 'Arrastra para cambiar el ancho' : 'Drag to resize column'}
               >
                 {/* Visual indicator line — always slightly visible, brighter on hover */}
                 <div

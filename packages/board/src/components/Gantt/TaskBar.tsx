@@ -1,4 +1,5 @@
 import { useRef, useCallback, useEffect, useState } from 'react';
+import { useGanttEnEspanol } from './GanttI18nContext';
 import { inicialesDe } from '../../utils/iniciales';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Task, GanttTemplates } from './types';
@@ -74,6 +75,7 @@ export function TaskBar({
   readOnly = false,
   onProgressChange,
 }: TaskBarProps) {
+  const es = useGanttEnEspanol(); // QA Asakaa 2.1: la ventanita salía en inglés
   // v0.8.1: Centralized drag state management for better modularity
   const dragState = useDragState(x, width);
   const svgRef = useRef<SVGGElement>(null);
@@ -197,7 +199,7 @@ export function TaskBar({
 
   // Format date for tooltip
   const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', {
+    return date.toLocaleDateString(es ? 'es-CO' : 'en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
@@ -207,7 +209,7 @@ export function TaskBar({
   // Calculate duration
   const getDuration = () => {
     const days = Math.ceil((task.endDate!.getTime() - task.startDate!.getTime()) / (1000 * 60 * 60 * 24));
-    return `${days} day${days !== 1 ? 's' : ''}`;
+    return es ? `${days} día${days !== 1 ? 's' : ''}` : `${days} day${days !== 1 ? 's' : ''}`;
   };
 
   // Snap position to nearest day
@@ -1788,7 +1790,7 @@ export function TaskBar({
                 fontSize="11"
                 fontFamily="Inter, sans-serif"
               >
-                Start:
+                {es ? 'Inicio:' : 'Start:'}
               </text>
               <text
                 x={displayX + displayWidth / 2 - 70}
@@ -1808,7 +1810,7 @@ export function TaskBar({
                 fontSize="11"
                 fontFamily="Inter, sans-serif"
               >
-                End:
+                {es ? 'Fin:' : 'End:'}
               </text>
               <text
                 x={displayX + displayWidth / 2 - 70}
@@ -1829,7 +1831,7 @@ export function TaskBar({
                 fontSize="11"
                 fontFamily="Inter, sans-serif"
               >
-                Duration:
+                {es ? 'Duración:' : 'Duration:'}
               </text>
               <text
                 x={displayX + displayWidth / 2 + 65}
@@ -1850,7 +1852,7 @@ export function TaskBar({
                 fontSize="11"
                 fontFamily="Inter, sans-serif"
               >
-                Progress:
+                {es ? 'Avance:' : 'Progress:'}
               </text>
               <text
                 x={displayX + displayWidth / 2 + 65}
@@ -1873,7 +1875,7 @@ export function TaskBar({
                     fontSize="11"
                     fontFamily="Inter, sans-serif"
                   >
-                    Assignees:
+                    {es ? 'Responsables:' : 'Assignees:'}
                   </text>
                   <text
                     x={displayX + displayWidth / 2 - 50}
@@ -1901,10 +1903,10 @@ export function TaskBar({
                   style={{ opacity: 0.7 }}
                 >
                   {isVerySmallBar
-                    ? 'Left: move • Right: resize'
+                    ? (es ? 'Izquierda: mover • Derecha: cambiar tamaño' : 'Left: move • Right: resize')
                     : isSmallBar
-                    ? 'Drag to move • Hold ALT + drag edge to resize'
-                    : 'Drag edges to resize • Drag center to move • Click ⚫ to link'
+                    ? (es ? 'Arrastra para mover • ALT + arrastrar el borde para cambiar tamaño' : 'Drag to move • Hold ALT + drag edge to resize')
+                    : (es ? 'Arrastra los bordes para cambiar tamaño • el centro para mover • ⚫ para enlazar' : 'Drag edges to resize • Drag center to move • Click ⚫ to link')
                   }
                 </text>
               )}

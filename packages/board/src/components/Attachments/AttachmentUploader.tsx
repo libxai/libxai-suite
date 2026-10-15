@@ -209,6 +209,8 @@ export interface AttachmentUploaderProps {
   allowedTypes?: string[]
   /** Max number of files */
   maxFiles?: number
+  /** QA Asakaa 2.1: idioma de los textos (por defecto, inglés). */
+  locale?: 'es' | 'en'
 }
 
 /**
@@ -252,7 +254,9 @@ export function AttachmentUploader({
   maxSizeMB = 10,
   allowedTypes,
   maxFiles = 10,
+  locale = 'en',
 }: AttachmentUploaderProps) {
+  const es = locale === 'es'
   const [isDragging, setIsDragging] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -288,7 +292,7 @@ export function AttachmentUploader({
 
       // Check max files
       if (attachments.length + files.length > maxFiles) {
-        errors.push(`Maximum ${maxFiles} files allowed`)
+        errors.push(es ? `Máximo ${maxFiles} archivos` : `Maximum ${maxFiles} files allowed`)
         return { valid, errors }
       }
 
@@ -296,7 +300,7 @@ export function AttachmentUploader({
         // Check file size
         const sizeMB = file.size / (1024 * 1024)
         if (sizeMB > maxSizeMB) {
-          errors.push(`${file.name} is too large (max ${maxSizeMB}MB)`)
+          errors.push(es ? `${file.name} es demasiado grande (máx. ${maxSizeMB} MB)` : `${file.name} is too large (max ${maxSizeMB}MB)`)
           return
         }
 
@@ -333,7 +337,7 @@ export function AttachmentUploader({
       try {
         await onUpload?.(valid)
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Upload failed')
+        setError(err instanceof Error ? err.message : (es ? 'No se pudo subir' : 'Upload failed'))
         setTimeout(() => setError(null), 5000)
       } finally {
         setIsUploading(false)
@@ -393,7 +397,7 @@ export function AttachmentUploader({
   // Handle delete
   const handleDelete = useCallback(
     (attachmentId: string) => {
-      if (confirm('Are you sure you want to delete this attachment?')) {
+      if (confirm(es ? '¿Eliminar este adjunto?' : 'Are you sure you want to delete this attachment?')) {
         onDelete?.(attachmentId)
       }
     },
@@ -424,7 +428,7 @@ export function AttachmentUploader({
           {isUploading ? (
             <>
               <div className="attachment-spinner" />
-              <p className="attachment-dropzone-text">Uploading...</p>
+              <p className="attachment-dropzone-text">{es ? 'Subiendo…' : 'Uploading...'}</p>
             </>
           ) : (
             <>
@@ -459,11 +463,11 @@ export function AttachmentUploader({
                 />
               </svg>
               <p className="attachment-dropzone-text">
-                {isDragging ? 'Drop files here' : 'Drag & drop files here'}
+                {isDragging ? (es ? 'Suelta los archivos aquí' : 'Drop files here') : (es ? 'Arrastra archivos aquí' : 'Drag & drop files here')}
               </p>
-              <p className="attachment-dropzone-subtext">or click to browse</p>
+              <p className="attachment-dropzone-subtext">{es ? 'o haz clic para elegirlos' : 'or click to browse'}</p>
               <p className="attachment-dropzone-info">
-                Max {maxSizeMB}MB • {attachments.length}/{maxFiles} files
+                {es ? 'Máx.' : 'Max'} {maxSizeMB}MB • {attachments.length}/{maxFiles} {es ? 'archivos' : 'files'}
               </p>
             </>
           )}
@@ -524,7 +528,7 @@ export function AttachmentUploader({
                   <span className="attachment-size">{formatFileSize(attachment.size)}</span>
                   <span className="attachment-separator">•</span>
                   <span className="attachment-date">
-                    {new Date(attachment.uploadedAt).toLocaleDateString()}
+                    {new Date(attachment.uploadedAt).toLocaleDateString(es ? 'es-CO' : 'en-US')}
                   </span>
                 </div>
               </div>

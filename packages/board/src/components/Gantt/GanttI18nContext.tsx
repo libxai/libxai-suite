@@ -27,3 +27,8 @@ export const GanttI18nContext = createContext<GanttTranslations>(en);
 export function useGanttI18n(): GanttTranslations {
   return useContext(GanttI18nContext);
 }
+
+/** QA Asakaa (mejora 2.1): ¿el Gantt está en español? Para fechas y textos que no viven en `i18n`. */
+export function useGanttEnEspanol(): boolean {
+  return useContext(GanttI18nContext).toolbar.visibility === 'Visibilidad';
+}

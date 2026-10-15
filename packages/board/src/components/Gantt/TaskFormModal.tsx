@@ -9,6 +9,7 @@
  */
 
 import { useState, useEffect, useRef } from 'react'
+import { useGanttEnEspanol } from './GanttI18nContext';
 import { inicialesDe } from '../../utils/iniciales';
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -173,6 +174,7 @@ export function TaskFormModal({
   onDeleteAttachment,
   defaultStatus,
 }: TaskFormModalProps) {
+  const esForm = useGanttEnEspanol(); // QA Asakaa 2.1
   const allStatuses: CustomStatus[] = [
     ...DEFAULT_STATUSES,
     ...customStatuses.filter(cs => !DEFAULT_STATUSES.some(ds => ds.id === cs.id)),
@@ -1148,6 +1150,7 @@ export function TaskFormModal({
                                 </div>
                                 {mode === 'create' ? (
                                   <AttachmentUploader
+                                    locale={esForm ? 'es' : 'en'}
                                     cardId="pending"
                                     attachments={pendingFiles.map((file, idx) => ({
                                       id: `pending-${idx}`,
@@ -1169,6 +1172,7 @@ export function TaskFormModal({
                                   />
                                 ) : (
                                   <AttachmentUploader
+                                    locale={esForm ? 'es' : 'en'}
                                     cardId={task?.id || 'new'}
                                     attachments={attachments}
                                     onUpload={onUploadAttachments && task?.id ? (files) => onUploadAttachments(task.id, files) : undefined}

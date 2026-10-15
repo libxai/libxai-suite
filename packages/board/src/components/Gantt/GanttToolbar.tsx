@@ -1230,7 +1230,7 @@ function ForecastHUD({ theme, forecast }: { theme: any; forecast?: ProjectForeca
 
   // Format expected finish date
   const finishLabel = forecast?.expectedFinish
-    ? forecast.expectedFinish.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+    ? forecast.expectedFinish.toLocaleDateString(t.toolbar.visibility === 'Visibilidad' ? 'es-CO' : 'en-US', { month: 'short', day: 'numeric' })
     : '—';
 
   // Delay badge — always show when baseline is active (including "On Time" at 0)

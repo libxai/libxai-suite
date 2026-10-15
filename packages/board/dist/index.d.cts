@@ -2118,8 +2118,10 @@ interface AttachmentUploaderProps {
     allowedTypes?: string[];
     /** Max number of files */
     maxFiles?: number;
+    /** QA Asakaa 2.1: idioma de los textos (por defecto, inglés). */
+    locale?: 'es' | 'en';
 }
-declare function AttachmentUploader({ attachments, onUpload, onDelete, maxSizeMB, allowedTypes, maxFiles, }: AttachmentUploaderProps): react_jsx_runtime.JSX.Element;
+declare function AttachmentUploader({ attachments, onUpload, onDelete, maxSizeMB, allowedTypes, maxFiles, locale, }: AttachmentUploaderProps): react_jsx_runtime.JSX.Element;
 
 interface VelocityDataPoint {
     /** Period name (e.g., "Week 1", "Sprint 3") */
