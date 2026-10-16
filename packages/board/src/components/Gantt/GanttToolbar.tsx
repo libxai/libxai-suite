@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { ZoomIn, ZoomOut, Sun, Moon, Palette, Download, FileImage, FileSpreadsheet, FileText, FileJson, ChevronDown, FolderKanban, Plus, Rows3, Check, Filter, CheckCircle2, PlayCircle, Circle, EyeOff, Eye, Share2, Layers, GitBranch, CalendarDays, Zap, Link2 } from 'lucide-react';
+import { ZoomIn, ZoomOut, Sun, Moon, Palette, Download, FileImage, FileSpreadsheet, FileText, FileJson, ChevronDown, FolderKanban, Plus, Rows3, Rows2, Rows4, Check, Filter, CheckCircle2, PlayCircle, Circle, EyeOff, Eye, Share2, Layers, GitBranch, CalendarDays, Zap, Link2 } from 'lucide-react';
 import { TimeScale, Theme, RowDensity, TaskFilterType, ProjectForecast } from './types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGanttI18n } from './GanttI18nContext'; // v0.15.0: i18n
@@ -1189,6 +1189,51 @@ function FilterDropdown({ theme, value, onChange, hideCompleted = false, onHideC
 /**
  * Chronos V2: Time Capsule — pill-shaped time scale selector
  */
+/**
+ * QA Asakaa · mejora fuerte 6: «densidad a la vista». Estaba dentro del menú Vista; ahora, también
+ * aquí, junto a la escala: tres iconos (compacta, normal, amplia) con su nombre al pasar el ratón.
+ */
+function DensityCapsule({ value, onChange, theme }: { value: RowDensity; onChange: (d: RowDensity) => void; theme: any }) {
+  const t = useGanttI18n();
+  const isDark = theme.bgPrimary === '#050505' || theme.textPrimary === '#FFFFFF';
+  const es = t.toolbar.visibility === 'Visibilidad';
+  const opciones: Array<{ value: RowDensity; label: string; Icono: typeof Rows3 }> = [
+    { value: 'compact', label: t.toolbar.compact || 'Compact', Icono: Rows4 },
+    { value: 'comfortable', label: t.toolbar.normal || 'Normal', Icono: Rows3 },
+    { value: 'spacious', label: t.toolbar.spacious || 'Spacious', Icono: Rows2 },
+  ];
+  return (
+    <div
+      role="group"
+      aria-label={es ? 'Densidad de las filas' : 'Row density'}
+      data-densidad-a-la-vista
+      className="inline-flex items-center rounded-full p-0.5"
+      style={{ backgroundColor: isDark ? '#000000' : theme.bgSecondary, border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : theme.border}` }}
+    >
+      {opciones.map(({ value: v, label, Icono }) => {
+        const activo = value === v;
+        return (
+          <button
+            key={v}
+            type="button"
+            onClick={() => onChange(v)}
+            aria-pressed={activo}
+            aria-label={(es ? 'Densidad: ' : 'Density: ') + label}
+            title={(es ? 'Densidad: ' : 'Density: ') + label}
+            className="relative px-2 py-1 rounded-full transition-colors"
+            style={{
+              color: activo ? (isDark ? '#FFFFFF' : theme.textPrimary) : theme.textTertiary,
+              backgroundColor: activo ? (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)') : 'transparent',
+            }}
+          >
+            <Icono className="w-3.5 h-3.5" />
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function TimeCapsule({ value, onChange, theme }: { value: TimeScale; onChange: (s: TimeScale) => void; theme: any }) {
   const t = useGanttI18n();
   const isDark = theme.bgPrimary === '#050505' || theme.textPrimary === '#FFFFFF';
@@ -1739,6 +1784,7 @@ export function GanttToolbar({
     return (
       <div className="flex items-center gap-2">
         <TimeCapsule value={timeScale} onChange={onTimeScaleChange} theme={theme} />
+        <DensityCapsule value={rowDensity} onChange={onRowDensityChange} theme={theme} />
         {onTaskFilterChange && (
           <FilterDropdown
             theme={theme}
@@ -1867,6 +1913,7 @@ export function GanttToolbar({
           <div className="flex items-center gap-3">
             {/* Time Capsule */}
             <TimeCapsule value={timeScale} onChange={onTimeScaleChange} theme={theme} />
+            <DensityCapsule value={rowDensity} onChange={onRowDensityChange} theme={theme} />
 
             {/* Divider */}
             <div className="w-px h-5" style={{ backgroundColor: dividerColor }} />

@@ -7757,6 +7757,11 @@ body {
 }
 
 
+.me-8 {
+  margin-inline-end: 2rem;
+}
+
+
 .ml-0\.5 {
   margin-left: 0.125rem;
 }

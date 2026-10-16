@@ -5,7 +5,7 @@ import { deriveThemeFromCSS } from './deriveThemeFromCSS';
 import { GanttToolbar } from './GanttToolbar';
 import { TaskGrid } from './TaskGrid';
 import { Timeline } from './Timeline';
-import { conHoy, fechaAlAbrir, inicioDeLaEscala, ladoDeHoy } from './rangoDeLaEscala';
+import { anchoDelDia, conHoy, fechaAlAbrir, inicioDeLaEscala, ladoDeHoy } from './rangoDeLaEscala';
 import { calendarioDe, fechasQueCumplen, empujarSucesoras } from './motorDeProgramacion';
 import { ContextMenu, MenuIcons } from './ContextMenu'; // v0.8.0: Split task context menu
 import { TaskDetailModal } from '../TaskDetailModal'; // v0.17.244: Unified task detail modal (replaces TaskFormModal)
@@ -863,7 +863,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     const sd = scrollToTodayDepsRef.current;
     if (!scrollEl || !sd) return;
     const days = (date.getTime() - sd.startDate.getTime()) / (1000 * 60 * 60 * 24);
-    const dayWidth = sd.timeScale === 'day' ? 60 : sd.timeScale === 'week' ? 20 : 8;
+    const dayWidth = anchoDelDia(sd.timeScale);
     const x = days * dayWidth * sd.zoom;
     const target = align === 'center' ? x - scrollEl.clientWidth / 2 : x - dayWidth * sd.zoom * 2;
     scrollEl.scrollTo({ left: Math.max(0, target), behavior: 'auto' });
@@ -1224,7 +1224,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       const daysFromStart = (today.getTime() - sd.startDate.getTime()) / (1000 * 60 * 60 * 24);
       // Match the dayWidth formula used inside Timeline.tsx so the
       // computed pixel position lines up with the rendered TODAY line.
-      const dayWidth = sd.timeScale === 'day' ? 60 : sd.timeScale === 'week' ? 20 : 8;
+      const dayWidth = anchoDelDia(sd.timeScale);
       const todayX = daysFromStart * dayWidth * sd.zoom;
       const viewportWidth = scrollEl.clientWidth;
       // Center today in the viewport. Clamp to valid scroll range.
@@ -1736,7 +1736,13 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   }, [onDependencyDelete]);
 
   // Calculate date range (memoized)
-  const { startDate, endDate, primeraTarea, ultimaTarea } = useMemo(() => {
+  const { startDate, endDate, primeraTarea, ultimaTarea, primeraPendiente } = useMemo(() => {
+    /* Mejora fuerte 6 · la primera tarea SIN TERMINAR (hoja con fechas): donde abre el Gantt si hoy
+       no cae dentro de las tareas. */
+    const pendientes = ganttUtils.flattenTasks(localTasks)
+      .filter((t) => t.startDate && !(t.subtasks?.length) && (t.progress ?? 0) < 100 && t.status !== 'completed')
+      .map((t) => t.startDate!.getTime());
+    const primeraPendiente = pendientes.length ? new Date(Math.min(...pendientes)) : null;
     // Filter tasks that have dates
     const tasksWithDates = localTasks.filter(t => t.startDate && t.endDate);
 
@@ -1747,7 +1753,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       start.setDate(start.getDate() - 30);
       const end = new Date(today);
       end.setDate(end.getDate() + 60);
-      return { startDate: inicioDeLaEscala(start, timeScale), endDate: end, primeraTarea: null as Date | null, ultimaTarea: null as Date | null };
+      return { startDate: inicioDeLaEscala(start, timeScale), endDate: end, primeraTarea: null as Date | null, ultimaTarea: null as Date | null, primeraPendiente };
     }
 
     const allDates = tasksWithDates.flatMap((t) => [t.startDate, t.endDate]).filter((d): d is Date => d !== undefined);
@@ -1765,7 +1771,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     maxDate.setDate(maxDate.getDate() + padding);
 
     // QA Asakaa E13: Semana empieza en lunes y Mes en el día 1 (rangoDeLaEscala.ts).
-    return { startDate: inicioDeLaEscala(minDate, timeScale), endDate: maxDate, primeraTarea, ultimaTarea };
+    return { startDate: inicioDeLaEscala(minDate, timeScale), endDate: maxDate, primeraTarea, ultimaTarea, primeraPendiente };
   }, [localTasks, timeScale]);
 
   // v1.5.1: Notify consumer of computed date range
@@ -1782,7 +1788,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   // const handleTodayClick = () => {
   //   if (timelineScrollRef.current) {
   //     const today = new Date();
-  //     const dayWidth = timeScale === 'day' ? 60 : timeScale === 'week' ? 20 : 8;
+  //     const dayWidth = anchoDelDia(timeScale);
   //     const daysFromStart = (today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
   //     const scrollX = daysFromStart * dayWidth * zoom - 300;
   //     timelineScrollRef.current.scrollTo({ left: Math.max(0, scrollX), behavior: 'smooth' });
@@ -2109,7 +2115,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     if (!onTodayVisibilityChange) return;
     const scrollEl = timelineScrollRef.current;
     if (!scrollEl) return;
-    const dayWidth = timeScale === 'day' ? 60 : timeScale === 'week' ? 20 : 8;
+    const dayWidth = anchoDelDia(timeScale);
     const compute = () => {
       const today = new Date();
       const daysFromStart = (today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
@@ -2162,8 +2168,8 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
 
     const timelineScroll = timelineScrollRef.current;
     // Hoy si cae dentro de las tareas; si no, el borde de las tareas más cercano.
-    const today = sinTareas ? new Date() : fechaAlAbrir(primeraTarea, ultimaTarea, new Date());
-    const dayWidth = timeScale === 'day' ? 60 : timeScale === 'week' ? 20 : 8;
+    const today = sinTareas ? new Date() : fechaAlAbrir(primeraTarea, ultimaTarea, new Date(), primeraPendiente);
+    const dayWidth = anchoDelDia(timeScale);
     const daysFromStart = (today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
 
     // Calculate scroll position to center today in the viewport
@@ -2176,7 +2182,47 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       timelineScroll.scrollLeft = Math.max(0, scrollX);
     }
     return undefined;
-  }, [localTasks.length, startDate, timeScale, zoom, reintentoScroll, primeraTarea, ultimaTarea]); // Re-run when tasks load
+  }, [localTasks.length, startDate, timeScale, zoom, reintentoScroll, primeraTarea, ultimaTarea, primeraPendiente]); // Re-run when tasks load
+
+  /* Mejora fuerte 6 · «escalas correctas»: al cambiar de escala (o de zoom) se queda centrada la MISMA
+     fecha; antes la vista saltaba a hoy y se perdían las barras que se estaban mirando. */
+  const fechaEnElCentroRef = useRef<Date | null>(null);
+  const escalaAnteriorRef = useRef<{ timeScale: TimeScale; zoom: number } | null>(null);
+  useLayoutEffect(() => {
+    const antes = escalaAnteriorRef.current;
+    escalaAnteriorRef.current = { timeScale, zoom };
+    if (!antes || (antes.timeScale === timeScale && antes.zoom === zoom)) return;
+    const el = timelineScrollRef.current;
+    const centro = fechaEnElCentroRef.current;
+    if (!el || !centro || el.clientWidth === 0) return;
+    const x = ((centro.getTime() - startDate.getTime()) / 864e5) * anchoDelDia(timeScale) * zoom;
+    el.scrollLeft = Math.max(0, x - el.clientWidth / 2);
+  }, [timeScale, zoom, startDate]);
+
+  /* Mejora fuerte 6 · la ventana visible (px), para marcar las barras que quedan fuera de vista. */
+  const [ventanaVisible, setVentanaVisible] = useState<{ izq: number; der: number } | null>(null);
+  useEffect(() => {
+    const el = timelineScrollRef.current;
+    if (!el) return;
+    let cuadro = 0;
+    const medir = () => {
+      cancelAnimationFrame(cuadro);
+      cuadro = requestAnimationFrame(() => {
+        const izq = el.scrollLeft;
+        const der = izq + el.clientWidth;
+        setVentanaVisible((v) => (v && v.izq === izq && v.der === der ? v : { izq, der }));
+        // la fecha que está en el centro: se conserva al cambiar de escala
+        if (hasScrolledToToday.current && el.clientWidth > 0) {
+          const dias = (izq + el.clientWidth / 2) / (anchoDelDia(timeScale) * zoom);
+          fechaEnElCentroRef.current = new Date(startDate.getTime() + dias * 864e5);
+        }
+      });
+    };
+    medir();
+    el.addEventListener('scroll', medir, { passive: true });
+    window.addEventListener('resize', medir);
+    return () => { cancelAnimationFrame(cuadro); el.removeEventListener('scroll', medir); window.removeEventListener('resize', medir); };
+  }, [timeScale, zoom, startDate]);
 
   /*
    * QA Asakaa E22: «tras asignar fechas con un clic o arrastrar una barra, el
@@ -2193,7 +2239,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     if (antes.timeScale !== timeScale || antes.zoom !== zoom || antes.t === startDate.getTime()) return;
     const el = timelineScrollRef.current;
     if (!el) return;
-    const dayWidth = timeScale === 'day' ? 60 : timeScale === 'week' ? 20 : 8;
+    const dayWidth = anchoDelDia(timeScale);
     const dias = (antes.t - startDate.getTime()) / (1000 * 60 * 60 * 24);
     el.scrollLeft = Math.max(0, el.scrollLeft + dias * dayWidth * zoom);
   }, [startDate, timeScale, zoom]);
@@ -2445,6 +2491,10 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
             weekHeaderFormat={config.weekHeaderFormat}
             canEditTask={permissions?.canEditTask}
             workingDaysConfig={config?.workingDaysConfig}
+            ventanaVisible={ventanaVisible}
+            onIrAFecha={(d: Date) => desplazarA(d, 'center')}
+            finPlaneado={config?.finPlaneado ?? null}
+            finPrevisto={config?.projectForecast?.expectedFinish ?? null}
           />
         </div>
       </div>

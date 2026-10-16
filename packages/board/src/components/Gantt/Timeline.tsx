@@ -6,6 +6,7 @@ import { DependencyLine } from './DependencyLine';
 import { Milestone } from './Milestone';
 import { ganttUtils } from './ganttUtils';
 import { calendarioDe, empujarSucesoras, enlacesDe, conflictosDelCronograma } from './motorDeProgramacion';
+import { anchoDelDia, ladoFueraDeVista } from './rangoDeLaEscala';
 
 /** Mejora fuerte 5 · «CC +2», «FF», «+1»: el tipo (si no es FC) y el desfase (si no es 0). FC/CC/FF/CF en español. */
 function etiquetaDelEnlace(tipo: 'FS' | 'SS' | 'FF' | 'SF', desfase: number, locale: string): string | undefined {
@@ -18,6 +19,12 @@ function etiquetaDelEnlace(tipo: 'FS' | 'SS' | 'FF' | 'SF', desfase: number, loc
 import { useGanttI18n } from './GanttI18nContext';
 
 interface TimelineProps {
+  /** Mejora fuerte 6 · la ventana visible (px) para marcar las barras fuera de vista, y adónde ir. */
+  ventanaVisible?: { izq: number; der: number } | null;
+  onIrAFecha?: (fecha: Date) => void;
+  /** Mejora fuerte 6 · fin planeado del proyecto y fin previsto (pronóstico). */
+  finPlaneado?: Date | null;
+  finPrevisto?: Date | null;
   tasks: Task[];
   theme: any;
   rowHeight: number;
@@ -84,6 +91,10 @@ export function Timeline({
   canEditTask,
   onTaskProgressDrag,
   workingDaysConfig,
+  ventanaVisible,
+  onIrAFecha,
+  finPlaneado,
+  finPrevisto,
 }: TimelineProps) {
   const HEADER_HEIGHT = 48; // Must match TaskGrid's HEADER_HEIGHT for alignment
 
@@ -167,7 +178,7 @@ export function Timeline({
 
   // Calculate dimensions
   const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-  const dayWidth = timeScale === 'day' ? 60 : timeScale === 'week' ? 20 : 8;
+  const dayWidth = anchoDelDia(timeScale); // mejora fuerte 6: la misma regla que GanttBoard
   const timelineWidth = totalDays * dayWidth * zoom;
 
   // Get week number - moved before useMemo
@@ -1226,6 +1237,55 @@ export function Timeline({
             />
           </g>
         )}
+
+        {/* Mejora fuerte 6 · el fin PLANEADO (gris) y el fin PREVISTO (ámbar): la distancia es el retraso. */}
+        {[
+          { fecha: finPlaneado, clave: 'planeado', texto: locale === 'es' ? 'Fin planeado' : 'Planned end', color: theme.textTertiary || '#94A3B8' },
+          { fecha: finPrevisto, clave: 'previsto', texto: locale === 'es' ? 'Fin previsto' : 'Expected end', color: '#F59E0B' },
+        ].map((m, i, todos) => {
+          if (!m.fecha) return null;
+          // al FINAL de ese día (la barra que termina ese día llega hasta aquí)
+          const x = (((m.fecha.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1) * dayWidth * zoom;
+          if (x < 0 || x > timelineWidth) return null;
+          const primero = todos[0]?.fecha;
+          const mismoDia = i === 1 && !!primero && Math.abs(primero.getTime() - m.fecha.getTime()) < 864e5;
+          const etiquetaY = 4 + (mismoDia ? 16 : 0);
+          return (
+            <g key={m.clave} data-fin={m.clave} style={{ pointerEvents: 'none' }}>
+              <line x1={x} y1={0} x2={x} y2={contentHeight} stroke={m.color} strokeWidth={1.5} strokeDasharray="5 4" opacity={0.9} />
+              <rect x={x + 3} y={etiquetaY} width={m.texto.length * 5.6 + 10} height={14} rx={3} fill={theme.bgPrimary || '#0F1115'} opacity={0.9} />
+              <text x={x + 8} y={etiquetaY + 10} fontSize={9} fontWeight={600} fill={m.color} style={{ fontFamily: 'Inter, sans-serif' }}>{m.texto}</text>
+            </g>
+          );
+        })}
+
+        {/* Mejora fuerte 6 · «indicador cuando una barra queda fuera de vista»: en su fila, junto al
+            borde, la fecha y una flecha; un clic lleva a la barra. */}
+        {ventanaVisible && flatTasks.map((t, index) => {
+          if (!t.startDate || !t.endDate) return null;
+          const pos = getTaskPosition(t);
+          const lado = ladoFueraDeVista(pos.x, pos.x + pos.width, ventanaVisible.izq, ventanaVisible.der);
+          if (!lado) return null;
+          const fecha = lado === 'left' ? t.endDate : t.startDate;
+          const texto = lado === 'left'
+            ? `◀ ${fecha.toLocaleDateString(locale, { day: 'numeric', month: 'short' })}`
+            : `${fecha.toLocaleDateString(locale, { day: 'numeric', month: 'short' })} ▶`;
+          const ancho = texto.length * 5.8 + 10;
+          const x = lado === 'left' ? ventanaVisible.izq + 4 : ventanaVisible.der - ancho - 4;
+          const y = index * ROW_HEIGHT + ROW_HEIGHT / 2 - 8;
+          return (
+            <g
+              key={`fuera-${t.id}`}
+              data-fuera-de-vista={lado}
+              style={{ cursor: onIrAFecha ? 'pointer' : 'default' }}
+              onClick={() => onIrAFecha?.(t.startDate!)}
+            >
+              <title>{locale === 'es' ? `«${t.name}» está fuera de la vista: clic para ir` : `"${t.name}" is out of view: click to go`}</title>
+              <rect x={x} y={y} width={ancho} height={16} rx={8} fill={theme.bgSecondary || '#1A1D21'} stroke={theme.border || 'rgba(148,163,184,0.4)'} strokeWidth={1} opacity={0.95} />
+              <text x={x + ancho / 2} y={y + 11.5} fontSize={9.5} textAnchor="middle" fill={theme.textSecondary || '#94A3B8'} style={{ fontFamily: 'Inter, sans-serif' }}>{texto}</text>
+            </g>
+          );
+        })}
 
       </svg>
 

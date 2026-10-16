@@ -13,6 +13,14 @@
  */
 export type EscalaDelGantt = 'day' | 'week' | 'month';
 
+/**
+ * QA Asakaa · mejora fuerte 6 («falta la lógica de escalas»): el ancho de UN día en cada escala,
+ * en un solo sitio. Estaba copiado en siete; una copia distinta es justo el tipo de fallo de E13.
+ */
+export function anchoDelDia(escala: EscalaDelGantt): number {
+  return escala === 'day' ? 60 : escala === 'week' ? 20 : 8;
+}
+
 export function inicioDeLaEscala(fecha: Date, escala: EscalaDelGantt): Date {
   const d = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate());
   if (escala === 'week') {
@@ -40,11 +48,22 @@ export function conHoy(inicio: Date, fin: Date, hoy: Date): { inicio: Date; fin:
   };
 }
 
-export function fechaAlAbrir(primeraTarea: Date | null, ultimaTarea: Date | null, hoy: Date): Date {
+/**
+ * Mejora fuerte 6 · «apertura en hoy o en la primera tarea pendiente»: hoy si cae dentro de las
+ * tareas; si no, la primera tarea sin terminar; si no queda ninguna, el borde más cercano a hoy.
+ */
+export function fechaAlAbrir(primeraTarea: Date | null, ultimaTarea: Date | null, hoy: Date, primeraPendiente?: Date | null): Date {
   if (!primeraTarea || !ultimaTarea) return hoy;
-  if (hoy < primeraTarea) return primeraTarea;
-  if (hoy > ultimaTarea) return ultimaTarea;
-  return hoy;
+  if (hoy >= primeraTarea && hoy <= ultimaTarea) return hoy;
+  if (primeraPendiente) return primeraPendiente;
+  return hoy < primeraTarea ? primeraTarea : ultimaTarea;
+}
+
+/** Mejora fuerte 6 · ¿la barra [xInicio, xFin] queda fuera de la vista? ¿De qué lado? */
+export function ladoFueraDeVista(xInicio: number, xFin: number, izquierda: number, derecha: number): 'left' | 'right' | null {
+  if (xFin < izquierda) return 'left';
+  if (xInicio > derecha) return 'right';
+  return null;
 }
 
 /** De qué lado de la vista queda hoy (para la flecha de la píldora «Hoy»). */

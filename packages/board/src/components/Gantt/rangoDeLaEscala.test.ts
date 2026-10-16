@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { conHoy, fechaAlAbrir, inicioDeLaEscala, ladoDeHoy } from './rangoDeLaEscala';
+import { anchoDelDia, conHoy, fechaAlAbrir, inicioDeLaEscala, ladoDeHoy, ladoFueraDeVista } from './rangoDeLaEscala';
+import { readFileSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
 
 const dia = (d: Date) => `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()} ${d.getHours()}:${d.getMinutes()}`;
 
@@ -47,5 +49,39 @@ describe('Hoy en el Gantt (QA Asakaa E16)', () => {
     expect(ladoDeHoy(50, 100, 900)).toBe('left');
     expect(ladoDeHoy(1200, 100, 900)).toBe('right');
     expect(ladoDeHoy(500, 100, 900)).toBeNull();
+  });
+});
+
+describe('mejora fuerte 6 · una sola lógica de escala', () => {
+  it('el ancho de un día por escala', () => {
+    expect([anchoDelDia('day'), anchoDelDia('week'), anchoDelDia('month')]).toEqual([60, 20, 8]);
+  });
+  it('ningún fichero del Gantt vuelve a copiar la fórmula (la copia distinta fue E13)', () => {
+    for (const f of readdirSync(__dirname).filter((x) => /\.(ts|tsx)$/.test(x) && !x.includes('.test.') && x !== 'rangoDeLaEscala.ts')) {
+      const s = readFileSync(join(__dirname, f), 'utf8').split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
+      expect(s, `${f} copia el ancho por escala`).not.toMatch(/'week' \? 20 : 8/);
+    }
+  });
+});
+
+describe('mejora fuerte 6 · abrir en hoy o en la primera tarea pendiente', () => {
+  const ene = new Date(2026, 0, 5), mar = new Date(2026, 2, 30), feb = new Date(2026, 1, 10), oct = new Date(2026, 9, 16);
+  it('hoy dentro de las tareas: hoy', () => {
+    expect(dia(fechaAlAbrir(ene, oct, new Date(2026, 5, 1), feb))).toBe(dia(new Date(2026, 5, 1)));
+  });
+  it('hoy fuera: la primera pendiente (no el borde)', () => {
+    expect(dia(fechaAlAbrir(ene, mar, oct, feb))).toBe(dia(feb));
+  });
+  it('sin pendientes (todo terminado): el borde más cercano, como antes', () => {
+    expect(dia(fechaAlAbrir(ene, mar, oct, null))).toBe(dia(mar));
+  });
+});
+
+describe('mejora fuerte 6 · barra fuera de vista', () => {
+  it('a la izquierda, a la derecha o visible (aunque sea un trozo)', () => {
+    expect(ladoFueraDeVista(10, 90, 100, 500)).toBe('left');
+    expect(ladoFueraDeVista(510, 600, 100, 500)).toBe('right');
+    expect(ladoFueraDeVista(80, 120, 100, 500)).toBeNull();
+    expect(ladoFueraDeVista(450, 700, 100, 500)).toBeNull();
   });
 });

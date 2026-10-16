@@ -619,6 +619,11 @@ interface GanttConfig {
      */
     projectForecast?: ProjectForecast;
     /**
+     * QA Asakaa · mejora fuerte 6: el fin PLANEADO del proyecto (su fecha de fin). Se marca en el
+     * cronograma junto al fin PREVISTO (projectForecast.expectedFinish): la distancia es el retraso.
+     */
+    finPlaneado?: Date | null;
+    /**
      * Oculta la barra interna del pronóstico (Forecast HUD) aunque se pase
      * projectForecast. Útil cuando el consumidor muestra el pronóstico en su propia
      * barra (p. ej. una barra de áreas del proyecto) y no quiere duplicarlo.
@@ -3001,6 +3006,15 @@ interface WorkingDaysConfig {
 }
 
 interface TimelineProps {
+    /** Mejora fuerte 6 · la ventana visible (px) para marcar las barras fuera de vista, y adónde ir. */
+    ventanaVisible?: {
+        izq: number;
+        der: number;
+    } | null;
+    onIrAFecha?: (fecha: Date) => void;
+    /** Mejora fuerte 6 · fin planeado del proyecto y fin previsto (pronóstico). */
+    finPlaneado?: Date | null;
+    finPrevisto?: Date | null;
     tasks: Task[];
     theme: any;
     rowHeight: number;
@@ -3043,7 +3057,7 @@ declare function Timeline({ tasks, theme, rowHeight: ROW_HEIGHT, timeScale, star
 templates, dependencyLineStyle, // v0.17.310
 showTaskBarLabels, onTaskClick, onTaskDblClick, // v0.8.0
 onTaskContextMenu, // v0.8.0
-onTaskDateChange, onDependencyCreate, onDependencyDelete, showBaseline, showCriticalPath, showDependencies, highlightWeekends, weekHeaderFormat, canEditTask, onTaskProgressDrag, workingDaysConfig, }: TimelineProps): react_jsx_runtime.JSX.Element;
+onTaskDateChange, onDependencyCreate, onDependencyDelete, showBaseline, showCriticalPath, showDependencies, highlightWeekends, weekHeaderFormat, canEditTask, onTaskProgressDrag, workingDaysConfig, ventanaVisible, onIrAFecha, finPlaneado, finPrevisto, }: TimelineProps): react_jsx_runtime.JSX.Element;
 
 /**
  * ═══ EL MOTOR DEL CRONOGRAMA (QA Asakaa, mejora fuerte 5) ════════════════════════

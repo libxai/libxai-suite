@@ -707,6 +707,11 @@ export interface GanttConfig {
    */
   projectForecast?: ProjectForecast;
   /**
+   * QA Asakaa · mejora fuerte 6: el fin PLANEADO del proyecto (su fecha de fin). Se marca en el
+   * cronograma junto al fin PREVISTO (projectForecast.expectedFinish): la distancia es el retraso.
+   */
+  finPlaneado?: Date | null;
+  /**
    * Oculta la barra interna del pronóstico (Forecast HUD) aunque se pase
    * projectForecast. Útil cuando el consumidor muestra el pronóstico en su propia
    * barra (p. ej. una barra de áreas del proyecto) y no quiere duplicarlo.
