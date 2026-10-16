@@ -3903,7 +3903,7 @@ type SortDirection = 'asc' | 'desc';
  * - v1.2.0: effortMinutes, timeLoggedMinutes, soldEffortMinutes
  * - Custom: text, number, date, dropdown, checkbox
  */
-type ColumnType = 'name' | 'status' | 'priority' | 'assignees' | 'startDate' | 'endDate' | 'progress' | 'tags' | 'estimatedTime' | 'quotedTime' | 'elapsedTime' | 'effortMinutes' | 'timeLoggedMinutes' | 'soldEffortMinutes' | 'scheduleVariance' | 'hoursBar' | 'teamLoad' | 'blockers' | 'weight' | 'text' | 'number' | 'date' | 'dropdown' | 'checkbox' | 'multiselect' | 'person' | 'file';
+type ColumnType = 'name' | 'status' | 'priority' | 'assignees' | 'startDate' | 'endDate' | 'progress' | 'tags' | 'estimatedTime' | 'quotedTime' | 'elapsedTime' | 'effortMinutes' | 'timeLoggedMinutes' | 'soldEffortMinutes' | 'scheduleVariance' | 'hoursBar' | 'costBar' | 'teamLoad' | 'blockers' | 'weight' | 'text' | 'number' | 'date' | 'dropdown' | 'checkbox' | 'multiselect' | 'person' | 'file';
 /**
  * Table column configuration for dynamic columns
  */
@@ -4097,6 +4097,11 @@ interface ProjectHealthData {
     /** v2.6.0 — Travel/per-diem portion of the executed cost (for breakdown tooltip) */
     totalExecutedTravel?: number;
     offeredRate?: number;
+    /**
+     * QA Asakaa · mejora fuerte 3: si las cifras de dinero son atípicas (margen < −100 %, costo
+     * > 5× lo planeado, negativos, tarifas en escalas distintas), el porqué. Sale «⚠ revisar».
+     */
+    avisoRevisar?: string;
 }
 /**
  * ListView configuration
@@ -4172,6 +4177,12 @@ interface ListViewConfig {
     healthSidebar?: {
         enabled: boolean;
         data: ProjectHealthData;
+        /**
+         * QA Asakaa · mejora fuerte 3: la lente del PANEL, aparte de la de la tabla. Con horas y
+         * costo en columnas separadas la tabla va en 'hours', y el panel sigue en 'financial'.
+         * Sin ella, el panel usa `lens`.
+         */
+        lens?: 'hours' | 'financial';
     };
     /** Aggregate child hours into parent row hoursBar cell (default: false) */
     aggregateParentHours?: boolean;
@@ -4290,6 +4301,7 @@ interface ListViewTranslations {
         tags?: string;
         scheduleVariance?: string;
         hoursBar?: string;
+        costBar?: string;
         teamLoad?: string;
         blockers?: string;
         weight?: string;

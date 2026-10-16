@@ -39,6 +39,7 @@ export type ColumnType =
   // v2.0.0: Chronos Interactive Time Manager columns
   | 'scheduleVariance'    // Schedule dates + variance badge
   | 'hoursBar'            // Visual hours bar (spent/allocated) + Log button
+  | 'costBar'             // QA Asakaa · mejora fuerte 3: el DINERO (ejecutado / asignado), columna aparte de las horas
   | 'teamLoad'            // Avatar + team name + load badge
   | 'blockers'            // Blocker badges (RFI, Pending, etc.)
   // v2.1.0: Weight column for weighted progress
@@ -282,6 +283,11 @@ export interface ProjectHealthData {
   /** v2.6.0 — Travel/per-diem portion of the executed cost (for breakdown tooltip) */
   totalExecutedTravel?: number;
   offeredRate?: number;        // $/hora ofertada del proyecto
+  /**
+   * QA Asakaa · mejora fuerte 3: si las cifras de dinero son atípicas (margen < −100 %, costo
+   * > 5× lo planeado, negativos, tarifas en escalas distintas), el porqué. Sale «⚠ revisar».
+   */
+  avisoRevisar?: string;
 }
 
 /**
@@ -365,7 +371,16 @@ export interface ListViewConfig {
 
   // v2.0.0: Chronos project health sidebar
   /** Configuration for project health sidebar panel */
-  healthSidebar?: { enabled: boolean; data: ProjectHealthData };
+  healthSidebar?: {
+    enabled: boolean;
+    data: ProjectHealthData;
+    /**
+     * QA Asakaa · mejora fuerte 3: la lente del PANEL, aparte de la de la tabla. Con horas y
+     * costo en columnas separadas la tabla va en 'hours', y el panel sigue en 'financial'.
+     * Sin ella, el panel usa `lens`.
+     */
+    lens?: 'hours' | 'financial';
+  };
   /** Aggregate child hours into parent row hoursBar cell (default: false) */
   aggregateParentHours?: boolean;
 
@@ -498,6 +513,7 @@ export interface ListViewTranslations {
     // v2.0.0: Chronos columns
     scheduleVariance?: string;
     hoursBar?: string;
+    costBar?: string;
     teamLoad?: string;
     blockers?: string;
     weight?: string;

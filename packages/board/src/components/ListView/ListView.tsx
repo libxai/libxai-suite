@@ -1926,6 +1926,49 @@ export function ListView({
         );
       }
 
+      /* QA Asakaa · mejora fuerte 3: el DINERO en su propia columna, siempre en dinero (no
+         depende de la lente) y de solo lectura: las horas se editan en «Horas». Sin tarifa,
+         «—»: esas horas no se valoran (sql/415), no se inventa ninguna. */
+      case 'costBar': {
+        const sinTarifa = locale === 'es' ? 'Sin tarifa: estas horas no se valoran' : 'No rate: these hours are not valued';
+        if (aggregateParentHours && (task as any).hasChildren) {
+          const { dollarSpent, dollarAllocated } = calculateGroupDollars(task);
+          if (dollarSpent <= 0 && dollarAllocated <= 0) {
+            return <span className={cn('text-[11px] font-mono', isDark ? 'text-white/30' : 'text-gray-400')} title={sinTarifa}>—</span>;
+          }
+          const isOver = dollarAllocated > 0 && dollarSpent > dollarAllocated;
+          return (
+            <span data-costo className={cn('text-[11px] font-mono flex items-center gap-1.5', isDark ? 'text-white/50' : 'text-gray-500')}>
+              <span className={cn('font-bold', isOver ? 'text-[#FF453A]' : isDark ? 'text-white/80' : 'text-gray-800')}>
+                {moneda(Math.round(dollarSpent), currencyCode, idioma)}
+              </span>
+              {dollarAllocated > 0 && (
+                <>
+                  {' / '}
+                  <span className={isDark ? 'text-white/60' : 'text-gray-600'}>{moneda(Math.round(dollarAllocated), currencyCode, idioma)}</span>
+                </>
+              )}
+            </span>
+          );
+        }
+        const tarifa = getTaskRate(task);
+        if (!(tarifa > 0)) {
+          return <span className={cn('text-[11px] font-mono', isDark ? 'text-white/30' : 'text-gray-400')} title={sinTarifa}>—</span>;
+        }
+        return (
+          <span data-costo className="contents">
+            <HoursBarCell
+              task={task}
+              isDark={isDark}
+              locale={locale}
+              lens="financial"
+              hourlyRate={tarifa}
+              currencyCode={currencyCode}
+            />
+          </span>
+        );
+      }
+
       case 'teamLoad': {
         const isParent = (task as any).hasChildren || (task.subtasks && task.subtasks.length > 0);
         // Parent tasks: read-only rollup of assignees from children
@@ -2012,6 +2055,7 @@ export function ListView({
       // v2.0.0: Chronos columns
       scheduleVariance: (t.columns as any).scheduleVariance || (locale === 'es' ? 'Prog / Var' : 'Sched / Var'),
       hoursBar: (t.columns as any).hoursBar || (locale === 'es' ? 'Horas (Usado / Asignado)' : 'Hours (Spent / Allocated)'),
+      costBar: (t.columns as any).costBar || (locale === 'es' ? 'Costo (Ejecutado / Asignado)' : 'Cost (Spent / Allocated)'),
       teamLoad: (t.columns as any).teamLoad || (locale === 'es' ? 'Equipo' : 'Team'),
       blockers: (t.columns as any).blockers || (locale === 'es' ? 'Bloqueantes' : 'Blockers'),
       weight: (t.columns as any).weight || (locale === 'es' ? 'Peso' : 'Weight'),
@@ -2954,7 +2998,36 @@ export function ListView({
                           </span>
                         )}
                       </div>
-                    ) : column.type === 'soldEffortMinutes' ? (
+                    ) : column.type === 'costBar' ? (() => {
+                      /* QA Asakaa · mejora fuerte 3: el pie del dinero, con las cifras canónicas
+                         (time_logs × rate_at_time) que da la app, sin depender de la lente. */
+                      const gastado = Math.round(effDollarSpent);
+                      const asignado = Math.round(effDollarAllocated);
+                      const sobre = asignado > 0 && gastado > asignado;
+                      return (
+                        <div className="flex flex-col items-center w-full" data-costo-total>
+                          <div className="flex items-center gap-2">
+                            <span className={cn("text-[12px] font-bold", isDark ? "text-white" : "text-gray-900")} style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                              {moneda(gastado, currencyCode, idioma)}
+                            </span>
+                            <span className={cn("text-[11px]", isDark ? "text-white/40" : "text-gray-400")}>/</span>
+                            <span className={cn("text-[11px]", isDark ? "text-white/50" : "text-gray-500")} style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                              {moneda(asignado, currencyCode, idioma)}
+                            </span>
+                          </div>
+                          {asignado > 0 && (
+                            <span className={cn("text-[10px] font-semibold mt-0.5 whitespace-nowrap", sobre ? "text-[#FF453A]" : "text-[#32D74B]")} style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                              {`+${moneda(Math.abs(asignado - gastado), currencyCode, idioma)} ${sobre ? (locale === 'es' ? 'EXCEDIDO' : 'OVER') : palabraDeSobra}`}
+                            </span>
+                          )}
+                          {hasCommittedExtras && (
+                            <span className={cn("text-[9px] mt-0.5", isDark ? "text-white/40" : "text-gray-400")}>
+                              {locale === 'es' ? 'solo mano de obra' : 'labor only'}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })() : column.type === 'soldEffortMinutes' ? (
                       <span className={cn("text-[12px] font-bold", isDark ? "text-white" : "text-gray-900")}
                         style={{ fontFamily: 'JetBrains Mono, monospace' }}>
                         {quoted > 0 ? formatValue(quoted, isFinancial ? effDollarQuoted : undefined) : '–'}
@@ -3048,7 +3121,7 @@ export function ListView({
           isDark={isDark}
           locale={locale}
           onClose={() => setSidebarOpen(false)}
-          lens={config?.lens}
+          lens={healthSidebarWithTotal.lens ?? config?.lens}
           currencyCode={currencyCode}
           onUnassignedTaskClick={(taskId) => {
             // Scroll to the task row and highlight it briefly

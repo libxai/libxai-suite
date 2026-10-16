@@ -29,6 +29,7 @@ export const en: ListViewTranslations = {
     // v2.0.0: Chronos columns
     scheduleVariance: 'Sched / Var',
     hoursBar: 'Hours (Spent / Allocated)',
+    costBar: 'Cost (Spent / Allocated)',
     teamLoad: 'Team Load',
     blockers: 'Blockers',
     weight: 'Weight',
@@ -110,6 +111,7 @@ export const es: ListViewTranslations = {
     // v2.0.0: Chronos columns
     scheduleVariance: 'Prog / Var',
     hoursBar: 'Horas (Usado / Asignado)',
+    costBar: 'Costo (Ejecutado / Asignado)',
     teamLoad: 'Equipo',
     blockers: 'Bloqueantes',
     weight: 'Peso',

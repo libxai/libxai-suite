@@ -92,6 +92,14 @@ export function ProjectHealthSidebar({
             <h4 className={cn('text-[11px] font-mono uppercase tracking-wider font-semibold mb-3', isDark ? 'text-white/60' : 'text-gray-600')}>
               {isEs ? 'PRESUPUESTO' : 'BUDGET'}
             </h4>
+            {/* QA Asakaa · mejora fuerte 3: la cifra no se esconde; se marca, con el porqué. */}
+            {data.avisoRevisar && (
+              <div data-revisar className="mb-3 rounded-md px-2 py-1.5 text-[11px] leading-snug"
+                style={{ color: '#D97706', background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.35)' }}>
+                <span className="font-semibold">⚠ {isEs ? 'revisar' : 'check'}</span>{' · '}
+                <span className={isDark ? 'text-white/70' : 'text-gray-700'}>{data.avisoRevisar}</span>
+              </div>
+            )}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className={cn('text-xs', isDark ? 'text-white/60' : 'text-gray-600')}>

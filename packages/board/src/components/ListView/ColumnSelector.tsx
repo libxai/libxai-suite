@@ -74,6 +74,7 @@ const COLUMN_ICONS: Record<ColumnType, React.ReactNode> = {
   // v2.0.0: Chronos Interactive Time Manager columns
   scheduleVariance: <CalendarClock className="w-4 h-4" />,
   hoursBar: <BarChart3 className="w-4 h-4" />,
+  costBar: <BarChart3 className="w-4 h-4" />,
   teamLoad: <Users className="w-4 h-4" />,
   blockers: <AlertTriangle className="w-4 h-4" />,
   weight: <BarChart className="w-4 h-4" />,
