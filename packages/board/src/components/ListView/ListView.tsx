@@ -1383,7 +1383,7 @@ export function ListView({
   /* 1.9.40 · la cabecera de cada grupo, delante de la fila donde empieza. */
   const TITULO_GRUPO: Record<string, { es: string; en: string }> = {
     'todo': { es: 'Por hacer', en: 'To do' },
-    'in-progress': { es: 'En curso', en: 'In progress' },
+    'in-progress': { es: 'En progreso', en: 'In progress' }, // mejora fuerte 7
     'completed': { es: 'Completadas', en: 'Completed' },
   };
   const conCabecerasDeGrupo = (index: number, fila: React.ReactNode) => {

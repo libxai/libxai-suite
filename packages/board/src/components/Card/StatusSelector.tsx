@@ -7,6 +7,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { Portal } from '../Portal'
+import { useGanttEnEspanol } from '../Gantt/GanttI18nContext'
 
 // v0.17.54: Keep for backward compatibility, but allow string type for custom statuses
 export type TaskStatus = 'todo' | 'in-progress' | 'completed'
@@ -80,12 +81,17 @@ export function StatusSelector({
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 })
   const menuRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
+  /* QA Asakaa · mejora fuerte 7: los nombres del catálogo, en el idioma de la pantalla (antes solo inglés). */
+  const es = useGanttEnEspanol()
+  const NOMBRE: Record<string, string> = es
+    ? { todo: 'Por hacer', 'in-progress': 'En progreso', completed: 'Completada' }
+    : { todo: 'To do', 'in-progress': 'In progress', completed: 'Completed' }
 
   // v0.17.54: Build combined status list (default + custom)
   const allStatuses: Array<{ id: string; label: string; color: string; icon: string }> = [
     ...Object.entries(STATUS_CONFIG).map(([id, config]) => ({
       id,
-      label: config.label,
+      label: NOMBRE[id] ?? config.label,
       color: config.color,
       icon: config.icon,
     })),
@@ -103,7 +109,7 @@ export function StatusSelector({
   const getCurrentConfig = () => {
     const defaultConfig = STATUS_CONFIG[status as TaskStatus]
     if (defaultConfig) {
-      return { ...defaultConfig, id: status }
+      return { ...defaultConfig, label: NOMBRE[status] ?? defaultConfig.label, id: status }
     }
     const customConfig = customStatuses.find(cs => cs.id === status)
     if (customConfig) {
@@ -115,7 +121,7 @@ export function StatusSelector({
       }
     }
     // Fallback to todo
-    return { ...STATUS_CONFIG['todo'], id: 'todo' }
+    return { ...STATUS_CONFIG['todo'], label: NOMBRE.todo ?? STATUS_CONFIG['todo'].label, id: 'todo' }
   }
 
   // v0.17.63: Calculate position and open menu synchronously

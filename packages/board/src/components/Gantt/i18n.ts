@@ -459,9 +459,9 @@ export const es: GanttTranslations = {
   },
 
   status: {
-    todo: 'Por Hacer',
-    inProgress: 'En Progreso',
-    completed: 'Completado',
+    todo: 'Por hacer', // mejora fuerte 7
+    inProgress: 'En progreso',
+    completed: 'Completada',
   },
 
   labels: {

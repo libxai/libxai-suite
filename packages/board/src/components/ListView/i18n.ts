@@ -55,8 +55,8 @@ export const en: ListViewTranslations = {
   },
 
   status: {
-    todo: 'To Do',
-    inProgress: 'In Progress',
+    todo: 'To do', // mejora fuerte 7
+    inProgress: 'In progress',
     completed: 'Completed',
   },
 
@@ -137,9 +137,9 @@ export const es: ListViewTranslations = {
   },
 
   status: {
-    todo: 'Por Hacer',
-    inProgress: 'En Progreso',
-    completed: 'Completado',
+    todo: 'Por hacer', // mejora fuerte 7: el catálogo de estados
+    inProgress: 'En progreso',
+    completed: 'Completada',
   },
 
   actions: {

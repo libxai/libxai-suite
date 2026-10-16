@@ -601,9 +601,9 @@ const translations = {
     indent: 'Convertir en subtarea',
     outdent: 'Sacar de subtarea',
     delete: 'Eliminar',
-    todo: 'Pendiente',
-    inProgress: 'En Progreso',
-    completed: 'Completado',
+    todo: 'Por hacer', // mejora fuerte 7: el catálogo de estados
+    inProgress: 'En progreso',
+    completed: 'Completada',
     urgent: 'Urgente',
     high: 'Alta',
     medium: 'Media',

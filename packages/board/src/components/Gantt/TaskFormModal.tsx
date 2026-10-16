@@ -101,8 +101,9 @@ export interface CustomStatus {
 
 // v0.17.54: Default statuses that are always available
 export const DEFAULT_STATUSES: CustomStatus[] = [
-  { id: 'todo', title: 'Por Hacer', color: '#6B7280' },
-  { id: 'in-progress', title: 'En Progreso', color: '#F59E0B' },
+  // QA Asakaa · mejora fuerte 7: los nombres del catálogo único (Por hacer · En progreso · Completada)
+  { id: 'todo', title: 'Por hacer', color: '#6B7280' },
+  { id: 'in-progress', title: 'En progreso', color: '#F59E0B' },
   { id: 'completed', title: 'Completada', color: '#10B981' },
 ]
 
@@ -175,9 +176,13 @@ export function TaskFormModal({
   defaultStatus,
 }: TaskFormModalProps) {
   const esForm = useGanttEnEspanol(); // QA Asakaa 2.1
+  /* Mejora fuerte 7 · los tres estados en el idioma de la pantalla (antes, solo en español), y sin
+     repetir una columna que se llama como uno de ellos (las tres sembradas del Tablero). */
+  const NOMBRE_EN: Record<string, string> = { todo: 'To do', 'in-progress': 'In progress', completed: 'Completed' }
+  const nombresPorDefecto = new Set(DEFAULT_STATUSES.flatMap(ds => [ds.title.toLowerCase(), (NOMBRE_EN[ds.id] ?? '').toLowerCase(), 'por hacer', 'en progreso', 'completada', 'completado', 'to do', 'in progress', 'completed', 'done']))
   const allStatuses: CustomStatus[] = [
-    ...DEFAULT_STATUSES,
-    ...customStatuses.filter(cs => !DEFAULT_STATUSES.some(ds => ds.id === cs.id)),
+    ...DEFAULT_STATUSES.map(ds => (esForm ? ds : { ...ds, title: NOMBRE_EN[ds.id] ?? ds.title })),
+    ...customStatuses.filter(cs => !DEFAULT_STATUSES.some(ds => ds.id === cs.id) && !nombresPorDefecto.has((cs.title ?? '').trim().toLowerCase())),
   ]
 
   const themeColors = (themes[theme] || themes.dark)!

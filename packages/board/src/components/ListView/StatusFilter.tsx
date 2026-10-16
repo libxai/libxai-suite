@@ -27,7 +27,7 @@ const translations = {
     showAll: 'Show All',
     completed: 'Completed',
     inProgress: 'In Progress',
-    toDo: 'To Do / Pending',
+    toDo: 'To do',
     hideCompleted: 'Hide Completed Tasks',
   },
   es: {
@@ -35,8 +35,8 @@ const translations = {
     filterByStatus: 'FILTRAR POR ESTADO',
     showAll: 'Mostrar Todo',
     completed: 'Completadas',
-    inProgress: 'En Progreso',
-    toDo: 'Por Hacer / Pendiente',
+    inProgress: 'En progreso', // mejora fuerte 7: el catálogo de estados
+    toDo: 'Por hacer',
     hideCompleted: 'Ocultar Tareas Completadas',
   },
 };
