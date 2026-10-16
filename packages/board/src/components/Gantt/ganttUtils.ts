@@ -777,14 +777,15 @@ export const ganttUtils = {
       // Build predecessor links (dependencies)
       const predecessorLinks = (task.dependencies || [])
         .filter(depId => taskUIDMap.has(depId))
-        .map(depId => `
+        // QA Asakaa · mejora fuerte 5: con su tipo (0 FF, 1 FS, 2 SF, 3 SS) y desfase (décimas de minuto, 8 h/día).
+        .map(depId => { const l = task.dependencyLinks?.find((x) => x.id === depId); return `
         <PredecessorLink>
           <PredecessorUID>${taskUIDMap.get(depId)}</PredecessorUID>
-          <Type>1</Type>
+          <Type>${({ FF: 0, FS: 1, SF: 2, SS: 3 } as const)[l?.type ?? 'FS']}</Type>
           <CrossProject>0</CrossProject>
-          <LinkLag>0</LinkLag>
+          <LinkLag>${Math.round((l?.lag ?? 0) * 4800)}</LinkLag>
           <LagFormat>7</LagFormat>
-        </PredecessorLink>`).join('');
+        </PredecessorLink>`; }).join('');
 
       return `
     <Task>

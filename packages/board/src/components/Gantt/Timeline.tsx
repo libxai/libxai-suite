@@ -5,7 +5,7 @@ import { TaskTooltip, WorkingDaysConfig } from './TaskTooltip';
 import { DependencyLine } from './DependencyLine';
 import { Milestone } from './Milestone';
 import { ganttUtils } from './ganttUtils';
-import { calendarioDe, empujarSucesoras, enlacesDe } from './motorDeProgramacion';
+import { calendarioDe, empujarSucesoras, enlacesDe, conflictosDelCronograma } from './motorDeProgramacion';
 
 /** Mejora fuerte 5 · «CC +2», «FF», «+1»: el tipo (si no es FC) y el desfase (si no es 0). FC/CC/FF/CF en español. */
 function etiquetaDelEnlace(tipo: 'FS' | 'SS' | 'FF' | 'SF', desfase: number, locale: string): string | undefined {
@@ -114,6 +114,11 @@ export function Timeline({
     salidaPorInicio?: boolean;
     entradaPorFin?: boolean;
   } | null>(null);
+
+  /* Mejora fuerte 5 · los enlaces que NO se cumplen (datos viejos, ediciones fuera del Gantt): en rojo. */
+  const enlacesEnConflicto = useMemo(() => new Set(
+    conflictosDelCronograma(tasks, calendarioDe(workingDaysConfig)).map((c) => `${c.predecesora.id}>${c.sucesora.id}`),
+  ), [tasks, workingDaysConfig]);
 
   // v0.17.452: Ref to track if mouse is over a dependency line (for fast mouse movement fix)
   const isOverDependencyRef = useRef(false);
@@ -1070,7 +1075,8 @@ export function Timeline({
 
             // v5.1.0: CPM — critical deps in red, non-critical almost invisible
             const bothCritical = showCriticalPath && task.isCriticalPath && depTask.isCriticalPath;
-            const cpmColorOverride = showCriticalPath
+            const enConflicto = enlacesEnConflicto.has(`${depId}>${task.id}`);
+            const cpmColorOverride = enConflicto ? '#EF4444' : showCriticalPath
               ? (bothCritical ? '#EF4444' : 'rgba(255,255,255,0.10)')
               : undefined;
             const cpmStrokeWidth = showCriticalPath
@@ -1094,7 +1100,9 @@ export function Timeline({
                 glowFilter={cpmGlow}
                 salidaPorInicio={salidaPorInicio}
                 entradaPorFin={entradaPorFin}
-                etiqueta={etiquetaDelEnlace(tipo, desfase, locale)}
+                etiqueta={enConflicto
+                  ? `⚠ ${etiquetaDelEnlace(tipo, desfase, locale) ?? ''}`.trim()
+                  : etiquetaDelEnlace(tipo, desfase, locale)}
                 onDelete={() => onDependencyDelete?.(task.id, depId)}
                 onHoverChange={(isHovered) => {
                   // v0.17.452: Update ref for fast mouse movement detection
