@@ -1,4 +1,5 @@
 import { useRef, useCallback, useEffect, useState } from 'react';
+import type { TipoDeEnlace } from './motorDeProgramacion';
 import { useGanttEnEspanol } from './GanttI18nContext';
 import { inicialesDe } from '../../utils/iniciales';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -32,7 +33,8 @@ interface TaskBarProps {
   onDoubleClick?: (task: Task) => void; // v0.8.0
   onContextMenu?: (task: Task, event: React.MouseEvent) => void; // v0.8.0
   onDateChange?: (task: Task, newStart: Date, newEnd: Date) => void;
-  onDependencyCreate?: (fromTask: Task, toTaskId: string) => void;
+  /** Mejora fuerte 5: con el TIPO que sale de los extremos elegidos al arrastrar. */
+  onDependencyCreate?: (fromTask: Task, toTaskId: string, tipo?: TipoDeEnlace) => void;
   allTaskPositions?: TaskPosition[];
   // v0.13.0: Callback for dependency cascade preview during drag
   onDragMove?: (taskId: string, daysDelta: number, isDragging: boolean) => void;
@@ -79,6 +81,9 @@ export function TaskBar({
   // v0.8.1: Centralized drag state management for better modularity
   const dragState = useDragState(x, width);
   const svgRef = useRef<SVGGElement>(null);
+  /* Mejora fuerte 5 · ¿se empezó a enlazar desde el INICIO de la barra (punto izquierdo)? */
+  const conectarDesdeInicio = useRef(false);
+  const enEspanol = useGanttEnEspanol();
 
   // v2.3.0: Track real mouse movement to distinguish click vs drag
   const hasDraggedRef = useRef(false);
@@ -227,6 +232,14 @@ export function TaskBar({
   };
 
   // Check if point is inside a task's bounding box
+  /* Mejora fuerte 5 · el tipo: desde qué extremo se arrastró y en qué mitad de la otra barra se suelta. */
+  const tipoAlSoltar = (destinoId: string): TipoDeEnlace => {
+    const destino = allTaskPositions.find((p) => p.id === destinoId);
+    const alFin = !!destino && !!connectionLine && connectionLine.x > destino.x + destino.width / 2;
+    if (conectarDesdeInicio.current) return alFin ? 'SF' : 'SS';
+    return alFin ? 'FF' : 'FS';
+  };
+
   const findTaskAtPoint = (pointX: number, pointY: number): string | null => {
     for (const taskPos of allTaskPositions) {
       // Skip current task
@@ -290,6 +303,7 @@ export function TaskBar({
       if (e.shiftKey) {
         // SHIFT: Connection mode
         actualMode = 'connect';
+        conectarDesdeInicio.current = false;
         setConnectionLine({ x: x + width, y: y + height / 2 });
       } else if (e.ctrlKey || e.metaKey) {
         // CTRL/CMD: Force MOVE (useful for small bars)
@@ -336,7 +350,7 @@ export function TaskBar({
       // v0.8.1: Use effectiveX (segment position for split tasks, global x otherwise)
       setDragOffset(svgPoint.x - effectiveX);
     } else if (actualMode === 'connect') {
-      setConnectionLine({ x: x + width, y: y + height / 2 });
+      setConnectionLine({ x: conectarDesdeInicio.current ? x : x + width, y: y + height / 2 });
     } else {
       setDragOffset(0);
     }
@@ -477,7 +491,7 @@ export function TaskBar({
     if (dragMode === 'connect') {
       // Create dependency if hovering over a valid task
       if (hoveredTaskId && onDependencyCreate) {
-        onDependencyCreate(task, hoveredTaskId);
+        onDependencyCreate(task, hoveredTaskId, tipoAlSoltar(hoveredTaskId));
       }
       setConnectionLine(null);
       setHoveredTaskId(null);
@@ -1579,6 +1593,35 @@ export function TaskBar({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
           >
+            {/* Mejora fuerte 5 · el punto del INICIO: enlaces que salen del comienzo (CC, CF). */}
+            <circle
+              cx={x - 10}
+              cy={y + height / 2}
+              r={10}
+              fill="transparent"
+              style={{ cursor: 'crosshair' }}
+              data-conectar-desde="inicio"
+              onMouseEnter={() => setActiveZone('connect-start')}
+              onMouseLeave={() => setActiveZone(null)}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                conectarDesdeInicio.current = true;
+                handleMouseDown(e as any, 'connect');
+              }}
+            />
+            <motion.circle
+              cx={x - 10}
+              cy={y + height / 2}
+              r={4}
+              fill={theme.accent}
+              stroke="#FFFFFF"
+              strokeWidth={1.5}
+              style={{ pointerEvents: 'none' }}
+              initial={{ scale: 0 }}
+              animate={{ scale: activeZone === 'connect-start' ? 1.4 : 1 }}
+              exit={{ scale: 0 }}
+              transition={{ duration: 0.15, type: 'spring', stiffness: 500, damping: 30 }}
+            />
             {/* Hit area - invisible circle for easy clicking */}
             <circle
               cx={x + width + 10}
@@ -1588,8 +1631,10 @@ export function TaskBar({
               style={{ cursor: 'crosshair' }}
               onMouseEnter={() => setActiveZone('connect')}
               onMouseLeave={() => setActiveZone(null)}
+              data-conectar-desde="fin"
               onMouseDown={(e) => {
                 e.stopPropagation();
+                conectarDesdeInicio.current = false;
                 handleMouseDown(e as any, 'connect');
               }}
             />
@@ -1622,7 +1667,7 @@ export function TaskBar({
       {isConnecting && connectionLine && (
         <g style={{ pointerEvents: 'none' }}>
           <motion.line
-            x1={x + width}
+            x1={conectarDesdeInicio.current ? x : x + width}
             y1={y + height / 2}
             x2={connectionLine.x}
             y2={connectionLine.y}
@@ -1658,7 +1703,8 @@ export function TaskBar({
               animate={{ opacity: 1, x: connectionLine.x + 15 }}
               transition={{ duration: 0.2 }}
             >
-              Connect
+              {/* Mejora fuerte 5 · qué enlace se va a crear */}
+              {(() => { const es = enEspanol; return ({ FS: es ? 'Fin → Comienzo' : 'Finish → Start', SS: es ? 'Comienzo → Comienzo' : 'Start → Start', FF: es ? 'Fin → Fin' : 'Finish → Finish', SF: es ? 'Comienzo → Fin' : 'Start → Finish' })[tipoAlSoltar(hoveredTaskId)]; })()}
             </motion.text>
           )}
         </g>

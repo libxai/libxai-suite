@@ -9985,6 +9985,11 @@ body {
 }
 
 
+.pe-8 {
+  padding-inline-end: 2rem;
+}
+
+
 .pl-10 {
   padding-left: 2.5rem;
 }

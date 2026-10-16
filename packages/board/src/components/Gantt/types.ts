@@ -41,6 +41,11 @@ export interface Task {
   // v0.17.54: Changed to string to support custom Kanban column statuses
   status?: string; // Default statuses: 'todo' | 'in-progress' | 'completed', plus custom column IDs
   dependencies?: string[];
+  /**
+   * QA Asakaa · mejora fuerte 5: el tipo (FS/SS/FF/SF) y el desfase (días hábiles) de cada
+   * predecesora. Un id de `dependencies` sin entrada aquí es FS sin desfase.
+   */
+  dependencyLinks?: Array<{ id: string; type: 'FS' | 'SS' | 'FF' | 'SF'; lag: number }>;
   subtasks?: Task[];
   isExpanded?: boolean;
   isMilestone?: boolean;
@@ -798,7 +803,8 @@ export interface GanttConfig {
   onTaskSetInProgress?: (task: Task) => void;
 
   // ==================== Dependency Events ====================
-  onDependencyCreate?: (fromTaskId: string, toTaskId: string) => void;
+  /** Mejora fuerte 5: `tipo` = el que se eligió al arrastrar (FS si no se dice). */
+  onDependencyCreate?: (fromTaskId: string, toTaskId: string, tipo?: 'FS' | 'SS' | 'FF' | 'SF') => void;
   onDependencyDelete?: (taskId: string, dependencyId: string) => void;
 
   // ==================== Lifecycle Events (Before/After) ====================

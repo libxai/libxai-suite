@@ -6,7 +6,7 @@ import { GanttToolbar } from './GanttToolbar';
 import { TaskGrid } from './TaskGrid';
 import { Timeline } from './Timeline';
 import { conHoy, fechaAlAbrir, inicioDeLaEscala, ladoDeHoy } from './rangoDeLaEscala';
-import { ajustarAPredecesoras } from './restriccionDeDependencias';
+import { calendarioDe, fechasQueCumplen, empujarSucesoras } from './motorDeProgramacion';
 import { ContextMenu, MenuIcons } from './ContextMenu'; // v0.8.0: Split task context menu
 import { TaskDetailModal } from '../TaskDetailModal'; // v0.17.244: Unified task detail modal (replaces TaskFormModal)
 import { GanttAIAssistant } from './GanttAIAssistant'; // v0.14.0: AI Assistant
@@ -1506,22 +1506,19 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   // When you move a task, all dependent tasks are automatically rescheduled
   // This is BETTER than DHTMLX - they require manual configuration
   const handleTaskDateChange = useCallback((task: Task, newStart: Date, newEnd: Date) => {
-    // QA Asakaa E14: no antes de que termine aquello de lo que depende. Se
-    // ajusta al primer día posible y la app avisa (restriccionDeDependencias.ts).
-    const ajustadas = ajustarAPredecesoras(task, newStart, newEnd, localTasks);
-    if (ajustadas.ajuste) {
+    /* QA Asakaa E14 + mejora fuerte 5: la tarea cumple TODOS sus enlaces (FS/SS/FF/SF con su
+       desfase, en días hábiles del espacio). Si no, se corre lo justo, conservando su duración
+       hábil, y la app avisa (motorDeProgramacion.ts). */
+    const calendario = calendarioDe(config?.workingDaysConfig);
+    const ajustadas = fechasQueCumplen(task, newStart, newEnd, localTasks, calendario);
+    if (ajustadas.porQue) {
       newStart = ajustadas.inicio;
       newEnd = ajustadas.fin;
-      config?.onDependencyConstraint?.({ task, predecessor: ajustadas.ajuste.predecesora, earliestStart: ajustadas.ajuste.fecha });
+      config?.onDependencyConstraint?.({ task, predecessor: ajustadas.porQue.predecesora, earliestStart: ajustadas.inicio });
     }
 
     // v1.4.18: Check if this is creating a new bar for a task without dates (ClickUp-style)
     const isCreatingNewBar = !task.startDate && !task.endDate;
-
-    // v0.13.3: Calculate daysDelta to preserve relative gaps in cascade
-    const daysDelta = task.startDate
-      ? Math.round((newStart.getTime() - task.startDate.getTime()) / (1000 * 60 * 60 * 24))
-      : 0;
 
     const updateTaskDates = (tasks: Task[]): Task[] => {
       return tasks.map((t) => {
@@ -1545,10 +1542,18 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     // First, update the dragged task's dates
     let updatedTasks = updateTaskDates(localTasks);
 
-    // Then, auto-schedule all dependent tasks (cascade effect)
-    // v0.13.3: Pass daysDelta to preserve relative gaps between tasks
+    // Mejora fuerte 5 (decisión de Arcadio 16-oct): las sucesoras se EMPUJAN lo justo si
+    // dejan de cumplir su enlace; si la tarea se adelanta, se quedan donde están.
     const tasksBeforeCascade = updatedTasks;
-    updatedTasks = ganttUtils.autoScheduleDependents(updatedTasks, task.id, daysDelta);
+    const empujadas = new Map(empujarSucesoras(updatedTasks, [task.id], calendario).map((e) => [e.id, e]));
+    if (empujadas.size > 0) {
+      const aplicar = (lista: Task[]): Task[] => lista.map((t) => {
+        const e = empujadas.get(t.id);
+        const conHijas = t.subtasks ? { ...t, subtasks: aplicar(t.subtasks) } : t;
+        return e ? { ...conHijas, startDate: e.startDate, endDate: e.endDate } : conHijas;
+      });
+      updatedTasks = aplicar(updatedTasks);
+    }
 
     // Roll-up: recalculate parent dates/progress from children
     updatedTasks = rollUpParentDates(updatedTasks);
@@ -1568,7 +1573,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     }
 
     // v2.2.0: Notify consumer about all dependent tasks that were rescheduled
-    if (onDependentTasksScheduled && daysDelta !== 0) {
+    if (onDependentTasksScheduled && empujadas.size > 0) {
       const flatBefore = ganttUtils.flattenTasks(tasksBeforeCascade);
       const flatAfter = ganttUtils.flattenTasks(updatedTasks);
       const changed: Task[] = [];
@@ -1681,7 +1686,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
 
   // Handle dependency creation (memoized)
   // Uses functional setter to avoid stale closure issues when creating multiple dependencies quickly
-  const handleDependencyCreate = useCallback((fromTask: Task, toTaskId: string) => {
+  const handleDependencyCreate = useCallback((fromTask: Task, toTaskId: string, tipo: 'FS' | 'SS' | 'FF' | 'SF' = 'FS') => {
     // Use ref for circular check so we always have the latest state
     if (wouldCreateCircularDependency(fromTask.id, toTaskId, localTasksRef.current)) {
       console.warn('Cannot create dependency: would create a circular dependency');
@@ -1694,7 +1699,9 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         if (t.id === toTaskId) {
           const dependencies = t.dependencies || [];
           if (!dependencies.includes(fromTask.id)) {
-            return { ...t, dependencies: [...dependencies, fromTask.id] };
+            // Mejora fuerte 5 · con su tipo (sin desfase al crearlo; se edita después en la tarea)
+            const dependencyLinks = [...(t.dependencyLinks ?? []).filter((l) => l.id !== fromTask.id), { id: fromTask.id, type: tipo, lag: 0 }];
+            return { ...t, dependencies: [...dependencies, fromTask.id], dependencyLinks };
           }
         }
         if (t.subtasks) {
@@ -1706,7 +1713,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     // Functional setter ensures we always operate on the latest state
     skipSyncCountRef.current += 1;
     setLocalTasks((prev) => updateTaskDependencies(prev));
-    onDependencyCreate?.(fromTask.id, toTaskId);
+    onDependencyCreate?.(fromTask.id, toTaskId, tipo);
   }, [onDependencyCreate, wouldCreateCircularDependency]);
 
   // Handle dependency deletion (memoized)
@@ -2882,10 +2889,10 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
             // v0.17.19: Use handleMultiTaskDelete to respect lifecycle hooks
             handleMultiTaskDelete([taskId]);
           }}
-          onDependencyCreate={(fromTaskId, toTaskId) => {
+          onDependencyCreate={(fromTaskId, toTaskId, tipo) => {
             const fromTask = ganttUtils.findTaskById(localTasks, fromTaskId);
             if (fromTask) {
-              handleDependencyCreate(fromTask, toTaskId);
+              handleDependencyCreate(fromTask, toTaskId, tipo);
             }
           }}
           onDependencyDelete={handleDependencyDelete}

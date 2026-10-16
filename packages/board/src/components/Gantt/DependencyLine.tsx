@@ -37,6 +37,12 @@ interface DependencyLineProps {
   strokeWidthOverride?: number;
   // v5.1.0: CPM — glow filter for critical deps
   glowFilter?: string;
+  /* QA Asakaa · mejora fuerte 5: el tipo del enlace decide los lados. FS sale por el FIN y entra
+     por el INICIO (lo de siempre); SS sale por el inicio; FF entra por el fin; SF las dos cosas. */
+  salidaPorInicio?: boolean;
+  entradaPorFin?: boolean;
+  /** «CC +2», «FF», «+1»…: el tipo (si no es FC) y el desfase (si no es 0). */
+  etiqueta?: string;
 }
 
 /**
@@ -68,6 +74,9 @@ export function DependencyLine({
   colorOverride,
   strokeWidthOverride,
   glowFilter,
+  salidaPorInicio = false,
+  entradaPorFin = false,
+  etiqueta,
 }: DependencyLineProps) {
   // v0.17.451: Local hover state only used for tracking, actual rendering done via Timeline
   const [, setIsLocalHovered] = useState(false);
@@ -94,7 +103,31 @@ export function DependencyLine({
   // v5.0.0: Rounded corner radius for squared dependency lines
   const R = 8;
 
-  if (lineStyle === 'squared') {
+  // Mejora fuerte 5 · los puntos de control (curva) y los tramos (escuadra) de un enlace que no es FS.
+  let cp1x = midX;
+  const cp1y = y1;
+  let cp2x = midX;
+  const cp2y = y2;
+  let tramosGenericos: [number, number, number, number][] | null = null;
+  const generico = salidaPorInicio || entradaPorFin;
+  const sOut = salidaPorInicio ? -1 : 1; // hacia dónde sale: +1 derecha, −1 izquierda
+  const sIn = entradaPorFin ? -1 : 1;    // desde dónde llega: +1 por la izquierda, −1 por la derecha
+
+  if (generico) {
+    if (lineStyle === 'squared') {
+      const px1 = x1 + sOut * 15;
+      const px2 = x2 - sIn * OFFSET;
+      const ym = isSameRow ? y1 - 16 : (y1 + y2) / 2;
+      tramosGenericos = [[x1, y1, px1, y1], [px1, y1, px1, ym], [px1, ym, px2, ym], [px2, ym, px2, y2], [px2, y2, x2, y2]];
+      path = `M ${x1} ${y1} L ${px1} ${y1} L ${px1} ${ym} L ${px2} ${ym} L ${px2} ${y2} L ${x2} ${y2}`;
+      turnX = px2;
+    } else {
+      const k = Math.max(40, Math.abs(dx) / 2);
+      cp1x = x1 + sOut * k;
+      cp2x = x2 - sIn * k;
+      path = `M ${x1} ${y1} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${x2} ${y2}`;
+    }
+  } else if (lineStyle === 'squared') {
     // Squared style with rounded corners (8px radius at each turn)
     if (isSameRow) {
       path = `M ${x1} ${y1} L ${x2} ${y2}`;
@@ -136,7 +169,8 @@ export function DependencyLine({
   // v5.0.0: Arrow marker — filled triangle 6x5px pointing RIGHT
   const arrowW = 6;
   const arrowH = 5;
-  const arrowPath = `M ${x2} ${y2} L ${x2 - arrowW} ${y2 - arrowH / 2} L ${x2 - arrowW} ${y2 + arrowH / 2} Z`;
+  // Mejora fuerte 5 · si entra por el FIN de la sucesora, la punta mira a la izquierda.
+  const arrowPath = `M ${x2} ${y2} L ${x2 - sIn * arrowW} ${y2 - arrowH / 2} L ${x2 - sIn * arrowW} ${y2 + arrowH / 2} Z`;
 
   // v5.0.0: Dependencies ALWAYS neutral — never inherit task state color
   // v5.1.0: CPM can override color for critical dependencies
@@ -156,7 +190,14 @@ export function DependencyLine({
   let deleteY = (y1 + y2) / 2;
 
   if (mousePos) {
-    if (lineStyle === 'squared') {
+    if (tramosGenericos) {
+      let minDist = Infinity;
+      for (const seg of tramosGenericos) {
+        const point = projectPointOnSegment(mousePos.x, mousePos.y, seg[0], seg[1], seg[2], seg[3]);
+        const dist = Math.hypot(mousePos.x - point.x, mousePos.y - point.y);
+        if (dist < minDist) { minDist = dist; deleteX = point.x; deleteY = point.y; }
+      }
+    } else if (lineStyle === 'squared') {
       if (isSameRow) {
         deleteX = Math.max(x1 + 10, Math.min(x2 - 10, mousePos.x));
         deleteY = y1;
@@ -211,7 +252,6 @@ export function DependencyLine({
       }
     } else {
       // Curved: sample the Bézier and find closest point
-      const cp1x = midX, cp1y = y1, cp2x = midX, cp2y = y2;
       let minDist = Infinity;
       let bestX = deleteX, bestY = deleteY;
       for (let t = 0; t <= 1; t += 0.02) {
@@ -507,6 +547,22 @@ export function DependencyLine({
         transition={{ duration: 0.2, delay: 0.3 }}
         style={{ pointerEvents: 'none' }}
       />
+
+      {/* Mejora fuerte 5 · el tipo y el desfase del enlace, junto a la punta. */}
+      {etiqueta && (
+        <text
+          x={x2 - sIn * 10}
+          y={y2 - 7}
+          textAnchor={sIn > 0 ? 'end' : 'start'}
+          fontSize={9}
+          fontWeight={600}
+          fill={lineColor}
+          style={{ pointerEvents: 'none', fontFamily: 'JetBrains Mono, monospace' }}
+          data-etiqueta-de-enlace
+        >
+          {etiqueta}
+        </text>
+      )}
 
       {/* Endpoint dot - base layer */}
       <motion.circle

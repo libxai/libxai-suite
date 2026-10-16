@@ -56,7 +56,7 @@ export interface GanttAIAssistantProps {
   /** Callback for task deletion */
   onTaskDelete?: (taskId: string) => void;
   /** Callback for dependency creation */
-  onDependencyCreate?: (fromTaskId: string, toTaskId: string) => void;
+  onDependencyCreate?: (fromTaskId: string, toTaskId: string, tipo?: 'FS' | 'SS' | 'FF' | 'SF') => void;
   /** Callback for dependency deletion */
   onDependencyDelete?: (taskId: string, dependencyId: string) => void;
 }

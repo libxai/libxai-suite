@@ -9,7 +9,8 @@
 import { useState } from 'react';
 
 export type DragMode = 'none' | 'move' | 'resize-start' | 'resize-end' | 'connect';
-export type ActiveZone = 'move' | 'resize-start' | 'resize-end' | 'connect' | null;
+// Mejora fuerte 5: 'connect-start' = el punto del INICIO de la barra (enlaces CC y CF)
+export type ActiveZone = 'move' | 'resize-start' | 'resize-end' | 'connect' | 'connect-start' | null;
 
 export interface DragState {
   // Drag mode

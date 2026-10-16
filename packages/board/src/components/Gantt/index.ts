@@ -15,6 +15,12 @@ export { ContextMenu, MenuIcons } from './ContextMenu';
 export { TaskFormModal } from './TaskFormModal'; // v0.9.0: Task CRUD modal (still used for create mode)
 export { GanttAIAssistant } from './GanttAIAssistant'; // v0.14.0: AI Assistant
 export { TagPicker, TagBadge, TagList } from './TagPicker'; // v0.17.158: Tags support
+// QA Asakaa · mejora fuerte 5: el motor del cronograma (tipos de enlace, desfase, días hábiles)
+export {
+  calendarioDe, habilDesde, sumarHabiles, habilesEntre, finConDuracion, enlacesDe, limiteDelEnlace,
+  fechasQueCumplen, empujarSucesoras, conflictosDelCronograma, TODOS_LOS_DIAS,
+} from './motorDeProgramacion';
+export type { TipoDeEnlace, EnlaceDeTarea, Calendario, Limite, Ajuste, TareaEmpujada, Conflicto } from './motorDeProgramacion';
 
 // AI Command Parser utilities (v0.14.0)
 export {

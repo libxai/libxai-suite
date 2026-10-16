@@ -5,6 +5,16 @@ import { TaskTooltip, WorkingDaysConfig } from './TaskTooltip';
 import { DependencyLine } from './DependencyLine';
 import { Milestone } from './Milestone';
 import { ganttUtils } from './ganttUtils';
+import { calendarioDe, empujarSucesoras, enlacesDe } from './motorDeProgramacion';
+
+/** Mejora fuerte 5 · «CC +2», «FF», «+1»: el tipo (si no es FC) y el desfase (si no es 0). FC/CC/FF/CF en español. */
+function etiquetaDelEnlace(tipo: 'FS' | 'SS' | 'FF' | 'SF', desfase: number, locale: string): string | undefined {
+  const es = locale.startsWith('es');
+  const nombre = tipo === 'FS' ? '' : es ? ({ SS: 'CC', FF: 'FF', SF: 'CF' } as const)[tipo] : tipo;
+  const d = desfase === 0 ? '' : `${desfase > 0 ? '+' : '−'}${Math.abs(desfase)}`;
+  const t = [nombre, d].filter(Boolean).join(' ');
+  return t || undefined;
+}
 import { useGanttI18n } from './GanttI18nContext';
 
 interface TimelineProps {
@@ -23,7 +33,7 @@ interface TimelineProps {
   onTaskDblClick?: (task: Task) => void; // v0.8.0
   onTaskContextMenu?: (task: Task, event: React.MouseEvent) => void; // v0.8.0
   onTaskDateChange?: (task: Task, newStart: Date, newEnd: Date) => void;
-  onDependencyCreate?: (fromTask: Task, toTaskId: string) => void;
+  onDependencyCreate?: (fromTask: Task, toTaskId: string, tipo?: 'FS' | 'SS' | 'FF' | 'SF') => void;
   onDependencyDelete?: (taskId: string, dependencyId: string) => void;
   /** v3.0.0: Show baseline ghost bars behind actual bars (Oracle view) */
   showBaseline?: boolean;
@@ -101,6 +111,8 @@ export function Timeline({
     exitY: number;
     enterX: number;
     enterY: number;
+    salidaPorInicio?: boolean;
+    entradaPorFin?: boolean;
   } | null>(null);
 
   // v0.17.452: Ref to track if mouse is over a dependency line (for fast mouse movement fix)
@@ -374,20 +386,38 @@ export function Timeline({
       return;
     }
 
-    // Calculate cascade preview positions for all dependent tasks
-    const previews = ganttUtils.calculateCascadePreview(
-      tasks,
-      taskId,
-      daysDelta,
-      flatTasks,
-      startDate,
-      dayWidth * zoom,
-      ROW_HEIGHT,
-      HEADER_HEIGHT
-    );
+    /* Mejora fuerte 5 · la vista previa = lo que hará el motor al soltar: solo las sucesoras
+       que dejan de cumplir su enlace, empujadas lo justo (antes: todas, el mismo número de días). */
+    const arrastrada = ganttUtils.findTaskById(tasks, taskId);
+    if (!arrastrada?.startDate || !arrastrada.endDate) { setCascadePreviews([]); return; }
+    const correr = (d: Date) => { const r = new Date(d); r.setDate(r.getDate() + daysDelta); return r; };
+    const nuevaInicio = correr(arrastrada.startDate);
+    const nuevaFin = correr(arrastrada.endDate);
+    const conLaMovida = (lista: Task[]): Task[] => lista.map((t) => t.id === taskId
+      ? { ...t, startDate: nuevaInicio, endDate: nuevaFin }
+      : t.subtasks ? { ...t, subtasks: conLaMovida(t.subtasks) } : t);
+    const empujadas = empujarSucesoras(conLaMovida(tasks), [taskId], calendarioDe(workingDaysConfig));
+    const ms = 1000 * 60 * 60 * 24;
+    const ancho = dayWidth * zoom;
+    const previews = empujadas.flatMap((e) => {
+      const rowIndex = flatTasks.findIndex((t) => t.id === e.id);
+      const t = flatTasks[rowIndex];
+      if (rowIndex === -1 || !t?.startDate) return [];
+      return [{
+        taskId: e.id,
+        taskName: t.name,
+        originalX: ((t.startDate.getTime() - startDate.getTime()) / ms) * ancho,
+        previewX: ((e.startDate.getTime() - startDate.getTime()) / ms) * ancho,
+        width: Math.max(((e.endDate.getTime() - e.startDate.getTime()) / ms) * ancho, ancho),
+        y: HEADER_HEIGHT + rowIndex * ROW_HEIGHT + (ROW_HEIGHT - 18) / 2,
+        rowIndex,
+        daysDelta: Math.round((e.startDate.getTime() - t.startDate.getTime()) / ms),
+        color: t.color,
+      }];
+    });
 
     setCascadePreviews(previews);
-  }, [tasks, flatTasks, startDate, dayWidth, zoom, ROW_HEIGHT, HEADER_HEIGHT]);
+  }, [tasks, flatTasks, startDate, dayWidth, zoom, ROW_HEIGHT, HEADER_HEIGHT, workingDaysConfig]);
 
   // v1.5.0: Get drag-adjusted position for dependency line endpoints
   // During drag, offsets the dragged task and its cascade dependents
@@ -1011,10 +1041,11 @@ export function Timeline({
         {/* v0.17.363: SINGLE dependency layer - rendered AFTER tasks for proper z-order */}
         {/* v0.17.451: Base layer only - hover overlay rendered separately at end */}
         {showDependencies && flatTasks.map((task, toIndex) => {
-          if (!task.dependencies || task.dependencies.length === 0) return null;
+          const enlaces = enlacesDe(task); // mejora fuerte 5: con su tipo y desfase
+          if (enlaces.length === 0) return null;
           if (!task.startDate || !task.endDate) return null;
 
-          return task.dependencies.map((depId) => {
+          return enlaces.map(({ id: depId, type: tipo, lag: desfase }) => {
             const depTask = flatTasks.find((t) => t.id === depId);
             if (!depTask) return null;
             if (!depTask.startDate || !depTask.endDate) return null;
@@ -1024,9 +1055,12 @@ export function Timeline({
             const fromPos = getDragAdjustedPosition(depTask.id, getTaskPosition(depTask));
             const toPos = getDragAdjustedPosition(task.id, getTaskPosition(task));
 
-            const exitX = fromPos.x + fromPos.width;
+            // Mejora fuerte 5 · FS: fin → inicio; SS: inicio → inicio; FF: fin → fin; SF: inicio → fin.
+            const salidaPorInicio = tipo === 'SS' || tipo === 'SF';
+            const entradaPorFin = tipo === 'FF' || tipo === 'SF';
+            const exitX = salidaPorInicio ? fromPos.x : fromPos.x + fromPos.width;
             const exitY = fromIndex * ROW_HEIGHT + 26;
-            const enterX = toPos.x;
+            const enterX = entradaPorFin ? toPos.x + toPos.width : toPos.x;
             const enterY = toIndex * ROW_HEIGHT + 26;
 
             const lineKey = `dep-${depId}-${task.id}`;
@@ -1058,6 +1092,9 @@ export function Timeline({
                 colorOverride={cpmColorOverride}
                 strokeWidthOverride={cpmStrokeWidth}
                 glowFilter={cpmGlow}
+                salidaPorInicio={salidaPorInicio}
+                entradaPorFin={entradaPorFin}
+                etiqueta={etiquetaDelEnlace(tipo, desfase, locale)}
                 onDelete={() => onDependencyDelete?.(task.id, depId)}
                 onHoverChange={(isHovered) => {
                   // v0.17.452: Update ref for fast mouse movement detection
@@ -1071,6 +1108,8 @@ export function Timeline({
                       exitY,
                       enterX,
                       enterY,
+                      salidaPorInicio,
+                      entradaPorFin,
                     });
                   }
                   // v0.17.451: Don't clear on base layer mouseLeave - let overlay handle it
@@ -1130,6 +1169,8 @@ export function Timeline({
             y2={hoveredDepLine.enterY}
             theme={theme}
             lineStyle={dependencyLineStyle}
+            salidaPorInicio={hoveredDepLine.salidaPorInicio}
+            entradaPorFin={hoveredDepLine.entradaPorFin}
             onDelete={() => {
               // v0.17.452: Clear hover state and mark as deleted for instant UI feedback
               const lineKey = hoveredDepLine.key;

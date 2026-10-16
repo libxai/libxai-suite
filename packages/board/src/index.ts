@@ -94,6 +94,25 @@ export {
   parseStatus,
   parseLocalCommand,
   validateAIResponse,
+  // QA Asakaa · mejora fuerte 5: el motor del cronograma (tipos de enlace, desfase, días hábiles)
+  calendarioDe,
+  habilDesde,
+  sumarHabiles,
+  habilesEntre,
+  finConDuracion,
+  enlacesDe,
+  limiteDelEnlace,
+  fechasQueCumplen,
+  empujarSucesoras,
+  conflictosDelCronograma,
+  TODOS_LOS_DIAS,
+} from './components/Gantt'
+export type {
+  TipoDeEnlace,
+  EnlaceDeTarea,
+  Calendario as CalendarioDelCronograma,
+  TareaEmpujada,
+  Conflicto as ConflictoDelCronograma,
 } from './components/Gantt'
 export type {
   Task as GanttTask,

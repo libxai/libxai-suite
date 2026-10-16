@@ -34,6 +34,15 @@ interface Task {
     }>;
     status?: string;
     dependencies?: string[];
+    /**
+     * QA Asakaa · mejora fuerte 5: el tipo (FS/SS/FF/SF) y el desfase (días hábiles) de cada
+     * predecesora. Un id de `dependencies` sin entrada aquí es FS sin desfase.
+     */
+    dependencyLinks?: Array<{
+        id: string;
+        type: 'FS' | 'SS' | 'FF' | 'SF';
+        lag: number;
+    }>;
     subtasks?: Task[];
     isExpanded?: boolean;
     isMilestone?: boolean;
@@ -694,7 +703,8 @@ interface GanttConfig {
      * Sets task status to 'in-progress'
      */
     onTaskSetInProgress?: (task: Task) => void;
-    onDependencyCreate?: (fromTaskId: string, toTaskId: string) => void;
+    /** Mejora fuerte 5: `tipo` = el que se eligió al arrastrar (FS si no se dice). */
+    onDependencyCreate?: (fromTaskId: string, toTaskId: string, tipo?: 'FS' | 'SS' | 'FF' | 'SF') => void;
     onDependencyDelete?: (taskId: string, dependencyId: string) => void;
     onBeforeTaskAdd?: (task: Task) => boolean | void | Promise<boolean | void>;
     onAfterTaskAdd?: (task: Task) => void;
@@ -3006,7 +3016,7 @@ interface TimelineProps {
     onTaskDblClick?: (task: Task) => void;
     onTaskContextMenu?: (task: Task, event: React__default.MouseEvent) => void;
     onTaskDateChange?: (task: Task, newStart: Date, newEnd: Date) => void;
-    onDependencyCreate?: (fromTask: Task, toTaskId: string) => void;
+    onDependencyCreate?: (fromTask: Task, toTaskId: string, tipo?: 'FS' | 'SS' | 'FF' | 'SF') => void;
     onDependencyDelete?: (taskId: string, dependencyId: string) => void;
     /** v3.0.0: Show baseline ghost bars behind actual bars (Oracle view) */
     showBaseline?: boolean;
@@ -3035,6 +3045,95 @@ showTaskBarLabels, onTaskClick, onTaskDblClick, // v0.8.0
 onTaskContextMenu, // v0.8.0
 onTaskDateChange, onDependencyCreate, onDependencyDelete, showBaseline, showCriticalPath, showDependencies, highlightWeekends, weekHeaderFormat, canEditTask, onTaskProgressDrag, workingDaysConfig, }: TimelineProps): react_jsx_runtime.JSX.Element;
 
+/**
+ * ═══ EL MOTOR DEL CRONOGRAMA (QA Asakaa, mejora fuerte 5) ════════════════════════
+ *
+ * Yesid: «Dependencias con tipo (fin-inicio, inicio-inicio…) y desfase […];
+ * reprogramación automática o, como mínimo, aviso de conflicto; duraciones en días
+ * hábiles con festivos y fines de semana; hitos en su fecha exacta».
+ *
+ * Decisiones de Arcadio (16-oct):
+ *   · cada enlace tiene tipo (FS, SS, FF, SF — los códigos de MS Project) y desfase en
+ *     DÍAS HÁBILES (negativo = adelanto);
+ *   · el calendario es el del espacio: sus días laborables y sus festivos;
+ *   · si una predecesora se atrasa, sus sucesoras se EMPUJAN lo justo; si se adelanta,
+ *     se quedan donde están (nunca se adelantan solas).
+ *
+ * Puro: sin React. Las fechas son días (la hora no cuenta). Sin calendario, todos los
+ * días son hábiles — lo que hacía el Gantt hasta ahora.
+ */
+
+type TipoDeEnlace = 'FS' | 'SS' | 'FF' | 'SF';
+interface EnlaceDeTarea {
+    /** La predecesora (la tarea de la que depende). */
+    id: string;
+    type: TipoDeEnlace;
+    /** Días hábiles; negativo = adelanto. */
+    lag: number;
+}
+interface Calendario {
+    esHabil(d: Date): boolean;
+}
+/** Todos los días hábiles: el comportamiento de siempre si no hay calendario. */
+declare const TODOS_LOS_DIAS: Calendario;
+declare function calendarioDe(cfg?: GanttWorkingDaysConfig | null): Calendario;
+/** El primer día hábil desde `d` (incluido), hacia adelante o hacia atrás. */
+declare function habilDesde(d: Date, cal: Calendario, haciaAtras?: boolean): Date;
+/**
+ * `d` más `n` días hábiles. Con n = 0, el propio día si es hábil (si no, el siguiente).
+ * Negativo cuenta hacia atrás.
+ */
+declare function sumarHabiles(d: Date, n: number, cal: Calendario): Date;
+/** Días hábiles de `inicio` a `fin`, los dos incluidos (la duración de una barra). Mínimo 1. */
+declare function habilesEntre(inicio: Date, fin: Date, cal: Calendario): number;
+/** El fin de una tarea que empieza en `inicio` y dura `dias` hábiles. */
+declare function finConDuracion(inicio: Date, dias: number, cal: Calendario): Date;
+/** Los enlaces de una tarea: los que trae con tipo, y FS sin desfase para los ids sueltos. */
+declare function enlacesDe(t: Pick<Task, 'dependencies' | 'dependencyLinks'>): EnlaceDeTarea[];
+interface Limite {
+    /** Lo más pronto que puede empezar / terminar la sucesora por este enlace. */
+    inicioMin?: Date;
+    finMin?: Date;
+    enlace: EnlaceDeTarea;
+    predecesora: Task;
+}
+/** Lo que exige UN enlace a su sucesora (null si la predecesora no tiene fechas). */
+declare function limiteDelEnlace(enlace: EnlaceDeTarea, pred: Task, cal: Calendario): Limite | null;
+interface Ajuste {
+    inicio: Date;
+    fin: Date;
+    /** El enlace que obligó a mover la tarea; null si no hubo que moverla. */
+    porQue: Limite | null;
+}
+/**
+ * Las fechas más cercanas a las pedidas que cumplen TODOS los enlaces de la tarea, sin
+ * cambiar su duración en días hábiles. Si las pedidas ya los cumplen, se devuelven tal cual
+ * (una tarea se puede poner MÁS TARDE de lo que exigen sus enlaces: no se adelanta sola).
+ * Un hito ocupa un solo día: inicio = fin.
+ */
+declare function fechasQueCumplen(tarea: Pick<Task, 'id' | 'dependencies' | 'dependencyLinks' | 'isMilestone'>, inicio: Date, fin: Date, todas: Task[] | Map<string, Task>, cal: Calendario): Ajuste;
+interface TareaEmpujada {
+    id: string;
+    startDate: Date;
+    endDate: Date;
+    porQue: Limite;
+}
+/**
+ * Tras mover unas tareas, EMPUJA a las sucesoras que dejaron de cumplir su enlace, en
+ * cadena, lo justo. Nunca adelanta a ninguna. Devuelve solo las que se movieron (con su
+ * porqué); quien llama las aplica y las guarda.
+ */
+declare function empujarSucesoras(todas: Task[], movidas: Iterable<string>, cal: Calendario): TareaEmpujada[];
+interface Conflicto {
+    sucesora: Task;
+    predecesora: Task;
+    enlace: EnlaceDeTarea;
+    /** Días hábiles que habría que correr la sucesora para cumplir el enlace. */
+    dias: number;
+}
+/** Los enlaces que NO se cumplen hoy (para marcarlos y avisar). */
+declare function conflictosDelCronograma(todas: Task[], cal: Calendario): Conflicto[];
+
 interface TaskTooltipData {
     task: Task;
     x: number;
@@ -3059,7 +3158,8 @@ interface TaskBarProps {
     onDoubleClick?: (task: Task) => void;
     onContextMenu?: (task: Task, event: React.MouseEvent) => void;
     onDateChange?: (task: Task, newStart: Date, newEnd: Date) => void;
-    onDependencyCreate?: (fromTask: Task, toTaskId: string) => void;
+    /** Mejora fuerte 5: con el TIPO que sale de los extremos elegidos al arrastrar. */
+    onDependencyCreate?: (fromTask: Task, toTaskId: string, tipo?: TipoDeEnlace) => void;
     allTaskPositions?: TaskPosition[];
     onDragMove?: (taskId: string, daysDelta: number, isDragging: boolean) => void;
     onHoverChange?: (tooltipData: TaskTooltipData | null) => void;
@@ -3090,6 +3190,10 @@ interface DependencyLineProps {
     colorOverride?: string;
     strokeWidthOverride?: number;
     glowFilter?: string;
+    salidaPorInicio?: boolean;
+    entradaPorFin?: boolean;
+    /** «CC +2», «FF», «+1»…: el tipo (si no es FC) y el desfase (si no es 0). */
+    etiqueta?: string;
 }
 /**
  * v0.17.364: TRUE ClickUp-style dependency line routing
@@ -3109,7 +3213,7 @@ interface DependencyLineProps {
  *   The vertical segment must still be LEFT of destination: turnX = x2 - OFFSET
  *   Path: right → horizontal past source → down/up → LEFT back to destination
  */
-declare function DependencyLine({ x1, y1, x2, y2, theme, onDelete, lineStyle, isHoverLayer, onHoverChange, hoverOverlayOnly, colorOverride, strokeWidthOverride, glowFilter, }: DependencyLineProps): react_jsx_runtime.JSX.Element;
+declare function DependencyLine({ x1, y1, x2, y2, theme, onDelete, lineStyle, isHoverLayer, onHoverChange, hoverOverlayOnly, colorOverride, strokeWidthOverride, glowFilter, salidaPorInicio, entradaPorFin, etiqueta, }: DependencyLineProps): react_jsx_runtime.JSX.Element;
 
 interface MilestoneProps {
     task: Task;
@@ -3241,7 +3345,7 @@ interface GanttAIAssistantProps {
     /** Callback for task deletion */
     onTaskDelete?: (taskId: string) => void;
     /** Callback for dependency creation */
-    onDependencyCreate?: (fromTaskId: string, toTaskId: string) => void;
+    onDependencyCreate?: (fromTaskId: string, toTaskId: string, tipo?: 'FS' | 'SS' | 'FF' | 'SF') => void;
     /** Callback for dependency deletion */
     onDependencyDelete?: (taskId: string, dependencyId: string) => void;
 }
@@ -6972,4 +7076,4 @@ declare const themes: Record<ThemeName, Theme>;
  */
 declare const defaultTheme: ThemeName;
 
-export { type AICallbacks, type AICommandResult, type GanttTask as AIGanttTask, type AIMessage, type AIModelKey, type AIOperation, AIUsageDashboard, type AIUsageDashboardProps, AI_FEATURES, AI_MODELS, type Activity, type ActivityType, AddCardButton, type AddCardButtonProps, type AddCardData, AddColumnButton, type AddColumnButtonProps, type AssigneeSuggestion, type Attachment, AttachmentUploader, type AttachmentUploaderProps, type AvailableUser, type Board, type BoardCallbacks, type BoardConfig, BoardProvider, type BoardProviderProps, type BorderRadiusToken, BulkOperationsToolbar, type BulkOperationsToolbarProps, BurnDownChart, type BurnDownChartProps, type BurnDownDataPoint, CUSTOM_FIELD_TYPES, type CalLayerId, type CalMoney, type CalView, CalendarView as CalendarBoard, type DailyLog as CalendarDailyLog, type TeamMember as CalendarTeamMember, Card, type CardFilter, type CardFilters, CardHistoryReplay, type CardHistoryReplayProps, CardHistoryTimeline, type CardHistoryTimelineProps, type CardProps, CardRelationshipsGraph, type CardRelationshipsGraphProps, type CardSort, type CardSortKey, CardStack, type CardStackProps, type CardStack$1 as CardStackType, type CardStatus, type CardTemplate, CardTemplateSelector, type CardTemplateSelectorProps, type CardTimeProps, type Card$1 as CardType, CircuitBreaker, Column, ColumnManager, type ColumnProps, type Column$1 as ColumnType, CommandPalette, type CommandPaletteProps, type Comment, type CommentAttachment, ConfigMenu, type ConfigMenuProps, ContextMenu, type ContextMenuAction, type ContextMenuState, type CustomFieldDefinition, type CustomFieldValue, DEFAULT_SHORTCUTS, DEFAULT_TABLE_COLUMNS, DEFAULT_TEMPLATES, type DateFilter, DateRangePicker, type DateRangePickerProps, DependenciesSelector, type DependenciesSelectorProps, DependencyLine, type DesignTokens, DistributionCharts, type DistributionChartsProps, type DistributionDataPoint, type DragData, type DropData, type DurationToken, type EasingToken, EditableColumnTitle, type EditableColumnTitleProps, ErrorBoundary, type ErrorBoundaryProps, ExportDropdown, type ExportFormat, ExportImportModal, type ExportImportModalProps, type ExportOptions, type FillColumn, FilterBar, type FilterBarProps, type FilterState, type FlattenedTask, type FontSizeToken, type FontWeightToken, GANTT_AI_SYSTEM_PROMPT, GanttAIAssistant, type GanttAIAssistantConfig, type Assignee as GanttAssignee, GanttBoard, type GanttConfig as GanttBoardConfig, type GanttBoardRef, type GanttColumn, type ColumnType$1 as GanttColumnType, type GanttConfig, GanttI18nContext, Milestone as GanttMilestone, type GanttPermissions, type Task as GanttTask, type GanttTemplates, type Theme$1 as GanttTheme, type GanttTheme as GanttThemeConfig, GanttToolbar, type GanttTranslations, GenerateGanttTasksDialog, type GenerateGanttTasksDialogProps, GeneratePlanModal, type GeneratePlanModalProps, type GeneratedPlan, type GeneratedTasksResponse, type GroupByOption, GroupBySelector, type GroupBySelectorProps, HealthBar, type HealthBarProps, type IPluginManager, type ImportResult, type Insight, type InsightSeverity, type InsightType, KanbanBoard, type KanbanBoardProps, KanbanToolbar, type KanbanToolbarProps, KanbanViewAdapter, type KanbanViewConfig, type KeyboardAction, type KeyboardShortcut, KeyboardShortcutsHelp, type KeyboardShortcutsHelpProps, type LineHeightToken, type ListColumn, type ColumnType as ListColumnType, type ListFilter, type ListSort, type ListSortColumn, ListView, type ListViewCallbacks, type ListViewConfig, type ListViewPermissions, type ListViewProps, type ListViewSupportedLocale, type ListViewTheme, type ListViewThemeName, type ListViewTranslations, MenuIcons, type MoneyMode, type OpacityToken, type PendingFile, type PersistHistoryConfig, type Plugin, type PluginContext, type PluginHooks, PluginManager, type Priority, PrioritySelector, type PrioritySelectorProps, ProfitabilityReport, type ProfitabilityReportProps, type ProjectForecast, type ProjectHealthData, QuickTaskCreate, type QuickTaskCreateData, type QuickTaskCreateProps, RATE_LIMITS, type RenderProps, type RescheduleSimulation, type RetryOptions, type RetryResult, STANDARD_FIELDS, type ShadowToken, type SortBy, type SortDirection, type SortOrder, type SortState, type SpacingToken, type StackSuggestion, type StackingConfig, type StackingStrategy, type Subtask, type SupportedLocale, type Swimlane, SwimlaneBoardView, type SwimlaneBoardViewProps, type SwimlaneConfig, type TableColumn, TagBadge, TagList, TagPicker, TaskBar, type TaskComment, TaskDetailModal, type TaskDetailModalProps, type TaskFilterType, type TaskFormData, TaskFormModal, type TaskFormModalProps, TaskGrid, type TaskPriority, type TaskTag, type Theme, type ThemeColors, type ThemeContextValue, ThemeModal, type ThemeModalProps, type ThemeName, ThemeProvider, ThemeSwitcher, type TimeEntry, TimeInputPopover, type TimeInputPopoverProps, type TimeLogInput, type TimeLogSource, TimePill, type TimePillProps, TimePopover, type TimePopoverProps, type TimeScale, type TimeTrackingBoardProps, type TimeTrackingCallbacks, type TimeTrackingSummary, Timeline, type TimerState, type ThemeColors$1 as TokenThemeColors, type TokenValue, type UsageStats, type UseAIOptions, type UseAIReturn, type UseBoardReturn as UseBoardCoreReturn, type UseBoardOptions, type UseBoardReturn$1 as UseBoardReturn, type UseCardStackingOptions, type UseCardStackingResult, type UseDragStateReturn, type UseFiltersOptions, type UseFiltersReturn, type UseKanbanStateOptions, type UseKanbanStateReturn, type UseKeyboardShortcutsOptions, type UseKeyboardShortcutsReturn, type UseMultiSelectReturn, type UseSelectionStateReturn, type User$1 as User, UserAssignmentSelector, type UserAssignmentSelectorProps, VelocityChart, type VelocityChartProps, type VelocityDataPoint, VirtualGrid, type VirtualGridProps, VirtualList, type VirtualListProps, type ZIndexToken, aiUsageTracker, borderRadius, buildCalendar, calculatePosition, cardToGanttTask, cardsToGanttTasks, cn, createKanbanView, createRetryWrapper, darkTheme, darkTheme$1 as darkTokenTheme, defaultTheme, designTokens, duration, easing, exportTokensToCSS, findTaskByName, fontSize, fontWeight, formatCost, en$1 as ganttEnTranslations, es$1 as ganttEsTranslations, ganttTaskToCardUpdate, themes$1 as ganttThemes, gantt as ganttTokens, translations as ganttTranslations, ganttUtils, generateCSSVariables, generateCompleteCSS, generateInitialPositions, generateTasksContext, generateThemeVariables, getListViewTheme, getListViewTranslations, getToken, getTranslations, kanban as kanbanTokens, lightTheme, lightTheme$1 as lightTokenTheme, lineHeight, darkTheme$2 as listViewDarkTheme, en as listViewEnTranslations, es as listViewEsTranslations, lightTheme$2 as listViewLightTheme, neutralTheme$2 as listViewNeutralTheme, listViewThemes, listViewTranslations, mergeListViewTranslations, mergeTranslations, neutralTheme, neutralTheme$1 as neutralTokenTheme, opacity, parseLocalCommand, parseNaturalDate, parseNaturalDuration, parseProgress, parseStatus, pluginManager, retrySyncOperation, retryWithBackoff, shadows, shouldVirtualizeGrid, simulateReschedule, spacing, themes, useAI, useBoard$1 as useBoard, useBoard as useBoardCore, useBoardStore, useCardStacking, useDragState, useFilteredCards, useFilters, useGanttI18n, useKanbanState, useKeyboardShortcuts, useMultiSelect, useSelectionState, useSortedCards, useTheme, useVirtualGrid, useVirtualList, validateAIResponse, withErrorBoundary, wouldCreateCircularDependency, zIndex };
+export { type AICallbacks, type AICommandResult, type GanttTask as AIGanttTask, type AIMessage, type AIModelKey, type AIOperation, AIUsageDashboard, type AIUsageDashboardProps, AI_FEATURES, AI_MODELS, type Activity, type ActivityType, AddCardButton, type AddCardButtonProps, type AddCardData, AddColumnButton, type AddColumnButtonProps, type AssigneeSuggestion, type Attachment, AttachmentUploader, type AttachmentUploaderProps, type AvailableUser, type Board, type BoardCallbacks, type BoardConfig, BoardProvider, type BoardProviderProps, type BorderRadiusToken, BulkOperationsToolbar, type BulkOperationsToolbarProps, BurnDownChart, type BurnDownChartProps, type BurnDownDataPoint, CUSTOM_FIELD_TYPES, type CalLayerId, type CalMoney, type CalView, CalendarView as CalendarBoard, type DailyLog as CalendarDailyLog, type TeamMember as CalendarTeamMember, type Calendario as CalendarioDelCronograma, Card, type CardFilter, type CardFilters, CardHistoryReplay, type CardHistoryReplayProps, CardHistoryTimeline, type CardHistoryTimelineProps, type CardProps, CardRelationshipsGraph, type CardRelationshipsGraphProps, type CardSort, type CardSortKey, CardStack, type CardStackProps, type CardStack$1 as CardStackType, type CardStatus, type CardTemplate, CardTemplateSelector, type CardTemplateSelectorProps, type CardTimeProps, type Card$1 as CardType, CircuitBreaker, Column, ColumnManager, type ColumnProps, type Column$1 as ColumnType, CommandPalette, type CommandPaletteProps, type Comment, type CommentAttachment, ConfigMenu, type ConfigMenuProps, type Conflicto as ConflictoDelCronograma, ContextMenu, type ContextMenuAction, type ContextMenuState, type CustomFieldDefinition, type CustomFieldValue, DEFAULT_SHORTCUTS, DEFAULT_TABLE_COLUMNS, DEFAULT_TEMPLATES, type DateFilter, DateRangePicker, type DateRangePickerProps, DependenciesSelector, type DependenciesSelectorProps, DependencyLine, type DesignTokens, DistributionCharts, type DistributionChartsProps, type DistributionDataPoint, type DragData, type DropData, type DurationToken, type EasingToken, EditableColumnTitle, type EditableColumnTitleProps, type EnlaceDeTarea, ErrorBoundary, type ErrorBoundaryProps, ExportDropdown, type ExportFormat, ExportImportModal, type ExportImportModalProps, type ExportOptions, type FillColumn, FilterBar, type FilterBarProps, type FilterState, type FlattenedTask, type FontSizeToken, type FontWeightToken, GANTT_AI_SYSTEM_PROMPT, GanttAIAssistant, type GanttAIAssistantConfig, type Assignee as GanttAssignee, GanttBoard, type GanttConfig as GanttBoardConfig, type GanttBoardRef, type GanttColumn, type ColumnType$1 as GanttColumnType, type GanttConfig, GanttI18nContext, Milestone as GanttMilestone, type GanttPermissions, type Task as GanttTask, type GanttTemplates, type Theme$1 as GanttTheme, type GanttTheme as GanttThemeConfig, GanttToolbar, type GanttTranslations, GenerateGanttTasksDialog, type GenerateGanttTasksDialogProps, GeneratePlanModal, type GeneratePlanModalProps, type GeneratedPlan, type GeneratedTasksResponse, type GroupByOption, GroupBySelector, type GroupBySelectorProps, HealthBar, type HealthBarProps, type IPluginManager, type ImportResult, type Insight, type InsightSeverity, type InsightType, KanbanBoard, type KanbanBoardProps, KanbanToolbar, type KanbanToolbarProps, KanbanViewAdapter, type KanbanViewConfig, type KeyboardAction, type KeyboardShortcut, KeyboardShortcutsHelp, type KeyboardShortcutsHelpProps, type LineHeightToken, type ListColumn, type ColumnType as ListColumnType, type ListFilter, type ListSort, type ListSortColumn, ListView, type ListViewCallbacks, type ListViewConfig, type ListViewPermissions, type ListViewProps, type ListViewSupportedLocale, type ListViewTheme, type ListViewThemeName, type ListViewTranslations, MenuIcons, type MoneyMode, type OpacityToken, type PendingFile, type PersistHistoryConfig, type Plugin, type PluginContext, type PluginHooks, PluginManager, type Priority, PrioritySelector, type PrioritySelectorProps, ProfitabilityReport, type ProfitabilityReportProps, type ProjectForecast, type ProjectHealthData, QuickTaskCreate, type QuickTaskCreateData, type QuickTaskCreateProps, RATE_LIMITS, type RenderProps, type RescheduleSimulation, type RetryOptions, type RetryResult, STANDARD_FIELDS, type ShadowToken, type SortBy, type SortDirection, type SortOrder, type SortState, type SpacingToken, type StackSuggestion, type StackingConfig, type StackingStrategy, type Subtask, type SupportedLocale, type Swimlane, SwimlaneBoardView, type SwimlaneBoardViewProps, type SwimlaneConfig, TODOS_LOS_DIAS, type TableColumn, TagBadge, TagList, TagPicker, type TareaEmpujada, TaskBar, type TaskComment, TaskDetailModal, type TaskDetailModalProps, type TaskFilterType, type TaskFormData, TaskFormModal, type TaskFormModalProps, TaskGrid, type TaskPriority, type TaskTag, type Theme, type ThemeColors, type ThemeContextValue, ThemeModal, type ThemeModalProps, type ThemeName, ThemeProvider, ThemeSwitcher, type TimeEntry, TimeInputPopover, type TimeInputPopoverProps, type TimeLogInput, type TimeLogSource, TimePill, type TimePillProps, TimePopover, type TimePopoverProps, type TimeScale, type TimeTrackingBoardProps, type TimeTrackingCallbacks, type TimeTrackingSummary, Timeline, type TimerState, type TipoDeEnlace, type ThemeColors$1 as TokenThemeColors, type TokenValue, type UsageStats, type UseAIOptions, type UseAIReturn, type UseBoardReturn as UseBoardCoreReturn, type UseBoardOptions, type UseBoardReturn$1 as UseBoardReturn, type UseCardStackingOptions, type UseCardStackingResult, type UseDragStateReturn, type UseFiltersOptions, type UseFiltersReturn, type UseKanbanStateOptions, type UseKanbanStateReturn, type UseKeyboardShortcutsOptions, type UseKeyboardShortcutsReturn, type UseMultiSelectReturn, type UseSelectionStateReturn, type User$1 as User, UserAssignmentSelector, type UserAssignmentSelectorProps, VelocityChart, type VelocityChartProps, type VelocityDataPoint, VirtualGrid, type VirtualGridProps, VirtualList, type VirtualListProps, type ZIndexToken, aiUsageTracker, borderRadius, buildCalendar, calculatePosition, calendarioDe, cardToGanttTask, cardsToGanttTasks, cn, conflictosDelCronograma, createKanbanView, createRetryWrapper, darkTheme, darkTheme$1 as darkTokenTheme, defaultTheme, designTokens, duration, easing, empujarSucesoras, enlacesDe, exportTokensToCSS, fechasQueCumplen, finConDuracion, findTaskByName, fontSize, fontWeight, formatCost, en$1 as ganttEnTranslations, es$1 as ganttEsTranslations, ganttTaskToCardUpdate, themes$1 as ganttThemes, gantt as ganttTokens, translations as ganttTranslations, ganttUtils, generateCSSVariables, generateCompleteCSS, generateInitialPositions, generateTasksContext, generateThemeVariables, getListViewTheme, getListViewTranslations, getToken, getTranslations, habilDesde, habilesEntre, kanban as kanbanTokens, lightTheme, lightTheme$1 as lightTokenTheme, limiteDelEnlace, lineHeight, darkTheme$2 as listViewDarkTheme, en as listViewEnTranslations, es as listViewEsTranslations, lightTheme$2 as listViewLightTheme, neutralTheme$2 as listViewNeutralTheme, listViewThemes, listViewTranslations, mergeListViewTranslations, mergeTranslations, neutralTheme, neutralTheme$1 as neutralTokenTheme, opacity, parseLocalCommand, parseNaturalDate, parseNaturalDuration, parseProgress, parseStatus, pluginManager, retrySyncOperation, retryWithBackoff, shadows, shouldVirtualizeGrid, simulateReschedule, spacing, sumarHabiles, themes, useAI, useBoard$1 as useBoard, useBoard as useBoardCore, useBoardStore, useCardStacking, useDragState, useFilteredCards, useFilters, useGanttI18n, useKanbanState, useKeyboardShortcuts, useMultiSelect, useSelectionState, useSortedCards, useTheme, useVirtualGrid, useVirtualList, validateAIResponse, withErrorBoundary, wouldCreateCircularDependency, zIndex };
