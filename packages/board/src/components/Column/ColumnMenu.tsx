@@ -142,7 +142,7 @@ export function ColumnMenu({
       <button
         ref={buttonRef}
         onClick={() => setIsOpen(!isOpen)}
-        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-white/10"
+        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-[var(--pj-hover,rgba(255,255,255,0.1))]"
         title={t.columnOptions}
         aria-label={t.columnOptions}
       >
@@ -168,16 +168,18 @@ export function ColumnMenu({
             style={{
               top: `${menuPosition.top}px`,
               left: `${menuPosition.left}px`,
-              background: 'linear-gradient(135deg, #1f1f1f 0%, #1a1a1a 100%)',
-              borderColor: 'rgba(255, 255, 255, 0.15)',
-              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1)',
+              /* Mejora fuerte 9 (QA Asakaa) · era solo-oscuro: ahora sigue el tema de la app. */
+              background: 'var(--pj-superficie, var(--asakaa-color-background-card, #1f1f1f))',
+              borderColor: 'var(--pj-borde, rgba(255, 255, 255, 0.15))',
+              color: 'var(--pj-texto, var(--asakaa-color-text-primary, #f4f5f8))',
+              boxShadow: 'var(--pj-elev-2, 0 20px 60px rgba(0, 0, 0, 0.8))',
               zIndex: 99999,
             }}
           >
             {isRenaming ? (
               // Rename input
               <div className="p-3">
-                <label className="text-xs font-bold text-white/80 uppercase tracking-wider block mb-2">
+                <label className="text-xs font-bold uppercase tracking-wider block mb-2 opacity-80">
                   {t.renameColumn}
                 </label>
                 <input
@@ -187,7 +189,7 @@ export function ColumnMenu({
                   onChange={(e) => setNewTitle(e.target.value)}
                   onKeyDown={handleRenameKeyDown}
                   onBlur={handleRenameSubmit}
-                  className="w-full px-3 py-2 rounded-lg text-sm bg-white/5 border border-white/20 text-white placeholder-white/50 outline-none focus:border-[#00E5CC]/50 transition-all"
+                  className="w-full px-3 py-2 rounded-lg text-sm border outline-none transition-all bg-[var(--pj-superficie,rgba(255,255,255,0.05))] border-[var(--pj-borde,rgba(255,255,255,0.2))] text-[color:inherit] placeholder:opacity-50 focus:border-[var(--pj-acento,#00E5CC)]"
                   placeholder={t.columnName}
                   maxLength={50}
                 />
@@ -197,7 +199,7 @@ export function ColumnMenu({
               <div className="py-1">
                 <button
                   onClick={handleRenameClick}
-                  className="w-full px-4 py-2.5 flex items-center gap-3 text-sm text-white/90 hover:bg-white/10 transition-all"
+                  className="w-full px-4 py-2.5 flex items-center gap-3 text-sm hover:bg-[var(--pj-hover,rgba(255,255,255,0.1))] transition-all"
                 >
                   <svg
                     width="16"
@@ -220,13 +222,13 @@ export function ColumnMenu({
                 {/* v0.17.55: Delete option - only for custom columns */}
                 {isDeletable && onDelete && (
                   <>
-                    <div className="h-px bg-white/10 mx-2 my-1" />
+                    <div className="h-px mx-2 my-1" style={{ background: 'var(--pj-borde, rgba(255, 255, 255, 0.15))' }} />
                     <button
                       onClick={() => {
                         onDelete()
                         setIsOpen(false)
                       }}
-                      className="w-full px-4 py-2.5 flex items-center gap-3 text-sm text-red-400 hover:bg-red-500/10 transition-all"
+                      className="w-full px-4 py-2.5 flex items-center gap-3 text-sm text-[color:var(--pj-peligro,#f87171)] hover:bg-red-500/10 transition-all"
                     >
                       <svg
                         width="16"
