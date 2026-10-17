@@ -778,11 +778,10 @@ export function TaskGrid({
                 >
                   {task.wbsCode && (
                     <span style={{
-                      color: theme.textTertiary,
+                      color: `var(--pj-texto-tenue, ${theme.textTertiary})`,
                       fontFamily: "'JetBrains Mono', monospace",
                       fontSize: '11px',
                       fontWeight: 500,
-                      opacity: 0.65,
                       flexShrink: 0,
                     }}>
                       {task.wbsCode}

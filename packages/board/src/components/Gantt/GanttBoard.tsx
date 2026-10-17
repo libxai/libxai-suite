@@ -2453,6 +2453,10 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         <div
           ref={timelineScrollRef}
           className="gantt-timeline-scroll flex-1"
+          // a11y: la zona con scroll se alcanza con el teclado (flechas para moverse por el cronograma)
+          tabIndex={0}
+          role="region"
+          aria-label={esVacio ? 'Cronograma' : 'Timeline'}
           style={{
             minHeight: 0,
             overflowX: 'auto',

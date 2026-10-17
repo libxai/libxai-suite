@@ -8080,6 +8080,11 @@ body {
 }
 
 
+.min-h-\[48px\] {
+  min-height: 48px;
+}
+
+
 .min-h-\[56px\] {
   min-height: 56px;
 }
@@ -8693,6 +8698,17 @@ body {
 .gap-x-12 {
   -moz-column-gap: 3rem;
        column-gap: 3rem;
+}
+
+
+.gap-x-3 {
+  -moz-column-gap: 0.75rem;
+       column-gap: 0.75rem;
+}
+
+
+.gap-y-2 {
+  row-gap: 0.5rem;
 }
 
 

@@ -462,15 +462,17 @@ export function KanbanToolbar({
 
   return (
     <div
-      className={`h-12 px-4 flex items-center ${toolbarLeftContent ? 'justify-between gap-3' : 'justify-end'} border-b sticky top-0 z-10`}
+      // a11y/responsive (Asakaa, mejora fuerte 16): en pantallas estrechas la barra pasa a dos líneas;
+      // con alto fijo, el contenido de la izquierda se montaba encima del de la derecha.
+      className={`min-h-[48px] px-4 py-1.5 flex flex-wrap items-center gap-y-2 ${toolbarLeftContent ? 'justify-between gap-x-3' : 'justify-end'} border-b sticky top-0 z-10`}
       style={{
         backgroundColor: themeStyles.bgGrid,
         borderColor: themeStyles.border,
       }}
     >
-      {toolbarLeftContent && <div className="flex items-center gap-2 min-w-0">{toolbarLeftContent}</div>}
+      {toolbarLeftContent && <div className="flex items-center gap-2 flex-shrink-0">{toolbarLeftContent}</div>}
       {/* Right Section - Custom content + Create Task + Export */}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         {toolbarRightContent && (
           <>
             {toolbarRightContent}

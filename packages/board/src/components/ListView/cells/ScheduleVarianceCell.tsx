@@ -47,7 +47,7 @@ export function ScheduleVarianceCell({
       // If no hours allocated, show "Tiempo no asignado" instead of "En Tiempo"
       if (!hasTimeAllocated) {
         return (
-          <span className="font-mono" style={{ fontSize: '10px', color: isDark ? 'rgba(255,255,255,0.3)' : '#94A3B8', fontWeight: 500 }}>
+          <span className="font-mono" style={{ fontSize: '10px', color: 'var(--pj-texto-tenue, #5b6270)', fontWeight: 500 }}>
             {isEs ? 'Tiempo no asignado' : 'No time allocated'}
           </span>
         );
@@ -61,7 +61,7 @@ export function ScheduleVarianceCell({
 
     if (scheduleVariance > 0 && sinEmpezar) {
       return (
-        <span className="font-mono" style={{ fontSize: '10px', color: isDark ? 'rgba(255,255,255,0.3)' : '#94A3B8', fontWeight: 500 }}>
+        <span className="font-mono" style={{ fontSize: '10px', color: 'var(--pj-texto-tenue, #5b6270)', fontWeight: 500 }}>
           {isEs ? 'Sin iniciar' : 'Not started'}
         </span>
       );

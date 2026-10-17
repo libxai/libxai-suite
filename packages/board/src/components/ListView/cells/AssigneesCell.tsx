@@ -158,6 +158,10 @@ export function AssigneesCell({
   return (
     <div ref={ref} className="relative">
       <button
+        type="button"
+        aria-label={value.length === 0
+          ? (locale === 'es' ? 'Asignar responsable' : 'Assign')
+          : (locale === 'es' ? `Responsables: ${value.map((a) => a.name).join(', ')}` : `Assignees: ${value.map((a) => a.name).join(', ')}`)}
         onClick={(e) => {
           e.stopPropagation();
           setIsOpen(!isOpen);
@@ -309,7 +313,7 @@ export function AssigneesCell({
                 style={{
                   padding: '12px 10px',
                   fontSize: 12,
-                  color: isDark ? 'rgba(255,255,255,0.35)' : '#94A3B8',
+                  color: 'var(--pj-texto-tenue, #5b6270)',
                   textAlign: 'center',
                 }}
               >

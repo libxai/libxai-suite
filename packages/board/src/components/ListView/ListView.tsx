@@ -459,7 +459,9 @@ export function ListView({
   }, [healthSidebar, projectTotalHours]);
 
   // State
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  // a11y/responsive (Asakaa, mejora fuerte 16): el panel de salud arranca abierto solo en escritorio;
+  // con menos de 1280 px se comía media tabla (en móvil, la mitad de la pantalla). Sigue a un clic.
+  const [sidebarOpen, setSidebarOpen] = useState(() => typeof window === 'undefined' || window.innerWidth >= 1280);
   const [highlightedTaskId, setHighlightedTaskId] = useState<string | null>(null);
   const [sortField, setSortField] = useState<SortField>('position');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
@@ -2588,6 +2590,9 @@ export function ListView({
                           // Name cell — folder icon + wbs + name + count + SPI + conflicts
                           <div className="flex items-start gap-2 min-w-0 w-full">
                             <button
+                              type="button"
+                              aria-expanded={isExpanded}
+                              aria-label={locale === 'es' ? (isExpanded ? 'Plegar subtareas' : 'Desplegar subtareas') : (isExpanded ? 'Collapse subtasks' : 'Expand subtasks')}
                               onClick={(e) => { e.stopPropagation(); toggleExpand(task.id); }}
                               className={cn("p-0.5 rounded flex-shrink-0 mt-0.5", isDark ? "hover:bg-white/[0.05]" : "hover:bg-gray-200")}
                             >
@@ -2613,7 +2618,8 @@ export function ListView({
                                 ({subtaskCount} {locale === 'es' ? (subtaskCount === 1 ? 'Tarea' : 'Tareas') : (subtaskCount === 1 ? 'Item' : 'Items')})
                               </span>
                               {spi !== null && mostrarIndicadoresFinancieros && (
-                                <span className={cn("text-[9px] font-mono px-1.5 py-0.5 rounded w-fit mt-0.5", spi >= 1 ? "text-[#32D74B] bg-[#32D74B]/10" : spi >= 0.8 ? "text-[#FFD60A] bg-[#FFD60A]/10" : "text-[#FF453A] bg-[#FF453A]/10")}>
+                                <span className={cn("text-[9px] font-mono px-1.5 py-0.5 rounded w-fit mt-0.5", spi >= 1 ? "bg-[#32D74B]/10" : spi >= 0.8 ? "bg-[#FFD60A]/10" : "bg-[#FF453A]/10")}
+                                  style={{ color: spi >= 1 ? 'var(--pj-verde-texto, #32D74B)' : spi >= 0.8 ? 'var(--pj-ambar-texto, #FFD60A)' : 'var(--pj-rojo-texto, #FF453A)' }}>
                                   Avg SPI: {numero(spi, idioma, 2)}
                                 </span>
                               )}
