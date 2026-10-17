@@ -17,7 +17,28 @@
 export type Idioma = 'es' | 'en' | string;
 
 const esEs = (l: Idioma) => !String(l || 'es').toLowerCase().startsWith('en');
-const loc = (l: Idioma) => (esEs(l) ? 'es-CO' : 'en-US');
+/*
+ * Mejora fuerte 10 (QA Asakaa) · el PAÍS del espacio: la app lo deja en `<html data-pais>`
+ * (Ajustes › Empresa). Decide separadores, símbolo de la moneda y reloj. Sin él, Colombia,
+ * como hasta hoy. La librería no importa de la app: por eso se lee del documento.
+ */
+const PAISES = ['CO', 'MX', 'AR', 'CL', 'PE', 'EC', 'UY', 'BR', 'US', 'ES'];
+function pais(): string {
+  try {
+    const p = typeof document !== 'undefined' ? document.documentElement.dataset.pais : undefined;
+    return p && PAISES.includes(p) ? p : 'CO';
+  } catch { return 'CO'; }
+}
+const loc = (l: Idioma) => `${esEs(l) ? 'es' : 'en'}-${pais()}`;
+
+/** El símbolo de una moneda («$», «€», «S/», «R$»), o «$» si no se conoce. */
+function simbolo(codigo: string | null | undefined, idioma: Idioma): string {
+  if (!codigo) return '$';
+  try {
+    return new Intl.NumberFormat(loc(idioma), { style: 'currency', currency: codigo, currencyDisplay: 'narrowSymbol' })
+      .formatToParts(0).find((p) => p.type === 'currency')?.value ?? '$';
+  } catch { return '$'; }
+}
 
 export function numero(n: number, idioma: Idioma = 'es', decimales = 0): string {
   if (!Number.isFinite(n)) return '—';
@@ -42,7 +63,10 @@ export function moneda(
   } else {
     cifra = numero(abs, idioma, opciones.decimales ?? 0);
   }
-  return `${signo}$${cifra}${codigo ? ` ${codigo}` : ''}`;
+  /* Un «$» es ambiguo (COP, USD, MXN…): lleva el código. «€», «S/», «R$» no lo necesitan. */
+  const sim = simbolo(codigo, idioma);
+  if (sim === '$' || !codigo) return `${signo}$${cifra}${codigo ? ` ${codigo}` : ''}`;
+  return esEs(idioma) ? `${signo}${cifra} ${sim}` : `${signo}${sim}${cifra}`;
 }
 
 /** Minutos → «12 h 30 min», «45 min», «0 h». */
@@ -87,7 +111,7 @@ export function fecha(
 export function hora(valor: Date | string | null | undefined, idioma: Idioma = 'es'): string {
   const d = valor instanceof Date ? valor : valor ? new Date(valor) : null;
   if (!d || isNaN(d.getTime())) return '—';
-  if (esEs(idioma)) return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  if (esEs(idioma) || pais() !== 'US') return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 }
 

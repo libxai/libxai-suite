@@ -12542,11 +12542,6 @@ body {
 }
 
 
-.\[\&\>svg\]\:h-3>svg {
-  height: 0.75rem;
-}
-
-
 .\[\&\>svg\]\:h-3\.5>svg {
   height: 0.875rem;
 }
