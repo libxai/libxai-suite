@@ -3,6 +3,7 @@ import { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo, use
 import { Task, TimeScale, Theme, GanttConfig, GanttColumn, ColumnType, RowDensity, TaskFilterType } from './types';
 import { deriveThemeFromCSS } from './deriveThemeFromCSS';
 import { GanttToolbar } from './GanttToolbar';
+import { BarraV6 } from './BarraV6';
 import { TaskGrid } from './TaskGrid';
 import { Timeline } from './Timeline';
 import { anchoDelDia, conHoy, fechaAlAbrir, inicioDeLaEscala, ladoDeHoy } from './rangoDeLaEscala';
@@ -92,6 +93,9 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     toolbarRightContent,
     toolbarContainer,
     hideWbsLevel,
+    disenoV6,
+    masOpcionesDeLaBarra,
+    onRowDensityChange: configOnRowDensityChange,
     // v3.0.0: Baseline & WBS
     showBaseline: configShowBaseline,
     onShowBaselineChange: configOnShowBaselineChange,
@@ -143,6 +147,8 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
 
   const [timeScale, setTimeScale] = useState<TimeScale>(initialTimeScale);
   const [rowDensity, setRowDensity] = useState<RowDensity>(initialRowDensity);
+  /* Gantt v6 · la app recuerda la densidad que elige cada persona. */
+  const cambiarDensidad = useCallback((d: RowDensity) => { setRowDensity(d); configOnRowDensityChange?.(d); }, [configOnRowDensityChange]);
   const [zoom, setZoom] = useState(1);
 
   // v3.0.0: WBS Level selector state
@@ -2275,7 +2281,41 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       }}
     >
       {/* Toolbar — z-index ensures dropdowns render above the overflow:clip grid below */}
-      {(() => { const barra = (
+      {(() => { const barra = disenoV6 && toolbarContainer ? (
+      /* Gantt v6 (Asakaa) · la barra de la maqueta, en la cabecera del proyecto. */
+      <BarraV6
+        timeScale={timeScale}
+        onTimeScaleChange={setTimeScale}
+        rowDensity={rowDensity}
+        onRowDensityChange={cambiarDensidad}
+        taskFilter={taskFilter}
+        onTaskFilterChange={setTaskFilter}
+        hideCompleted={hideCompleted}
+        onHideCompletedChange={setHideCompleted}
+        toolbarRightContent={toolbarRightContent}
+        showCreateTaskButton={showCreateTaskButton && permissions?.canCreateTask !== false && !permissions?.canCreateSubtaskOnly}
+        createTaskLabel={createTaskLabel}
+        onCreateTask={onCreateTask}
+        wbsLevel={wbsLevel}
+        onWbsLevelChange={hideWbsLevel ? undefined : handleWbsLevelChange}
+        maxWbsDepth={maxWbsDepth}
+        viewMode={viewMode}
+        onViewModeChange={configOnViewModeChange ? handleViewModeChange : undefined}
+        showCriticalPath={showCriticalPath}
+        onShowCriticalPathChange={handleShowCriticalPathChange}
+        showDependencies={showDependencies}
+        onShowDependenciesChange={handleShowDependenciesChange}
+        highlightWeekends={highlightWeekends}
+        onHighlightWeekendsChange={handleHighlightWeekendsChange}
+        hasDependencies={hasDependencies}
+        onExportPNG={showExportButton ? handleExportPNG : undefined}
+        onExportPDF={showExportButton ? handleExportPDF : undefined}
+        onExportExcel={showExportButton ? handleExportExcel : undefined}
+        onExportMSProject={showExportButton ? handleExportMSProject : undefined}
+        onCopySnapshotLink={onCopySnapshotLink}
+        masOpciones={masOpcionesDeLaBarra}
+      />
+      ) : (
       <GanttToolbar
         enCabecera={!!toolbarContainer}
         theme={theme}
@@ -2286,7 +2326,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         currentTheme={currentTheme}
         onThemeChange={handleThemeChange}
         rowDensity={rowDensity}
-        onRowDensityChange={setRowDensity}
+        onRowDensityChange={cambiarDensidad}
         showThemeSelector={showThemeSelector}
         // v0.14.3: Create Task button
         // v1.4.10: Hide if canCreateTask is false OR canCreateSubtaskOnly is true (user can only create subtasks, not root tasks)

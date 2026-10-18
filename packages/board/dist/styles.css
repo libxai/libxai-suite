@@ -7970,6 +7970,11 @@ body {
 }
 
 
+.h-\[15px\] {
+  height: 15px;
+}
+
+
 .h-\[49px\] {
   height: 49px;
 }
@@ -8237,6 +8242,11 @@ body {
 
 .w-96 {
   width: 24rem;
+}
+
+
+.w-\[15px\] {
+  width: 15px;
 }
 
 
@@ -12555,6 +12565,11 @@ body {
 .\[\&\:\:-webkit-slider-thumb\]\:bg-\[\#00E5CC\]::-webkit-slider-thumb {
   --tw-bg-opacity: 1;
   background-color: rgb(0 229 204 / var(--tw-bg-opacity, 1));
+}
+
+
+.\[\&\>svg\]\:h-3>svg {
+  height: 0.75rem;
 }
 
 

@@ -490,6 +490,21 @@ interface GanttConfig {
     toolbarContainer?: HTMLElement | null;
     /** 1.9.35 · oculta el selector de nivel WBS (All / L1 / L2…) de la barra. */
     hideWbsLevel?: boolean;
+    /**
+     * Gantt v6 (Asakaa) · la barra de la maqueta «asakaa-gantt-v6» (BarraV6.tsx): Filtros con sus
+     * etiquetas, D/S/M, Densidad, «⋯» y Nueva tarea, en una fila. Va con `toolbarContainer`.
+     * Los colores salen de los tokens --v6-* de la app.
+     */
+    disenoV6?: boolean;
+    /** Gantt v6 · lo que la app añade al «⋯» de la barra (historial, pantalla completa…). */
+    masOpcionesDeLaBarra?: Array<{
+        id: string;
+        etiqueta: string;
+        icono?: ReactNode;
+        alPulsar: () => void;
+    }>;
+    /** Avisa del cambio de densidad (para que la app la recuerde). */
+    onRowDensityChange?: (density: RowDensity) => void;
     /** 1.9.36 · cabecera de la escala W: 'number' («Week 36», por defecto) o 'range' («Sep 1–7»). */
     weekHeaderFormat?: 'number' | 'range';
     /**
