@@ -50,6 +50,12 @@ interface TaskBarProps {
   // on pointerup with the committed value. Rendered only for leaf tasks with
   // valid dates when the consumer provides this handler and readOnly is false.
   onProgressChange?: (task: Task, newProgress: number) => void;
+  /** Gantt v6 (Asakaa): barra de contorno con su avance, «N d» a la derecha, sin trama ni rótulos. */
+  v6?: boolean;
+  /** Gantt v6: alto de la barra según la densidad (18 · 22 · 26). */
+  alturaBarra?: number;
+  /** Gantt v6: la duración en días hábiles, a la derecha de la barra («5 d»). */
+  duracionV6?: string;
 }
 
 type DragMode = 'none' | 'move' | 'resize-start' | 'resize-end' | 'connect';
@@ -76,6 +82,9 @@ export function TaskBar({
   showCriticalPath = true,
   readOnly = false,
   onProgressChange,
+  v6 = false,
+  alturaBarra,
+  duracionV6,
 }: TaskBarProps) {
   const es = useGanttEnEspanol(); // QA Asakaa 2.1: la ventanita salía en inglés
   // v0.8.1: Centralized drag state management for better modularity
@@ -110,7 +119,7 @@ export function TaskBar({
     resetDragState
   } = dragState;
 
-  const height = 18; // v1.4.29: Slimmer elegant bars (was 24)
+  const height = alturaBarra ?? 18; // v1.4.29: Slimmer elegant bars (was 24); Gantt v6: según la densidad
   // Chronos V2: Angular bars (4px) vs rounded (8px)
   const isChronos = !!theme.executionBarBg;
   const isDark = theme.textPrimary === '#FFFFFF' || theme.bgPrimary === '#050505';
@@ -1031,7 +1040,47 @@ export function TaskBar({
         );
       })()}
 
-      {!task.segments && isChronos && !isSummaryTask && (() => {
+      {/* Gantt v6 · contorno de acento, fondo suave, el avance relleno (recortado a la barra) y «N d». */}
+      {v6 && !task.segments && !isSummaryTask && (() => {
+        const idRecorte = `v6-barra-${String(task.id).replace(/[^A-Za-z0-9_-]/g, '')}`;
+        const vencida = !!isOverdue && !isCompleted;
+        const avance = Math.max(0, Math.min(100, liveProgress));
+        return (
+          <>
+            <defs>
+              <clipPath id={idRecorte}><rect x={displayX} y={y} width={displayWidth} height={height} rx={6} /></clipPath>
+            </defs>
+            <rect
+              x={displayX + 0.5}
+              y={y + 0.5}
+              width={Math.max(0, displayWidth - 1)}
+              height={height - 1}
+              rx={6}
+              data-parte="pista"
+              data-bar-background="true"
+              data-task-class={customClass}
+              fill={avance > 0 ? 'var(--v6-acento-fondo-3, rgba(15,163,146,0.16))' : 'var(--v6-acento-fondo, rgba(15,163,146,0.1))'}
+              stroke={vencida ? 'var(--v6-rojo-borde, rgba(192,48,58,0.75))' : 'var(--v6-acento-borde, rgba(8,127,114,0.85))'}
+              strokeWidth={1}
+              onMouseDown={(e) => handleMouseDown(e as any)}
+              style={{ cursor: barCursor, pointerEvents: 'all', opacity: isDragging && !isConnecting ? 0.25 : 1 }}
+            />
+            {avance > 0 && (
+              <rect x={displayX} y={y} width={displayWidth * (avance / 100)} height={height} clipPath={`url(#${idRecorte})`} data-parte="avance" fill="var(--v6-acento, #0FA392)" style={{ pointerEvents: 'none' }} />
+            )}
+            {isAtRisk && (
+              <rect x={displayX} y={y} width={displayWidth} height={height} rx={6} fill="none" stroke="var(--v6-rojo-punto, #D13A40)" strokeWidth={1.5} data-parte="alerta" style={{ pointerEvents: 'none' }} />
+            )}
+            {duracionV6 && !isDragging && (
+              <text x={displayX + displayWidth + 6} y={y + height / 2} dominantBaseline="middle" fill="var(--v6-tenue, #5F6972)" fontSize={11} fontFamily="'JetBrains Mono', ui-monospace, monospace" style={{ fontVariantNumeric: 'tabular-nums', pointerEvents: 'none', userSelect: 'none' }}>
+                {duracionV6}
+              </text>
+            )}
+          </>
+        );
+      })()}
+
+      {!v6 && !task.segments && isChronos && !isSummaryTask && (() => {
         /* Chronos V2: Execution bars — dark track + solid progress fill (two-tone) */
         return (
           <motion.rect
@@ -1061,7 +1110,7 @@ export function TaskBar({
         );
       })()}
 
-      {!task.segments && !isChronos && (
+      {!v6 && !task.segments && !isChronos && (
         /* Non-Chronos themes: original solid bar */
         <motion.rect
           x={displayX}
@@ -1093,7 +1142,7 @@ export function TaskBar({
       )}
 
       {/* Chronos V2: Critical task border + neon glow */}
-      {isChronos && (isOverdue || isAtRisk) && !task.segments && (
+      {!v6 && isChronos && (isOverdue || isAtRisk) && !task.segments && (
         <rect
           x={displayX}
           y={y}
@@ -1119,7 +1168,7 @@ export function TaskBar({
       )}
 
       {/* Progress Fill (non-summary tasks only — summary has its own fill above) */}
-      {!task.segments && liveProgress > 0 && !isSummaryTask && (
+      {!v6 && !task.segments && liveProgress > 0 && !isSummaryTask && (
         isChronos && false ? (
           null
         ) : (
@@ -1138,7 +1187,7 @@ export function TaskBar({
       )}
 
       {/* v1.4.30: Diagonal hatch + dashed border on remaining (no-progress) area */}
-      {!task.segments && !isSummaryTask && task.progress < 100 && (() => {
+      {!v6 && !task.segments && !isSummaryTask && task.progress < 100 && (() => {
         const progressW = task.progress > 0 ? displayWidth * (task.progress / 100) : 0;
         const remainX = displayX + progressW;
         const remainW = displayWidth - progressW;
@@ -1196,7 +1245,7 @@ export function TaskBar({
       })()}
 
       {/* Chronos V2: Assignee avatar at end of progress bar */}
-      {isChronos && !task.segments && task.progress > 0 && task.progress < 100 && !isSummaryTask && !isDragging && dragProgress === null && (
+      {!v6 && isChronos && !task.segments && task.progress > 0 && task.progress < 100 && !isSummaryTask && !isDragging && dragProgress === null && (
         (() => {
           const progressEndX = displayX + displayWidth * (task.progress / 100);
           const avatarR = 8;
@@ -1239,7 +1288,7 @@ export function TaskBar({
           const handleY = y + height / 2;
           const isDraggingProgress = dragProgress !== null;
           const visibleRadius = isDraggingProgress ? 7 : (isHovered ? 6 : 5);
-          const handleOpacity = isDraggingProgress ? 1 : (isHovered ? 1 : 0.35);
+          const handleOpacity = isDraggingProgress ? 1 : (isHovered ? 1 : (v6 ? 0 : 0.35)); // Gantt v6: solo al pasar el ratón
           // Shrink hit area on the right side when close to the end of the bar
           // so it doesn't steal clicks from the end-resize grip (last ~10px of
           // the bar are reserved for resize). On the left, keep the full 12px.
@@ -1425,7 +1474,7 @@ export function TaskBar({
       {/* Task Name Text - v0.8.0: Using taskLabel template */}
       {/* v0.8.1: Hide text for split tasks to avoid blocking segment clicks */}
       {/* Chronos: Hide label for summary tasks (thin-line style, name shown in grid only) */}
-      {showTaskBarLabels && displayWidth > 60 && !task.segments && !(isChronos && isSummaryTask) && (() => {
+      {!v6 && showTaskBarLabels && displayWidth > 60 && !task.segments && !(isChronos && isSummaryTask) && (() => {
         const label = templates.taskLabel(task);
         const labelText = typeof label === 'string' ? label : task.name;
         const truncated = labelText.length > Math.floor(displayWidth / 8)
@@ -1455,7 +1504,7 @@ export function TaskBar({
       })()}
 
       {/* Progress Percentage — Chronos V2: outside bar to the right (hidden for summary tasks) */}
-      {!isDragging && !task.segments && !isSummaryTask && task.progress > 0 && task.progress < 100 && (
+      {!v6 && !isDragging && !task.segments && !isSummaryTask && task.progress > 0 && task.progress < 100 && (
         isChronos ? (
           <text
             x={displayX + displayWidth + 6}
@@ -1489,7 +1538,7 @@ export function TaskBar({
       {/* Status Indicator Badge */}
       {/* v0.8.1: Hide status badge for split tasks to avoid blocking segment clicks */}
       {/* Chronos: Hidden for summary tasks (thin-line style) */}
-      {task.status && displayWidth > 80 && !isDragging && !task.segments && !(isChronos && isSummaryTask) && (
+      {!v6 && task.status && displayWidth > 80 && !isDragging && !task.segments && !(isChronos && isSummaryTask) && (
         <g data-parte="insignia-estado" style={{ pointerEvents: 'none' }}>
           {task.status === 'completed' && (
             <circle

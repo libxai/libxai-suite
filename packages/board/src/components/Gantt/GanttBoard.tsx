@@ -875,7 +875,9 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   }, []);
 
   // Calculate row height based on density
-  const rowHeight = getRowHeight(rowDensity);
+  /* Gantt v6 · Compacta 32 / 18 · Normal 40 / 22 · Cómoda 48 / 26 (fila / barra). */
+  const ALTOS_V6: Record<RowDensity, { fila: number; barra: number }> = { compact: { fila: 32, barra: 18 }, comfortable: { fila: 40, barra: 22 }, spacious: { fila: 48, barra: 26 } };
+  const rowHeight = disenoV6 ? ALTOS_V6[rowDensity].fila : getRowHeight(rowDensity);
 
   // Enable undo/redo keyboard shortcuts
   useGanttUndoRedoKeys({
@@ -2540,6 +2542,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
           <Timeline
             v6={!!disenoV6}
             alturaCabecera={disenoV6 ? 60 : undefined}
+            alturaBarra={disenoV6 ? ALTOS_V6[rowDensity].barra : undefined}
             tasks={filteredTasks}
             theme={theme}
             rowHeight={rowHeight}

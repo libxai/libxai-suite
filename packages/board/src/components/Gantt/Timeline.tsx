@@ -5,7 +5,7 @@ import { TaskTooltip, WorkingDaysConfig } from './TaskTooltip';
 import { DependencyLine } from './DependencyLine';
 import { Milestone } from './Milestone';
 import { ganttUtils } from './ganttUtils';
-import { calendarioDe, empujarSucesoras, enlacesDe, conflictosDelCronograma } from './motorDeProgramacion';
+import { calendarioDe, empujarSucesoras, enlacesDe, conflictosDelCronograma, habilesEntre } from './motorDeProgramacion';
 import { anchoDelDia, ladoFueraDeVista } from './rangoDeLaEscala';
 
 /** Mejora fuerte 5 · «CC +2», «FF», «+1»: el tipo (si no es FC) y el desfase (si no es 0). FC/CC/FF/CF en español. */
@@ -59,6 +59,8 @@ interface TimelineProps {
   alturaCabecera?: number;
   /** Gantt v6 (Asakaa): escala, barras y marcas de la maqueta. */
   v6?: boolean;
+  /** Gantt v6: alto de la barra según la densidad (18 · 22 · 26). */
+  alturaBarra?: number;
 }
 
 export interface TaskPosition {
@@ -101,7 +103,9 @@ export function Timeline({
   finPrevisto,
   alturaCabecera,
   v6 = false,
+  alturaBarra,
 }: TimelineProps) {
+  const ALTO_BARRA = alturaBarra ?? 18; // Gantt v6: 18 · 22 · 26 según la densidad
   const HEADER_HEIGHT = alturaCabecera ?? 48; // Must match TaskGrid's HEADER_HEIGHT for alignment
 
   // v0.17.400: Get i18n translations
@@ -215,6 +219,10 @@ export function Timeline({
     const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     return holidaySet.has(key);
   };
+
+  /* Gantt v6 · la duración en días hábiles (los laborables del espacio menos sus festivos). */
+  const calendarioV6 = useMemo(() => calendarioDe(workingDaysConfig ?? null), [workingDaysConfig]);
+  const diasHabilesDe = (t: Task): number => (t.startDate && t.endDate ? habilesEntre(t.startDate, t.endDate, calendarioV6) : 0);
 
   // Convert pixel position to date
   const pixelToDate = useCallback((pixelX: number): Date => {
@@ -380,7 +388,7 @@ export function Timeline({
       .map((task) => {
         const { x, width } = getTaskPosition(task);
         const actualIndex = flatTasks.findIndex(t => t.id === task.id);
-        const y = actualIndex * ROW_HEIGHT + (ROW_HEIGHT - 18) / 2; // v1.4.29: Centered for 18px bar
+        const y = actualIndex * ROW_HEIGHT + (ROW_HEIGHT - ALTO_BARRA) / 2; // v1.4.29: Centered for 18px bar (Gantt v6: su alto)
         return {
           id: task.id,
           x,
@@ -431,7 +439,7 @@ export function Timeline({
         originalX: ((t.startDate.getTime() - startDate.getTime()) / ms) * ancho,
         previewX: ((e.startDate.getTime() - startDate.getTime()) / ms) * ancho,
         width: Math.max(((e.endDate.getTime() - e.startDate.getTime()) / ms) * ancho, ancho),
-        y: HEADER_HEIGHT + rowIndex * ROW_HEIGHT + (ROW_HEIGHT - 18) / 2,
+        y: HEADER_HEIGHT + rowIndex * ROW_HEIGHT + (ROW_HEIGHT - ALTO_BARRA) / 2,
         rowIndex,
         daysDelta: Math.round((e.startDate.getTime() - t.startDate.getTime()) / ms),
         color: t.color,
@@ -950,7 +958,7 @@ export function Timeline({
           }
 
           const { x, width } = getTaskPosition(task);
-          const y = index * ROW_HEIGHT + (ROW_HEIGHT - 18) / 2; // v1.4.29: Centered for 18px bar
+          const y = index * ROW_HEIGHT + (ROW_HEIGHT - ALTO_BARRA) / 2; // v1.4.29: Centered for 18px bar (Gantt v6: su alto)
 
           // Container phase (has subtasks): render as bracket bar
           const isContainer = task.subtasks && task.subtasks.length > 0 && !task.isMilestone;
@@ -966,11 +974,47 @@ export function Timeline({
                 key={task.id}
                 task={task}
                 x={xFin}
-                y={y + 9 - 16}
+                y={y + ALTO_BARRA / 2 - 16}
                 theme={theme}
                 locale={locale}
                 onClick={onTaskClick}
               />
+            );
+          }
+
+          /* Gantt v6 · el grupo: una línea de 4 px con su remate al final, «‹» si empieza antes de la vista,
+             y su duración en días hábiles. */
+          if (isContainer && v6) {
+            const cy = index * ROW_HEIGHT + ROW_HEIGHT / 2;
+            const izq = ventanaVisible?.izq ?? -Infinity;
+            const empiezaAntes = x < izq && x + width > izq;
+            const x0 = empiezaAntes ? izq + 18 : x;
+            const xFinal = x + width;
+            const vencidaFase = (task.progress ?? 0) < 100 && task.endDate.getTime() < new Date(new Date().toDateString()).getTime();
+            return (
+              <g
+                key={task.id}
+                data-barra-resumen="true"
+                data-estado={(task.progress ?? 0) >= 100 ? 'completed' : (vencidaFase ? 'overdue' : 'planned')}
+                onClick={() => onTaskClick?.(task)}
+                onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); onTaskContextMenu?.(task, e as unknown as React.MouseEvent); }}
+                onMouseMove={(e) => handleTooltipChange({ task, x, y: cy - 2, width, height: 4, showBelow: cy < 100, mouseX: e.clientX, mouseY: e.clientY })}
+                onMouseLeave={() => handleTooltipChange(null)}
+                style={{ cursor: 'default', opacity: showCriticalPath && !task.isCriticalPath ? 0.25 : 1, transition: 'opacity 300ms ease' }}
+              >
+                <rect x={x} y={index * ROW_HEIGHT} width={width} height={ROW_HEIGHT} fill="transparent" style={{ pointerEvents: 'all' }} />
+                {empiezaAntes && (
+                  <path d={`M ${izq + 11} ${cy - 4} l -4 4 l 4 4`} fill="none" stroke="var(--v6-texto-2, #4D5761)" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" />
+                )}
+                {xFinal - 2 > x0 && <rect x={x0} y={cy - 2} width={xFinal - 2 - x0} height={4} rx={2} data-parte="pista" fill="var(--v6-grupo, #8A939C)" />}
+                <rect x={xFinal - 2} y={cy - 5} width={2} height={10} rx={1} data-parte="remate" fill="var(--v6-grupo-remate, #3A434C)" />
+                {showCriticalPath && task.isCriticalPath && (
+                  <rect x={x0} y={cy - 3} width={Math.max(0, xFinal - x0)} height={6} rx={3} fill="none" stroke="var(--v6-rojo-punto, #D13A40)" strokeWidth={1.5} style={{ pointerEvents: 'none' }} />
+                )}
+                <text x={xFinal + 6} y={cy} dominantBaseline="middle" fill="var(--v6-tenue, #5F6972)" fontSize={11} fontFamily="'JetBrains Mono', ui-monospace, monospace" style={{ fontVariantNumeric: 'tabular-nums', pointerEvents: 'none', userSelect: 'none' }}>
+                  {`${diasHabilesDe(task)} d`}
+                </text>
+              </g>
             );
           }
 
@@ -1143,6 +1187,9 @@ export function Timeline({
               showCriticalPath={showCriticalPath}
               readOnly={canEditTask ? !canEditTask(task) : false}
               onProgressChange={onTaskProgressDrag}
+              v6={v6}
+              alturaBarra={ALTO_BARRA}
+              duracionV6={v6 ? `${diasHabilesDe(task)} d` : undefined}
             />
           );
         })}
@@ -1168,9 +1215,9 @@ export function Timeline({
             const salidaPorInicio = tipo === 'SS' || tipo === 'SF';
             const entradaPorFin = tipo === 'FF' || tipo === 'SF';
             const exitX = salidaPorInicio ? fromPos.x : fromPos.x + fromPos.width;
-            const exitY = fromIndex * ROW_HEIGHT + 26;
+            const exitY = v6 ? fromIndex * ROW_HEIGHT + ROW_HEIGHT / 2 : fromIndex * ROW_HEIGHT + 26;
             const enterX = entradaPorFin ? toPos.x + toPos.width : toPos.x;
-            const enterY = toIndex * ROW_HEIGHT + 26;
+            const enterY = v6 ? toIndex * ROW_HEIGHT + ROW_HEIGHT / 2 : toIndex * ROW_HEIGHT + 26;
 
             const lineKey = `dep-${depId}-${task.id}`;
 
@@ -1199,8 +1246,8 @@ export function Timeline({
                 y2={enterY}
                 theme={theme}
                 lineStyle={dependencyLineStyle}
-                colorOverride={cpmColorOverride}
-                strokeWidthOverride={cpmStrokeWidth}
+                colorOverride={cpmColorOverride ?? (v6 ? 'var(--v6-dependencia, #8A939C)' : undefined)}
+                strokeWidthOverride={cpmStrokeWidth ?? (v6 ? 1 : undefined)}
                 glowFilter={cpmGlow}
                 salidaPorInicio={salidaPorInicio}
                 entradaPorFin={entradaPorFin}

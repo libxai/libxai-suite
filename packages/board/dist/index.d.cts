@@ -3077,6 +3077,8 @@ interface TimelineProps {
     alturaCabecera?: number;
     /** Gantt v6 (Asakaa): escala, barras y marcas de la maqueta. */
     v6?: boolean;
+    /** Gantt v6: alto de la barra según la densidad (18 · 22 · 26). */
+    alturaBarra?: number;
 }
 interface TaskPosition {
     id: string;
@@ -3089,7 +3091,7 @@ declare function Timeline({ tasks, theme, rowHeight: ROW_HEIGHT, timeScale, star
 templates, dependencyLineStyle, // v0.17.310
 showTaskBarLabels, onTaskClick, onTaskDblClick, // v0.8.0
 onTaskContextMenu, // v0.8.0
-onTaskDateChange, onDependencyCreate, onDependencyDelete, showBaseline, showCriticalPath, showDependencies, highlightWeekends, weekHeaderFormat, canEditTask, onTaskProgressDrag, workingDaysConfig, ventanaVisible, onIrAFecha, finPlaneado, finPrevisto, alturaCabecera, v6, }: TimelineProps): react_jsx_runtime.JSX.Element;
+onTaskDateChange, onDependencyCreate, onDependencyDelete, showBaseline, showCriticalPath, showDependencies, highlightWeekends, weekHeaderFormat, canEditTask, onTaskProgressDrag, workingDaysConfig, ventanaVisible, onIrAFecha, finPlaneado, finPrevisto, alturaCabecera, v6, alturaBarra, }: TimelineProps): react_jsx_runtime.JSX.Element;
 
 /**
  * ═══ EL MOTOR DEL CRONOGRAMA (QA Asakaa, mejora fuerte 5) ════════════════════════
@@ -3214,13 +3216,19 @@ interface TaskBarProps {
     showCriticalPath?: boolean;
     readOnly?: boolean;
     onProgressChange?: (task: Task, newProgress: number) => void;
+    /** Gantt v6 (Asakaa): barra de contorno con su avance, «N d» a la derecha, sin trama ni rótulos. */
+    v6?: boolean;
+    /** Gantt v6: alto de la barra según la densidad (18 · 22 · 26). */
+    alturaBarra?: number;
+    /** Gantt v6: la duración en días hábiles, a la derecha de la barra («5 d»). */
+    duracionV6?: string;
 }
 declare function TaskBar({ task, x, y, width, theme, dayWidth, startDate, templates, onClick, onDoubleClick, // v0.8.0
 onContextMenu, // v0.8.0
 onDateChange, onDependencyCreate, allTaskPositions, onDragMove, // v0.13.0
 onHoverChange, // v0.17.76
 showBaseline, // v3.0.0
-showTaskBarLabels, showCriticalPath, readOnly, onProgressChange, }: TaskBarProps): react_jsx_runtime.JSX.Element;
+showTaskBarLabels, showCriticalPath, readOnly, onProgressChange, v6, alturaBarra, duracionV6, }: TaskBarProps): react_jsx_runtime.JSX.Element;
 
 interface DependencyLineProps {
     x1: number;
