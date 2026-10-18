@@ -3089,7 +3089,7 @@ declare function Timeline({ tasks, theme, rowHeight: ROW_HEIGHT, timeScale, star
 templates, dependencyLineStyle, // v0.17.310
 showTaskBarLabels, onTaskClick, onTaskDblClick, // v0.8.0
 onTaskContextMenu, // v0.8.0
-onTaskDateChange, onDependencyCreate, onDependencyDelete, showBaseline, showCriticalPath, showDependencies, highlightWeekends, weekHeaderFormat, canEditTask, onTaskProgressDrag, workingDaysConfig, ventanaVisible, onIrAFecha, finPlaneado, finPrevisto, alturaCabecera, v6: _v6, }: TimelineProps): react_jsx_runtime.JSX.Element;
+onTaskDateChange, onDependencyCreate, onDependencyDelete, showBaseline, showCriticalPath, showDependencies, highlightWeekends, weekHeaderFormat, canEditTask, onTaskProgressDrag, workingDaysConfig, ventanaVisible, onIrAFecha, finPlaneado, finPrevisto, alturaCabecera, v6, }: TimelineProps): react_jsx_runtime.JSX.Element;
 
 /**
  * ═══ EL MOTOR DEL CRONOGRAMA (QA Asakaa, mejora fuerte 5) ════════════════════════

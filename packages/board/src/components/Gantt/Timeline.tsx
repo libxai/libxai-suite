@@ -100,7 +100,7 @@ export function Timeline({
   finPlaneado,
   finPrevisto,
   alturaCabecera,
-  v6: _v6 = false, // Gantt v6: la escala y las barras (fases 4 y 5)
+  v6 = false,
 }: TimelineProps) {
   const HEADER_HEIGHT = alturaCabecera ?? 48; // Must match TaskGrid's HEADER_HEIGHT for alignment
 
@@ -519,6 +519,35 @@ export function Timeline({
     return daysFromStart * dayWidth * zoom;
   }, [startDate, dayWidth, zoom]);
 
+  /*
+   * Gantt v6 (Asakaa) · la escala de la maqueta en D: arriba las semanas («17 – 23 ago  S34»),
+   * abajo los días (letra + número); fines de semana sombreados, festivos rayados, el día del fin
+   * previsto en un círculo y hoy en una píldora oscura.
+   */
+  const esV6Dia = v6 && timeScale === 'day';
+  const anchoDia = dayWidth * zoom;
+  const mismoDia = (a?: Date | null, b?: Date | null) => !!a && !!b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  const mesCorto = (d: Date) => d.toLocaleDateString(locale, { month: 'short' }).replace('.', '');
+  const semanasV6 = useMemo(() => {
+    if (!esV6Dia) return [] as Array<{ x: number; etiqueta: string; num: number }>;
+    const r: Array<{ x: number; etiqueta: string; num: number }> = [];
+    headers.forEach((h, i) => {
+      const d = h.date;
+      if (i !== 0 && d.getDay() !== 1) return; // empieza en lunes (o en el primer día pintado)
+      const lunes = new Date(d); lunes.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+      const domingo = new Date(lunes); domingo.setDate(lunes.getDate() + 6);
+      const etiqueta = lunes.getMonth() === domingo.getMonth()
+        ? `${lunes.getDate()} – ${domingo.getDate()} ${mesCorto(domingo)}`
+        : `${lunes.getDate()} ${mesCorto(lunes)} – ${domingo.getDate()} ${mesCorto(domingo)}`;
+      r.push({ x: h.x, etiqueta, num: getWeekNumber(lunes) });
+    });
+    return r;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [esV6Dia, headers, locale]);
+  const LETRAS = locale === 'es' ? ['D', 'L', 'M', 'X', 'J', 'V', 'S'] : ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+  const hoyV6 = new Date();
+  const V6S = { texto: 'var(--v6-texto, #0E1114)', texto2: 'var(--v6-texto-2, #4D5761)', tenue: 'var(--v6-tenue, #5F6972)', borde: 'var(--v6-borde, #E2E5E9)', linea: 'var(--v6-linea, #EEF0F2)', tarjeta: 'var(--v6-tarjeta, #FFFFFF)' };
+
   // v0.13.7: Content height calculation (without header - header is now separate)
   const contentHeight = Math.max(flatTasks.length * ROW_HEIGHT, 600 - HEADER_HEIGHT);
 
@@ -537,10 +566,10 @@ export function Timeline({
           position: 'sticky',
           top: 0,
           zIndex: 10,
-          backgroundColor: theme.glassHeader || theme.bgSecondary,
+          backgroundColor: v6 ? V6S.tarjeta : (theme.glassHeader || theme.bgSecondary),
           flexShrink: 0,
           height: `${HEADER_HEIGHT}px`,
-          borderBottom: `1px solid ${theme.borderLight}`,
+          borderBottom: v6 ? `1px solid ${V6S.borde}` : `1px solid ${theme.borderLight}`,
           boxSizing: 'border-box', // Border included in height
         }}
       >
@@ -556,10 +585,47 @@ export function Timeline({
             width={Math.max(timelineWidth, 1000)}
             height={HEADER_HEIGHT}
             fill={theme.glassHeader || theme.bgSecondary}
+            style={v6 ? { fill: V6S.tarjeta } : undefined}
           />
 
+          {esV6Dia && (
+            <g data-escala-v6="dia">
+              {semanasV6.map((sem, i) => (
+                <g key={`sem-${i}`}>
+                  {sem.x > 0 && <line x1={sem.x} y1={0} x2={sem.x} y2={HEADER_HEIGHT} style={{ stroke: V6S.borde }} strokeWidth={1} shapeRendering="crispEdges" />}
+                  <text x={(() => { /* la semana partida por el borde visible lleva su rótulo pegado a ese borde */ const izq = ventanaVisible?.izq ?? 0; const sig = semanasV6[i + 1]?.x ?? Infinity; return sem.x < izq && izq + 140 < sig ? izq + 8 : sem.x + 8; })()} y={12} dominantBaseline="middle" style={{ fill: V6S.texto2, fontSize: 12, fontWeight: 500 }}>
+                    {sem.etiqueta}
+                    <tspan dx={7} style={{ fill: V6S.tenue, fontSize: 11, fontWeight: 400, fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}>{`${locale === 'es' ? 'S' : 'W'}${sem.num}`}</tspan>
+                  </text>
+                </g>
+              ))}
+              <line x1={0} y1={24.5} x2={Math.max(timelineWidth, 1000)} y2={24.5} style={{ stroke: V6S.linea }} strokeWidth={1} />
+              {headers.map((h, i) => {
+                const cx = h.x + anchoDia / 2;
+                const finde = isWeekend(h.date);
+                const festivo = !finde && isHoliday(h.date);
+                const esFin = mismoDia(h.date, finPrevisto);
+                const esHoy = mismoDia(h.date, hoyV6);
+                const num = String(h.date.getDate());
+                return (
+                  <g key={`dia-${i}`} data-dia-v6={festivo ? 'festivo' : finde ? 'finde' : undefined}>
+                    {festivo && <title>{locale === 'es' ? 'Festivo' : 'Holiday'}</title>}
+                    <text x={cx} y={24 + 11} textAnchor="middle" dominantBaseline="middle" style={{ fill: V6S.tenue, fontSize: 11 }}>{LETRAS[h.date.getDay()]}</text>
+                    {esHoy && <rect x={cx - 12} y={24 + 17} width={24} height={17} rx={8.5} style={{ fill: 'var(--v6-hoy-fondo, #0E1114)' }} />}
+                    {esFin && !esHoy && <rect x={cx - (num.length > 1 ? 11 : 8)} y={24 + 17.5} width={num.length > 1 ? 22 : 16} height={16} rx={8} style={{ fill: 'none', stroke: V6S.texto2 }} strokeWidth={1} />}
+                    <text x={cx} y={24 + 26} textAnchor="middle" dominantBaseline="middle"
+                      style={{ fill: esHoy ? 'var(--v6-hoy-texto, #FFFFFF)' : (finde || festivo) ? V6S.tenue : V6S.texto, fontSize: 12, fontWeight: 500, fontVariantNumeric: 'tabular-nums' }}>
+                      {num}
+                    </text>
+                    {festivo && <line x1={cx - 6} y1={24 + 33.5} x2={cx + 6} y2={24 + 33.5} style={{ stroke: V6S.tenue }} strokeWidth={1} strokeDasharray="1 2" />}
+                  </g>
+                );
+              })}
+            </g>
+          )}
+
           {/* Header Grid Lines and Text */}
-          {headers.map((header, index) => (
+          {!esV6Dia && headers.map((header, index) => (
             <g key={`header-${index}`}>
               {/* Grid line in header - skip first line since TaskGrid border serves as divider */}
               {index > 0 && (
@@ -591,7 +657,7 @@ export function Timeline({
           ))}
 
           {/* Today marker in header — Chronos V2: Badge instead of circle */}
-          {todayX >= 0 && todayX <= timelineWidth && (
+          {!v6 && todayX >= 0 && todayX <= timelineWidth && (
             <g data-hoy="cabecera">
               {/* Neon glow circle */}
               <circle cx={todayX} cy={HEADER_HEIGHT - 10} r={4} fill={theme.today} opacity={1} />
@@ -629,6 +695,11 @@ export function Timeline({
           {/* Neutral theme: Diagonal stripes pattern for critical/overdue tasks */}
           <pattern id="diagonal-stripes" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
             <line x1="0" y1="0" x2="0" y2="8" stroke={theme.border} strokeWidth="2" />
+          </pattern>
+
+          {/* Gantt v6 · el festivo: rayado fino a 135°. */}
+          <pattern id="festivo-v6" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="6" style={{ stroke: 'var(--v6-festivo-trama, rgba(14,17,20,0.09))' }} strokeWidth="1" />
           </pattern>
 
           {/* Chronos V2: Weekend hatched pattern — diagonal toward right */}
@@ -678,6 +749,7 @@ export function Timeline({
           width={Math.max(timelineWidth, 1000)}
           height={contentHeight}
           fill={theme.bgPrimary}
+          style={v6 ? { fill: V6S.tarjeta } : undefined}
         />
 
         {/* Weekend backgrounds removed — only hatch overlay after row backgrounds */}
@@ -692,13 +764,19 @@ export function Timeline({
             height={ROW_HEIGHT}
             fill={index % 2 === 0 ? theme.bgPrimary : theme.bgGrid}
             opacity={1}
-            style={{ pointerEvents: 'none' }}
+            style={v6 ? { pointerEvents: 'none', fill: V6S.tarjeta } : { pointerEvents: 'none' }}
           />
         ))}
 
         {/* v1.4.29: Grid lines rendered AFTER row backgrounds so they are never covered */}
         {/* Vertical column grid lines */}
-        {headers.map((header, index) =>
+        {v6 && flatTasks.map((_t, i) => (
+          <line key={`linea-fila-${i}`} x1={0} y1={(i + 1) * ROW_HEIGHT - 0.5} x2={Math.max(timelineWidth, 1000)} y2={(i + 1) * ROW_HEIGHT - 0.5} style={{ stroke: V6S.linea, pointerEvents: 'none' }} strokeWidth={1} />
+        ))}
+        {esV6Dia && semanasV6.filter((sem) => sem.x > 0).map((sem, i) => (
+          <line key={`vsem-${i}`} x1={sem.x} y1={0} x2={sem.x} y2={contentHeight} style={{ stroke: V6S.borde, pointerEvents: 'none' }} strokeWidth={1} shapeRendering="crispEdges" />
+        ))}
+        {!esV6Dia && headers.map((header, index) =>
           index > 0 ? (
             <line
               key={`vgrid-${index}`}
@@ -724,6 +802,15 @@ export function Timeline({
           const isHolidayDay = timeScale === 'day' && !isWeekend(header.date) && isHoliday(header.date);
           const shouldShade = isWeekendDay || isHolidayDay;
 
+          if (v6 && shouldShade) {
+            const w = nextX - header.x;
+            return (
+              <g key={`we-overlay-${index}`} data-finde="true" style={{ pointerEvents: 'none' }}>
+                <rect x={header.x} y={0} width={w} height={contentHeight} style={{ fill: 'var(--v6-finde, rgba(14,17,20,0.04))' }} />
+                {isHolidayDay && <rect x={header.x} y={0} width={w} height={contentHeight} fill="url(#festivo-v6)" />}
+              </g>
+            );
+          }
           return shouldShade ? (
             <g key={`we-overlay-${index}`} data-finde="true">
               <rect
@@ -1220,7 +1307,7 @@ export function Timeline({
         {todayX >= 0 && todayX <= timelineWidth && (
           <g data-hoy="linea" style={{ pointerEvents: 'none' }}>
             {/* Glow effect (wider, transparent) */}
-            {theme.neonRedGlow && (
+            {theme.neonRedGlow && !v6 && (
               <line
                 x1={todayX}
                 y1={0}
@@ -1257,6 +1344,11 @@ export function Timeline({
           const mismoDia = i === 1 && !!primero && Math.abs(primero.getTime() - m.fecha.getTime()) < 864e5;
           const etiquetaY = 4 + (mismoDia ? 16 : 0);
           return (
+            v6 ? (
+              <g key={m.clave} data-fin={m.clave} style={{ pointerEvents: 'none' }}>
+                <line x1={x} y1={0} x2={x} y2={contentHeight} style={{ stroke: m.clave === 'previsto' ? V6S.tenue : 'var(--v6-separador, #CDD2D8)' }} strokeWidth={1} strokeDasharray="4 3" />
+              </g>
+            ) :
             <g key={m.clave} data-fin={m.clave} style={{ pointerEvents: 'none' }}>
               <line x1={x} y1={0} x2={x} y2={contentHeight} stroke={m.color} strokeWidth={1.5} strokeDasharray="5 4" opacity={0.9} />
               <rect x={x + 3} y={etiquetaY} width={m.texto.length * 5.6 + 10} height={14} rx={3} fill={theme.bgPrimary || '#0F1115'} opacity={0.9} />
@@ -1279,6 +1371,20 @@ export function Timeline({
           const ancho = texto.length * 5.8 + 10;
           const x = lado === 'left' ? ventanaVisible.izq + 4 : ventanaVisible.der - ancho - 4;
           const y = index * ROW_HEIGHT + ROW_HEIGHT / 2 - 8;
+          if (v6) {
+            const vencida = t.status !== 'completed' && (t.progress ?? 0) < 100 && t.endDate.getTime() < new Date(new Date().toDateString()).getTime();
+            const textoV6 = lado === 'left' ? `‹ ${fecha.toLocaleDateString(locale, { day: 'numeric', month: 'short' }).replace('.', '')}` : `${fecha.toLocaleDateString(locale, { day: 'numeric', month: 'short' }).replace('.', '')} ›`;
+            const anchoV6 = textoV6.length * 6.6 + 16;
+            const xV6 = lado === 'left' ? ventanaVisible.izq + 4 : ventanaVisible.der - anchoV6 - 4;
+            const yV6 = index * ROW_HEIGHT + ROW_HEIGHT / 2 - 11;
+            return (
+              <g key={`fuera-${t.id}`} data-fuera-de-vista={lado} data-vencida={vencida || undefined} role="button" style={{ cursor: onIrAFecha ? 'pointer' : 'default' }} onClick={() => onIrAFecha?.(t.startDate!)}>
+                <title>{locale === 'es' ? `Ir a «${t.name}»${vencida ? `, venció el ${fecha.toLocaleDateString(locale, { day: 'numeric', month: 'short' })}` : ''}` : `Go to "${t.name}"`}</title>
+                <rect x={xV6} y={yV6} width={anchoV6} height={22} rx={6} strokeWidth={1} style={{ fill: vencida ? 'var(--v6-rojo-fondo, #FBE9EA)' : V6S.tarjeta, stroke: vencida ? 'var(--v6-rojo-borde, rgba(192,48,58,0.75))' : V6S.borde }} />
+                <text x={xV6 + anchoV6 / 2} y={yV6 + 11.5} textAnchor="middle" dominantBaseline="middle" style={{ fill: vencida ? 'var(--v6-rojo, #B02A33)' : V6S.texto2, fontSize: 11, fontWeight: 500, fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}>{textoV6}</text>
+              </g>
+            );
+          }
           return (
             <g
               key={`fuera-${t.id}`}
@@ -1294,6 +1400,34 @@ export function Timeline({
         })}
 
       </svg>
+
+      {/* Gantt v6 · «Fin previsto · 11 sept» abajo, pegada al borde visible, terminando en su línea. */}
+      {v6 && (() => {
+        const banderas = [
+          finPrevisto && { clave: 'previsto', fecha: finPrevisto, texto: locale === 'es' ? 'Fin previsto' : 'Forecast finish' },
+          finPlaneado && (!finPrevisto || Math.abs(finPlaneado.getTime() - finPrevisto.getTime()) >= 864e5) && { clave: 'planeado', fecha: finPlaneado, texto: locale === 'es' ? 'Fin planeado' : 'Planned finish' },
+        ].filter(Boolean) as Array<{ clave: string; fecha: Date; texto: string }>;
+        if (banderas.length === 0) return null;
+        return (
+          <div aria-hidden={false} style={{ position: 'sticky', bottom: 8, height: 0, zIndex: 6, pointerEvents: 'none' }}>
+            {banderas.map((b, i) => {
+              const x = (((b.fecha.getTime() - startDate.getTime()) / 864e5) + 1) * dayWidth * zoom;
+              if (x < 0 || x > timelineWidth) return null;
+              return (
+                <div
+                  key={b.clave}
+                  data-bandera-fin={b.clave}
+                  style={{ position: 'absolute', bottom: i * 28, left: x - 8, transform: 'translateX(-100%)', display: 'flex', alignItems: 'center', gap: 6, padding: '3px 9px 3px 7px',
+                    border: '1px solid var(--v6-separador, #CDD2D8)', borderRadius: 999, background: V6S.tarjeta, color: V6S.texto2, fontSize: 11, fontWeight: 500, whiteSpace: 'nowrap' }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" /><path d="M4 22v-7" /></svg>
+                  {b.texto} · {b.fecha.toLocaleDateString(locale, { day: 'numeric', month: 'short' }).replace('.', '')}
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
 
       {/* v1.4.28: Tooltip rendered via portal to document.body — never clipped by scroll containers */}
       {activeTooltip && (
