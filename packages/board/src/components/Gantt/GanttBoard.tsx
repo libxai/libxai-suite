@@ -520,6 +520,14 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   }, [locale, customTranslations]);
   // QA Asakaa 2.3.4: el idioma del aviso de proyecto vacío (el contexto de i18n lo crea ESTE componente).
   const esVacio = translations.toolbar.visibility === 'Visibilidad';
+  /* Gantt v6 · las columnas fijas de la maqueta (Tarea · Resp. · Inicio · Fin · %), en 544 px. */
+  const columnasV6 = useMemo<GanttColumn[] | null>(() => disenoV6 ? [
+    { id: 'name', label: esVacio ? 'Tarea' : 'Task', width: 312, minWidth: 120, visible: true, sortable: false, resizable: false },
+    { id: 'assignees', label: esVacio ? 'Resp.' : 'Owner', width: 28, visible: true, sortable: false, resizable: false },
+    { id: 'startDate', label: esVacio ? 'Inicio' : 'Start', width: 50, visible: true, sortable: false, resizable: false },
+    { id: 'endDate', label: esVacio ? 'Fin' : 'End', width: 50, visible: true, sortable: false, resizable: false },
+    { id: 'progress', label: '%', width: 40, visible: true, sortable: false, resizable: false },
+  ] : null, [disenoV6, esVacio]);
 
   // Column configuration - Default: Only show task name
   // v0.13.8: Name column is resizable with min/max width constraints
@@ -672,6 +680,8 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   const BUTTONS_WIDTH = 60; // Space for ColumnManager + Keyboard buttons
   const MAX_VIEWPORT_PERCENT = 0.6; // 60% of viewport width max
   const gridWidth = useMemo(() => {
+    /* Gantt v6: la tabla de la maqueta mide 544 px (Tarea · Resp. · Inicio · Fin · %), salvo que se arrastre. */
+    if (disenoV6 && gridWidthOverride === null) return 544;
     const minRequired = 200; // Minimum: just name column
     const contentWidth = calculatedGridWidth + BUTTONS_WIDTH;
     // Max: 60% of viewport OR content width, whichever is larger
@@ -684,7 +694,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     }
     // Default: show all visible columns + buttons (exact fit)
     return Math.max(minRequired, contentWidth);
-  }, [gridWidthOverride, calculatedGridWidth]);
+  }, [gridWidthOverride, calculatedGridWidth, disenoV6]);
 
   const gridScrollRef = useRef<HTMLDivElement>(null);
   const gridScrollInnerRef = useRef<HTMLDivElement>(null); // v0.18.15: The actual scrollable .gantt-grid-scroll element
@@ -848,6 +858,21 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     return filterTasksRecursively(tasksWithStableWbs);
     }
   }, [tasksWithStableWbs, taskFilter, hideCompleted, busquedaExterna]);
+  /* Gantt v6 · «13 tareas · completadas ocultas», encima de los títulos de la tabla. */
+  const resumenV6 = useMemo(() => {
+    if (!disenoV6) return undefined;
+    const n = ganttUtils.flattenTasks(filteredTasks).length;
+    const base = esVacio ? `${n} ${n === 1 ? 'tarea' : 'tareas'}` : `${n} ${n === 1 ? 'task' : 'tasks'}`;
+    if (hideCompleted) return `${base} · ${esVacio ? 'completadas ocultas' : 'completed hidden'}`;
+    if (taskFilter !== 'all') return `${base} · ${esVacio ? 'filtradas' : 'filtered'}`;
+    return base;
+  }, [disenoV6, filteredTasks, hideCompleted, taskFilter, esVacio]);
+  const contraerTodo = useCallback(() => {
+    setLocalTasks((prev) => {
+      const cerrar = (ts: Task[]): Task[] => ts.map((t) => ({ ...t, isExpanded: false, subtasks: t.subtasks ? cerrar(t.subtasks) : undefined }));
+      return cerrar(prev);
+    });
+  }, []);
 
   // Calculate row height based on density
   const rowHeight = getRowHeight(rowDensity);
@@ -2440,6 +2465,9 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
           }}
         >
           <TaskGrid
+            v6={!!disenoV6}
+            resumenV6={resumenV6}
+            onContraerTodo={disenoV6 ? contraerTodo : undefined}
             addTaskRow={config.addTaskRow}
             tasks={filteredTasks}
             allTasks={tasksWithStableWbs} // v1.9.10: árbol completo para reordenar bien con filtros
@@ -2455,7 +2483,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
             onTaskContextMenu={onTaskContextMenu} // v0.8.0
             onTaskToggle={handleTaskToggle}
             scrollTop={scrollTop}
-            columns={columns}
+            columns={columnasV6 ?? columns}
             onToggleColumn={handleToggleColumn}
             onColumnResize={handleColumnResize}
             onTaskUpdate={handleTaskUpdate}
@@ -2510,6 +2538,8 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
           }}
         >
           <Timeline
+            v6={!!disenoV6}
+            alturaCabecera={disenoV6 ? 60 : undefined}
             tasks={filteredTasks}
             theme={theme}
             rowHeight={rowHeight}

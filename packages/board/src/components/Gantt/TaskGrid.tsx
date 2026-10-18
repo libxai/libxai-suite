@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useContext } from 'react';
 import { useGanttEnEspanol } from './GanttI18nContext';
 import { createPortal } from 'react-dom';
-import { ChevronDown, ChevronRight, ChevronLeft, Plus, Edit3, GripVertical, Calendar, Keyboard } from 'lucide-react';
+import { ChevronDown, ChevronRight, ChevronLeft, Plus, Edit3, GripVertical, Calendar, Keyboard, ChevronsDownUp } from 'lucide-react';
 import { Task, GanttColumn, ColumnType, GanttTemplates } from './types';
 import { motion } from 'framer-motion';
 import { ColumnManager } from './ColumnManager'; // v0.17.215: Back with sticky positioning
@@ -69,6 +69,12 @@ interface TaskGridProps {
   scrollContainerRef?: React.RefObject<HTMLElement>;
   // v5.1.0: CPM visual state
   showCriticalPath?: boolean;
+  /** Gantt v6 (Asakaa): la tabla de la maqueta — Tarea · Resp. · Inicio · Fin · %, cabecera de 60 px. */
+  v6?: boolean;
+  /** Gantt v6: «13 tareas · completadas ocultas», encima de los títulos. */
+  resumenV6?: string;
+  /** Gantt v6: el botón «contraer todos los grupos». */
+  onContraerTodo?: () => void;
 }
 
 export function TaskGrid({
@@ -105,6 +111,9 @@ export function TaskGrid({
   allTasks, // v1.9.10: árbol completo para traducir posición con filtros activos
   scrollContainerRef, // v0.18.15
   showCriticalPath = false, // v5.1.0
+  v6 = false,
+  resumenV6,
+  onContraerTodo,
 }: TaskGridProps) {
   const esGrid = useGanttEnEspanol(); // QA Asakaa 2.1
   // v0.16.2: Get translations from context
@@ -296,7 +305,7 @@ export function TaskGrid({
   };
 
   const flatTasks = flattenTasks(tasks);
-  const HEADER_HEIGHT = 48;
+  const HEADER_HEIGHT = v6 ? 60 : 48; // Gantt v6: 24 (resumen) + 36 (títulos); Timeline igual
 
   // v0.17.221: Calculate content height to match Timeline exactly
   // This ensures proper scroll sync without content cutoff
@@ -673,9 +682,120 @@ export function TaskGrid({
   }, [draggedTaskId, dropTargetTaskId, dropPosition]);
 
   // Render cell content based on column type
+  /*
+   * Gantt v6 (Asakaa) · las celdas de la maqueta: nombre con guías de árbol, código WBS a la
+   * derecha en mono, responsable en un avatar de 22 px, % en mono. Las fechas usan la celda de
+   * siempre (con su selector), en formato corto.
+   */
+  const celdaV6 = (column: GanttColumn, task: Task, level: number, isParentTask: boolean): React.ReactNode | undefined => {
+    if (column.id === 'name') {
+      const isEditing = editingTaskId === task.id;
+      const isHovered = hoveredTaskId === task.id;
+      return (
+        <div data-celda-nombre-v6 className="flex items-center min-w-0 relative" style={{ gap: 6, alignSelf: 'stretch', width: '100%', paddingLeft: `${level * 20}px` }}>
+          {Array.from({ length: level }, (_, i) => (
+            <span key={i} aria-hidden style={{ position: 'absolute', left: 8 + i * 20, top: 0, bottom: 0, width: 1, background: 'var(--v6-separador, #CDD2D8)' }} />
+          ))}
+          {onTaskReparent && isHovered && !isEditing && (
+            <div
+              className="cursor-grab active:cursor-grabbing flex items-center"
+              style={{ position: 'absolute', left: -10, top: 0, bottom: 0, width: 10, color: 'var(--v6-tenue, #5F6972)' }}
+              onMouseDown={(e) => handleDragStart(task.id, e)}
+              title={esGrid ? 'Arrastrar para mover la tarea' : 'Drag to move the task'}
+            >
+              <GripVertical style={{ width: 10, height: 14 }} />
+            </div>
+          )}
+          {isParentTask ? (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onTaskToggle?.(task.id); }}
+              aria-label={esGrid ? (task.isExpanded ? `Contraer ${task.name}` : `Desplegar ${task.name}`) : (task.isExpanded ? `Collapse ${task.name}` : `Expand ${task.name}`)}
+              aria-expanded={!!task.isExpanded}
+              style={{ flex: 'none', width: 18, height: 18, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 0, borderRadius: 6, background: 'transparent', color: 'var(--v6-tenue, #5F6972)', cursor: 'pointer' }}
+            >
+              {task.isExpanded ? <ChevronDown style={{ width: 14, height: 14 }} strokeWidth={2} /> : <ChevronRight style={{ width: 14, height: 14 }} strokeWidth={2} />}
+            </button>
+          ) : (
+            <span aria-hidden style={{ flex: 'none', width: 18 }} />
+          )}
+          {task.wbsCode && (
+            <span style={{ flex: 'none', minWidth: 28, textAlign: 'right', fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontVariantNumeric: 'tabular-nums', fontSize: 11, color: 'var(--v6-tenue, #5F6972)' }}>
+              {task.wbsCode}
+            </span>
+          )}
+          {isEditing ? (
+            <input
+              ref={editInputRef}
+              type="text"
+              value={editingTaskName}
+              onChange={(e) => setEditingTaskName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleRenameSave(task.id); else if (e.key === 'Escape') handleRenameCancel(); }}
+              onBlur={() => handleRenameSave(task.id)}
+              className="flex-1 min-w-0 px-2 py-1 rounded border outline-none"
+              style={{ background: 'var(--v6-tarjeta, #fff)', borderColor: 'var(--v6-acento, #0FA392)', color: 'var(--v6-texto, #0E1114)', font: 'inherit', fontSize: 13 }}
+              onClick={(e) => e.stopPropagation()}
+            />
+          ) : (
+            <span
+              title={task.name}
+              style={{ marginLeft: 2, flex: '1 1 auto', minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: 13, fontWeight: isParentTask || task.isMilestone ? 600 : 500, color: 'var(--v6-texto, #0E1114)' }}
+            >
+              {task.name}
+            </span>
+          )}
+          {showCriticalPath && task.isCriticalPath && (
+            <span aria-label={esGrid ? 'En la ruta crítica' : 'On the critical path'} style={{ flex: 'none', width: 6, height: 6, borderRadius: '50%', background: 'var(--v6-rojo-punto, #D13A40)' }} />
+          )}
+          {isHovered && !isEditing && (
+            <div className="flex items-center" style={{ gap: 2, flex: 'none' }} onClick={(e) => e.stopPropagation()}>
+              <button type="button" onClick={(e) => handleCreateSubtaskClick(task, e)} aria-label={esGrid ? 'Crear subtarea' : 'Create subtask'} title={esGrid ? 'Crear subtarea' : 'Create subtask'} style={{ width: 20, height: 20, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 0, borderRadius: 6, background: 'transparent', color: 'var(--v6-tenue, #5F6972)', cursor: 'pointer' }}>
+                <Plus style={{ width: 13, height: 13 }} />
+              </button>
+              <button type="button" onClick={(e) => { e.stopPropagation(); handleRenameStart(task); }} aria-label={esGrid ? 'Renombrar (F2)' : 'Rename (F2)'} title={esGrid ? 'Renombrar (F2)' : 'Rename (F2)'} style={{ width: 20, height: 20, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 0, borderRadius: 6, background: 'transparent', color: 'var(--v6-tenue, #5F6972)', cursor: 'pointer' }}>
+                <Edit3 style={{ width: 13, height: 13 }} />
+              </button>
+            </div>
+          )}
+        </div>
+      );
+    }
+    if (column.id === 'assignees') {
+      if (isParentTask) return <span aria-hidden />;
+      const asignados: User[] = availableUsers.filter((user) =>
+        task.assignees?.some((a) => ((a as any).id ? (a as any).id === user.id : (a.name === user.name || a.initials === user.initials))),
+      );
+      return (
+        <div className="flex items-center justify-center w-full" onClick={(e) => e.stopPropagation()}>
+          <UserAssignmentSelector
+            variante="v6"
+            es={esGrid}
+            nombreDeLaTarea={task.name}
+            assignedUsers={asignados}
+            availableUsers={availableUsers}
+            onChange={(users: User[]) => onTaskUpdate?.(task.id, { assignees: users.map((u) => ({ id: u.id, name: u.name, initials: u.initials, color: u.color })) })}
+          />
+        </div>
+      );
+    }
+    if (column.id === 'progress') {
+      const p = Math.round(task.progress || 0);
+      const enCurso = !isParentTask && p > 0 && p < 100;
+      return (
+        <div className="w-full" style={{ textAlign: 'right', fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontVariantNumeric: 'tabular-nums', fontSize: 12,
+          fontWeight: isParentTask || enCurso ? 500 : 400,
+          color: enCurso ? 'var(--v6-acento-texto, #066A5F)' : p === 0 ? 'var(--v6-tenue, #5F6972)' : 'var(--v6-texto, #0E1114)' }}>
+          {p}%
+        </div>
+      );
+    }
+    return undefined;
+  };
+
   const renderCellContent = (column: GanttColumn, task: Task, level: number) => {
     // Leaf Node Rule: parent tasks with children are read-only containers
     const isParentTask = task.subtasks && task.subtasks.length > 0;
+    if (v6) { const c = celdaV6(column, task, level, !!isParentTask); if (c !== undefined) return c; }
 
     switch (column.id) {
       case 'name':
@@ -896,20 +1016,25 @@ export function TaskGrid({
         const isDatePickerOpen = datePickerState?.taskId === task.id && datePickerState?.field === dateField;
 
         const formatDisplayDate = (date: Date | string | undefined) => {
-          if (!date) return '-';
+          if (!date) return v6 ? '—' : '-';
           const d = typeof date === 'string' ? new Date(date) : date;
+          if (v6) return d.toLocaleDateString(esGrid ? 'es-ES' : 'en-US', { day: 'numeric', month: 'short' }).replace('.', '');
           return d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
         };
 
         return (
           <div
-            className="flex items-center justify-center w-full relative"
+            className={`flex items-center w-full relative ${v6 ? 'justify-start' : 'justify-center'}`}
             onClick={(e) => e.stopPropagation()}
           >
             <button
               type="button"
-              className="flex items-center gap-1.5 px-2 py-1 rounded text-xs transition-colors hover:bg-white/5"
-              style={{
+              className={v6 ? 'flex items-center rounded' : 'flex items-center gap-1.5 px-2 py-1 rounded text-xs transition-colors hover:bg-white/5'}
+              style={v6 ? {
+                whiteSpace: 'nowrap', padding: 0, border: 0, background: 'transparent',
+                fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontVariantNumeric: 'tabular-nums', fontSize: 11,
+                color: 'var(--v6-texto-2, #4D5761)', cursor: isParentTask ? 'default' : 'pointer',
+              } : {
                 color: theme.textSecondary,
                 opacity: isParentTask ? 0.5 : 1,
                 cursor: isParentTask ? 'default' : 'pointer',
@@ -930,9 +1055,9 @@ export function TaskGrid({
                 }
               }}
             >
-              <Calendar className="w-3 h-3" style={{ color: theme.textTertiary }} />
+              {!v6 && <Calendar className="w-3 h-3" style={{ color: theme.textTertiary }} />}
               <span>{formatDisplayDate(dateValue)}</span>
-              {isParentTask && <span style={{ fontSize: '9px', color: theme.textTertiary, marginLeft: '2px' }}>▼</span>}
+              {isParentTask && !v6 && <span style={{ fontSize: '9px', color: theme.textTertiary, marginLeft: '2px' }}>▼</span>}
             </button>
 
             {/* Date Picker Popover - Using Portal to render outside overflow:hidden containers */}
@@ -1434,7 +1559,40 @@ export function TaskGrid({
         minWidth: totalColumnsWidth, // v0.17.194: Enable horizontal scroll when needed
       }}
     >
-      {/* Header - v0.17.213: Buttons now in flex flow (not absolute) for proper space */}
+      {/* Gantt v6 · cabecera de dos pisos: el resumen y «contraer todo» (24) y los títulos (36). */}
+      {v6 ? (
+        <div
+          data-cabecera-tabla-v6
+          className="sticky top-0 z-10 flex flex-col"
+          style={{ height: `${HEADER_HEIGHT}px`, boxSizing: 'border-box', background: 'var(--v6-tarjeta, #FFFFFF)', borderBottom: '1px solid var(--v6-borde, #E2E5E9)' }}
+        >
+          <div style={{ height: 24, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 10px 0 14px', borderBottom: '1px solid var(--v6-linea, #EEF0F2)', fontSize: 11, color: 'var(--v6-tenue, #5F6972)' }}>
+            <span className="truncate">{resumenV6}</span>
+            {onContraerTodo && (
+              <button
+                type="button"
+                onClick={onContraerTodo}
+                aria-label={esGrid ? 'Contraer todos los grupos' : 'Collapse all groups'}
+                title={esGrid ? 'Contraer todos los grupos' : 'Collapse all groups'}
+                style={{ width: 20, height: 20, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 0, borderRadius: 6, background: 'transparent', color: 'var(--v6-tenue, #5F6972)', cursor: 'pointer' }}
+              >
+                <ChevronsDownUp style={{ width: 13, height: 13 }} strokeWidth={2} />
+              </button>
+            )}
+          </div>
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, padding: '0 14px 0 10px', fontSize: 11, fontWeight: 500, color: 'var(--v6-tenue, #5F6972)' }}>
+            {visibleColumns.map((c) => (
+              <div
+                key={c.id}
+                style={{ width: c.id === 'name' ? undefined : c.width, flex: c.id === 'name' ? '1 1 0' : '0 0 auto', minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden',
+                  textAlign: c.id === 'assignees' ? 'center' : c.id === 'progress' ? 'right' : 'left', paddingLeft: c.id === 'name' ? 60 : 0 }}
+              >
+                {c.label}
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
       <div
         className="sticky top-0 z-10 flex items-center"
         style={{
@@ -1628,6 +1786,7 @@ export function TaskGrid({
           )}
         </div>
       </div>
+      )}
 
       {/* Task Rows Container - v0.17.222: Now uses real scroll instead of CSS transform */}
       {/* minHeight ensures scroll area matches Timeline for proper sync */}
@@ -1655,12 +1814,21 @@ export function TaskGrid({
             style={{
               position: 'relative', // v0.17.146: For drop indicator positioning
               height: `${ROW_HEIGHT}px`,
+              ...(v6 ? {
+                boxSizing: 'border-box' as const,
+                padding: '0 14px 0 10px',
+                gap: 10,
+                borderBottom: '1px solid var(--v6-linea, #EEF0F2)',
+                boxShadow: isSelected ? 'inset 2px 0 0 var(--v6-acento, #0FA392)' : undefined,
+                backgroundColor: isSelected ? 'var(--v6-fila-seleccionada, rgba(15,163,146,0.08))' : showDropChild ? `${theme.accent}15` : 'transparent',
+              } : {
               borderLeft: isSelected ? `3px solid ${theme.accent}` : `3px solid transparent`,
               backgroundColor: isSelected
                 ? theme.accentLight
                 : showDropChild
                   ? `${theme.accent}15`
                   : (index % 2 === 0 ? theme.bgPrimary : theme.bgGrid),
+              }),
               // v5.1.0: CPM opacity — non-critical tasks fade
               opacity: showCriticalPath ? (task.isCriticalPath ? 1.0 : 0.4) : undefined,
               transition: 'opacity 300ms ease',
@@ -1707,7 +1875,9 @@ export function TaskGrid({
               onTaskContextMenu?.(task, e);
             }}
             whileHover={{
-              backgroundColor: isSelected ? theme.accentLight : theme.hoverBg,
+              backgroundColor: v6
+                ? (isSelected ? 'var(--v6-fila-seleccionada, rgba(15,163,146,0.08))' : 'var(--v6-fila-hover, rgba(14,17,20,0.025))')
+                : (isSelected ? theme.accentLight : theme.hoverBg),
             }}
           >
             {/* v0.17.147: Drop indicator line ABOVE - clean horizontal line */}
@@ -1758,10 +1928,19 @@ export function TaskGrid({
             return (
             <div
               key={`${task.id}-${column.id}`}
-              className={`px-4 flex items-center ${
+              className={v6 ? 'flex items-center' : `px-4 flex items-center ${
                 isNameColumn ? 'justify-start' : 'justify-center'
               }`}
-              style={{
+              style={v6 ? {
+                position: 'relative',
+                width: isNameColumn ? undefined : `${column.width}px`,
+                flex: isNameColumn ? '1 1 0' : '0 0 auto',
+                minWidth: 0,
+                height: '100%',
+                alignItems: 'center',
+                overflow: 'visible',
+                backgroundColor: cellInFill ? `${theme.accent}22` : undefined,
+              } : {
                 position: 'relative', // for the fill handle
                 // v0.17.129: All columns use fixed width for consistent resize behavior
                 width: `${column.width}px`,
@@ -1810,10 +1989,12 @@ export function TaskGrid({
           type="button"
           data-anadir-tarea
           onClick={addTaskRow.onClick}
-          className="w-full flex items-center gap-2 px-3 text-left text-[13px] transition-colors"
-          style={{ height: `${ROW_HEIGHT}px`, color: theme.textTertiary, borderBottom: `1px solid ${theme.borderLight}` }}
-          onMouseEnter={(e) => { e.currentTarget.style.color = theme.textPrimary; }}
-          onMouseLeave={(e) => { e.currentTarget.style.color = theme.textTertiary; }}
+          className={v6 ? 'w-full flex items-center text-left' : 'w-full flex items-center gap-2 px-3 text-left text-[13px] transition-colors'}
+          style={v6
+            ? { height: 36, gap: 8, padding: '0 14px 0 34px', border: 0, background: 'transparent', color: 'var(--v6-tenue, #5F6972)', font: 'inherit', fontSize: 13, cursor: 'pointer' }
+            : { height: `${ROW_HEIGHT}px`, color: theme.textTertiary, borderBottom: `1px solid ${theme.borderLight}` }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = v6 ? 'var(--v6-texto, #0E1114)' : theme.textPrimary; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = v6 ? 'var(--v6-tenue, #5F6972)' : theme.textTertiary; }}
         >
           <Plus className="w-3.5 h-3.5" />
           {addTaskRow.label}

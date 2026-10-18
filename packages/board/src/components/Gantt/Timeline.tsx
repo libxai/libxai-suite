@@ -55,6 +55,10 @@ interface TimelineProps {
   onTaskProgressDrag?: (task: Task, newProgress: number) => void;
   /** v4.3.0: Workspace working-day config for the tooltip Duration field. */
   workingDaysConfig?: WorkingDaysConfig;
+  /** Gantt v6: la cabecera mide lo mismo que la de la tabla (60). */
+  alturaCabecera?: number;
+  /** Gantt v6 (Asakaa): escala, barras y marcas de la maqueta. */
+  v6?: boolean;
 }
 
 export interface TaskPosition {
@@ -95,8 +99,10 @@ export function Timeline({
   onIrAFecha,
   finPlaneado,
   finPrevisto,
+  alturaCabecera,
+  v6: _v6 = false, // Gantt v6: la escala y las barras (fases 4 y 5)
 }: TimelineProps) {
-  const HEADER_HEIGHT = 48; // Must match TaskGrid's HEADER_HEIGHT for alignment
+  const HEADER_HEIGHT = alturaCabecera ?? 48; // Must match TaskGrid's HEADER_HEIGHT for alignment
 
   // v0.17.400: Get i18n translations
   const t = useGanttI18n();

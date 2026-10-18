@@ -20,6 +20,12 @@ export interface UserAssignmentSelectorProps {
   onChange: (users: User[]) => void
   className?: string
   maxVisibleAvatars?: number
+  /** Gantt v6 (Asakaa): un avatar de 22 px (o un círculo discontinuo con «+» sin nadie). */
+  variante?: 'v6'
+  /** Gantt v6: el nombre de la tarea, para el nombre accesible del botón. */
+  nombreDeLaTarea?: string
+  /** Gantt v6: español para los textos del botón. */
+  es?: boolean
 }
 
 export function UserAssignmentSelector({
@@ -28,6 +34,9 @@ export function UserAssignmentSelector({
   onChange,
   className,
   maxVisibleAvatars = 3,
+  variante,
+  nombreDeLaTarea,
+  es = true,
 }: UserAssignmentSelectorProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -132,7 +141,35 @@ export function UserAssignmentSelector({
 
   return (
     <div className={`relative ${className || ''}`}>
-      {/* Avatar display or add button */}
+      {/* Gantt v6 · el botón de la maqueta. */}
+      {variante === 'v6' ? (
+        <button
+          ref={buttonRef}
+          type="button"
+          data-resp-v6
+          onClick={() => isOpen ? setIsOpen(false) : openMenu()}
+          aria-label={assignedUsers.length > 0
+            ? `${es ? 'Responsable' : 'Owner'}: ${assignedUsers.map((u) => u.name).join(', ')}`
+            : `${es ? 'Sin responsable. Asignar' : 'No owner. Assign'} ${nombreDeLaTarea ?? ''}`.trim()}
+          title={assignedUsers.map((u) => u.name).join(', ') || undefined}
+          style={{ width: 22, height: 22, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', cursor: 'pointer', position: 'relative',
+            border: assignedUsers.length > 0 ? 0 : '1px dashed var(--v6-tenue-borde, #7A848E)',
+            background: assignedUsers.length > 0 ? 'var(--v6-neutro-fondo, #E1E4E8)' : 'transparent',
+            color: assignedUsers.length > 0 ? 'var(--v6-texto, #0E1114)' : 'var(--v6-tenue, #5F6972)',
+            fontSize: 11, fontWeight: 600, letterSpacing: '-0.03em', overflow: 'hidden' }}
+        >
+          {assignedUsers.length === 0 ? (
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14" /><path d="M12 5v14" /></svg>
+          ) : assignedUsers[0]?.avatar ? (
+            <img src={assignedUsers[0].avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          ) : (
+            assignedUsers[0]?.initials
+          )}
+          {assignedUsers.length > 1 && (
+            <span aria-hidden style={{ position: 'absolute', right: -4, bottom: -3, minWidth: 12, height: 12, padding: '0 2px', borderRadius: 6, fontSize: 8, lineHeight: '12px', background: 'var(--v6-tarjeta, #fff)', color: 'var(--v6-texto-2, #4D5761)', boxShadow: '0 0 0 1px var(--v6-borde, #E2E5E9)' }}>+{assignedUsers.length - 1}</span>
+          )}
+        </button>
+      ) : (
       <button
         ref={buttonRef}
         onClick={() => isOpen ? setIsOpen(false) : openMenu()}
@@ -208,6 +245,7 @@ export function UserAssignmentSelector({
           </div>
         )}
       </button>
+      )}
 
       {/* User selection menu - Using Portal to escape stacking context */}
       {/* v0.17.57: Fixed positioning + smart upward/downward + maxHeight for viewport safety */}

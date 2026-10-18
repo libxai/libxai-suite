@@ -1872,8 +1872,14 @@ interface UserAssignmentSelectorProps {
     onChange: (users: User[]) => void;
     className?: string;
     maxVisibleAvatars?: number;
+    /** Gantt v6 (Asakaa): un avatar de 22 px (o un círculo discontinuo con «+» sin nadie). */
+    variante?: 'v6';
+    /** Gantt v6: el nombre de la tarea, para el nombre accesible del botón. */
+    nombreDeLaTarea?: string;
+    /** Gantt v6: español para los textos del botón. */
+    es?: boolean;
 }
-declare function UserAssignmentSelector({ assignedUsers, availableUsers, onChange, className, maxVisibleAvatars, }: UserAssignmentSelectorProps): react_jsx_runtime.JSX.Element;
+declare function UserAssignmentSelector({ assignedUsers, availableUsers, onChange, className, maxVisibleAvatars, variante, nombreDeLaTarea, es, }: UserAssignmentSelectorProps): react_jsx_runtime.JSX.Element;
 
 interface AddCardData {
     /** Task name (required) */
@@ -2998,6 +3004,12 @@ interface TaskGridProps {
     allTasks?: Task[];
     scrollContainerRef?: React.RefObject<HTMLElement>;
     showCriticalPath?: boolean;
+    /** Gantt v6 (Asakaa): la tabla de la maqueta — Tarea · Resp. · Inicio · Fin · %, cabecera de 60 px. */
+    v6?: boolean;
+    /** Gantt v6: «13 tareas · completadas ocultas», encima de los títulos. */
+    resumenV6?: string;
+    /** Gantt v6: el botón «contraer todos los grupos». */
+    onContraerTodo?: () => void;
 }
 declare function TaskGrid({ tasks, theme, rowHeight: ROW_HEIGHT, availableUsers, templates: _templates, // TODO: Use templates for custom rendering
 onTaskClick, onTaskSelectionChange, selectedTaskId, onTaskDblClick, // v0.8.0
@@ -3006,7 +3018,8 @@ onTaskToggle, scrollTop: _scrollTop, columns, onToggleColumn, onColumnResize, on
 onTaskReparent, // v0.17.68
 allTasks, // v1.9.10: árbol completo para traducir posición con filtros activos
 scrollContainerRef, // v0.18.15
-showCriticalPath, }: TaskGridProps): react_jsx_runtime.JSX.Element;
+showCriticalPath, // v5.1.0
+v6, resumenV6, onContraerTodo, }: TaskGridProps): react_jsx_runtime.JSX.Element;
 
 /**
  * Optional working-days configuration so the tooltip Duration reflects the
@@ -3060,6 +3073,10 @@ interface TimelineProps {
     onTaskProgressDrag?: (task: Task, newProgress: number) => void;
     /** v4.3.0: Workspace working-day config for the tooltip Duration field. */
     workingDaysConfig?: WorkingDaysConfig;
+    /** Gantt v6: la cabecera mide lo mismo que la de la tabla (60). */
+    alturaCabecera?: number;
+    /** Gantt v6 (Asakaa): escala, barras y marcas de la maqueta. */
+    v6?: boolean;
 }
 interface TaskPosition {
     id: string;
@@ -3072,7 +3089,7 @@ declare function Timeline({ tasks, theme, rowHeight: ROW_HEIGHT, timeScale, star
 templates, dependencyLineStyle, // v0.17.310
 showTaskBarLabels, onTaskClick, onTaskDblClick, // v0.8.0
 onTaskContextMenu, // v0.8.0
-onTaskDateChange, onDependencyCreate, onDependencyDelete, showBaseline, showCriticalPath, showDependencies, highlightWeekends, weekHeaderFormat, canEditTask, onTaskProgressDrag, workingDaysConfig, ventanaVisible, onIrAFecha, finPlaneado, finPrevisto, }: TimelineProps): react_jsx_runtime.JSX.Element;
+onTaskDateChange, onDependencyCreate, onDependencyDelete, showBaseline, showCriticalPath, showDependencies, highlightWeekends, weekHeaderFormat, canEditTask, onTaskProgressDrag, workingDaysConfig, ventanaVisible, onIrAFecha, finPlaneado, finPrevisto, alturaCabecera, v6: _v6, }: TimelineProps): react_jsx_runtime.JSX.Element;
 
 /**
  * ═══ EL MOTOR DEL CRONOGRAMA (QA Asakaa, mejora fuerte 5) ════════════════════════
