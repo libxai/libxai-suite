@@ -3,6 +3,7 @@ import { useGanttEnEspanol } from './GanttI18nContext';
 import { createPortal } from 'react-dom';
 import { ChevronDown, ChevronRight, ChevronLeft, Plus, Edit3, GripVertical, Calendar, Keyboard, ChevronsDownUp, User as IconoPersona } from 'lucide-react';
 import { partirNombre, rutaDelNombre } from './nombreLargo';
+import { fechaCorta } from './fechaCorta';
 import { Task, GanttColumn, ColumnType, GanttTemplates } from './types';
 import { motion } from 'framer-motion';
 import { ColumnManager } from './ColumnManager'; // v0.17.215: Back with sticky positioning
@@ -1053,7 +1054,7 @@ export function TaskGrid({
         const formatDisplayDate = (date: Date | string | undefined) => {
           if (!date) return v6 ? '—' : '-';
           const d = typeof date === 'string' ? new Date(date) : date;
-          if (v6) return d.toLocaleDateString(esGrid ? 'es-ES' : 'en-US', { day: 'numeric', month: 'short' }).replace('.', '');
+          if (v6) return fechaCorta(d, esGrid ? 'es' : 'en'); /* R6: con su año si no es el actual */
           return d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
         };
 

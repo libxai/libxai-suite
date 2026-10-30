@@ -2,6 +2,7 @@ import React, { useMemo, useCallback, useState, useRef, useEffect } from 'react'
 import { TimeScale, Task, GanttTemplates, DependentTaskPreview, DependencyLineStyle } from './types';
 import { TaskBar, TaskTooltipData } from './TaskBar';
 import { vencidasDebajo } from './vencidas';
+import { fechaCorta } from './fechaCorta';
 import { TaskTooltip, WorkingDaysConfig } from './TaskTooltip';
 import { DependencyLine } from './DependencyLine';
 import { Milestone } from './Milestone';
@@ -164,7 +165,7 @@ export function Timeline({
     conflictosDelCronograma(tasks, calendarioDe(workingDaysConfig)).map((c) => [`${c.predecesora.id}>${c.sucesora.id}`, c] as const),
   ), [tasks, workingDaysConfig]);
   const porQueDelConflicto = (c: { sucesora: Task; predecesora: Task; enlace: { type?: string } }): string => {
-    const f = (d?: Date | null) => d ? d.toLocaleDateString(locale === 'es' ? 'es-CO' : 'en-US', { day: 'numeric', month: 'short' }).replace('.', '') : '—';
+    const f = (d?: Date | null) => d ? fechaCorta(d, locale) : '—';
     const tipo = c.enlace.type ?? 'FS';
     if (tipo === 'FS') {
       return locale === 'es'
@@ -996,10 +997,7 @@ export function Timeline({
                           fontFamily="Inter, sans-serif"
                           fontWeight="500"
                         >
-                          {scheduleIndicator.date.toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', {
-                            day: 'numeric',
-                            month: 'short'
-                          })}
+                          {fechaCorta(scheduleIndicator.date, locale)}
                         </text>
                       </g>
                     </g>
@@ -1521,20 +1519,20 @@ export function Timeline({
           if (!lado) return null;
           const fecha = lado === 'left' ? t.endDate : t.startDate;
           const texto = lado === 'left'
-            ? `◀ ${fecha.toLocaleDateString(locale, { day: 'numeric', month: 'short' })}`
-            : `${fecha.toLocaleDateString(locale, { day: 'numeric', month: 'short' })} ▶`;
+            ? `◀ ${fechaCorta(fecha, locale)}`
+            : `${fechaCorta(fecha, locale)} ▶`;
           const ancho = texto.length * 5.8 + 10;
           const x = lado === 'left' ? ventanaVisible.izq + 4 : ventanaVisible.der - ancho - 4;
           const y = index * ROW_HEIGHT + ROW_HEIGHT / 2 - 8;
           if (v6) {
             const vencida = t.status !== 'completed' && (t.progress ?? 0) < 100 && t.endDate.getTime() < new Date(new Date().toDateString()).getTime();
-            const textoV6 = lado === 'left' ? `‹ ${fecha.toLocaleDateString(locale, { day: 'numeric', month: 'short' }).replace('.', '')}` : `${fecha.toLocaleDateString(locale, { day: 'numeric', month: 'short' }).replace('.', '')} ›`;
+            const textoV6 = lado === 'left' ? `‹ ${fechaCorta(fecha, locale)}` : `${fechaCorta(fecha, locale)} ›`;
             const anchoV6 = textoV6.length * 6.6 + 16;
             const xV6 = lado === 'left' ? ventanaVisible.izq + 4 : ventanaVisible.der - anchoV6 - 4;
             const yV6 = index * ROW_HEIGHT + ROW_HEIGHT / 2 - 11;
             return (
               <g key={`fuera-${t.id}`} data-fuera-de-vista={lado} data-vencida={vencida || undefined} role="button" style={{ cursor: onIrAFecha ? 'pointer' : 'default' }} onClick={() => onIrAFecha?.(t.startDate!)}>
-                <title>{locale === 'es' ? `Ir a «${t.name}»${vencida ? `, venció el ${fecha.toLocaleDateString(locale, { day: 'numeric', month: 'short' })}` : ''}` : `Go to "${t.name}"`}</title>
+                <title>{locale === 'es' ? `Ir a «${t.name}»${vencida ? `, venció el ${fechaCorta(fecha, locale)}` : ''}` : `Go to "${t.name}"`}</title>
                 <rect x={xV6} y={yV6} width={anchoV6} height={22} rx={6} strokeWidth={1} style={{ fill: vencida ? 'var(--v6-rojo-fondo, #FBE9EA)' : V6S.tarjeta, stroke: vencida ? 'var(--v6-rojo-borde, rgba(192,48,58,0.75))' : V6S.borde }} />
                 <text x={xV6 + anchoV6 / 2} y={yV6 + 11.5} textAnchor="middle" dominantBaseline="middle" style={{ fill: vencida ? 'var(--v6-rojo, #B02A33)' : V6S.texto2, fontSize: 11, fontWeight: 500, fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}>{textoV6}</text>
               </g>
@@ -1576,7 +1574,7 @@ export function Timeline({
                     border: '1px solid var(--v6-separador, #CDD2D8)', borderRadius: 999, background: V6S.tarjeta, color: V6S.texto2, fontSize: 11, fontWeight: 500, whiteSpace: 'nowrap' }}
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" /><path d="M4 22v-7" /></svg>
-                  {b.texto} · {b.fecha.toLocaleDateString(locale, { day: 'numeric', month: 'short' }).replace('.', '')}
+                  {b.texto} · {fechaCorta(b.fecha, locale)}
                 </div>
               );
             })}
