@@ -55,6 +55,10 @@ export interface BarraV6Props {
   onExportMSProject?: () => void;
   onCopySnapshotLink?: () => void;
   masOpciones?: OpcionExtraV6[];
+  /** Gantt ronda 2 (Yesid) · P2 · lo de la app en «Vista» (sus líneas base). */
+  contenidoDeVista?: (cerrar: () => void) => ReactNode;
+  leyendaVisible?: boolean;
+  onLeyendaVisibleChange?: (visible: boolean) => void;
 }
 
 const V = {
@@ -208,15 +212,6 @@ export function BarraV6(p: BarraV6Props) {
                   {f.etiqueta}
                 </Opcion>
               ))}
-              {p.onHideCompletedChange && (
-                <>
-                  <Separador />
-                  <Opcion marcada={p.hideCompleted}
-                    alPulsar={() => { const v = !p.hideCompleted; p.onHideCompletedChange?.(v); if (v) p.onTaskFilterChange?.('all'); cerrar(); }}>
-                    {tx('Ocultar completadas', 'Hide completed')}
-                  </Opcion>
-                </>
-              )}
             </>
           )}
         </Desplegable>
@@ -262,15 +257,17 @@ export function BarraV6(p: BarraV6Props) {
 
       {p.toolbarRightContent}
 
+      {/* Gantt ronda 2 (Yesid) · P2 · UN SOLO MENÚ «VISTA»: densidad, la línea base (la pone la app), ocultar completadas y
+          la leyenda, en un mismo sitio. La escala D/S/M se queda a la vista (Divar, 30-oct: se usa a cada rato). */}
       <Desplegable
         alinear="derecha"
-        ancho={200}
+        ancho={264}
         boton={(abrir, abierto, ref) => (
-          <button ref={ref} type="button" aria-haspopup="menu" aria-expanded={abierto} onClick={abrir}
-            aria-label={`${tx('Densidad de filas', 'Row density')}: ${densidad.etiqueta}`}
+          <button ref={ref} type="button" aria-haspopup="menu" aria-expanded={abierto} onClick={abrir} data-menu-vista-v6
+            aria-label={`${tx('Vista', 'View')}: ${densidad.etiqueta}`}
             style={{ ...BOTON_BASE, padding: '0 8px 0 10px', border: 0, background: 'transparent', color: V.texto }}>
             <Rows3 className="w-[15px] h-[15px]" style={{ color: V.texto2 }} aria-hidden />
-            {densidad.etiqueta}
+            {tx('Vista', 'View')}
             <ChevronDown className="w-3.5 h-3.5" style={{ color: V.tenue }} aria-hidden />
           </button>
         )}
@@ -283,6 +280,24 @@ export function BarraV6(p: BarraV6Props) {
                 {d.etiqueta}
               </Opcion>
             ))}
+            {p.contenidoDeVista && (<><Separador />{p.contenidoDeVista(cerrar)}</>)}
+            {(p.onHideCompletedChange || p.onLeyendaVisibleChange) && (
+              <>
+                <Separador />
+                <Titulo>{tx('Mostrar', 'Show')}</Titulo>
+                {p.onHideCompletedChange && (
+                  <Opcion marcada={p.hideCompleted}
+                    alPulsar={() => { const v = !p.hideCompleted; p.onHideCompletedChange?.(v); if (v) p.onTaskFilterChange?.('all'); cerrar(); }}>
+                    {tx('Ocultar completadas', 'Hide completed')}
+                  </Opcion>
+                )}
+                {p.onLeyendaVisibleChange && (
+                  <Opcion marcada={!!p.leyendaVisible} alPulsar={() => { p.onLeyendaVisibleChange?.(!p.leyendaVisible); cerrar(); }}>
+                    {tx('Leyenda', 'Legend')}
+                  </Opcion>
+                )}
+              </>
+            )}
           </>
         )}
       </Desplegable>

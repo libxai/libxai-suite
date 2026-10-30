@@ -95,6 +95,9 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     hideWbsLevel,
     disenoV6,
     masOpcionesDeLaBarra,
+    contenidoDeVista,
+    leyendaVisible,
+    onLeyendaVisibleChange,
     onRowDensityChange: configOnRowDensityChange,
     // v3.0.0: Baseline & WBS
     showBaseline: configShowBaseline,
@@ -2353,6 +2356,9 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         onExportMSProject={showExportButton ? handleExportMSProject : undefined}
         onCopySnapshotLink={onCopySnapshotLink}
         masOpciones={masOpcionesDeLaBarra}
+        contenidoDeVista={contenidoDeVista}
+        leyendaVisible={leyendaVisible}
+        onLeyendaVisibleChange={onLeyendaVisibleChange}
       />
       ) : (
       <GanttToolbar

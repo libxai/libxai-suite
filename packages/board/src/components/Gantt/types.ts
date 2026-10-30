@@ -567,6 +567,11 @@ export interface GanttConfig {
   disenoV6?: boolean;
   /** Gantt v6 · lo que la app añade al «⋯» de la barra (historial, pantalla completa…). */
   masOpcionesDeLaBarra?: Array<{ id: string; etiqueta: string; icono?: ReactNode; alPulsar: () => void }>;
+  /** Gantt ronda 2 (Yesid) · P2 · lo que la app pone en el menú «Vista» (p. ej. sus líneas base), entre la densidad y «Mostrar». */
+  contenidoDeVista?: (cerrar: () => void) => ReactNode;
+  /** Gantt ronda 2 · P2 · «Mostrar leyenda» en el menú «Vista» (la leyenda la pinta la app, bajo demanda). */
+  leyendaVisible?: boolean;
+  onLeyendaVisibleChange?: (visible: boolean) => void;
   /** Avisa del cambio de densidad (para que la app la recuerde). */
   onRowDensityChange?: (density: RowDensity) => void;
   /** 1.9.36 · cabecera de la escala W: 'number' («Week 36», por defecto) o 'range' («Sep 1–7»). */
