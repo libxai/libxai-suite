@@ -7,7 +7,7 @@ import { TaskTooltip, WorkingDaysConfig } from './TaskTooltip';
 import { DependencyLine } from './DependencyLine';
 import { Milestone } from './Milestone';
 import { ganttUtils } from './ganttUtils';
-import { calendarioDe, empujarSucesoras, enlacesDe, conflictosDelCronograma, habilesEntre } from './motorDeProgramacion';
+import { calendarioDe, empujarSucesoras, enlacesDe, conflictosDelCronograma, fechasQueCumplen, habilesEntre } from './motorDeProgramacion';
 import { anchoDelDia, ladoFueraDeVista } from './rangoDeLaEscala';
 
 /** Mejora fuerte 5 · «CC +2», «FF», «+1»: el tipo (si no es FC) y el desfase (si no es 0). FC/CC/FF/CF en español. */
@@ -175,6 +175,31 @@ export function Timeline({
     return locale === 'es'
       ? `No cumple su enlace ${tipo} con ${c.predecesora.name}`
       : `Does not meet its ${tipo} link with ${c.predecesora.name}`;
+  };
+
+  /* Gantt ronda 2 (Yesid) · E14 · «se marca en rojo, pero nada avisa ni propone corregir». Para el enlace en conflicto
+     bajo el ratón: la fecha en que la sucesora lo cumple (lo justo, con su duración hábil) y la acción que la mueve por
+     el MISMO camino que un arrastre (handleTaskDateChange: cumple sus enlaces, empuja a las suyas y lo guarda). Sólo si
+     la sucesora se puede editar. */
+  const correccionDe = (fromId: string, toId: string) => {
+    const c = enlacesEnConflicto.get(`${fromId}>${toId}`);
+    const suc = c?.sucesora;
+    if (!c || !suc?.startDate || !suc.endDate || !onTaskDateChange) return undefined;
+    if (canEditTask && !canEditTask(suc)) return undefined;
+    const ajuste = fechasQueCumplen(suc, suc.startDate, suc.endDate, tasks, calendarioDe(workingDaysConfig));
+    if (!ajuste.porQue) return undefined;
+    const es = locale === 'es';
+    return {
+      texto: es ? `Corregir → ${fechaCorta(ajuste.inicio, locale)}` : `Fix → ${fechaCorta(ajuste.inicio, locale)}`,
+      titulo: es
+        ? `Mover «${suc.name}» al ${fechaCorta(ajuste.inicio, locale)} (termina ${fechaCorta(ajuste.fin, locale)}) para que cumpla su enlace con «${c.predecesora.name}». Las que dependen de ella se corren lo justo.`
+        : `Move "${suc.name}" to ${fechaCorta(ajuste.inicio, locale)} (ends ${fechaCorta(ajuste.fin, locale)}) so it meets its link with "${c.predecesora.name}". Its successors shift only as needed.`,
+      onClick: () => {
+        setHoveredDepLine(null);
+        isOverDependencyRef.current = false;
+        onTaskDateChange(suc, suc.startDate as Date, suc.endDate as Date);
+      },
+    };
   };
 
   // v0.17.452: Ref to track if mouse is over a dependency line (for fast mouse movement fix)
@@ -1419,6 +1444,8 @@ export function Timeline({
             lineStyle={dependencyLineStyle}
             salidaPorInicio={hoveredDepLine.salidaPorInicio}
             entradaPorFin={hoveredDepLine.entradaPorFin}
+            titulo={(() => { const c = enlacesEnConflicto.get(`${hoveredDepLine.fromId}>${hoveredDepLine.toId}`); return c ? porQueDelConflicto(c) : undefined; })()}
+            corregir={correccionDe(hoveredDepLine.fromId, hoveredDepLine.toId)}
             onDelete={() => {
               // v0.17.452: Clear hover state and mark as deleted for instant UI feedback
               const lineKey = hoveredDepLine.key;

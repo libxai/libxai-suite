@@ -49,6 +49,11 @@ interface DependencyLineProps {
   titulo?: string;
   /** Gantt ronda 2 (Yesid) · P2 · un conector largo que no toca la tarea en foco, atenuado (escala Mes). */
   atenuada?: boolean;
+  /**
+   * Gantt ronda 2 (Yesid) · E14 · «se marca, pero nada avisa ni propone corregir». En la capa del hover de un enlace en
+   * conflicto, la píldora «Corregir → 19 oct» junto a la flecha de llegada: mueve la sucesora lo justo para cumplirlo.
+   */
+  corregir?: { texto: string; titulo: string; onClick: () => void };
 }
 
 /**
@@ -86,6 +91,7 @@ export function DependencyLine({
   discontinua = false,
   titulo,
   atenuada = false,
+  corregir,
 }: DependencyLineProps) {
   // v0.17.451: Local hover state only used for tracking, actual rendering done via Timeline
   const [, setIsLocalHovered] = useState(false);
@@ -380,6 +386,34 @@ export function DependencyLine({
     );
   };
 
+  /* E14 · la píldora va FIJA junto a la flecha de llegada (la ✕ sigue al ratón: pegada a ella, se escaparía), encima de
+     la línea; un puente invisible la une al conector para que el hover no se pierda al ir hacia ella. */
+  const renderCorregir = () => {
+    if (!corregir) return null;
+    const ancho = Math.round(corregir.texto.length * 6.4 + 20);
+    const px = entradaPorFin ? x2 + 6 : x2 - ancho - 6;
+    const py = y2 - 32;
+    return (
+      <>
+        <rect x={Math.min(px, x2)} y={py} width={ancho + 6} height={y2 + 8 - py} fill="transparent" style={{ pointerEvents: 'all' }} />
+        <g
+          data-corregir-conflicto=""
+          role="button"
+          onClick={(e) => { e.stopPropagation(); corregir.onClick(); }}
+          style={{ cursor: 'pointer', pointerEvents: 'auto' }}
+        >
+          <title>{corregir.titulo}</title>
+          <rect x={px} y={py} width={ancho} height={22} rx={11} strokeWidth={1}
+            style={{ fill: 'var(--v6-ambar-fondo, #FDF3E1)', stroke: 'var(--v6-ambar, #F59E0B)' }} />
+          <text x={px + ancho / 2} y={py + 11.5} textAnchor="middle" dominantBaseline="middle"
+            style={{ fill: 'var(--v6-texto, #1F2933)', fontSize: 11, fontWeight: 600, fontFamily: 'inherit', userSelect: 'none' }}>
+            {corregir.texto}
+          </text>
+        </g>
+      </>
+    );
+  };
+
   // For hover layer, we render with glow effect
   if (isHoverLayer) {
     return (
@@ -455,6 +489,8 @@ export function DependencyLine({
         onMouseMove={handleMouseMove}
         style={{ cursor: onDelete ? 'pointer' : 'default' }}
       >
+        {/* P1-4 · esta capa TAPA al conector: sin su <title>, el porqué del conflicto no salía nunca */}
+        {titulo && <title>{titulo}</title>}
         {/* Invisible wider path for hover detection */}
         <path
           d={path}
@@ -509,6 +545,7 @@ export function DependencyLine({
         />
         {/* Delete button */}
         {renderDeleteButton({ opacity: 0, scale: 0 })}
+        {renderCorregir()}
       </g>
     );
   }
