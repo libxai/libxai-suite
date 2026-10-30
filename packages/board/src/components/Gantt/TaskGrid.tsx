@@ -75,6 +75,8 @@ interface TaskGridProps {
   resumenV6?: string;
   /** Gantt v6: el botón «contraer todos los grupos». */
   onContraerTodo?: () => void;
+  /** Gantt ronda 2 · P2 · «Mostrar» las completadas ocultas, junto a su contador. */
+  onMostrarOcultas?: () => void;
 }
 
 export function TaskGrid({
@@ -114,6 +116,7 @@ export function TaskGrid({
   v6 = false,
   resumenV6,
   onContraerTodo,
+  onMostrarOcultas,
 }: TaskGridProps) {
   const esGrid = useGanttEnEspanol(); // QA Asakaa 2.1
   // v0.16.2: Get translations from context
@@ -1567,7 +1570,18 @@ export function TaskGrid({
           style={{ height: `${HEADER_HEIGHT}px`, boxSizing: 'border-box', background: 'var(--v6-tarjeta, #FFFFFF)', borderBottom: '1px solid var(--v6-borde, #E2E5E9)' }}
         >
           <div style={{ height: 24, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 10px 0 14px', borderBottom: '1px solid var(--v6-linea, #EEF0F2)', fontSize: 11, color: 'var(--v6-tenue, #5F6972)' }}>
-            <span className="truncate">{resumenV6}</span>
+            <span className="truncate" data-resumen-v6>
+              {resumenV6}
+              {onMostrarOcultas && (
+                <>
+                  {' · '}
+                  <button type="button" onClick={onMostrarOcultas} data-mostrar-ocultas
+                    style={{ border: 0, padding: 0, background: 'transparent', font: 'inherit', color: 'var(--v6-acento-texto, #087F72)', fontWeight: 500, cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 2 }}>
+                    {esGrid ? 'Mostrar' : 'Show'}
+                  </button>
+                </>
+              )}
+            </span>
             {onContraerTodo && (
               <button
                 type="button"

@@ -47,6 +47,8 @@ interface DependencyLineProps {
   discontinua?: boolean;
   /** El tooltip del conector (p. ej. el porqué del conflicto). */
   titulo?: string;
+  /** Gantt ronda 2 (Yesid) · P2 · un conector largo que no toca la tarea en foco, atenuado (escala Mes). */
+  atenuada?: boolean;
 }
 
 /**
@@ -83,6 +85,7 @@ export function DependencyLine({
   etiqueta,
   discontinua = false,
   titulo,
+  atenuada = false,
 }: DependencyLineProps) {
   // v0.17.451: Local hover state only used for tracking, actual rendering done via Timeline
   const [, setIsLocalHovered] = useState(false);
@@ -514,10 +517,11 @@ export function DependencyLine({
   return (
     <g
       data-dependency-line="true"
+      data-atenuada={atenuada ? '' : undefined}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onMouseMove={handleMouseMove}
-      style={{ cursor: onDelete ? 'pointer' : 'default' }}
+      style={{ cursor: onDelete ? 'pointer' : 'default', opacity: atenuada ? 0.25 : 1, transition: 'opacity .15s ease-out' }}
     >
       {/* Invisible wider path for easier hover detection */}
       <path

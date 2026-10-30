@@ -59,6 +59,8 @@ interface TimelineProps {
   alturaCabecera?: number;
   /** Gantt v6 (Asakaa): escala, barras y marcas de la maqueta. */
   v6?: boolean;
+  /** Gantt ronda 2 (Yesid) · P2 · la tarea seleccionada: sus conectores no se atenúan en la escala Mes. */
+  tareaEnFoco?: string | null;
   /** Gantt v6: alto de la barra según la densidad (18 · 22 · 26). */
   alturaBarra?: number;
 }
@@ -103,6 +105,7 @@ export function Timeline({
   finPrevisto,
   alturaCabecera,
   v6 = false,
+  tareaEnFoco = null,
   alturaBarra,
 }: TimelineProps) {
   const ALTO_BARRA = alturaBarra ?? 18; // Gantt v6: 18 · 22 · 26 según la densidad
@@ -1300,6 +1303,10 @@ export function Timeline({
                   : etiquetaDelEnlace(tipo, desfase, locale)}
                 discontinua={enConflicto}
                 titulo={conflicto ? porQueDelConflicto(conflicto) : undefined}
+                /* P2 · en Mes, un conector LARGO que no toca la tarea seleccionada ni la que está bajo el ratón, atenuado:
+                   los de MCP → WhatsApp cruzaban media pantalla y se enredaban. Los en conflicto, siempre enteros. */
+                atenuada={timeScale === 'month' && !enConflicto && Math.abs(enterX - exitX) > 240
+                  && ![tareaEnFoco, activeTooltip?.task.id].some((id) => id != null && (id === depId || id === task.id))}
                 onDelete={() => onDependencyDelete?.(task.id, depId)}
                 onHoverChange={(isHovered) => {
                   // v0.17.452: Update ref for fast mouse movement detection

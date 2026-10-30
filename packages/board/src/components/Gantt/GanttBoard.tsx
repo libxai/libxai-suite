@@ -216,8 +216,10 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   const setTaskFilter = externalOnTaskFilterChange ?? setInternalTaskFilter;
 
   // v0.18.0: Hide completed toggle (also persisted)
+  /* Gantt ronda 2 (Yesid) · P2 · con la v6, abre con las completadas OCULTAS si nadie eligió otra cosa (Roadmap Asakaa
+     enseñaba sus 54 tareas, 38 terminadas). Lo elegido se guarda y manda. */
   const [hideCompleted, setHideCompleted] = useState(() => {
-    if (!persistFilter) return false;
+    if (!persistFilter) return !!disenoV6;
     try {
       const key = typeof persistFilter === 'string' ? persistFilter : 'gantt-filter-state';
       const stored = localStorage.getItem(key);
@@ -228,7 +230,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     } catch (e) {
       console.warn('[GanttBoard] Error loading hideCompleted state from localStorage:', e);
     }
-    return false;
+    return !!disenoV6;
   });
 
   // v0.18.0: Save filter state to localStorage when it changes
@@ -859,15 +861,25 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     return filterTasksRecursively(tasksWithStableWbs);
     }
   }, [tasksWithStableWbs, taskFilter, hideCompleted, busquedaExterna]);
-  /* Gantt v6 · «13 tareas · completadas ocultas», encima de los títulos de la tabla. */
+  /* Gantt v6 · «16 tareas · 38 completadas ocultas · Mostrar», encima de los títulos de la tabla. Gantt ronda 2 (Yesid)
+     · P2 · UN SOLO contador de las ocultas, con cuántas son y cómo verlas (antes: el «1» de Filtros, la etiqueta
+     «Ocultar completadas ×» y «completadas ocultas» aquí, tres avisos de lo mismo). */
+  const completadasOcultas = useMemo(() => {
+    if (!hideCompleted) return 0;
+    const visibles = new Set(ganttUtils.flattenTasks(filteredTasks).map((t) => t.id));
+    return ganttUtils.flattenTasks(tasksWithStableWbs)
+      .filter((t) => !visibles.has(t.id) && ((t.progress ?? 0) >= 100 || t.status === 'completed')).length;
+  }, [hideCompleted, filteredTasks, tasksWithStableWbs]);
   const resumenV6 = useMemo(() => {
     if (!disenoV6) return undefined;
     const n = ganttUtils.flattenTasks(filteredTasks).length;
     const base = esVacio ? `${n} ${n === 1 ? 'tarea' : 'tareas'}` : `${n} ${n === 1 ? 'task' : 'tasks'}`;
-    if (hideCompleted) return `${base} · ${esVacio ? 'completadas ocultas' : 'completed hidden'}`;
+    if (hideCompleted && completadasOcultas > 0) {
+      return `${base} · ${completadasOcultas} ${esVacio ? (completadasOcultas === 1 ? 'completada oculta' : 'completadas ocultas') : 'completed hidden'}`;
+    }
     if (taskFilter !== 'all') return `${base} · ${esVacio ? 'filtradas' : 'filtered'}`;
     return base;
-  }, [disenoV6, filteredTasks, hideCompleted, taskFilter, esVacio]);
+  }, [disenoV6, filteredTasks, hideCompleted, completadasOcultas, taskFilter, esVacio]);
   const contraerTodo = useCallback(() => {
     setLocalTasks((prev) => {
       const cerrar = (ts: Task[]): Task[] => ts.map((t) => ({ ...t, isExpanded: false, subtasks: t.subtasks ? cerrar(t.subtasks) : undefined }));
@@ -2469,6 +2481,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
           <TaskGrid
             v6={!!disenoV6}
             resumenV6={resumenV6}
+            onMostrarOcultas={disenoV6 && completadasOcultas > 0 ? () => setHideCompleted(false) : undefined}
             onContraerTodo={disenoV6 ? contraerTodo : undefined}
             addTaskRow={config.addTaskRow}
             tasks={filteredTasks}
@@ -2541,6 +2554,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         >
           <Timeline
             v6={!!disenoV6}
+            tareaEnFoco={selectedTaskId ?? null}
             alturaCabecera={disenoV6 ? 60 : undefined}
             alturaBarra={disenoV6 ? ALTOS_V6[rowDensity].barra : undefined}
             tasks={filteredTasks}

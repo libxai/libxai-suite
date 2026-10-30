@@ -162,7 +162,9 @@ export function BarraV6(p: BarraV6Props) {
     { valor: 'in_progress', etiqueta: tx('En progreso', 'In progress') },
     { valor: 'completed', etiqueta: tx('Completadas', 'Completed') },
   ];
-  const activos = (p.taskFilter !== 'all' ? 1 : 0) + (p.hideCompleted ? 1 : 0);
+  /* Gantt ronda 2 (Yesid) · P2 · «ocultar completadas» no cuenta aquí ni lleva etiqueta: su único aviso es el contador
+     de la tabla («38 completadas ocultas · Mostrar»). */
+  const activos = p.taskFilter !== 'all' ? 1 : 0;
   const DENSIDADES: Array<{ valor: RowDensity; etiqueta: string }> = [
     { valor: 'compact', etiqueta: tx('Compacta', 'Compact') },
     { valor: 'comfortable', etiqueta: tx('Normal', 'Normal') },
@@ -226,13 +228,6 @@ export function BarraV6(p: BarraV6Props) {
           texto={filtros.find((f) => f.valor === p.taskFilter)?.etiqueta ?? p.taskFilter}
           quitar={tx('Quitar filtro', 'Remove filter')}
           alQuitar={() => p.onTaskFilterChange?.('all')}
-        />
-      )}
-      {p.hideCompleted && (
-        <EtiquetaDeFiltro
-          texto={tx('Ocultar completadas', 'Hide completed')}
-          quitar={tx('Quitar filtro', 'Remove filter')}
-          alQuitar={() => p.onHideCompletedChange?.(false)}
         />
       )}
 
