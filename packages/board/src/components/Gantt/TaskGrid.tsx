@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef, useContext } from 'react';
+import { useState, useEffect, useRef, useContext, useMemo } from 'react';
 import { useGanttEnEspanol } from './GanttI18nContext';
 import { createPortal } from 'react-dom';
 import { ChevronDown, ChevronRight, ChevronLeft, Plus, Edit3, GripVertical, Calendar, Keyboard, ChevronsDownUp, User as IconoPersona } from 'lucide-react';
+import { partirNombre, rutaDelNombre } from './nombreLargo';
 import { Task, GanttColumn, ColumnType, GanttTemplates } from './types';
 import { motion } from 'framer-motion';
 import { ColumnManager } from './ColumnManager'; // v0.17.215: Back with sticky positioning
@@ -698,14 +699,28 @@ export function TaskGrid({
    * derecha en mono, responsable en un avatar de 22 px, % en mono. Las fechas usan la celda de
    * siempre (con su selector), en formato corto.
    */
+  /* Gantt ronda 2 (Yesid) · R5 · los antepasados de cada tarea, para el tooltip con su ruta («6.3 Tablero 3 › …») */
+  const antepasadosDe = useMemo(() => {
+    const m = new Map<string, Array<{ name: string; wbsCode?: string }>>();
+    const recorrer = (ts: Task[], cadena: Array<{ name: string; wbsCode?: string }>) => {
+      for (const t of ts) {
+        m.set(t.id, cadena);
+        if (t.subtasks?.length) recorrer(t.subtasks, [...cadena, { name: t.name, wbsCode: t.wbsCode }]);
+      }
+    };
+    recorrer(tasks, []);
+    return m;
+  }, [tasks]);
+  /* R5 · la sangría por nivel, como mucho 12 px (con 5 niveles, 20 px se comían media columna) */
+  const SANGRIA_V6 = 12;
   const celdaV6 = (column: GanttColumn, task: Task, level: number, isParentTask: boolean): React.ReactNode | undefined => {
     if (column.id === 'name') {
       const isEditing = editingTaskId === task.id;
       const isHovered = hoveredTaskId === task.id;
       return (
-        <div data-celda-nombre-v6 className="flex items-center min-w-0 relative" style={{ gap: 6, alignSelf: 'stretch', width: '100%', paddingLeft: `${level * 20}px` }}>
+        <div data-celda-nombre-v6 className="flex items-center min-w-0 relative" style={{ gap: 6, alignSelf: 'stretch', width: '100%', paddingLeft: `${level * SANGRIA_V6}px` }}>
           {Array.from({ length: level }, (_, i) => (
-            <span key={i} aria-hidden style={{ position: 'absolute', left: 8 + i * 20, top: 0, bottom: 0, width: 1, background: 'var(--v6-separador, #CDD2D8)' }} />
+            <span key={i} aria-hidden style={{ position: 'absolute', left: 8 + i * SANGRIA_V6, top: 0, bottom: 0, width: 1, background: 'var(--v6-separador, #CDD2D8)' }} />
           ))}
           {onTaskReparent && isHovered && !isEditing && (
             <div
@@ -748,12 +763,21 @@ export function TaskGrid({
               onClick={(e) => e.stopPropagation()}
             />
           ) : (
-            <span
-              title={task.name}
-              style={{ marginLeft: 2, flex: '1 1 auto', minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: 13, fontWeight: isParentTask || task.isMilestone ? 600 : 500, color: 'var(--v6-texto, #0E1114)' }}
-            >
-              {task.name}
-            </span>
+            (() => {
+              /* R5 · cortado POR EL MEDIO: el comienzo se encoge con «…» y la cola (lo que distingue a las repetidas) se ve */
+              const { comienzo, cola } = partirNombre(task.name);
+              const antepasados = antepasadosDe.get(task.id) ?? [];
+              return (
+                <span
+                  title={antepasados.length ? rutaDelNombre(antepasados, task.name) : task.name}
+                  data-nombre-v6
+                  style={{ marginLeft: 2, flex: '1 1 auto', minWidth: 0, display: 'flex', whiteSpace: 'nowrap', fontSize: 13, fontWeight: isParentTask || task.isMilestone ? 600 : 500, color: 'var(--v6-texto, #0E1114)' }}
+                >
+                  <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', flex: '0 1 auto' }}>{comienzo}</span>
+                  {cola && <span style={{ flex: 'none', whiteSpace: 'pre' }}>{cola}</span>}
+                </span>
+              );
+            })()
           )}
           {showCriticalPath && task.isCriticalPath && (
             <span aria-label={esGrid ? 'En la ruta crítica' : 'On the critical path'} style={{ flex: 'none', width: 6, height: 6, borderRadius: '50%', background: 'var(--v6-rojo-punto, #D13A40)' }} />
