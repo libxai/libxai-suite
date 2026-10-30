@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback, useState, useRef } from 'react';
+import React, { useMemo, useCallback, useState, useRef, useEffect } from 'react';
 import { TimeScale, Task, GanttTemplates, DependentTaskPreview, DependencyLineStyle } from './types';
 import { TaskBar, TaskTooltipData } from './TaskBar';
 import { TaskTooltip, WorkingDaysConfig } from './TaskTooltip';
@@ -113,6 +113,21 @@ export function Timeline({
 
   // v1.4.28: Ref to content SVG for viewport-aware tooltip positioning
   const contentSvgRef = useRef<SVGSVGElement>(null);
+  /* P2 · el alto del contenedor que desplaza el cronograma (para que la cuadrícula llegue hasta abajo) */
+  const [altoDelVisor, setAltoDelVisor] = useState(0);
+  useEffect(() => {
+    const svg = contentSvgRef.current;
+    if (!svg || typeof ResizeObserver === 'undefined') return undefined;
+    let el: HTMLElement | null = svg.parentElement;
+    while (el && !/(auto|scroll)/.test(getComputedStyle(el).overflowY)) el = el.parentElement;
+    if (!el) return undefined;
+    const visor = el;
+    const medir = () => setAltoDelVisor(visor.clientHeight);
+    medir();
+    const ro = new ResizeObserver(medir);
+    ro.observe(visor);
+    return () => ro.disconnect();
+  }, []);
 
   // v0.13.0: State for dependency cascade preview
   const [cascadePreviews, setCascadePreviews] = useState<DependentTaskPreview[]>([]);
@@ -506,7 +521,19 @@ export function Timeline({
         const weekNum = getWeekNumber(current);
         result.push({
           date: new Date(current),
-          label: weekHeaderFormat === 'range'
+          /* Gantt ronda 2 (Yesid) · P2 · con la v6, «Sem 35 · 24–30 ago», como la escala Día (antes «Week 35» a secas) */
+          label: v6
+            ? (() => {
+                const fin = new Date(current);
+                fin.setDate(fin.getDate() + 6);
+                const es = String(locale).startsWith('es');
+                const mes = (d: Date) => d.toLocaleDateString(es ? 'es-CO' : 'en-US', { month: 'short' }).replace('.', '');
+                const rango = es
+                  ? (mes(current) === mes(fin) ? `${current.getDate()}–${fin.getDate()} ${mes(fin)}` : `${current.getDate()} ${mes(current)}–${fin.getDate()} ${mes(fin)}`)
+                  : (mes(current) === mes(fin) ? `${mes(current)} ${current.getDate()}–${fin.getDate()}` : `${mes(current)} ${current.getDate()}–${mes(fin)} ${fin.getDate()}`);
+                return `${es ? 'Sem' : 'Wk'} ${weekNum} · ${rango}`;
+              })()
+            : weekHeaderFormat === 'range'
             ? (() => {
                 const fin = new Date(current);
                 fin.setDate(fin.getDate() + 6);
@@ -531,7 +558,7 @@ export function Timeline({
     }
 
     return result;
-  }, [startDate, endDate, timeScale, dayWidth, zoom, locale, t.labels.week, weekHeaderFormat]);
+  }, [startDate, endDate, timeScale, dayWidth, zoom, locale, t.labels.week, weekHeaderFormat, v6]);
 
   // Today position
   const todayX = useMemo(() => {
@@ -570,7 +597,9 @@ export function Timeline({
   const V6S = { texto: 'var(--v6-texto, #0E1114)', texto2: 'var(--v6-texto-2, #4D5761)', tenue: 'var(--v6-tenue, #5F6972)', borde: 'var(--v6-borde, #E2E5E9)', linea: 'var(--v6-linea, #EEF0F2)', tarjeta: 'var(--v6-tarjeta, #FFFFFF)' };
 
   // v0.13.7: Content height calculation (without header - header is now separate)
-  const contentHeight = Math.max(flatTasks.length * ROW_HEIGHT, 600 - HEADER_HEIGHT);
+  /* Gantt ronda 2 (Yesid) · P2 · la cuadrícula (y la trama de fines de semana y festivos) llega hasta abajo de lo visible:
+     con el mínimo fijo de 600 px se cortaba a media pantalla en una ventana alta y un proyecto con pocas tareas. */
+  const contentHeight = Math.max(flatTasks.length * ROW_HEIGHT, 600 - HEADER_HEIGHT, altoDelVisor - HEADER_HEIGHT - 2);
 
   return (
     <div
@@ -638,7 +667,8 @@ export function Timeline({
                       style={{ fill: esHoy ? 'var(--v6-hoy-texto, #FFFFFF)' : (finde || festivo) ? V6S.tenue : V6S.texto, fontSize: 12, fontWeight: 500, fontVariantNumeric: 'tabular-nums' }}>
                       {num}
                     </text>
-                    {festivo && <line x1={cx - 6} y1={24 + 33.5} x2={cx + 6} y2={24 + 33.5} style={{ stroke: V6S.tenue }} strokeWidth={1} strokeDasharray="1 2" />}
+                    {/* Gantt ronda 2 (Yesid) · P2 · el subrayado punteado del festivo, legible: en «1 2» gris tenue no se veía */}
+                    {festivo && <line x1={cx - 7} y1={24 + 34} x2={cx + 7} y2={24 + 34} style={{ stroke: V6S.texto2 }} strokeWidth={1.25} strokeDasharray="2 2" data-subrayado-festivo />}
                   </g>
                 );
               })}

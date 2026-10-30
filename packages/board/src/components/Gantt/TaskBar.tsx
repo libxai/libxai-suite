@@ -1050,12 +1050,15 @@ export function TaskBar({
             <defs>
               <clipPath id={idRecorte}><rect x={displayX} y={y} width={displayWidth} height={height} rx={6} /></clipPath>
             </defs>
+            {/* Gantt ronda 2 (Yesid) · P2 · el contorno ALINEADO AL PÍXEL: con el ancho del día por el zoom la barra caía en
+                medio píxel, y un trazo de 1 px se repartía entre dos y se veía desvaído («borde apenas visible» en oscuro). */}
             <rect
-              x={displayX + 0.5}
-              y={y + 0.5}
-              width={Math.max(0, displayWidth - 1)}
-              height={height - 1}
+              x={Math.round(displayX) + 0.5}
+              y={Math.round(y) + 0.5}
+              width={Math.max(0, Math.round(displayX + displayWidth) - Math.round(displayX) - 1)}
+              height={Math.round(height) - 1}
               rx={6}
+              shapeRendering="geometricPrecision"
               data-parte="pista"
               data-bar-background="true"
               data-task-class={customClass}
