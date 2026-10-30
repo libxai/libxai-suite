@@ -136,10 +136,23 @@ export function Timeline({
     entradaPorFin?: boolean;
   } | null>(null);
 
-  /* Mejora fuerte 5 · los enlaces que NO se cumplen (datos viejos, ediciones fuera del Gantt): en rojo. */
-  const enlacesEnConflicto = useMemo(() => new Set(
-    conflictosDelCronograma(tasks, calendarioDe(workingDaysConfig)).map((c) => `${c.predecesora.id}>${c.sucesora.id}`),
+  /* Mejora fuerte 5 · los enlaces que NO se cumplen (datos viejos, ediciones fuera del Gantt). Gantt ronda 2 (Yesid) ·
+     P1-4 · en ÁMBAR y discontinuos, con su porqué en el tooltip: el rojo queda para lo vencido y para hoy. */
+  const enlacesEnConflicto = useMemo(() => new Map(
+    conflictosDelCronograma(tasks, calendarioDe(workingDaysConfig)).map((c) => [`${c.predecesora.id}>${c.sucesora.id}`, c] as const),
   ), [tasks, workingDaysConfig]);
+  const porQueDelConflicto = (c: { sucesora: Task; predecesora: Task; enlace: { type?: string } }): string => {
+    const f = (d?: Date | null) => d ? d.toLocaleDateString(locale === 'es' ? 'es-CO' : 'en-US', { day: 'numeric', month: 'short' }).replace('.', '') : '—';
+    const tipo = c.enlace.type ?? 'FS';
+    if (tipo === 'FS') {
+      return locale === 'es'
+        ? `Empieza ${f(c.sucesora.startDate)}, antes de que termine ${c.predecesora.name} (${f(c.predecesora.endDate)})`
+        : `Starts ${f(c.sucesora.startDate)}, before ${c.predecesora.name} finishes (${f(c.predecesora.endDate)})`;
+    }
+    return locale === 'es'
+      ? `No cumple su enlace ${tipo} con ${c.predecesora.name}`
+      : `Does not meet its ${tipo} link with ${c.predecesora.name}`;
+  };
 
   // v0.17.452: Ref to track if mouse is over a dependency line (for fast mouse movement fix)
   const isOverDependencyRef = useRef(false);
@@ -1226,8 +1239,9 @@ export function Timeline({
 
             // v5.1.0: CPM — critical deps in red, non-critical almost invisible
             const bothCritical = showCriticalPath && task.isCriticalPath && depTask.isCriticalPath;
-            const enConflicto = enlacesEnConflicto.has(`${depId}>${task.id}`);
-            const cpmColorOverride = enConflicto ? '#EF4444' : showCriticalPath
+            const conflicto = enlacesEnConflicto.get(`${depId}>${task.id}`);
+            const enConflicto = !!conflicto;
+            const cpmColorOverride = enConflicto ? 'var(--v6-ambar, #F59E0B)' : showCriticalPath
               ? (bothCritical ? '#EF4444' : 'rgba(255,255,255,0.10)')
               : undefined;
             const cpmStrokeWidth = showCriticalPath
@@ -1254,6 +1268,8 @@ export function Timeline({
                 etiqueta={enConflicto
                   ? `⚠ ${etiquetaDelEnlace(tipo, desfase, locale) ?? ''}`.trim()
                   : etiquetaDelEnlace(tipo, desfase, locale)}
+                discontinua={enConflicto}
+                titulo={conflicto ? porQueDelConflicto(conflicto) : undefined}
                 onDelete={() => onDependencyDelete?.(task.id, depId)}
                 onHoverChange={(isHovered) => {
                   // v0.17.452: Update ref for fast mouse movement detection

@@ -1060,7 +1060,10 @@ export function TaskBar({
               data-bar-background="true"
               data-task-class={customClass}
               fill={avance > 0 ? 'var(--v6-acento-fondo-3, rgba(15,163,146,0.16))' : 'var(--v6-acento-fondo, rgba(15,163,146,0.1))'}
-              stroke={vencida ? 'var(--v6-rojo-borde, rgba(192,48,58,0.75))' : 'var(--v6-acento-borde, rgba(8,127,114,0.85))'}
+              /* Gantt ronda 2 (Yesid) · P1-4 · la vencida, como en la v6: el contorno de siempre; la marca es su chip rojo
+                 de fecha. El rojo queda para lo vencido (ese chip) y para hoy. */
+              stroke="var(--v6-acento-borde, rgba(8,127,114,0.85))"
+              data-v6-vencida={vencida ? '' : undefined}
               strokeWidth={1}
               onMouseDown={(e) => handleMouseDown(e as any)}
               style={{ cursor: barCursor, pointerEvents: 'all', opacity: isDragging && !isConnecting ? 0.25 : 1 }}
@@ -1069,7 +1072,8 @@ export function TaskBar({
               <rect x={displayX} y={y} width={displayWidth * (avance / 100)} height={height} clipPath={`url(#${idRecorte})`} data-parte="avance" fill="var(--v6-acento, #0FA392)" style={{ pointerEvents: 'none' }} />
             )}
             {isAtRisk && (
-              <rect x={displayX} y={y} width={displayWidth} height={height} rx={6} fill="none" stroke="var(--v6-rojo-punto, #D13A40)" strokeWidth={1.5} data-parte="alerta" style={{ pointerEvents: 'none' }} />
+              /* P1-4 · «en riesgo» es ámbar en toda la app, no rojo */
+              <rect x={displayX} y={y} width={displayWidth} height={height} rx={6} fill="none" stroke="var(--v6-ambar-punto, #D9870B)" strokeWidth={1.5} data-parte="alerta" style={{ pointerEvents: 'none' }} />
             )}
             {duracionV6 && !isDragging && (
               <text x={displayX + displayWidth + 6} y={y + height / 2} dominantBaseline="middle" fill="var(--v6-tenue, #5F6972)" fontSize={11} fontFamily="'JetBrains Mono', ui-monospace, monospace" style={{ fontVariantNumeric: 'tabular-nums', pointerEvents: 'none', userSelect: 'none' }}>

@@ -43,6 +43,10 @@ interface DependencyLineProps {
   entradaPorFin?: boolean;
   /** «CC +2», «FF», «+1»…: el tipo (si no es FC) y el desfase (si no es 0). */
   etiqueta?: string;
+  /** Gantt ronda 2 (Yesid) · P1-4 · un enlace en conflicto va DISCONTINUO (y en ámbar, por `colorOverride`). */
+  discontinua?: boolean;
+  /** El tooltip del conector (p. ej. el porqué del conflicto). */
+  titulo?: string;
 }
 
 /**
@@ -77,6 +81,8 @@ export function DependencyLine({
   salidaPorInicio = false,
   entradaPorFin = false,
   etiqueta,
+  discontinua = false,
+  titulo,
 }: DependencyLineProps) {
   // v0.17.451: Local hover state only used for tracking, actual rendering done via Timeline
   const [, setIsLocalHovered] = useState(false);
@@ -135,7 +141,9 @@ export function DependencyLine({
       const exitPadding = 15;
       const firstTurnX = x1 + exitPadding;
       const secondTurnX = x2 - OFFSET;
-      const bridgeY = goingDown ? y1 + 20 : y1 - 20;
+      /* Gantt ronda 2 · P1-4 · el tramo de vuelta va junto a la fila de DESTINO, no junto a la de origen: si el origen
+         es un grupo (una raya a todo su largo), corría a lo largo de su fila y cruzaba el cronograma («6.2 Microsoft 365»). */
+      const bridgeY = goingDown ? y2 - 20 : y2 + 20;
       turnX = secondTurnX;
       const dY1 = goingDown ? 1 : -1; // direction sign for vertical movement
 
@@ -521,21 +529,36 @@ export function DependencyLine({
         style={{ cursor: onDelete ? 'pointer' : 'default' }}
       />
 
+      {titulo && <title>{titulo}</title>}
       {/* Main dependency line - base layer */}
-      <motion.path
-        d={path}
-        fill="none"
-        stroke={lineColor}
-        strokeWidth={baseStrokeWidth}
-        strokeLinecap="round"
-        initial={{ pathLength: 0, opacity: 0 }}
-        animate={{ pathLength: 1, opacity: 1 }}
-        transition={{
-          pathLength: { duration: 0.5, ease: 'easeInOut' },
-          opacity: { duration: 0.2 },
-        }}
-        style={{ pointerEvents: 'none', filter: glowFilter || 'none' }}
-      />
+      {discontinua ? (
+        /* sin la animación de `pathLength`: usa el mismo `stroke-dasharray` que el discontinuo */
+        <path
+          d={path}
+          fill="none"
+          stroke={lineColor}
+          strokeWidth={baseStrokeWidth}
+          strokeLinecap="round"
+          strokeDasharray="4 3"
+          data-enlace-en-conflicto
+          style={{ pointerEvents: 'none', filter: glowFilter || 'none' }}
+        />
+      ) : (
+        <motion.path
+          d={path}
+          fill="none"
+          stroke={lineColor}
+          strokeWidth={baseStrokeWidth}
+          strokeLinecap="round"
+          initial={{ pathLength: 0, opacity: 0 }}
+          animate={{ pathLength: 1, opacity: 1 }}
+          transition={{
+            pathLength: { duration: 0.5, ease: 'easeInOut' },
+            opacity: { duration: 0.2 },
+          }}
+          style={{ pointerEvents: 'none', filter: glowFilter || 'none' }}
+        />
+      )}
 
       {/* Arrow head - filled triangle */}
       <motion.path
