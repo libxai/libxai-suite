@@ -551,7 +551,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   const anchoFecha = useMemo(() => {
     const anio = new Date().getFullYear();
     const otroAnio = (d?: Date | string) => !!d && new Date(d).getFullYear() !== anio;
-    return ganttUtils.flattenTasks(localTasks).some((t) => otroAnio(t.startDate) || otroAnio(t.endDate)) ? 80 : 50;
+    return ganttUtils.flattenTasks(localTasks).some((t) => otroAnio(t.startDate) || otroAnio(t.endDate)) ? 74 : 50; /* «20 oct 2025» mide 67 px */
   }, [localTasks]);
   /* Gantt v6 · las columnas fijas de la maqueta (Tarea · Resp. · Inicio · Fin · %), en 544 px. */
   const columnasV6 = useMemo<GanttColumn[] | null>(() => disenoV6 ? [

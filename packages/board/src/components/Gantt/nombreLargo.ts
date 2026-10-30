@@ -3,7 +3,9 @@
  * MK y C&P – Bahía…» y se cortaban todas igual: lo que las distingue está al final. El nombre se parte en el COMIENZO (que
  * se encoge con «…») y la COLA (las últimas palabras, que no se cortan). Si cabe entero se ve igual que siempre.
  */
-export function partirNombre(nombre: string, maxCola = 24): { comienzo: string; cola: string } {
+/* La cola, 16 letras como máximo: con 24, en la columna de P25038 (~200 px) se comía el comienzo entero («documentación
+   de entrada» sin el «Revisión de»). 16 caben «– Bahía GENSA U2» y «de entrada». */
+export function partirNombre(nombre: string, maxCola = 16): { comienzo: string; cola: string } {
   const n = nombre.trim();
   if (n.length <= 28) return { comienzo: n, cola: '' };
   const palabras = n.split(/(\s+)/); // conserva los espacios

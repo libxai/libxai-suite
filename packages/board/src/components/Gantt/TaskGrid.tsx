@@ -775,7 +775,8 @@ export function TaskGrid({
                   style={{ marginLeft: 2, flex: '1 1 auto', minWidth: 0, display: 'flex', whiteSpace: 'nowrap', fontSize: 13, fontWeight: isParentTask || task.isMilestone ? 600 : 500, color: 'var(--v6-texto, #0E1114)' }}
                 >
                   <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', flex: '0 1 auto' }}>{comienzo}</span>
-                  {cola && <span style={{ flex: 'none', whiteSpace: 'pre' }}>{cola}</span>}
+                  {/* la cola nunca pasa del 60 % de la celda: el comienzo siempre se ve (Arcadio, P25038 30-oct) */}
+                  {cola && <span style={{ flex: 'none', whiteSpace: 'pre', maxWidth: '60%', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cola}</span>}
                 </span>
               );
             })()

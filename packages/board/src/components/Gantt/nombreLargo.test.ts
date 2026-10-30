@@ -21,6 +21,11 @@ describe('R5 · nombres largos', () => {
       if (cola) expect(cola).toMatch(/^\s/);
     }
   });
+  it('la cola es corta y deja ver el comienzo (P25038: «documentación de entrada» había perdido el «Revisión de»)', () => {
+    expect(partirNombre('Revisión de documentación de entrada')).toEqual({ comienzo: 'Revisión de documentación', cola: ' de entrada' });
+    expect(partirNombre('Reuniones internas de seguimiento').cola).toBe(' de seguimiento');
+    expect(partirNombre('FASE 0: Gestión del Proyecto (Transversal)').comienzo).toBe('FASE 0: Gestión del Proyecto');
+  });
   it('la ruta lleva el código de cada antepasado', () => {
     expect(rutaDelNombre([{ name: 'Tablero 3', wbsCode: '6.3' }], 'Ensamble mecánico')).toBe('6.3 Tablero 3 › Ensamble mecánico');
   });
