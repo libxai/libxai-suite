@@ -6,7 +6,7 @@ import { GanttToolbar } from './GanttToolbar';
 import { BarraV6 } from './BarraV6';
 import { TaskGrid } from './TaskGrid';
 import { Timeline } from './Timeline';
-import { anchoDelDia, conHoy, fechaAlAbrir, inicioDeLaEscala, ladoDeHoy } from './rangoDeLaEscala';
+import { anchoDelDia, conHoy, fechaAlAbrir, HOY_AL_ABRIR, inicioDeLaEscala, ladoDeHoy } from './rangoDeLaEscala';
 import { calendarioDe, fechasQueCumplen, empujarSucesoras } from './motorDeProgramacion';
 import { ContextMenu, MenuIcons } from './ContextMenu'; // v0.8.0: Split task context menu
 import { TaskDetailModal } from '../TaskDetailModal'; // v0.17.244: Unified task detail modal (replaces TaskFormModal)
@@ -1769,13 +1769,8 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   }, [onDependencyDelete]);
 
   // Calculate date range (memoized)
-  const { startDate, endDate, primeraTarea, ultimaTarea, primeraPendiente } = useMemo(() => {
-    /* Mejora fuerte 6 · la primera tarea SIN TERMINAR (hoja con fechas): donde abre el Gantt si hoy
-       no cae dentro de las tareas. */
-    const pendientes = ganttUtils.flattenTasks(localTasks)
-      .filter((t) => t.startDate && !(t.subtasks?.length) && (t.progress ?? 0) < 100 && t.status !== 'completed')
-      .map((t) => t.startDate!.getTime());
-    const primeraPendiente = pendientes.length ? new Date(Math.min(...pendientes)) : null;
+  /* Gantt ronda 2 · P1-3 · fuera «la primera tarea pendiente» (mejora fuerte 6): abre en hoy dentro del proyecto. */
+  const { startDate, endDate, primeraTarea, ultimaTarea } = useMemo(() => {
     // Filter tasks that have dates
     const tasksWithDates = localTasks.filter(t => t.startDate && t.endDate);
 
@@ -1786,7 +1781,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       start.setDate(start.getDate() - 30);
       const end = new Date(today);
       end.setDate(end.getDate() + 60);
-      return { startDate: inicioDeLaEscala(start, timeScale), endDate: end, primeraTarea: null as Date | null, ultimaTarea: null as Date | null, primeraPendiente };
+      return { startDate: inicioDeLaEscala(start, timeScale), endDate: end, primeraTarea: null as Date | null, ultimaTarea: null as Date | null };
     }
 
     const allDates = tasksWithDates.flatMap((t) => [t.startDate, t.endDate]).filter((d): d is Date => d !== undefined);
@@ -1804,7 +1799,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     maxDate.setDate(maxDate.getDate() + padding);
 
     // QA Asakaa E13: Semana empieza en lunes y Mes en el día 1 (rangoDeLaEscala.ts).
-    return { startDate: inicioDeLaEscala(minDate, timeScale), endDate: maxDate, primeraTarea, ultimaTarea, primeraPendiente };
+    return { startDate: inicioDeLaEscala(minDate, timeScale), endDate: maxDate, primeraTarea, ultimaTarea };
   }, [localTasks, timeScale]);
 
   // v1.5.1: Notify consumer of computed date range
@@ -2201,21 +2196,25 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
 
     const timelineScroll = timelineScrollRef.current;
     // Hoy si cae dentro de las tareas; si no, el borde de las tareas más cercano.
-    const today = sinTareas ? new Date() : fechaAlAbrir(primeraTarea, ultimaTarea, new Date(), primeraPendiente);
+    /* Gantt ronda 2 · P1-3 · el rango del proyecto llega a su fin previsto o planificado si es posterior a la última tarea */
+    const finesDelProyecto = [config?.projectForecast?.expectedFinish, config?.finPlaneado]
+      .filter((f): f is Date => f instanceof Date && !isNaN(f.getTime()));
+    const finDelProyecto = finesDelProyecto.length ? new Date(Math.max(...finesDelProyecto.map(f => f.getTime()))) : null;
+    const today = sinTareas ? new Date() : fechaAlAbrir(primeraTarea, ultimaTarea, new Date(), finDelProyecto);
     const dayWidth = anchoDelDia(timeScale);
     const daysFromStart = (today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
 
-    // Calculate scroll position to center today in the viewport
+    // P1-3 · hoy a ~1/3 del borde izquierdo
     const viewportWidth = timelineScroll.clientWidth;
     const todayPosition = daysFromStart * dayWidth * zoom;
-    const scrollX = todayPosition - (viewportWidth / 2);
+    const scrollX = todayPosition - viewportWidth * HOY_AL_ABRIR;
 
     // Only scroll if today is within the timeline range
     if (daysFromStart >= 0 && viewportWidth > 0) {
       timelineScroll.scrollLeft = Math.max(0, scrollX);
     }
     return undefined;
-  }, [localTasks.length, startDate, timeScale, zoom, reintentoScroll, primeraTarea, ultimaTarea, primeraPendiente]); // Re-run when tasks load
+  }, [localTasks.length, startDate, timeScale, zoom, reintentoScroll, primeraTarea, ultimaTarea, config?.projectForecast?.expectedFinish, config?.finPlaneado]); // Re-run when tasks load
 
   /* Mejora fuerte 6 · «escalas correctas»: al cambiar de escala (o de zoom) se queda centrada la MISMA
      fecha; antes la vista saltaba a hoy y se perdían las barras que se estaban mirando. */

@@ -64,16 +64,19 @@ describe('mejora fuerte 6 · una sola lógica de escala', () => {
   });
 });
 
-describe('mejora fuerte 6 · abrir en hoy o en la primera tarea pendiente', () => {
-  const ene = new Date(2026, 0, 5), mar = new Date(2026, 2, 30), feb = new Date(2026, 1, 10), oct = new Date(2026, 9, 16);
+/* Gantt ronda 2 (Yesid, 30-oct) · P1-3 · sustituye a «abrir en hoy o en la primera tarea pendiente» (mejora fuerte 6):
+   ahora abre en hoy siempre que hoy esté dentro del proyecto, contando su fin previsto o planificado. */
+describe('P1-3 · abrir en hoy, dentro del rango del proyecto', () => {
+  const ene = new Date(2026, 0, 5), mar = new Date(2026, 2, 30), oct = new Date(2026, 9, 16), nov = new Date(2026, 10, 12);
   it('hoy dentro de las tareas: hoy', () => {
-    expect(dia(fechaAlAbrir(ene, oct, new Date(2026, 5, 1), feb))).toBe(dia(new Date(2026, 5, 1)));
+    expect(dia(fechaAlAbrir(ene, oct, new Date(2026, 5, 1)))).toBe(dia(new Date(2026, 5, 1)));
   });
-  it('hoy fuera: la primera pendiente (no el borde)', () => {
-    expect(dia(fechaAlAbrir(ene, mar, oct, feb))).toBe(dia(feb));
+  it('hoy después de la última tarea pero antes del fin previsto (un proyecto vencido con tareas abiertas): hoy', () => {
+    expect(dia(fechaAlAbrir(ene, mar, oct, nov))).toBe(dia(oct));
   });
-  it('sin pendientes (todo terminado): el borde más cercano, como antes', () => {
+  it('hoy después de todo (proyecto terminado): el fin del proyecto', () => {
     expect(dia(fechaAlAbrir(ene, mar, oct, null))).toBe(dia(mar));
+    expect(dia(fechaAlAbrir(ene, mar, nov, oct))).toBe(dia(oct));
   });
 });
 

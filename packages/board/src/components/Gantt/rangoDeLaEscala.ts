@@ -49,15 +49,23 @@ export function conHoy(inicio: Date, fin: Date, hoy: Date): { inicio: Date; fin:
 }
 
 /**
- * Mejora fuerte 6 · «apertura en hoy o en la primera tarea pendiente»: hoy si cae dentro de las
- * tareas; si no, la primera tarea sin terminar; si no queda ninguna, el borde más cercano a hoy.
+ * Gantt ronda 2 (Yesid, 30-oct) · P1-3 · «al abrir, la línea de hoy queda visible; si hoy está fuera del rango del
+ * proyecto, abrir en el fin del proyecto y mostrar el chip "Hoy ›" en el borde».
+ *
+ * El rango del proyecto va de la primera tarea a la ÚLTIMA FECHA QUE EL PROYECTO TIENE: la última tarea o, si es
+ * posterior, su fin previsto o su fin planificado (`finDelProyecto`). Un proyecto vencido con tareas abiertas tiene su
+ * fin previsto en hoy o después, así que abre en hoy. Antes (mejora fuerte 6) abría en la primera tarea pendiente:
+ * en Roadmap Asakaa, agosto, sin la línea de hoy a la vista.
  */
-export function fechaAlAbrir(primeraTarea: Date | null, ultimaTarea: Date | null, hoy: Date, primeraPendiente?: Date | null): Date {
+export function fechaAlAbrir(primeraTarea: Date | null, ultimaTarea: Date | null, hoy: Date, finDelProyecto?: Date | null): Date {
   if (!primeraTarea || !ultimaTarea) return hoy;
-  if (hoy >= primeraTarea && hoy <= ultimaTarea) return hoy;
-  if (primeraPendiente) return primeraPendiente;
-  return hoy < primeraTarea ? primeraTarea : ultimaTarea;
+  const ultima = finDelProyecto && finDelProyecto > ultimaTarea ? finDelProyecto : ultimaTarea;
+  if (hoy >= primeraTarea && hoy <= ultima) return hoy;
+  return hoy < primeraTarea ? primeraTarea : ultima;
 }
+
+/** P1-3 · hoy se coloca a ~1/3 del borde izquierdo (se ve lo que viene, y algo de lo que pasó). */
+export const HOY_AL_ABRIR = 1 / 3;
 
 /** Mejora fuerte 6 · ¿la barra [xInicio, xFin] queda fuera de la vista? ¿De qué lado? */
 export function ladoFueraDeVista(xInicio: number, xFin: number, izquierda: number, derecha: number): 'left' | 'right' | null {
