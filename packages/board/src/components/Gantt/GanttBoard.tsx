@@ -546,15 +546,22 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   }, [locale, customTranslations]);
   // QA Asakaa 2.3.4: el idioma del aviso de proyecto vacío (el contexto de i18n lo crea ESTE componente).
   const esVacio = translations.toolbar.visibility === 'Visibilidad';
+  /* Gantt ronda 2 · R6 · «20 oct 2025» no cabe en 50 px y se montaba sobre la columna Fin (Arcadio, P25038 30-oct): si
+     alguna fecha es de otro año, Inicio y Fin se ensanchan y la columna Tarea (que se queda con el resto) cede ese sitio. */
+  const anchoFecha = useMemo(() => {
+    const anio = new Date().getFullYear();
+    const otroAnio = (d?: Date | string) => !!d && new Date(d).getFullYear() !== anio;
+    return ganttUtils.flattenTasks(localTasks).some((t) => otroAnio(t.startDate) || otroAnio(t.endDate)) ? 80 : 50;
+  }, [localTasks]);
   /* Gantt v6 · las columnas fijas de la maqueta (Tarea · Resp. · Inicio · Fin · %), en 544 px. */
   const columnasV6 = useMemo<GanttColumn[] | null>(() => disenoV6 ? [
     { id: 'name', label: esVacio ? 'Tarea' : 'Task', width: 312, minWidth: 120, visible: true, sortable: false, resizable: false },
     /* Gantt ronda 2 · P1-5 · la palabra entera: se pinta como icono (28 px) y se lee en el tooltip */
     { id: 'assignees', label: esVacio ? 'Responsable' : 'Owner', width: 28, visible: true, sortable: false, resizable: false },
-    { id: 'startDate', label: esVacio ? 'Inicio' : 'Start', width: 50, visible: true, sortable: false, resizable: false },
-    { id: 'endDate', label: esVacio ? 'Fin' : 'End', width: 50, visible: true, sortable: false, resizable: false },
+    { id: 'startDate', label: esVacio ? 'Inicio' : 'Start', width: anchoFecha, visible: true, sortable: false, resizable: false },
+    { id: 'endDate', label: esVacio ? 'Fin' : 'End', width: anchoFecha, visible: true, sortable: false, resizable: false },
     { id: 'progress', label: '%', width: 40, visible: true, sortable: false, resizable: false },
-  ] : null, [disenoV6, esVacio]);
+  ] : null, [disenoV6, esVacio, anchoFecha]);
 
   // Column configuration - Default: Only show task name
   // v0.13.8: Name column is resizable with min/max width constraints

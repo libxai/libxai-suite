@@ -18,7 +18,10 @@ export function partirNombre(nombre: string, maxCola = 24): { comienzo: string; 
     }
   }
   if (!cola.trim() || cola.trim().length >= n.length - 4) return { comienzo: n, cola: '' };
-  return { comienzo: n.slice(0, n.length - cola.length), cola };
+  /* El espacio del corte va con la COLA (que es `white-space: pre`): al final del comienzo, el navegador lo tira y salía
+     «Monitoreoy Control del Proyecto» (Arcadio, P25038 30-oct). */
+  const comienzo = n.slice(0, n.length - cola.length).trimEnd();
+  return { comienzo, cola: n.slice(comienzo.length) };
 }
 
 /** La ruta de un nombre: «6.3 Tablero 3 › Ensamble mecánico» (con el código WBS de cada antepasado si lo tiene). */
