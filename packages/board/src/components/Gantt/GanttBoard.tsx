@@ -523,7 +523,8 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   /* Gantt v6 · las columnas fijas de la maqueta (Tarea · Resp. · Inicio · Fin · %), en 544 px. */
   const columnasV6 = useMemo<GanttColumn[] | null>(() => disenoV6 ? [
     { id: 'name', label: esVacio ? 'Tarea' : 'Task', width: 312, minWidth: 120, visible: true, sortable: false, resizable: false },
-    { id: 'assignees', label: esVacio ? 'Resp.' : 'Owner', width: 28, visible: true, sortable: false, resizable: false },
+    /* Gantt ronda 2 · P1-5 · la palabra entera: se pinta como icono (28 px) y se lee en el tooltip */
+    { id: 'assignees', label: esVacio ? 'Responsable' : 'Owner', width: 28, visible: true, sortable: false, resizable: false },
     { id: 'startDate', label: esVacio ? 'Inicio' : 'Start', width: 50, visible: true, sortable: false, resizable: false },
     { id: 'endDate', label: esVacio ? 'Fin' : 'End', width: 50, visible: true, sortable: false, resizable: false },
     { id: 'progress', label: '%', width: 40, visible: true, sortable: false, resizable: false },

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useContext } from 'react';
 import { useGanttEnEspanol } from './GanttI18nContext';
 import { createPortal } from 'react-dom';
-import { ChevronDown, ChevronRight, ChevronLeft, Plus, Edit3, GripVertical, Calendar, Keyboard, ChevronsDownUp } from 'lucide-react';
+import { ChevronDown, ChevronRight, ChevronLeft, Plus, Edit3, GripVertical, Calendar, Keyboard, ChevronsDownUp, User as IconoPersona } from 'lucide-react';
 import { Task, GanttColumn, ColumnType, GanttTemplates } from './types';
 import { motion } from 'framer-motion';
 import { ColumnManager } from './ColumnManager'; // v0.17.215: Back with sticky positioning
@@ -1586,8 +1586,15 @@ export function TaskGrid({
                 key={c.id}
                 style={{ width: c.id === 'name' ? undefined : c.width, flex: c.id === 'name' ? '1 1 0' : '0 0 auto', minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden',
                   textAlign: c.id === 'assignees' ? 'center' : c.id === 'progress' ? 'right' : 'left', paddingLeft: c.id === 'name' ? 60 : 0 }}
+                title={c.id === 'assignees' ? c.label : undefined}
               >
-                {c.label}
+                {/* Gantt ronda 2 (Yesid) · P1-5 · en 28 px «Owner» se cortaba («Owne»): un icono de persona con su nombre en
+                    el tooltip y para el lector de pantalla, sin tocar el ancho de la v6. */}
+                {c.id === 'assignees' && (c.width ?? 0) <= 40
+                  ? <span role="img" aria-label={c.label} data-encabezado-responsable style={{ display: 'inline-flex', justifyContent: 'center', width: '100%' }}>
+                      <IconoPersona aria-hidden style={{ width: 13, height: 13 }} strokeWidth={2} />
+                    </span>
+                  : c.label}
               </div>
             ))}
           </div>
