@@ -79,6 +79,9 @@ interface TaskGridProps {
   onMostrarOcultas?: () => void;
   /** Gantt ronda 2 · R1 · las filas que se dibujan; `null`, todas. */
   filasVisibles?: { desde: number; hasta: number } | null;
+  /** Gantt ronda 2 · R4 · «12 vencidas» y su «Ver» (activa el filtro «Solo vencidas»). */
+  avisoVencidas?: string;
+  onVerVencidas?: () => void;
 }
 
 export function TaskGrid({
@@ -120,6 +123,8 @@ export function TaskGrid({
   onContraerTodo,
   onMostrarOcultas,
   filasVisibles = null,
+  avisoVencidas,
+  onVerVencidas,
 }: TaskGridProps) {
   const esGrid = useGanttEnEspanol(); // QA Asakaa 2.1
   // v0.16.2: Get translations from context
@@ -1581,6 +1586,17 @@ export function TaskGrid({
                   <button type="button" onClick={onMostrarOcultas} data-mostrar-ocultas
                     style={{ border: 0, padding: 0, background: 'transparent', font: 'inherit', color: 'var(--v6-acento-texto, #087F72)', fontWeight: 500, cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 2 }}>
                     {esGrid ? 'Mostrar' : 'Show'}
+                  </button>
+                </>
+              )}
+              {avisoVencidas && onVerVencidas && (
+                <>
+                  {' · '}
+                  <span data-aviso-vencidas style={{ color: 'var(--v6-rojo, #B02A33)', fontWeight: 500 }}>{avisoVencidas}</span>
+                  {' · '}
+                  <button type="button" onClick={onVerVencidas} data-ver-vencidas
+                    style={{ border: 0, padding: 0, background: 'transparent', font: 'inherit', color: 'var(--v6-acento-texto, #087F72)', fontWeight: 500, cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 2 }}>
+                    {esGrid ? 'Ver' : 'View'}
                   </button>
                 </>
               )}

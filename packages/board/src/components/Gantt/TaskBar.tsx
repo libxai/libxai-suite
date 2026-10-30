@@ -56,6 +56,8 @@ interface TaskBarProps {
   alturaBarra?: number;
   /** Gantt v6: la duración en días hábiles, a la derecha de la barra («5 d»). */
   duracionV6?: string;
+  /** Gantt ronda 2 (Yesid) · R3 · una tarea TRANSVERSAL (dura casi todo el proyecto: seguimiento, informes): línea fina. */
+  transversal?: boolean;
 }
 
 type DragMode = 'none' | 'move' | 'resize-start' | 'resize-end' | 'connect';
@@ -85,6 +87,7 @@ export function TaskBar({
   v6 = false,
   alturaBarra,
   duracionV6,
+  transversal = false,
 }: TaskBarProps) {
   const es = useGanttEnEspanol(); // QA Asakaa 2.1: la ventanita salía en inglés
   // v0.8.1: Centralized drag state management for better modularity
@@ -1045,6 +1048,34 @@ export function TaskBar({
         const idRecorte = `v6-barra-${String(task.id).replace(/[^A-Za-z0-9_-]/g, '')}`;
         const vencida = !!isOverdue && !isCompleted;
         const avance = Math.max(0, Math.min(100, liveProgress));
+        /*
+         * Gantt ronda 2 (Yesid) · R3 · TRANSVERSAL: una línea de 2 px con sus extremos y sin relleno, para que las tareas que
+         * duran todo el proyecto (la Fase 0 de P25038: seguimiento, informes, riesgos) no llenen cada pantalla de barras de
+         * lado a lado. El avance, la misma línea en el acento. Se pulsa y se arrastra igual (una franja transparente encima).
+         */
+        if (transversal) {
+          const yM = Math.round(y + height / 2);
+          const x0 = Math.round(displayX);
+          const x1 = Math.round(displayX + displayWidth);
+          return (
+            <g data-transversal="">
+              <rect x={displayX} y={y} width={displayWidth} height={height} fill="transparent" data-parte="pista" data-bar-background="true"
+                onMouseDown={(e) => handleMouseDown(e as any)}
+                style={{ cursor: barCursor, pointerEvents: 'all' }} />
+              <line x1={x0} y1={yM} x2={x1} y2={yM} stroke="var(--v6-acento-borde, rgba(8,127,114,0.85))" strokeWidth={2} style={{ pointerEvents: 'none', opacity: isDragging && !isConnecting ? 0.25 : 1 }} />
+              {avance > 0 && (
+                <line x1={x0} y1={yM} x2={x0 + (x1 - x0) * (avance / 100)} y2={yM} stroke="var(--v6-acento, #0FA392)" strokeWidth={2} data-parte="avance" style={{ pointerEvents: 'none' }} />
+              )}
+              <line x1={x0 + 1} y1={yM - 5} x2={x0 + 1} y2={yM + 5} stroke="var(--v6-acento-borde, rgba(8,127,114,0.85))" strokeWidth={2} style={{ pointerEvents: 'none' }} />
+              <line x1={x1 - 1} y1={yM - 5} x2={x1 - 1} y2={yM + 5} stroke="var(--v6-acento-borde, rgba(8,127,114,0.85))" strokeWidth={2} style={{ pointerEvents: 'none' }} />
+              {duracionV6 && !isDragging && (
+                <text x={displayX + displayWidth + 6} y={y + height / 2} dominantBaseline="middle" fill="var(--v6-tenue, #5F6972)" fontSize={11} fontFamily="'JetBrains Mono', ui-monospace, monospace" style={{ fontVariantNumeric: 'tabular-nums', pointerEvents: 'none', userSelect: 'none' }}>
+                  {duracionV6}
+                </text>
+              )}
+            </g>
+          );
+        }
         return (
           <>
             <defs>

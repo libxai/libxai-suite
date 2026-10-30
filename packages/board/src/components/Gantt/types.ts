@@ -114,7 +114,8 @@ export type RowDensity = 'compact' | 'comfortable' | 'spacious';
 export type DependencyLineStyle = 'curved' | 'squared'; // v0.17.310: Dependency line style
 
 // v0.17.300: Task filter types for toolbar
-export type TaskFilterType = 'all' | 'incomplete' | 'in_progress' | 'completed';
+/** Gantt ronda 2 (Yesid) · R4 · 'overdue': sin terminar y con el fin ya pasado. */
+export type TaskFilterType = 'all' | 'incomplete' | 'in_progress' | 'completed' | 'overdue';
 
 // v0.17.29: Added 'priority' column type
 export type ColumnType = 'name' | 'startDate' | 'endDate' | 'duration' | 'assignees' | 'status' | 'progress' | 'priority';

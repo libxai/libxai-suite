@@ -1,6 +1,7 @@
 import React, { useMemo, useCallback, useState, useRef, useEffect } from 'react';
 import { TimeScale, Task, GanttTemplates, DependentTaskPreview, DependencyLineStyle } from './types';
 import { TaskBar, TaskTooltipData } from './TaskBar';
+import { vencidasDebajo } from './vencidas';
 import { TaskTooltip, WorkingDaysConfig } from './TaskTooltip';
 import { DependencyLine } from './DependencyLine';
 import { Milestone } from './Milestone';
@@ -613,6 +614,23 @@ export function Timeline({
    * Sin franja (`null`: al exportar a imagen), todo.
    */
   const enFranja = (i: number) => !filasVisibles || (i >= filasVisibles.desde && i <= filasVisibles.hasta);
+  /*
+   * Gantt ronda 2 (Yesid) · R3 · TRANSVERSAL: una tarea sin subtareas (ni hito) que ocupa al menos el 60 % del proyecto y
+   * dura 90 días o más (seguimiento, informes, riesgos). Se pinta como una línea fina (TaskBar `transversal`).
+   */
+  const lapsoDelProyecto = useMemo(() => {
+    let min = Infinity, max = -Infinity;
+    for (const t of flatTasks) {
+      if (t.startDate) min = Math.min(min, t.startDate.getTime());
+      if (t.endDate) max = Math.max(max, t.endDate.getTime());
+    }
+    return max > min ? max - min : 0;
+  }, [flatTasks]);
+  const esTransversal = (t: Task): boolean => {
+    if (!v6 || t.subtasks?.length || t.isMilestone || !t.startDate || !t.endDate || !lapsoDelProyecto) return false;
+    const dura = t.endDate.getTime() - t.startDate.getTime();
+    return dura >= 90 * 864e5 && dura >= 0.6 * lapsoDelProyecto;
+  };
   const xEnVista = (x: number, w = 0) => !filasVisibles || !ventanaVisible
     || (x + w >= ventanaVisible.izq - 800 && x <= ventanaVisible.der + 800);
 
@@ -1252,6 +1270,7 @@ export function Timeline({
               v6={v6}
               alturaBarra={ALTO_BARRA}
               duracionV6={v6 ? `${diasHabilesDe(task)} d` : undefined}
+              transversal={esTransversal(task)}
             />
           );
         })}
@@ -1483,6 +1502,22 @@ export function Timeline({
           if (!t.startDate || !t.endDate) return null;
           const pos = getTaskPosition(t);
           const lado = ladoFueraDeVista(pos.x, pos.x + pos.width, ventanaVisible.izq, ventanaVisible.der);
+          /* Gantt ronda 2 (Yesid) · R4 · un grupo PLEGADO con vencidas debajo dice «12 vencidas» (un aviso, no 12 chips) */
+          const vencidasDelGrupo = v6 && t.subtasks?.length && t.isExpanded === false ? vencidasDebajo(t) : 0;
+          if (vencidasDelGrupo > 0) {
+            const textoG = `${lado === 'left' ? '‹ ' : ''}${vencidasDelGrupo} ${locale === 'es' ? (vencidasDelGrupo === 1 ? 'vencida' : 'vencidas') : 'overdue'}${lado === 'right' ? ' ›' : ''}`;
+            const anchoG = textoG.length * 6.6 + 16;
+            const xG = lado === 'left' ? ventanaVisible.izq + 4 : lado === 'right' ? ventanaVisible.der - anchoG - 4 : pos.x + pos.width + 8;
+            const yG = index * ROW_HEIGHT + ROW_HEIGHT / 2 - 11;
+            return (
+              <g key={`vencidas-${t.id}`} data-vencidas-del-grupo={vencidasDelGrupo} style={{ pointerEvents: lado ? 'auto' : 'none', cursor: lado && onIrAFecha ? 'pointer' : 'default' }}
+                onClick={() => { if (lado) onIrAFecha?.(t.startDate!); }}>
+                <title>{locale === 'es' ? `${vencidasDelGrupo} ${vencidasDelGrupo === 1 ? 'tarea vencida' : 'tareas vencidas'} en «${t.name}»` : `${vencidasDelGrupo} overdue in "${t.name}"`}</title>
+                <rect x={xG} y={yG} width={anchoG} height={22} rx={6} strokeWidth={1} style={{ fill: 'var(--v6-rojo-fondo, #FBE9EA)', stroke: 'var(--v6-rojo-borde, rgba(192,48,58,0.75))' }} />
+                <text x={xG + anchoG / 2} y={yG + 11.5} textAnchor="middle" dominantBaseline="middle" style={{ fill: 'var(--v6-rojo, #B02A33)', fontSize: 11, fontWeight: 500, fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}>{textoG}</text>
+              </g>
+            );
+          }
           if (!lado) return null;
           const fecha = lado === 'left' ? t.endDate : t.startDate;
           const texto = lado === 'left'

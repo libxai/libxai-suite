@@ -7,6 +7,7 @@ import { BarraV6 } from './BarraV6';
 import { TaskGrid } from './TaskGrid';
 import { Timeline } from './Timeline';
 import { anchoDelDia, conHoy, fechaAlAbrir, HOY_AL_ABRIR, inicioDeLaEscala, ladoDeHoy } from './rangoDeLaEscala';
+import { esVencida } from './vencidas';
 import { calendarioDe, fechasQueCumplen, empujarSucesoras } from './motorDeProgramacion';
 import { ContextMenu, MenuIcons } from './ContextMenu'; // v0.8.0: Split task context menu
 import { TaskDetailModal } from '../TaskDetailModal'; // v0.17.244: Unified task detail modal (replaces TaskFormModal)
@@ -866,6 +867,10 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
             case 'completed':
               matches = task.progress === 100;
               break;
+            case 'overdue':
+              /* R4 · «Solo vencidas»: sin terminar y con el fin antes de hoy */
+              matches = esVencida(task);
+              break;
           }
         }
 
@@ -887,6 +892,9 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   /* Gantt v6 · «16 tareas · 38 completadas ocultas · Mostrar», encima de los títulos de la tabla. Gantt ronda 2 (Yesid)
      · P2 · UN SOLO contador de las ocultas, con cuántas son y cómo verlas (antes: el «1» de Filtros, la etiqueta
      «Ocultar completadas ×» y «completadas ocultas» aquí, tres avisos de lo mismo). */
+  /* Gantt ronda 2 (Yesid) · R4 · las vencidas (hojas sin terminar con el fin antes de hoy): «12 vencidas · Ver» */
+  const vencidas = useMemo(() => ganttUtils.flattenTasks(tasksWithStableWbs)
+    .filter((t) => !t.subtasks?.length && esVencida(t)).length, [tasksWithStableWbs]);
   const completadasOcultas = useMemo(() => {
     if (!hideCompleted) return 0;
     const visibles = new Set(ganttUtils.flattenTasks(filteredTasks).map((t) => t.id));
@@ -900,9 +908,12 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     if (hideCompleted && completadasOcultas > 0) {
       return `${base} · ${completadasOcultas} ${esVacio ? (completadasOcultas === 1 ? 'completada oculta' : 'completadas ocultas') : 'completed hidden'}`;
     }
+    if (taskFilter === 'overdue') return `${base} · ${esVacio ? 'solo vencidas' : 'overdue only'}`;
     if (taskFilter !== 'all') return `${base} · ${esVacio ? 'filtradas' : 'filtered'}`;
     return base;
   }, [disenoV6, filteredTasks, hideCompleted, completadasOcultas, taskFilter, esVacio]);
+  const avisoVencidas = disenoV6 && taskFilter !== 'overdue' && vencidas > 0
+    ? (esVacio ? `${vencidas} ${vencidas === 1 ? 'vencida' : 'vencidas'}` : `${vencidas} overdue`) : undefined;
   const contraerTodo = useCallback(() => {
     setLocalTasks((prev) => {
       const cerrar = (ts: Task[]): Task[] => ts.map((t) => ({ ...t, isExpanded: false, subtasks: t.subtasks ? cerrar(t.subtasks) : undefined }));
@@ -2527,6 +2538,8 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
             v6={!!disenoV6}
             resumenV6={resumenV6}
             onMostrarOcultas={disenoV6 && completadasOcultas > 0 ? () => setHideCompleted(false) : undefined}
+            avisoVencidas={avisoVencidas}
+            onVerVencidas={avisoVencidas ? () => { setHideCompleted(false); setTaskFilter('overdue'); } : undefined}
             onContraerTodo={disenoV6 ? contraerTodo : undefined}
             addTaskRow={config.addTaskRow}
             tasks={filteredTasks}

@@ -165,6 +165,8 @@ export function BarraV6(p: BarraV6Props) {
     { valor: 'incomplete', etiqueta: tx('Por hacer', 'To do') },
     { valor: 'in_progress', etiqueta: tx('En progreso', 'In progress') },
     { valor: 'completed', etiqueta: tx('Completadas', 'Completed') },
+    /* Gantt ronda 2 (Yesid) · R4 · «Solo vencidas» */
+    { valor: 'overdue', etiqueta: tx('Vencidas', 'Overdue') },
   ];
   /* Gantt ronda 2 (Yesid) · P2 · «ocultar completadas» no cuenta aquí ni lleva etiqueta: su único aviso es el contador
      de la tabla («38 completadas ocultas · Mostrar»). */
