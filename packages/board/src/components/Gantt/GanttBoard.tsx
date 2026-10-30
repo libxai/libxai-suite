@@ -1311,8 +1311,9 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       const dayWidth = anchoDelDia(sd.timeScale);
       const todayX = daysFromStart * dayWidth * sd.zoom;
       const viewportWidth = scrollEl.clientWidth;
-      // Center today in the viewport. Clamp to valid scroll range.
-      const target = Math.max(0, todayX - viewportWidth / 2);
+      /* Gantt ronda 2 (Yesid) · R8 · «Hoy» deja hoy donde lo deja abrir el Gantt (P1-3): a 1/3 del borde izquierdo,
+         con lo que viene a la derecha. Antes lo centraba: el botón y la apertura no coincidían. */
+      const target = Math.max(0, todayX - viewportWidth * HOY_AL_ABRIR);
       scrollEl.scrollTo({ left: target, behavior: 'smooth' });
     },
   }), [localTasks, undo, redo, canUndo, canRedo, clearHistory, theme, rowHeight]);
