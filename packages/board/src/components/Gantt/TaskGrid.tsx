@@ -77,6 +77,8 @@ interface TaskGridProps {
   onContraerTodo?: () => void;
   /** Gantt ronda 2 · P2 · «Mostrar» las completadas ocultas, junto a su contador. */
   onMostrarOcultas?: () => void;
+  /** Gantt ronda 2 · R1 · las filas que se dibujan; `null`, todas. */
+  filasVisibles?: { desde: number; hasta: number } | null;
 }
 
 export function TaskGrid({
@@ -117,6 +119,7 @@ export function TaskGrid({
   resumenV6,
   onContraerTodo,
   onMostrarOcultas,
+  filasVisibles = null,
 }: TaskGridProps) {
   const esGrid = useGanttEnEspanol(); // QA Asakaa 2.1
   // v0.16.2: Get translations from context
@@ -1812,7 +1815,10 @@ export function TaskGrid({
       {/* Task Rows Container - v0.17.222: Now uses real scroll instead of CSS transform */}
       {/* minHeight ensures scroll area matches Timeline for proper sync */}
       <div className="gantt-taskgrid-content" data-grid-body style={{ minHeight: contentHeight }}>
+      {/* Gantt ronda 2 (Yesid) · R1 · VIRTUALIZAR: solo las filas de la franja visible (y un margen); arriba y abajo, su alto. */}
+      {filasVisibles && filasVisibles.desde > 0 && <div aria-hidden data-relleno-arriba style={{ height: filasVisibles.desde * ROW_HEIGHT }} />}
       {flatTasks.map(({ task, level }, index) => {
+        if (filasVisibles && (index < filasVisibles.desde || index > filasVisibles.hasta)) return null;
         const isSelected = isTaskSelected(task.id);
         const inFillRange = isInFillRange(index);
 
@@ -2004,6 +2010,8 @@ export function TaskGrid({
           </motion.div>
         );
       })}
+      {/* R1 · lo que queda debajo de la franja, sin dibujar (la fila «añadir tarea» sigue al final) */}
+      {filasVisibles && filasVisibles.hasta < flatTasks.length - 1 && <div aria-hidden data-relleno-abajo style={{ height: (flatTasks.length - 1 - filasVisibles.hasta) * ROW_HEIGHT }} />}
       {/* 1.9.45 · «+ Add task» en línea, al final (ESPEC pestañas §4.10). */}
       {addTaskRow && (
         <button

@@ -484,7 +484,27 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
           return task;
         });
       };
-      setLocalTasks(rollUpParentDates(dedupeAll(tasks)));
+      const base = rollUpParentDates(dedupeAll(tasks));
+      /*
+       * Gantt ronda 2 (Yesid) · R2 · ABRIR PLEGADO: con la v6 y nada guardado para este proyecto, se ven las fases y solo
+       * se despliega la que contiene HOY (y, dentro, el grupo que lo contiene). P25038 de Axon abría con sus ~480 filas
+       * desplegadas. Lo que el usuario pliega o despliega se guarda por proyecto (`persistExpandedState`) y manda desde
+       * entonces; esto se siembra en memoria sin guardarlo, para que no se recalcule a mitad de una edición.
+       */
+      if (disenoV6 && persistExpandedState) {
+        const dia = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+        const hoy = dia(new Date());
+        const contieneHoy = (t: Task) => !!t.startDate && !!t.endDate && dia(t.startDate) <= hoy && hoy <= dia(t.endDate);
+        const plegar = (ts: Task[]): Task[] => ts.map((t) => {
+          if (!t.subtasks?.length) return t;
+          const abierto = contieneHoy(t);
+          expandedStatesRef.current.set(t.id, abierto);
+          return { ...t, isExpanded: abierto, subtasks: plegar(t.subtasks) };
+        });
+        setLocalTasks(plegar(base));
+      } else {
+        setLocalTasks(base);
+      }
     }
   }, [tasks, setLocalTasks]);
 
@@ -1170,6 +1190,9 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         gridWrapper.querySelector('.gantt-grid-scroll')) as HTMLElement | null;
       const timelineScroll = timelineScrollRef.current;
 
+      /* Gantt ronda 2 · R1 · la imagen es del diagrama ENTERO: mientras se exporta, sin virtualizar */
+      setDibujarTodo(true);
+      await new Promise(resolve => setTimeout(resolve, 50));
       // Store original state
       const originalGridScrollTop = gridScroll?.scrollTop || 0;
       const originalTimelineScrollTop = timelineScroll.scrollTop;
@@ -1217,6 +1240,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         gridWrapper.style.overflow = originalWrapperOverflow;
         if (gridScroll) gridScroll.scrollTop = originalGridScrollTop;
         timelineScroll.scrollTop = originalTimelineScrollTop;
+        setDibujarTodo(false); // R1 · se vuelve a virtualizar
       }
     },
 
@@ -2248,7 +2272,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   }, [timeScale, zoom, startDate]);
 
   /* Mejora fuerte 6 · la ventana visible (px), para marcar las barras que quedan fuera de vista. */
-  const [ventanaVisible, setVentanaVisible] = useState<{ izq: number; der: number } | null>(null);
+  const [ventanaVisible, setVentanaVisible] = useState<{ izq: number; der: number; arriba: number; abajo: number } | null>(null);
   useEffect(() => {
     const el = timelineScrollRef.current;
     if (!el) return;
@@ -2258,7 +2282,10 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       cuadro = requestAnimationFrame(() => {
         const izq = el.scrollLeft;
         const der = izq + el.clientWidth;
-        setVentanaVisible((v) => (v && v.izq === izq && v.der === der ? v : { izq, der }));
+        /* Gantt ronda 2 · R1 · y la vertical: la franja de filas que se dibujan */
+        const arriba = el.scrollTop;
+        const abajo = arriba + el.clientHeight;
+        setVentanaVisible((v) => (v && v.izq === izq && v.der === der && v.arriba === arriba && v.abajo === abajo ? v : { izq, der, arriba, abajo }));
         // la fecha que está en el centro: se conserva al cambiar de escala
         if (hasScrolledToToday.current && el.clientWidth > 0) {
           const dias = (izq + el.clientWidth / 2) / (anchoDelDia(timeScale) * zoom);
@@ -2271,6 +2298,18 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     window.addEventListener('resize', medir);
     return () => { cancelAnimationFrame(cuadro); el.removeEventListener('scroll', medir); window.removeEventListener('resize', medir); };
   }, [timeScale, zoom, startDate]);
+
+  /* Gantt ronda 2 (Yesid) · R1 · la franja de filas que se dibujan: las visibles y 10 de margen a cada lado (al desplazar
+     rápido no se ve el borde). `null` mientras se exporta a imagen (`dibujarTodo`) o antes de medir: todas. */
+  const [dibujarTodo, setDibujarTodo] = useState(false);
+  const filasVisibles = useMemo(() => {
+    if (dibujarTodo || !ventanaVisible || ventanaVisible.abajo <= ventanaVisible.arriba) return null;
+    const MARGEN = 10;
+    return {
+      desde: Math.max(0, Math.floor(ventanaVisible.arriba / rowHeight) - MARGEN),
+      hasta: Math.ceil(ventanaVisible.abajo / rowHeight) + MARGEN,
+    };
+  }, [dibujarTodo, ventanaVisible, rowHeight]);
 
   /*
    * QA Asakaa E22: «tras asignar fechas con un clic o arrastrar una barra, el
@@ -2494,6 +2533,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
             allTasks={tasksWithStableWbs} // v1.9.10: árbol completo para reordenar bien con filtros
             theme={theme}
             rowHeight={rowHeight}
+            filasVisibles={filasVisibles}
             availableUsers={availableUsers}
             templates={mergedTemplates}
             showCriticalPath={showCriticalPath}
@@ -2559,6 +2599,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
           }}
         >
           <Timeline
+            filasVisibles={filasVisibles}
             v6={!!disenoV6}
             tareaEnFoco={selectedTaskId ?? null}
             alturaCabecera={disenoV6 ? 60 : undefined}

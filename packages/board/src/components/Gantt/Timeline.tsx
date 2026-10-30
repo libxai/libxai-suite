@@ -21,6 +21,8 @@ import { useGanttI18n } from './GanttI18nContext';
 interface TimelineProps {
   /** Mejora fuerte 6 · la ventana visible (px) para marcar las barras fuera de vista, y adónde ir. */
   ventanaVisible?: { izq: number; der: number } | null;
+  /** Gantt ronda 2 (Yesid) · R1 · las filas que se dibujan (las visibles y un margen); `null`, todas (p. ej. al exportar). */
+  filasVisibles?: { desde: number; hasta: number } | null;
   onIrAFecha?: (fecha: Date) => void;
   /** Mejora fuerte 6 · fin planeado del proyecto y fin previsto (pronóstico). */
   finPlaneado?: Date | null;
@@ -100,6 +102,7 @@ export function Timeline({
   onTaskProgressDrag,
   workingDaysConfig,
   ventanaVisible,
+  filasVisibles = null,
   onIrAFecha,
   finPlaneado,
   finPrevisto,
@@ -603,6 +606,15 @@ export function Timeline({
   /* Gantt ronda 2 (Yesid) · P2 · la cuadrícula (y la trama de fines de semana y festivos) llega hasta abajo de lo visible:
      con el mínimo fijo de 600 px se cortaba a media pantalla en una ventana alta y un proyecto con pocas tareas. */
   const contentHeight = Math.max(flatTasks.length * ROW_HEIGHT, 600 - HEADER_HEIGHT, altoDelVisor - HEADER_HEIGHT - 2);
+  /*
+   * Gantt ronda 2 (Yesid) · R1 · VIRTUALIZAR. P25038 de Axon (~480 filas × ~660 días) pintaba unos 20.000 nodos. Se dibujan
+   * las FILAS de la franja visible (y un margen: `filasVisibles`, la calcula GanttBoard) y los DÍAS de la cabecera y de la
+   * trama que caen a la vista (y 800 px a cada lado). El alto y el ancho del dibujo no cambian: el desplazamiento es el mismo.
+   * Sin franja (`null`: al exportar a imagen), todo.
+   */
+  const enFranja = (i: number) => !filasVisibles || (i >= filasVisibles.desde && i <= filasVisibles.hasta);
+  const xEnVista = (x: number, w = 0) => !filasVisibles || !ventanaVisible
+    || (x + w >= ventanaVisible.izq - 800 && x <= ventanaVisible.der + 800);
 
   return (
     <div
@@ -654,6 +666,7 @@ export function Timeline({
               ))}
               <line x1={0} y1={24.5} x2={Math.max(timelineWidth, 1000)} y2={24.5} style={{ stroke: V6S.linea }} strokeWidth={1} />
               {headers.map((h, i) => {
+                if (!xEnVista(h.x, anchoDia)) return null; // R1
                 const cx = h.x + anchoDia / 2;
                 const finde = isWeekend(h.date);
                 const festivo = !finde && isHoliday(h.date);
@@ -809,7 +822,7 @@ export function Timeline({
         {/* Weekend backgrounds removed — only hatch overlay after row backgrounds */}
 
         {/* Row Backgrounds - v0.17.220: Alternating rows matching TaskGrid */}
-        {flatTasks.map((task, index) => (
+        {flatTasks.map((task, index) => !enFranja(index) ? null : (
           <rect
             key={`row-bg-${task.id}`}
             x={0}
@@ -824,7 +837,7 @@ export function Timeline({
 
         {/* v1.4.29: Grid lines rendered AFTER row backgrounds so they are never covered */}
         {/* Vertical column grid lines */}
-        {v6 && flatTasks.map((_t, i) => (
+        {v6 && flatTasks.map((_t, i) => !enFranja(i) ? null : (
           <line key={`linea-fila-${i}`} x1={0} y1={(i + 1) * ROW_HEIGHT - 0.5} x2={Math.max(timelineWidth, 1000)} y2={(i + 1) * ROW_HEIGHT - 0.5} style={{ stroke: V6S.linea, pointerEvents: 'none' }} strokeWidth={1} />
         ))}
         {esV6Dia && semanasV6.filter((sem) => sem.x > 0).map((sem, i) => (
@@ -850,6 +863,7 @@ export function Timeline({
             Los festivos (workingDaysConfig.holidayDates) se sombrean igual que
             los fines de semana. Solo aplica en escala de día. */}
         {headers.map((header, index) => {
+          if (!xEnVista(header.x, dayWidth * zoom * 31)) return null; // R1
           const nextX = headers[index + 1]?.x || timelineWidth;
           const isWeekendDay = timeScale === 'day' && highlightWeekends && isWeekend(header.date);
           // Solo marcar festivo si NO es ya fin de semana (evita doble pintado).
@@ -889,6 +903,7 @@ export function Timeline({
 
         {/* Row interactions: Click-to-Create functionality */}
         {flatTasks.map((task, index) => {
+          if (!enFranja(index)) return null; // R1
           const hasTaskBar = task.startDate && task.endDate;
 
           return (
@@ -998,6 +1013,7 @@ export function Timeline({
 
         {/* Tasks - v0.13.7: Adjusted Y positions */}
         {flatTasks.map((task, index) => {
+          if (!enFranja(index)) return null; // R1
           // Don't render task bar if task doesn't have dates
           if (!task.startDate || !task.endDate) {
             return null;
@@ -1253,6 +1269,9 @@ export function Timeline({
             if (!depTask.startDate || !depTask.endDate) return null;
 
             const fromIndex = flatTasks.findIndex((t) => t.id === depId);
+            /* R1 · un conector se dibuja si toca la franja o la cruza de arriba abajo */
+            if (filasVisibles && !enFranja(fromIndex) && !enFranja(toIndex)
+              && !(Math.min(fromIndex, toIndex) < filasVisibles.desde && Math.max(fromIndex, toIndex) > filasVisibles.hasta)) return null;
             // v1.5.0: Use drag-adjusted positions so lines follow during drag
             const fromPos = getDragAdjustedPosition(depTask.id, getTaskPosition(depTask));
             const toPos = getDragAdjustedPosition(task.id, getTaskPosition(task));
@@ -1460,6 +1479,7 @@ export function Timeline({
         {/* Mejora fuerte 6 · «indicador cuando una barra queda fuera de vista»: en su fila, junto al
             borde, la fecha y una flecha; un clic lleva a la barra. */}
         {ventanaVisible && flatTasks.map((t, index) => {
+          if (!enFranja(index)) return null; // R1
           if (!t.startDate || !t.endDate) return null;
           const pos = getTaskPosition(t);
           const lado = ladoFueraDeVista(pos.x, pos.x + pos.width, ventanaVisible.izq, ventanaVisible.der);
