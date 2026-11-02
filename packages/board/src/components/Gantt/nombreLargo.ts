@@ -1,29 +1,47 @@
 /**
  * Gantt ronda 2 (Yesid, 30-oct) · R5 · NOMBRES LARGOS Y REPETIDOS. En P25038, 19 tareas empiezan por «Amarillado en tableros
- * MK y C&P – Bahía…» y se cortaban todas igual: lo que las distingue está al final. El nombre se parte en el COMIENZO (que
- * se encoge con «…») y la COLA (las últimas palabras, que no se cortan). Si cabe entero se ve igual que siempre.
+ * MK y C&P – Bahía…» y se cortaban todas igual: lo que las distingue está al final.
+ *
+ * Ronda 3 (Yesid, 2-nov) · A1 · cortar SIEMPRE por el medio se comía el verbo: «Su… a App Store y Play Store», «Prep… de
+ * Assets para Stores». Ahora:
+ *   · por defecto el corte va AL FINAL («Submit a App Store y Pl…»): `comienzo` es el nombre entero y `cola`, vacía;
+ *   · por el medio SÓLO cuando hermanas comparten el inicio (`prefijoComun` ≥ 12): la cola empieza en la palabra donde se
+ *     separan, y el comienzo conserva al menos sus 12 primeros caracteres (lo asegura quien lo pinta, `MIN_COMIENZO`).
  */
-/* La cola, 16 letras como máximo: con 24, en la columna de P25038 (~200 px) se comía el comienzo entero («documentación
-   de entrada» sin el «Revisión de»). 16 caben «– Bahía GENSA U2» y «de entrada». */
-export function partirNombre(nombre: string, maxCola = 16): { comienzo: string; cola: string } {
+export const MIN_COMIENZO = 12;
+
+export function partirNombre(nombre: string, prefijoComun = 0): { comienzo: string; cola: string } {
   const n = nombre.trim();
-  if (n.length <= 28) return { comienzo: n, cola: '' };
-  const palabras = n.split(/(\s+)/); // conserva los espacios
-  let cola = '';
-  for (let i = palabras.length - 1; i > 0; i--) {
-    const siguiente = palabras[i] + cola;
-    if (siguiente.trim().length > maxCola && cola.trim().length >= 6) break;
-    cola = siguiente;
-    if (cola.trim().length >= 12 && /\s/.test(palabras[i - 1] ?? '')) {
-      const conOtra = (palabras[i - 2] ?? '') + (palabras[i - 1] ?? '') + cola;
-      if (conOtra.trim().length > maxCola) break;
-    }
-  }
-  if (!cola.trim() || cola.trim().length >= n.length - 4) return { comienzo: n, cola: '' };
+  if (prefijoComun < MIN_COMIENZO || prefijoComun >= n.length) return { comienzo: n, cola: '' };
+  /* la cola arranca en la palabra donde las hermanas se separan («– Bahía GENSA U2» → «GENSA U2») */
+  let i = prefijoComun;
+  while (i > 0 && !/\s/.test(n[i - 1] ?? '')) i--;
+  const comienzo = n.slice(0, i).trimEnd();
+  if (!comienzo) return { comienzo: n, cola: '' };
   /* El espacio del corte va con la COLA (que es `white-space: pre`): al final del comienzo, el navegador lo tira y salía
      «Monitoreoy Control del Proyecto» (Arcadio, P25038 30-oct). */
-  const comienzo = n.slice(0, n.length - cola.length).trimEnd();
   return { comienzo, cola: n.slice(comienzo.length) };
+}
+
+/** Lo que dos nombres tienen en común desde el principio, en caracteres. */
+function comun(a: string, b: string): number {
+  const m = Math.min(a.length, b.length);
+  let i = 0;
+  while (i < m && a[i] === b[i]) i++;
+  return i;
+}
+
+/**
+ * Para cada nombre de un grupo de hermanas, el inicio más largo que comparte con alguna otra (0 si ninguna): es lo que
+ * decide si su nombre se corta por el medio (`partirNombre`).
+ */
+export function prefijosConHermanas(nombres: readonly string[]): number[] {
+  const t = nombres.map((s) => s.trim());
+  return t.map((a, i) => {
+    let max = 0;
+    for (let j = 0; j < t.length; j++) if (j !== i) max = Math.max(max, comun(a, t[j] ?? ''));
+    return max;
+  });
 }
 
 /** La ruta de un nombre: «6.3 Tablero 3 › Ensamble mecánico» (con el código WBS de cada antepasado si lo tiene). */

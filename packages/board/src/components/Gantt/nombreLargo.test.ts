@@ -1,31 +1,40 @@
 import { describe, it, expect } from 'vitest';
-import { partirNombre, rutaDelNombre } from './nombreLargo';
+import { partirNombre, prefijosConHermanas, rutaDelNombre } from './nombreLargo';
 
-describe('R5 · nombres largos', () => {
-  it('lo corto no se parte', () => {
-    expect(partirNombre('Ensamble mecánico')).toEqual({ comienzo: 'Ensamble mecánico', cola: '' });
+describe('R5 / ronda 3 A1 · nombres largos', () => {
+  it('por defecto el corte va al final: el nombre entero en el comienzo, sin cola (no se pierde el verbo)', () => {
+    expect(partirNombre('Submit a App Store y Play Store')).toEqual({ comienzo: 'Submit a App Store y Play Store', cola: '' });
+    expect(partirNombre('Preparación de Assets para Stores', 3)).toEqual({ comienzo: 'Preparación de Assets para Stores', cola: '' });
   });
-  it('lo largo deja a la vista la parte que cambia, y juntos son el nombre', () => {
-    const n = 'Amarillado en tableros MK y C&P – Bahía GENSA U2';
-    const { comienzo, cola } = partirNombre(n);
-    expect(comienzo + cola).toBe(n);
-    expect(cola.trim()).toMatch(/GENSA U2$/);
-    expect(cola.trim().length).toBeLessThanOrEqual(24);
+
+  it('hermanas que comparten el inicio: la cola empieza en la palabra donde se separan', () => {
+    const nombres = [
+      'Amarillado en tableros MK y C&P – Bahía GENSA U2',
+      'Amarillado en tableros MK y C&P – Bahía Paipa U4',
+      'Ensamble mecánico',
+    ];
+    const p = prefijosConHermanas(nombres);
+    expect(p[2]).toBe(0);
+    const { comienzo, cola } = partirNombre(nombres[0], p[0]);
+    expect(comienzo).toBe('Amarillado en tableros MK y C&P – Bahía');
+    expect(cola).toBe(' GENSA U2');
+    expect(comienzo + cola).toBe(nombres[0]);
+    expect(partirNombre(nombres[2], p[2]).cola).toBe('');
   });
-  it('el espacio del corte va con la cola: el comienzo nunca acaba en espacio (se perdía al pintarlo)', () => {
-    for (const n of ['Monitoreo y Control del Proyecto', 'Revisión de documentación de entrada', 'Elaboración de informes para PPM',
-      'Reuniones internas de seguimiento', 'Amarillado en tableros MK y C&P – Bahía GENSA U2']) {
-      const { comienzo, cola } = partirNombre(n);
-      expect(comienzo + cola).toBe(n);
-      expect(comienzo).not.toMatch(/\s$/);
-      if (cola) expect(cola).toMatch(/^\s/);
-    }
+
+  it('un inicio común corto (< 12) no parte el nombre', () => {
+    const p = prefijosConHermanas(['Revisión de planos', 'Revisar contrato']);
+    expect(p[0]).toBeLessThan(12);
+    expect(partirNombre('Revisión de planos', p[0]).cola).toBe('');
   });
-  it('la cola es corta y deja ver el comienzo (P25038: «documentación de entrada» había perdido el «Revisión de»)', () => {
-    expect(partirNombre('Revisión de documentación de entrada')).toEqual({ comienzo: 'Revisión de documentación', cola: ' de entrada' });
-    expect(partirNombre('Reuniones internas de seguimiento').cola).toBe(' de seguimiento');
-    expect(partirNombre('FASE 0: Gestión del Proyecto (Transversal)').comienzo).toBe('FASE 0: Gestión del Proyecto');
+
+  it('el comienzo nunca acaba en espacio (se perdía al pintarlo)', () => {
+    const p = prefijosConHermanas(['Monitoreo y Control del Proyecto A', 'Monitoreo y Control del Proyecto B']);
+    const { comienzo, cola } = partirNombre('Monitoreo y Control del Proyecto A', p[0]);
+    expect(comienzo).not.toMatch(/\s$/);
+    expect(cola).toMatch(/^\s/);
   });
+
   it('la ruta lleva el código de cada antepasado', () => {
     expect(rutaDelNombre([{ name: 'Tablero 3', wbsCode: '6.3' }], 'Ensamble mecánico')).toBe('6.3 Tablero 3 › Ensamble mecánico');
   });

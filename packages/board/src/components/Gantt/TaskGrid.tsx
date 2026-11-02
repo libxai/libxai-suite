@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useContext, useMemo } from 'react';
 import { useGanttEnEspanol } from './GanttI18nContext';
 import { createPortal } from 'react-dom';
 import { ChevronDown, ChevronRight, ChevronLeft, Plus, Edit3, GripVertical, Calendar, Keyboard, ChevronsDownUp, User as IconoPersona } from 'lucide-react';
-import { partirNombre, rutaDelNombre } from './nombreLargo';
+import { MIN_COMIENZO, partirNombre, prefijosConHermanas, rutaDelNombre } from './nombreLargo';
 import { fechaCorta } from './fechaCorta';
 import { Task, GanttColumn, ColumnType, GanttTemplates } from './types';
 import { motion } from 'framer-motion';
@@ -712,6 +712,19 @@ export function TaskGrid({
     recorrer(tasks, []);
     return m;
   }, [tasks]);
+  /* Ronda 3 (Yesid, 2-nov) · A1 · cuánto inicio comparte cada tarea con sus hermanas: sólo esas se cortan por el medio */
+  const prefijoConHermanas = useMemo(() => {
+    const m = new Map<string, number>();
+    const recorrer = (ts: Task[]) => {
+      const p = prefijosConHermanas(ts.map((t) => t.name));
+      ts.forEach((t, i) => {
+        m.set(t.id, p[i] ?? 0);
+        if (t.subtasks?.length) recorrer(t.subtasks);
+      });
+    };
+    recorrer(tasks);
+    return m;
+  }, [tasks]);
   /* R5 · la sangría por nivel, como mucho 12 px (con 5 niveles, 20 px se comían media columna) */
   const SANGRIA_V6 = 12;
   const celdaV6 = (column: GanttColumn, task: Task, level: number, isParentTask: boolean): React.ReactNode | undefined => {
@@ -765,8 +778,9 @@ export function TaskGrid({
             />
           ) : (
             (() => {
-              /* R5 · cortado POR EL MEDIO: el comienzo se encoge con «…» y la cola (lo que distingue a las repetidas) se ve */
-              const { comienzo, cola } = partirNombre(task.name);
+              /* Ronda 3 · A1 · el corte va al FINAL («…»); por el medio sólo con hermanas que empiezan igual: entonces el
+                 comienzo se encoge con «…» (sin bajar de 12 caracteres) y la cola, lo que las distingue, se ve */
+              const { comienzo, cola } = partirNombre(task.name, prefijoConHermanas.get(task.id) ?? 0);
               const antepasados = antepasadosDe.get(task.id) ?? [];
               return (
                 <span
@@ -774,7 +788,7 @@ export function TaskGrid({
                   data-nombre-v6
                   style={{ marginLeft: 2, flex: '1 1 auto', minWidth: 0, display: 'flex', whiteSpace: 'nowrap', fontSize: 13, fontWeight: isParentTask || task.isMilestone ? 600 : 500, color: 'var(--v6-texto, #0E1114)' }}
                 >
-                  <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', flex: '0 1 auto' }}>{comienzo}</span>
+                  <span style={{ minWidth: cola && comienzo.length > MIN_COMIENZO ? `${MIN_COMIENZO}ch` : 0, overflow: 'hidden', textOverflow: 'ellipsis', flex: '0 1 auto' }}>{comienzo}</span>
                   {/* la cola nunca pasa del 60 % de la celda: el comienzo siempre se ve (Arcadio, P25038 30-oct) */}
                   {cola && <span style={{ flex: 'none', whiteSpace: 'pre', maxWidth: '60%', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cola}</span>}
                 </span>

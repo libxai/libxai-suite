@@ -6,7 +6,7 @@ import { GanttToolbar } from './GanttToolbar';
 import { BarraV6 } from './BarraV6';
 import { TaskGrid } from './TaskGrid';
 import { Timeline } from './Timeline';
-import { anchoDelDia, conHoy, fechaAlAbrir, HOY_AL_ABRIR, inicioDeLaEscala, ladoDeHoy } from './rangoDeLaEscala';
+import { anchoDelDia, conHoy, diasTrasHoy, fechaAlAbrir, HOY_AL_ABRIR, inicioDeLaEscala, ladoDeHoy } from './rangoDeLaEscala';
 import { esVencida } from './vencidas';
 import { calendarioDe, fechasQueCumplen, empujarSucesoras } from './motorDeProgramacion';
 import { ContextMenu, MenuIcons } from './ContextMenu'; // v0.8.0: Split task context menu
@@ -1856,6 +1856,10 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     const padding = timeScale === 'day' ? 7 : timeScale === 'week' ? 14 : 30;
     minDate.setDate(minDate.getDate() - padding);
     maxDate.setDate(maxDate.getDate() + padding);
+    /* Ronda 3 · A3 · sitio a la derecha de hoy para que la apertura y «Hoy» lo dejen a 1/3 (no en el centro) */
+    const tope = new Date();
+    tope.setDate(tope.getDate() + diasTrasHoy(timeScale));
+    if (maxDate < tope) maxDate.setTime(tope.getTime());
 
     // QA Asakaa E13: Semana empieza en lunes y Mes en el día 1 (rangoDeLaEscala.ts).
     return { startDate: inicioDeLaEscala(minDate, timeScale), endDate: maxDate, primeraTarea, ultimaTarea };

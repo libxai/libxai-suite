@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { anchoDelDia, conHoy, fechaAlAbrir, inicioDeLaEscala, ladoDeHoy, ladoFueraDeVista } from './rangoDeLaEscala';
+import { anchoDelDia, conHoy, diasTrasHoy, fechaAlAbrir, inicioDeLaEscala, ladoDeHoy, ladoFueraDeVista } from './rangoDeLaEscala';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -86,5 +86,11 @@ describe('mejora fuerte 6 · barra fuera de vista', () => {
     expect(ladoFueraDeVista(510, 600, 100, 500)).toBe('right');
     expect(ladoFueraDeVista(80, 120, 100, 500)).toBeNull();
     expect(ladoFueraDeVista(450, 700, 100, 500)).toBeNull();
+  });
+});
+
+describe('ronda 3 · A3 · sitio tras hoy para dejarlo a 1/3', () => {
+  it('en las tres escalas, la escala sigue tras hoy al menos 1.400 px (2/3 de una pantalla de ~2.100)', () => {
+    for (const e of ['day', 'week', 'month'] as const) expect(diasTrasHoy(e) * anchoDelDia(e)).toBeGreaterThanOrEqual(1400);
   });
 });

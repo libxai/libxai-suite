@@ -67,6 +67,15 @@ export function fechaAlAbrir(primeraTarea: Date | null, ultimaTarea: Date | null
 /** P1-3 · hoy se coloca a ~1/3 del borde izquierdo (se ve lo que viene, y algo de lo que pasó). */
 export const HOY_AL_ABRIR = 1 / 3;
 
+/**
+ * Ronda 3 (Yesid, 2-nov) · A3 · en un proyecto que acabó antes de hoy («Lanzamiento App Móvil», fin 12 feb) la escala
+ * terminaba en hoy + el margen de siempre (7 días en Día): no había sitio a la derecha y hoy se quedaba en el centro. Los
+ * días que la escala sigue DESPUÉS de hoy, como mínimo: lo que mide 2/3 de una pantalla de hasta ~2.100 px.
+ */
+export function diasTrasHoy(escala: EscalaDelGantt): number {
+  return Math.ceil(1400 / anchoDelDia(escala));
+}
+
 /** Mejora fuerte 6 · ¿la barra [xInicio, xFin] queda fuera de la vista? ¿De qué lado? */
 export function ladoFueraDeVista(xInicio: number, xFin: number, izquierda: number, derecha: number): 'left' | 'right' | null {
   if (xFin < izquierda) return 'left';
