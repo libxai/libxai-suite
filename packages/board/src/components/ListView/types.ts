@@ -486,6 +486,9 @@ export interface ListViewConfig {
   peticionColumnasV6?: number;
   /** v6 · G4: las migas del panel de la tarea empiezan por el proyecto */
   nombreProyectoV6?: string;
+  /** v6 · «Recursos e impacto de flujo de caja»: costo al terminar (EAC) y el enlace a Recursos */
+  costoAlTerminarV6?: number | null;
+  onVerRecursosV6?: () => void;
   /**
    * 1.9.39 · `false` quita el botón «Filters» (estado / ocultar completadas) de
    * la barra, para la app que tiene su propio sistema de filtros. Por defecto se pinta.

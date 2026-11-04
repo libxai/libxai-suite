@@ -2136,6 +2136,8 @@ export function ListView({
         seleccionada={config.seleccionadaV6 ?? null} claveColumnas={config.claveColumnasV6} pie={config.pieV6}
         avanceTotal={config.avanceTotalV6} vista={config.vistaV6} onVista={config.onVistaV6}
         peticionColumnas={config.peticionColumnasV6} nombreProyecto={config.nombreProyectoV6}
+        tarifaDePersona={rateMap ? (id) => rateMap[id] : undefined} costoAlTerminar={config.costoAlTerminarV6}
+        onVerRecursos={config.onVerRecursosV6}
         onRegistrarHoras={callbacks.onLogTime ? (t, minutos) => callbacks.onLogTime?.(t, minutos) : undefined} />
     );
   }

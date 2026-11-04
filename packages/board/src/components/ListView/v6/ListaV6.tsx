@@ -19,6 +19,7 @@ import {
   cifrasDe, diasDeRetraso, duracionHabil, estadoDe, estaVencida, horasCortas, juzgarHoras, millones, tieneHijas, type EstadoV6,
 } from './reglasDeLaLista';
 import { CSS_PANEL_V6, PanelDeTareaV6 } from './PanelDeTareaV6';
+import { CSS_RECURSOS_V6, RecursosDeLaListaV6 } from './RecursosDeLaListaV6';
 
 type Columna = 'who' | 'st' | 's' | 'e' | 'dur' | 'pct' | 'hrs' | 'cost';
 const COLUMNAS: Columna[] = ['who', 'st', 's', 'e', 'dur', 'pct', 'hrs', 'cost'];
@@ -64,6 +65,10 @@ export interface ListaV6Props {
   peticionColumnas?: number;
   /** G4 · las migas del panel empiezan por el proyecto */
   nombreProyecto?: string;
+  /** «Recursos e impacto de flujo de caja»: la tarifa de cada persona, el costo al terminar (EAC) y el enlace a Recursos */
+  tarifaDePersona?: (id: string) => number | undefined;
+  costoAlTerminar?: number | null;
+  onVerRecursos?: () => void;
 }
 
 interface Fila {
@@ -93,7 +98,7 @@ const TXT = {
     porDia: (n: number) => `Son más de 24 h por día hábil desde el inicio (${n} ${n === 1 ? 'día hábil' : 'días hábiles'}).`,
     otraVez: 'Pulse Enter otra vez para guardar o Esc para cancelar.',
     guardadas: (w: string, a: string, b: string) => `Horas de ${w} guardadas: ${a} h (antes ${b} h).`, deshacer: 'Deshacer',
-    leyenda: 'Leyenda', lProg: 'En progreso', lBloq: 'Bloqueada', lHecha: 'Completada', lVenc: 'Vencida (fecha de fin)', lCnt: 'Tareas terminadas de la rama',
+    leyenda: 'Leyenda', lVenc: 'Vencida', lDur: 'Duración en días hábiles',
   },
   en: {
     tareas: 'tasks', tarea: 'task', ocultas: 'completed hidden', aLaVista: 'completed shown', mostrar: 'Show', ocultar: 'Hide',
@@ -112,7 +117,7 @@ const TXT = {
     porDia: (n: number) => `More than 24 h per working day since the start (${n} working ${n === 1 ? 'day' : 'days'}).`,
     otraVez: 'Press Enter again to save or Esc to cancel.',
     guardadas: (w: string, a: string, b: string) => `Hours of ${w} saved: ${a} h (was ${b} h).`, deshacer: 'Undo',
-    leyenda: 'Legend', lProg: 'In progress', lBloq: 'Blocked', lHecha: 'Completed', lVenc: 'Overdue (end date)', lCnt: 'Finished tasks of the branch',
+    leyenda: 'Legend', lVenc: 'Overdue', lDur: 'Duration in working days',
   },
 };
 
@@ -133,6 +138,7 @@ const iniciales = (n?: string) => (n ?? '').trim().split(/\s+/).slice(0, 2).map(
 export function ListaV6({
   tasks: tasksProp, es, cal, tarifaDe, monedaCodigo, conCosto = true, onAbrir, seleccionada = null, claveColumnas, pie, hoy: hoyProp,
   avanceTotal, vista: vistaProp, onVista, onRegistrarHoras, peticionColumnas, nombreProyecto,
+  tarifaDePersona, costoAlTerminar, onVerRecursos,
 }: ListaV6Props) {
   const x = es ? TXT.es : TXT.en;
   const idioma = es ? 'es' : 'en';
@@ -447,7 +453,7 @@ export function ListaV6({
 
   return (
     <section className={`lista-v6${vista.densidad === 'compacta' ? ' d32' : vista.densidad === 'comoda' ? ' d48' : ''}`} aria-label={x.tareasDe}>
-      <style>{CSS_V6 + CSS_PANEL_V6}</style>
+      <style>{CSS_V6 + CSS_PANEL_V6 + CSS_RECURSOS_V6}</style>
       <div className="sumline">
         <div>
           {filtro === 'vencidas' && (
@@ -478,15 +484,6 @@ export function ListaV6({
         </div>
       </div>
 
-      {vista.leyenda && (
-        <div className="leyenda" role="note" aria-label={x.leyenda}>
-          <span><span className="schip prog"><i aria-hidden="true" />{x.lProg}</span></span>
-          <span><span className="schip blocked"><i aria-hidden="true" />{x.lBloq}</span></span>
-          <span><span className="schip done"><i aria-hidden="true" />{x.lHecha}</span></span>
-          <span><span className="chip-red">{fechaCorta(hoy, idioma, hoy)}</span> {x.lVenc}</span>
-          <span><span className="mono">2/3</span> {x.lCnt}</span>
-        </div>
-      )}
       <div className={`lbody${filaDelPanel ? ' has-panel' : ''}`}>
       <div className="lwrap">
         <p id="lv6-ayuda" className="sr">{x.ayuda}</p>
@@ -597,6 +594,24 @@ export function ListaV6({
       )}
       </div>
       {pie}
+      {/* el pie de la maqueta: Recursos a la izquierda (plegado) y la leyenda, si se pidió en Vista, a la derecha */}
+      {(conCosto || vista.leyenda) && (
+        <div className="vfoot">
+          {conCosto && (
+            <RecursosDeLaListaV6 tasks={tasks} es={es} tarifaDe={tarifaDe} tarifaDePersona={tarifaDePersona}
+              monedaCodigo={monedaCodigo ?? undefined} costoAlTerminar={costoAlTerminar} onVerRecursos={onVerRecursos} />
+          )}
+          {vista.leyenda && (
+            <div className="leyenda" role="note" aria-label={x.leyenda}>
+              {(['todo', 'prog', 'blocked', 'done'] as EstadoV6[]).map((e) => (
+                <span key={e}><span className={`schip ${e}`}><i aria-hidden="true" />{x.st[e]}</span></span>
+              ))}
+              <span><span className="chip-red">{fechaCorta(hoy, idioma, hoy)}</span> {x.lVenc}</span>
+              <span><span className="mono">12 d</span> {x.lDur}</span>
+            </div>
+          )}
+        </div>
+      )}
       <div className="toast-zona" aria-live="polite">
         {pendiente && (
           <div className="toast">
@@ -723,7 +738,7 @@ const CSS_V6 = `
 .lista-v6 .hrs-msg.err{border-color:var(--v6-rojo-borde);color:var(--v6-rojo)}
 .lista-v6.d32 .lt tbody td{height:32px}
 .lista-v6.d48 .lt tbody td{height:48px}
-.lista-v6 .leyenda{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;padding:6px 14px 8px;font-size:11px;color:var(--v6-tenue)}
+.lista-v6 .leyenda{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;font-size:11px;color:var(--v6-tenue)}
 .lista-v6 .leyenda>span{display:inline-flex;align-items:center;gap:6px}
 .lista-v6 .toast-zona{position:absolute;left:50%;bottom:52px;transform:translateX(-50%);z-index:8;pointer-events:none}
 .lista-v6 .toast{pointer-events:auto;display:flex;align-items:center;gap:14px;padding:10px 12px 10px 14px;border-radius:10px;background:var(--v6-texto);color:var(--v6-tarjeta);font-size:12px;box-shadow:0 10px 30px -8px rgba(14,17,20,.35);white-space:nowrap}
