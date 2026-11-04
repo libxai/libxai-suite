@@ -7,6 +7,7 @@
 
 import type { ReactNode } from 'react';
 import type { Task } from '../Gantt/types';
+import type { Calendario } from '../Gantt/motorDeProgramacion';
 import type { User } from '../../types';
 
 /**
@@ -465,6 +466,18 @@ export interface ListViewConfig {
   completedStyle?: 'strike' | 'dim';
   /** 1.9.38 · 'compact': filas de una línea y 40 px; 'comfortable' (por defecto) las de dos líneas y 56 px. */
   rowDensity?: 'comfortable' | 'compact';
+  /** Maquetas v3 (Yesid, 4-nov) · la Lista v6 (sólo Asakaa): `ListaV6` en vez de la tabla de siempre. */
+  disenoV6?: boolean;
+  /** v6 · el calendario del espacio (días hábiles y festivos), para la duración y el retraso */
+  calendarioV6?: Calendario;
+  /** v6 · al pie de la lista: la salud financiera y los recursos, plegados */
+  pieV6?: ReactNode;
+  /** v6 · la tarea abierta en el panel (su fila, seleccionada) */
+  seleccionadaV6?: string | null;
+  /** v6 · clave de localStorage para recordar las columnas ocultas */
+  claveColumnasV6?: string;
+  /** v6 · el avance del proyecto que dice la cabecera (el total de la lista dice el mismo) */
+  avanceTotalV6?: number | null;
   /**
    * 1.9.39 · `false` quita el botón «Filters» (estado / ocultar completadas) de
    * la barra, para la app que tiene su propio sistema de filtros. Por defecto se pinta.

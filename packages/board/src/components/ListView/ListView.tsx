@@ -8,6 +8,8 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { inicialesDe } from '../../utils/iniciales';
 import { horas, moneda, numero, porcentaje } from '../../utils/formato';
+import { ListaV6 } from './v6/ListaV6';
+import { TODOS_LOS_DIAS } from '../Gantt/motorDeProgramacion';
 import { anchoMinimoDeColumna, anchoMinimoDeLaTabla } from './anchoDeColumnas';
 import { computeWeightedProgress, collectLeaves } from '../../utils/avanceFisico';
 import { createPortal } from 'react-dom';
@@ -2123,6 +2125,16 @@ export function ListView({
           </div>
         </div>
       </div>
+    );
+  }
+
+  // Maquetas v3 (Yesid, 4-nov) · la Lista v6 (Asakaa): su tabla, con las mismas tareas, tarifas y moneda
+  if (config.disenoV6) {
+    return (
+      <ListaV6 tasks={tasks} es={idioma === 'es'} cal={config.calendarioV6 ?? TODOS_LOS_DIAS} tarifaDe={getTaskRate}
+        monedaCodigo={currencyCode} conCosto={mostrarIndicadoresFinancieros} onAbrir={callbacks.onTaskClick}
+        seleccionada={config.seleccionadaV6 ?? null} claveColumnas={config.claveColumnasV6} pie={config.pieV6}
+        avanceTotal={config.avanceTotalV6} />
     );
   }
 
