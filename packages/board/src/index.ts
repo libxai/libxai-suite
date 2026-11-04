@@ -192,6 +192,9 @@ export {
   getListViewTheme,
 } from './components/ListView'
 export type { ListViewThemeName } from './components/ListView'
+// Maquetas v3 (Yesid) · el Calendario v6 (Asakaa)
+export { CalendarioV6, VISTA_CALENDARIO_V6_POR_DEFECTO, pasoDelCalendarioV6 } from './components/CalendarV2/v6/CalendarioV6'
+export type { CalendarioV6Props, VistaCalendarioV6, EscalaCalendarioV6 } from './components/CalendarV2/v6/CalendarioV6'
 // Maquetas v3 (Yesid) · el Tablero v6 (Asakaa)
 export { TableroV6, VISTA_TABLERO_V6_POR_DEFECTO, FILTROS_TABLERO_V6_VACIOS, STATUS_DE_ESTADO_V6, responsablesDelTablero } from './components/Board/v6/TableroV6'
 export type { TableroV6Props, VistaTableroV6, FiltrosTableroV6, AgruparTableroV6, SubtareasTableroV6 } from './components/Board/v6/TableroV6'
