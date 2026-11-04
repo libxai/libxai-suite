@@ -672,7 +672,7 @@ function EditorDeHoras({ t, antes, est, es, x, hoy, cal, idioma, onGuardar, onCa
 }
 
 /* Los tokens son los del Gantt v6 (`--v6-*`, en la app); las medidas, las de la maqueta. */
-const CSS_V6 = `
+export const CSS_V6 = `
 .lista-v6{background:var(--v6-tarjeta);border:1px solid var(--v6-borde);border-radius:16px;box-shadow:var(--v6-sombra-tarjeta);display:flex;flex-direction:column;min-height:0;position:relative;color:var(--v6-texto);font-size:13px}
 .lista-v6 .mono{font-family:'Geist Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;font-weight:400}
 .lista-v6 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}

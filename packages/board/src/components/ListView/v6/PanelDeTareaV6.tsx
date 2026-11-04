@@ -10,7 +10,7 @@
  *
  * Lo que vive en la ficha de siempre (comentarios, documentos, riesgos, edición) se abre con «Abrir ficha completa».
  */
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import type { Task } from '../../Gantt/types';
 import type { Calendario } from '../../Gantt/motorDeProgramacion';
 import { fechaCorta } from '../../Gantt/fechaCorta';
@@ -46,7 +46,7 @@ const TXT = {
 export interface FilaDelPanel { t: Task; wbs: string; ancestros: string[] }
 
 export function PanelDeTareaV6({
-  fila, es, cal, hoy, nombreProyecto, cifras, estados, nombreEstado, porId, tarifaDe, onCerrar, onAbrirFicha, onIrA,
+  fila, es, cal, hoy, nombreProyecto, cifras, estados, nombreEstado, porId, tarifaDe, onCerrar, onAbrirFicha, onIrA, acciones,
 }: {
   fila: FilaDelPanel;
   es: boolean;
@@ -61,6 +61,8 @@ export function PanelDeTareaV6({
   onCerrar: () => void;
   onAbrirFicha?: (t: Task) => void;
   onIrA: (id: string) => void;
+  /** el Tablero pone aquí «Mover a…» (o, en un padre, de dónde sale su estado) */
+  acciones?: ReactNode;
 }) {
   const x = es ? TXT.es : TXT.en;
   const idioma = es ? 'es' : 'en';
@@ -111,6 +113,7 @@ export function PanelDeTareaV6({
           {vencida && retraso > 0 && <span className="dp-late">{x.retraso(retraso)}</span>}
           {espera && <span className="dp-warn">{x.espera} <span className="mono">{espera.wbs}</span></span>}
         </div>
+        {acciones}
         {!t.isMilestone && (
           <div className="dp-prog">
             <span className="pbar" aria-hidden="true"><b style={{ width: `${Math.min(100, Math.max(0, pct))}%` }} /></span>

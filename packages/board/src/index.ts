@@ -192,6 +192,9 @@ export {
   getListViewTheme,
 } from './components/ListView'
 export type { ListViewThemeName } from './components/ListView'
+// Maquetas v3 (Yesid) · el Tablero v6 (Asakaa)
+export { TableroV6, VISTA_TABLERO_V6_POR_DEFECTO, FILTROS_TABLERO_V6_VACIOS, STATUS_DE_ESTADO_V6, responsablesDelTablero } from './components/Board/v6/TableroV6'
+export type { TableroV6Props, VistaTableroV6, FiltrosTableroV6, AgruparTableroV6 } from './components/Board/v6/TableroV6'
 // Maquetas v3 (Yesid) · el menú Vista de la Lista v6
 export { VISTA_V6_POR_DEFECTO } from './components/ListView'
 export type { VistaV6 } from './components/ListView'
