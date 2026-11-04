@@ -484,6 +484,8 @@ export interface ListViewConfig {
   onVistaV6?: (v: VistaV6) => void;
   /** v6 · «Columnas…» del menú Vista: cada cambio abre el menú del «+» */
   peticionColumnasV6?: number;
+  /** v6 · G4: las migas del panel de la tarea empiezan por el proyecto */
+  nombreProyectoV6?: string;
   /**
    * 1.9.39 · `false` quita el botón «Filters» (estado / ocultar completadas) de
    * la barra, para la app que tiene su propio sistema de filtros. Por defecto se pinta.

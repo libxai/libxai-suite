@@ -18,6 +18,7 @@ import { fechaCorta } from '../../Gantt/fechaCorta';
 import {
   cifrasDe, diasDeRetraso, duracionHabil, estadoDe, estaVencida, horasCortas, juzgarHoras, millones, tieneHijas, type EstadoV6,
 } from './reglasDeLaLista';
+import { CSS_PANEL_V6, PanelDeTareaV6 } from './PanelDeTareaV6';
 
 type Columna = 'who' | 'st' | 's' | 'e' | 'dur' | 'pct' | 'hrs' | 'cost';
 const COLUMNAS: Columna[] = ['who', 'st', 's', 'e', 'dur', 'pct', 'hrs', 'cost'];
@@ -61,6 +62,8 @@ export interface ListaV6Props {
   onRegistrarHoras?: (t: Task, minutos: number) => void;
   /** «Columnas…» del menú Vista: cada cambio abre el menú del «+» */
   peticionColumnas?: number;
+  /** G4 · las migas del panel empiezan por el proyecto */
+  nombreProyecto?: string;
 }
 
 interface Fila {
@@ -78,7 +81,7 @@ const TXT = {
     vencidas: 'vencidas', vencida: 'vencida', ver: 'Ver', filtrando: 'Filtrando: vencidas', quitar: 'Quitar el filtro de vencidas',
     plegar: 'Plegar todo', desplegar: 'Desplegar todo', wbs: 'WBS y tarea', resp: 'Responsable', estado: 'Estado', inicio: 'Inicio', fin: 'Fin',
     dur: 'Duración (d háb.)', horas: 'Horas reg./est.', costo: 'Costo', total: 'Total del proyecto', columnas: 'Ver u ocultar columnas',
-    todas: 'Mostrar todas', ayuda: 'Flechas arriba y abajo: cambiar de fila. Flecha derecha: desplegar; flecha izquierda: plegar o ir a la fila padre. Enter: abrir el detalle.',
+    todas: 'Mostrar todas', ayuda: 'Flechas arriba y abajo: cambiar de fila. Flecha derecha: desplegar; flecha izquierda: plegar o ir a la fila padre. Enter: abrir el detalle. F2: editar las horas.',
     st: { done: 'Completada', prog: 'En progreso', blocked: 'Bloqueada', todo: 'Por hacer' } as Record<EstadoV6, string>,
     venceHace: (n: number) => (n === 1 ? 'Vencida hace 1 día hábil' : `Vencida hace ${n} días hábiles`),
     sinResp: 'Sin responsable', hechas: (a: number, b: number) => `${a} de ${b} tareas completadas`,
@@ -97,7 +100,7 @@ const TXT = {
     vencidas: 'overdue', vencida: 'overdue', ver: 'View', filtrando: 'Filtering: overdue', quitar: 'Clear the overdue filter',
     plegar: 'Collapse all', desplegar: 'Expand all', wbs: 'WBS and task', resp: 'Owner', estado: 'Status', inicio: 'Start', fin: 'End',
     dur: 'Duration (work d)', horas: 'Hours logged/est.', costo: 'Cost', total: 'Project total', columnas: 'Show or hide columns',
-    todas: 'Show all', ayuda: 'Up and down arrows: change row. Right arrow: expand; left arrow: collapse or go to the parent row. Enter: open the details.',
+    todas: 'Show all', ayuda: 'Up and down arrows: change row. Right arrow: expand; left arrow: collapse or go to the parent row. Enter: open the details. F2: edit the hours.',
     st: { done: 'Completed', prog: 'In progress', blocked: 'Blocked', todo: 'To do' } as Record<EstadoV6, string>,
     venceHace: (n: number) => (n === 1 ? 'Overdue by 1 working day' : `Overdue by ${n} working days`),
     sinResp: 'No owner', hechas: (a: number, b: number) => `${a} of ${b} tasks completed`,
@@ -129,7 +132,7 @@ const iniciales = (n?: string) => (n ?? '').trim().split(/\s+/).slice(0, 2).map(
 
 export function ListaV6({
   tasks: tasksProp, es, cal, tarifaDe, monedaCodigo, conCosto = true, onAbrir, seleccionada = null, claveColumnas, pie, hoy: hoyProp,
-  avanceTotal, vista: vistaProp, onVista, onRegistrarHoras, peticionColumnas,
+  avanceTotal, vista: vistaProp, onVista, onRegistrarHoras, peticionColumnas, nombreProyecto,
 }: ListaV6Props) {
   const x = es ? TXT.es : TXT.en;
   const idioma = es ? 'es' : 'en';
@@ -195,6 +198,8 @@ export function ListaV6({
     return () => { document.removeEventListener('mousedown', fuera); document.removeEventListener('keydown', esc); };
   }, [menuCols]);
   const [activa, setActiva] = useState<string | null>(null);
+  /* G4 · la tarea del panel acoplado (la fila queda seleccionada) */
+  const [enPanel, setEnPanel] = useState<string | null>(null);
 
   /* el árbol en filas, con su WBS (el de la tarea, o su posición) */
   const todas = useMemo(() => {
@@ -318,8 +323,23 @@ export function ListaV6({
     else if (e.key === 'End' && ultima) { e.preventDefault(); enfocar(ultima.t.id); }
     else if (e.key === 'ArrowRight' && tieneHijas(f.t)) { e.preventDefault(); if (!abierta) alternar(f); else if (siguiente?.padre === f.t.id) enfocar(siguiente.t.id); }
     else if (e.key === 'ArrowLeft') { e.preventDefault(); if (abierta) alternar(f); else if (f.padre) enfocar(f.padre); }
-    else if (e.key === 'Enter') { e.preventDefault(); onAbrir?.(f.t); }
+    else if (e.key === 'Enter') { e.preventDefault(); if (f.esFase && agrupar) alternar(f); else setEnPanel(f.t.id); }
+    else if (e.key === ' ') { e.preventDefault(); if (tieneHijas(f.t)) alternar(f); else setEnPanel(f.t.id); }
+    else if (e.key === 'Escape' && enPanel) { e.preventDefault(); setEnPanel(null); }
     else if (e.key === 'F2' && onRegistrarHoras && !tieneHijas(f.t) && columnas.includes('hrs')) { e.preventDefault(); setEditando(f.t.id); }
+  };
+
+  /* G4 · la fila del panel (si la tarea ya no está, se cierra) y abrir otra desde él, a la vista */
+  const filaDelPanel = enPanel ? porId.get(enPanel) ?? null : null;
+  useEffect(() => { if (enPanel && !porId.has(enPanel)) setEnPanel(null); }, [enPanel, porId]);
+  const irA = (id: string) => {
+    const f = porId.get(id);
+    if (!f) return;
+    setPlegadas((p) => { const n = new Set(p); f.ancestros.forEach((a) => n.delete(a)); return n; });
+    if (estados.get(id) === 'done' && !mostrarHechas) cambiarVista({ ...vista, mostrarHechas: true });
+    if (filtro === 'vencidas' && !estaVencida(f.t, hoy)) setFiltro(null);
+    setEnPanel(id);
+    enfocar(id);
   };
 
   const total = useMemo(() => tasks.reduce((a, t) => {
@@ -363,8 +383,8 @@ export function ListaV6({
 
   const ordenarPor = (k: Orden['k']) => setOrden((o) => (o.k === k ? { k, desc: !o.desc } : { k, desc: false }));
   const ariaSort = (k: Orden['k']) => (orden.k === k ? (orden.desc ? 'descending' : 'ascending') : 'none') as 'ascending' | 'descending' | 'none';
-  const Th = ({ k, children, num }: { k?: Orden['k']; children: ReactNode; num?: boolean }) => (
-    <th scope="col" className={num ? 'num' : undefined} aria-sort={k ? ariaSort(k) : undefined}>
+  const Th = ({ k, children, num, dur }: { k?: Orden['k']; children: ReactNode; num?: boolean; dur?: boolean }) => (
+    <th scope="col" className={[num && 'num', dur && 'col-dur'].filter(Boolean).join(' ') || undefined} aria-sort={k ? ariaSort(k) : undefined}>
       {k ? (
         <button type="button" className="sortb" onClick={() => ordenarPor(k)}>
           {children}
@@ -402,7 +422,7 @@ export function ListaV6({
         }
         return <td key={c} className="num dt">{txt}</td>;
       }
-      case 'dur': { const d = duracionHabil(t, cal); return <td key={c} className="num">{d == null ? '—' : `${d} d`}</td>; }
+      case 'dur': { const d = duracionHabil(t, cal); return <td key={c} className="num col-dur">{d == null ? '—' : `${d} d`}</td>; }
       case 'pct': { const p = Math.round(t.progress ?? 0); return <td key={c} className="num"><span className={`pct${p === 0 ? ' zero' : ''}`}>{p}%</span></td>; }
       case 'hrs': {
         if (editando === t.id) return (
@@ -427,7 +447,7 @@ export function ListaV6({
 
   return (
     <section className={`lista-v6${vista.densidad === 'compacta' ? ' d32' : vista.densidad === 'comoda' ? ' d48' : ''}`} aria-label={x.tareasDe}>
-      <style>{CSS_V6}</style>
+      <style>{CSS_V6 + CSS_PANEL_V6}</style>
       <div className="sumline">
         <div>
           {filtro === 'vencidas' && (
@@ -467,6 +487,7 @@ export function ListaV6({
           <span><span className="mono">2/3</span> {x.lCnt}</span>
         </div>
       )}
+      <div className={`lbody${filaDelPanel ? ' has-panel' : ''}`}>
       <div className="lwrap">
         <p id="lv6-ayuda" className="sr">{x.ayuda}</p>
         <table className="lt" role="treegrid" aria-label={x.tareasDe} aria-describedby="lv6-ayuda">
@@ -489,7 +510,7 @@ export function ListaV6({
                 if (c === 'st') return <th key={c} scope="col">{x.estado}</th>;
                 if (c === 'hrs') return <th key={c} scope="col" className="num">{x.horas}</th>;
                 const k = ({ s: 's', e: 'e', dur: 'dur', pct: 'pct', cost: 'cost' } as Record<string, Orden['k']>)[c];
-                return <Th key={c} k={k} num>{NOMBRE_COL(c, x, monedaCodigo)}</Th>;
+                return <Th key={c} k={k} num dur={c === 'dur'}>{NOMBRE_COL(c, x, monedaCodigo)}</Th>;
               })}
               <th className="col-plus" ref={cajaCols}>
                 <button type="button" className="col-plus-btn" aria-label={x.columnas} title={x.columnas} aria-expanded={menuCols}
@@ -528,10 +549,10 @@ export function ListaV6({
               const ruta = [...f.ancestros.map((a) => porId.get(a)?.t.name ?? ''), t.name].join(' › ');
               const nivel = agrupar ? f.nivel : f.nivel - (f.ancestros.length - ancestrosVisibles(f).length);
               return (
-                <tr key={t.id} data-id={t.id} className={`${f.esFase ? 'grp' : padre ? 'par' : 'task'}${seleccionada === t.id ? ' sel' : ''}`}
+                <tr key={t.id} data-id={t.id} className={`${f.esFase ? 'grp' : padre ? 'par' : 'task'}${(enPanel ?? seleccionada) === t.id ? ' sel' : ''}`}
                   tabIndex={tabActiva ? 0 : -1} aria-level={nivel + 1} aria-expanded={padre ? abierta : undefined}
-                  aria-selected={seleccionada === t.id}
-                  onClick={() => { setActiva(t.id); onAbrir?.(t); }}
+                  aria-selected={(enPanel ?? seleccionada) === t.id}
+                  onClick={() => { setActiva(t.id); if (f.esFase && agrupar) alternar(f); else setEnPanel(t.id); }}
                   onFocus={() => setActiva(t.id)}
                   onKeyDown={(e) => alTeclear(e, f, i)}>
                   <td className="c1">
@@ -561,12 +582,19 @@ export function ListaV6({
                 if (c === 'pct') return <td key={c} className="num">{avanceTotal != null ? Math.round(avanceTotal) : pctTotal}%</td>;
                 if (c === 'hrs') return <td key={c} className="num">{horasCortas(total.reg, es)} / {horasCortas(total.est, es)} h</td>;
                 if (c === 'cost') return <td key={c} className="num">{millones(total.costo, es)}</td>;
-                return <td key={c} />;
+                return <td key={c} className={c === 'dur' ? 'col-dur' : undefined} />;
               })}
               <td className="col-plus" />
             </tr>
           </tfoot>
         </table>
+      </div>
+      {filaDelPanel && (
+        <PanelDeTareaV6 fila={filaDelPanel} es={es} cal={cal} hoy={hoy} nombreProyecto={nombreProyecto}
+          cifras={cifras.get(filaDelPanel.t.id)!} estados={estados} nombreEstado={x.st} porId={porId} tarifaDe={tarifaDe}
+          onCerrar={() => { const id = filaDelPanel.t.id; setEnPanel(null); if (visibles.some((f) => f.t.id === id)) enfocar(id); }}
+          onAbrirFicha={onAbrir} onIrA={irA} />
+      )}
       </div>
       {pie}
       <div className="toast-zona" aria-live="polite">
