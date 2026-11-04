@@ -192,6 +192,9 @@ export {
   getListViewTheme,
 } from './components/ListView'
 export type { ListViewThemeName } from './components/ListView'
+// Maquetas v3 (Yesid) · el menú Vista de la Lista v6
+export { VISTA_V6_POR_DEFECTO } from './components/ListView'
+export type { VistaV6 } from './components/ListView'
 export {
   listViewTranslations,
   listViewEnTranslations,

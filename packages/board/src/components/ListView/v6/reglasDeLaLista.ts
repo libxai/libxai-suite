@@ -111,3 +111,31 @@ export function horasCortas(v: number, es: boolean): string {
   const s = Number.isInteger(r) ? String(r) : r.toFixed(1);
   return es ? s.replace('.', ',') : s;
 }
+
+/**
+ * F2 · lo que dice la maqueta de unas horas escritas en la celda: un error no se guarda; un aviso pide un segundo Enter.
+ * Aquí sólo se SUMAN horas (bajarlas se hace en la Hoja de horas, donde está cada registro).
+ */
+export type JuicioDeHoras =
+  | { tipo: 'igual' }
+  | { tipo: 'error'; motivo: 'numero' | 'negativas' | 'menos' }
+  | { tipo: 'aviso'; motivo: 'doble' | 'noEmpieza' | 'porDia'; valor: number; dias?: number }
+  | { tipo: 'ok'; valor: number };
+
+export function juzgarHoras(texto: string, antes: number, t: Task, hoy: Date, cal: Calendario): JuicioDeHoras {
+  const s = texto.trim();
+  if (s.startsWith('-')) return { tipo: 'error', motivo: 'negativas' };
+  if (!/^\d{1,6}([.,]\d{1,2})?$/.test(s)) return { tipo: 'error', motivo: 'numero' };
+  const valor = Number(s.replace(',', '.'));
+  if (Math.abs(valor - antes) < 0.005) return { tipo: 'igual' };
+  if (valor < antes) return { tipo: 'error', motivo: 'menos' };
+  const est = ((t as { effortMinutes?: number }).effortMinutes ?? 0) / 60;
+  if (est > 0 && valor > est * 2) return { tipo: 'aviso', motivo: 'doble', valor };
+  if (t.startDate) {
+    const ini = soloDia(new Date(t.startDate));
+    if (ini.getTime() > soloDia(hoy).getTime()) return { tipo: 'aviso', motivo: 'noEmpieza', valor };
+    const dias = habilesEntre(ini, soloDia(hoy), cal);
+    if (valor > dias * 24) return { tipo: 'aviso', motivo: 'porDia', valor, dias };
+  }
+  return { tipo: 'ok', valor };
+}

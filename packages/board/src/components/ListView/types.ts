@@ -8,6 +8,7 @@
 import type { ReactNode } from 'react';
 import type { Task } from '../Gantt/types';
 import type { Calendario } from '../Gantt/motorDeProgramacion';
+import type { VistaV6 } from './v6/ListaV6';
 import type { User } from '../../types';
 
 /**
@@ -478,6 +479,11 @@ export interface ListViewConfig {
   claveColumnasV6?: string;
   /** v6 · el avance del proyecto que dice la cabecera (el total de la lista dice el mismo) */
   avanceTotalV6?: number | null;
+  /** v6 · el menú Vista (densidad, completadas, agrupar por fase, leyenda); sin él, la lista lo lleva sola */
+  vistaV6?: VistaV6;
+  onVistaV6?: (v: VistaV6) => void;
+  /** v6 · «Columnas…» del menú Vista: cada cambio abre el menú del «+» */
+  peticionColumnasV6?: number;
   /**
    * 1.9.39 · `false` quita el botón «Filters» (estado / ocultar completadas) de
    * la barra, para la app que tiene su propio sistema de filtros. Por defecto se pinta.

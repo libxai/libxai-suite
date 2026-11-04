@@ -91,3 +91,7 @@ export { TeamLoadCell } from './cells/TeamLoadCell';
 export { BlockersCell } from './cells/BlockersCell';
 // v2.0.0: Chronos ProjectHealthSidebar
 export { ProjectHealthSidebar } from './ProjectHealthSidebar';
+
+// Maquetas v3 (Yesid) · el menú Vista de la Lista v6
+export { VISTA_V6_POR_DEFECTO } from './v6/ListaV6';
+export type { VistaV6 } from './v6/ListaV6';

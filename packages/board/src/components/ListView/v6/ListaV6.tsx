@@ -16,12 +16,24 @@ import type { Task } from '../../Gantt/types';
 import type { Calendario } from '../../Gantt/motorDeProgramacion';
 import { fechaCorta } from '../../Gantt/fechaCorta';
 import {
-  cifrasDe, diasDeRetraso, duracionHabil, estadoDe, estaVencida, horasCortas, millones, tieneHijas, type EstadoV6,
+  cifrasDe, diasDeRetraso, duracionHabil, estadoDe, estaVencida, horasCortas, juzgarHoras, millones, tieneHijas, type EstadoV6,
 } from './reglasDeLaLista';
 
 type Columna = 'who' | 'st' | 's' | 'e' | 'dur' | 'pct' | 'hrs' | 'cost';
 const COLUMNAS: Columna[] = ['who', 'st', 's', 'e', 'dur', 'pct', 'hrs', 'cost'];
 type Orden = { k: 'wbs' | 's' | 'e' | 'dur' | 'pct' | 'cost'; desc: boolean };
+
+/** El menú Vista de la maqueta: densidad, completadas, agrupar por fase y leyenda. La lleva la app (se recuerda). */
+export interface VistaV6 {
+  densidad: 'compacta' | 'normal' | 'comoda';
+  mostrarHechas: boolean;
+  agruparPorFase: boolean;
+  leyenda: boolean;
+}
+export const VISTA_V6_POR_DEFECTO: VistaV6 = { densidad: 'normal', mostrarHechas: false, agruparPorFase: true, leyenda: false };
+
+/** F2 · el aviso de unas horas recién escritas: se registran pasados 5 s (antes, «Deshacer» no escribe nada) */
+interface HorasPendientes { id: string; wbs: string; antes: number; ahora: number; t: Task }
 
 export interface ListaV6Props {
   tasks: Task[];
@@ -42,6 +54,13 @@ export interface ListaV6Props {
   hoy?: Date;
   /** el avance del proyecto de la cabecera: el total de la lista dice la MISMA cifra (sin él, el de sus fases) */
   avanceTotal?: number | null;
+  /** la Vista (sin ella, la lleva la propia lista) */
+  vista?: VistaV6;
+  onVista?: (v: VistaV6) => void;
+  /** F2 · registrar horas en una hoja: los minutos que se SUMAN a lo registrado (sin él, las horas no se editan) */
+  onRegistrarHoras?: (t: Task, minutos: number) => void;
+  /** «Columnas…» del menú Vista: cada cambio abre el menú del «+» */
+  peticionColumnas?: number;
 }
 
 interface Fila {
@@ -64,6 +83,14 @@ const TXT = {
     venceHace: (n: number) => (n === 1 ? 'Vencida hace 1 día hábil' : `Vencida hace ${n} días hábiles`),
     sinResp: 'Sin responsable', hechas: (a: number, b: number) => `${a} de ${b} tareas completadas`,
     vacia: 'No hay tareas que mostrar con este filtro.', tareasDe: 'Tareas del proyecto',
+    editarHoras: (w: string) => `Horas registradas de ${w}, editar (F2)`,
+    numero: 'Escriba un número de horas, por ejemplo 12 o 12,5.', negativas: 'Las horas no pueden ser negativas.',
+    menos: 'Aquí solo se suman horas: para quitarlas, corríjalas en la Hoja de horas.',
+    doble: (e: string) => `Son más del doble de lo estimado (${e} h).`, noEmpieza: (s: string) => `La tarea aún no empieza: arranca el ${s}.`,
+    porDia: (n: number) => `Son más de 24 h por día hábil desde el inicio (${n} ${n === 1 ? 'día hábil' : 'días hábiles'}).`,
+    otraVez: 'Pulse Enter otra vez para guardar o Esc para cancelar.',
+    guardadas: (w: string, a: string, b: string) => `Horas de ${w} guardadas: ${a} h (antes ${b} h).`, deshacer: 'Deshacer',
+    leyenda: 'Leyenda', lProg: 'En progreso', lBloq: 'Bloqueada', lHecha: 'Completada', lVenc: 'Vencida (fecha de fin)', lCnt: 'Tareas terminadas de la rama',
   },
   en: {
     tareas: 'tasks', tarea: 'task', ocultas: 'completed hidden', aLaVista: 'completed shown', mostrar: 'Show', ocultar: 'Hide',
@@ -75,6 +102,14 @@ const TXT = {
     venceHace: (n: number) => (n === 1 ? 'Overdue by 1 working day' : `Overdue by ${n} working days`),
     sinResp: 'No owner', hechas: (a: number, b: number) => `${a} of ${b} tasks completed`,
     vacia: 'No tasks to show with this filter.', tareasDe: 'Project tasks',
+    editarHoras: (w: string) => `Logged hours of ${w}, edit (F2)`,
+    numero: 'Type a number of hours, for example 12 or 12.5.', negativas: 'Hours cannot be negative.',
+    menos: 'Hours can only be added here: to remove them, fix them in the Timesheet.',
+    doble: (e: string) => `More than twice the estimate (${e} h).`, noEmpieza: (s: string) => `The task has not started: it starts on ${s}.`,
+    porDia: (n: number) => `More than 24 h per working day since the start (${n} working ${n === 1 ? 'day' : 'days'}).`,
+    otraVez: 'Press Enter again to save or Esc to cancel.',
+    guardadas: (w: string, a: string, b: string) => `Hours of ${w} saved: ${a} h (was ${b} h).`, deshacer: 'Undo',
+    leyenda: 'Legend', lProg: 'In progress', lBloq: 'Blocked', lHecha: 'Completed', lVenc: 'Overdue (end date)', lCnt: 'Finished tasks of the branch',
   },
 };
 
@@ -93,16 +128,72 @@ function leerOcultas(clave?: string): Set<Columna> {
 const iniciales = (n?: string) => (n ?? '').trim().split(/\s+/).slice(0, 2).map((p) => p[0] ?? '').join('').toUpperCase();
 
 export function ListaV6({
-  tasks, es, cal, tarifaDe, monedaCodigo, conCosto = true, onAbrir, seleccionada = null, claveColumnas, pie, hoy: hoyProp, avanceTotal,
+  tasks: tasksProp, es, cal, tarifaDe, monedaCodigo, conCosto = true, onAbrir, seleccionada = null, claveColumnas, pie, hoy: hoyProp,
+  avanceTotal, vista: vistaProp, onVista, onRegistrarHoras, peticionColumnas,
 }: ListaV6Props) {
   const x = es ? TXT.es : TXT.en;
   const idioma = es ? 'es' : 'en';
   const hoy = useMemo(() => hoyProp ?? new Date(), [hoyProp]);
-  const [mostrarHechas, setMostrarHechas] = useState(false);
+  const [vistaInterna, setVistaInterna] = useState<VistaV6>(VISTA_V6_POR_DEFECTO);
+  const vista = vistaProp ?? vistaInterna;
+  const cambiarVista = useCallback((v: VistaV6) => (onVista ? onVista(v) : setVistaInterna(v)), [onVista]);
+  const mostrarHechas = vista.mostrarHechas;
+  const agrupar = vista.agruparPorFase;
+  /* F2 · las horas escritas que aún no llegaron de vuelta en `tasks` (se ven ya; se registran a los 5 s) */
+  const [horasLocales, setHorasLocales] = useState<Map<string, number>>(new Map());
+  const enviadas = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!enviadas.current.size) return;
+    setHorasLocales((m) => { const n = new Map(m); enviadas.current.forEach((id) => n.delete(id)); return n; });
+    enviadas.current = new Set();
+  }, [tasksProp]);
+  const tasks = useMemo(() => {
+    if (!horasLocales.size) return tasksProp;
+    const con = (ts: Task[]): Task[] => ts.map((t) => {
+      const h = horasLocales.get(t.id);
+      const sub = t.subtasks?.length ? con(t.subtasks) : t.subtasks;
+      return h != null ? { ...t, timeLoggedMinutes: h * 60, subtasks: sub } : (sub !== t.subtasks ? { ...t, subtasks: sub } : t);
+    });
+    return con(tasksProp);
+  }, [tasksProp, horasLocales]);
+  const [editando, setEditando] = useState<string | null>(null);
+  const [pendiente, setPendiente] = useState<HorasPendientes | null>(null);
+  const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const registrarRef = useRef(onRegistrarHoras);
+  registrarRef.current = onRegistrarHoras;
+  const escribir = (p: HorasPendientes) => {
+    enviadas.current.add(p.id);
+    registrarRef.current?.(p.t, Math.round((p.ahora - p.antes) * 60));
+    /* si la app lo rechaza (sin responsable, día no laborable…), las tareas no cambian: la cifra vuelve a la suya */
+    setTimeout(() => {
+      if (!enviadas.current.has(p.id)) return;
+      enviadas.current.delete(p.id);
+      setHorasLocales((m) => { const n = new Map(m); n.delete(p.id); return n; });
+    }, 8000);
+  };
+  const pendienteRef = useRef<HorasPendientes | null>(null);
+  pendienteRef.current = pendiente;
+  /* al irse de la lista con unas horas en espera, se registran ya */
+  useEffect(() => () => {
+    if (temporizador.current) clearTimeout(temporizador.current);
+    if (pendienteRef.current) escribir(pendienteRef.current);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [filtro, setFiltro] = useState<null | 'vencidas'>(null);
   const [orden, setOrden] = useState<Orden>({ k: 'wbs', desc: false });
   const [ocultas, setOcultas] = useState<Set<Columna>>(() => leerOcultas(claveColumnas));
   const [menuCols, setMenuCols] = useState(false);
+  useEffect(() => { if (peticionColumnas) setMenuCols(true); }, [peticionColumnas]);
+  /* el menú del «+» se cierra al pulsar fuera o con Esc, esté donde esté el foco */
+  const cajaCols = useRef<HTMLTableCellElement>(null);
+  useEffect(() => {
+    if (!menuCols) return;
+    const fuera = (e: MouseEvent) => { if (!cajaCols.current?.contains(e.target as Node)) setMenuCols(false); };
+    const esc = (e: globalThis.KeyboardEvent) => { if (e.key === 'Escape') setMenuCols(false); };
+    document.addEventListener('mousedown', fuera);
+    document.addEventListener('keydown', esc);
+    return () => { document.removeEventListener('mousedown', fuera); document.removeEventListener('keydown', esc); };
+  }, [menuCols]);
   const [activa, setActiva] = useState<string | null>(null);
 
   /* el árbol en filas, con su WBS (el de la tarea, o su posición) */
@@ -142,7 +233,7 @@ export function ListaV6({
 
   /* el orden: por WBS, o por la columna, entre hermanas */
   const ordenadas = useMemo(() => {
-    if (orden.k === 'wbs' && !orden.desc) return todas;
+    if (orden.k === 'wbs' && !orden.desc) return agrupar ? todas : todas.filter((f) => !f.esFase);
     const valor = (f: Fila): number => {
       const c = cifras.get(f.t.id)!;
       switch (orden.k) {
@@ -157,23 +248,30 @@ export function ListaV6({
     const hijas = new Map<string | null, Fila[]>();
     for (const f of todas) { const l = hijas.get(f.padre) ?? []; l.push(f); hijas.set(f.padre, l); }
     const out: Fila[] = [];
+    const raices = (): Fila[] => {
+      const r = hijas.get(null) ?? [];
+      return agrupar ? r : r.flatMap((f) => (f.esFase ? hijas.get(f.t.id) ?? [] : [f]));
+    };
     const bajar = (padre: string | null) => {
-      const l = [...(hijas.get(padre) ?? [])];
+      const l = [...(padre === null ? raices() : hijas.get(padre) ?? [])];
       if (orden.k !== 'wbs') l.sort((a, b) => (valor(a) - valor(b)) * (orden.desc ? -1 : 1));
       else if (orden.desc) l.reverse();
       for (const f of l) { out.push(f); bajar(f.t.id); }
     };
     bajar(null);
     return out;
-  }, [todas, orden, cifras, cal]);
+  }, [todas, orden, cifras, cal, agrupar]);
 
+  /* sin agrupar, la fase no pliega ni sangra: sus tareas son las de arriba */
+  const ancestrosVisibles = useCallback((f: Fila) => (agrupar ? f.ancestros : f.ancestros.filter((a) => !porId.get(a)?.esFase)), [agrupar, porId]);
   const visibles = useMemo(() => ordenadas.filter((f) => {
-    if (f.ancestros.some((a) => plegadas.has(a))) return false;
+    if (!agrupar && f.esFase) return false;
+    if (ancestrosVisibles(f).some((a) => plegadas.has(a))) return false;
     if (enElFiltro && !enElFiltro.has(f.t.id)) return false;
     if (f.esFase) return true;
     if (!mostrarHechas && estados.get(f.t.id) === 'done' && !f.ancestros.some((a) => abiertasConHechas.has(a))) return false;
     return true;
-  }), [ordenadas, plegadas, enElFiltro, mostrarHechas, estados, abiertasConHechas]);
+  }), [ordenadas, plegadas, enElFiltro, mostrarHechas, estados, abiertasConHechas, agrupar, ancestrosVisibles]);
 
   const plegables = todas.filter((f) => tieneHijas(f.t));
   const algoAbierto = plegables.some((f) => !plegadas.has(f.t.id));
@@ -221,6 +319,7 @@ export function ListaV6({
     else if (e.key === 'ArrowRight' && tieneHijas(f.t)) { e.preventDefault(); if (!abierta) alternar(f); else if (siguiente?.padre === f.t.id) enfocar(siguiente.t.id); }
     else if (e.key === 'ArrowLeft') { e.preventDefault(); if (abierta) alternar(f); else if (f.padre) enfocar(f.padre); }
     else if (e.key === 'Enter') { e.preventDefault(); onAbrir?.(f.t); }
+    else if (e.key === 'F2' && onRegistrarHoras && !tieneHijas(f.t) && columnas.includes('hrs')) { e.preventDefault(); setEditando(f.t.id); }
   };
 
   const total = useMemo(() => tasks.reduce((a, t) => {
@@ -240,6 +339,27 @@ export function ListaV6({
     for (const t of tasks) { const w = Math.max(1, cifrasDe(t, tarifaDe, hoy).est); peso += w; suma += w * (t.progress ?? 0); }
     return peso ? Math.round(suma / peso) : 0;
   }, [tasks, tarifaDe, hoy]);
+
+  /* F2 · guardar: se ve ya, se registra a los 5 s (la anterior en espera, si la hay, se registra antes) */
+  const guardarHoras = (t: Task, wbs: string, antes: number, ahora: number) => {
+    setEditando(null);
+    if (temporizador.current) clearTimeout(temporizador.current);
+    if (pendienteRef.current) escribir(pendienteRef.current);
+    const p: HorasPendientes = { id: t.id, wbs, antes, ahora, t };
+    setHorasLocales((m) => new Map(m).set(t.id, ahora));
+    setPendiente(p);
+    temporizador.current = setTimeout(() => { escribir(p); setPendiente(null); temporizador.current = null; }, 5000);
+    enfocar(t.id);
+  };
+  const deshacer = () => {
+    const p = pendienteRef.current;
+    if (!p) return;
+    if (temporizador.current) clearTimeout(temporizador.current);
+    temporizador.current = null;
+    setHorasLocales((m) => { const n = new Map(m); n.delete(p.id); return n; });
+    setPendiente(null);
+    enfocar(p.id);
+  };
 
   const ordenarPor = (k: Orden['k']) => setOrden((o) => (o.k === k ? { k, desc: !o.desc } : { k, desc: false }));
   const ariaSort = (k: Orden['k']) => (orden.k === k ? (orden.desc ? 'descending' : 'ascending') : 'none') as 'ascending' | 'descending' | 'none';
@@ -284,15 +404,29 @@ export function ListaV6({
       }
       case 'dur': { const d = duracionHabil(t, cal); return <td key={c} className="num">{d == null ? '—' : `${d} d`}</td>; }
       case 'pct': { const p = Math.round(t.progress ?? 0); return <td key={c} className="num"><span className={`pct${p === 0 ? ' zero' : ''}`}>{p}%</span></td>; }
-      case 'hrs': return (
-        <td key={c} className="num"><span className="hrs"><b>{horasCortas(ci.reg, es)}</b><span className="est"> / {horasCortas(ci.est, es)} h</span></span></td>
-      );
+      case 'hrs': {
+        if (editando === t.id) return (
+          <td key={c} className="num" onClick={(e) => e.stopPropagation()}>
+            <EditorDeHoras t={t} antes={ci.reg} est={ci.est} es={es} x={x} hoy={hoy} cal={cal} idioma={idioma}
+              onGuardar={(v) => guardarHoras(t, f.wbs, ci.reg, v)} onCancelar={() => { setEditando(null); enfocar(t.id); }} />
+          </td>
+        );
+        const texto = <><b>{horasCortas(ci.reg, es)}</b><span className="est"> / {horasCortas(ci.est, es)} h</span></>;
+        return (
+          <td key={c} className="num">
+            {!padre && onRegistrarHoras ? (
+              <button type="button" className="hrs ed" tabIndex={-1} aria-label={x.editarHoras(f.wbs)} title={x.editarHoras(f.wbs)}
+                onClick={(e) => { e.stopPropagation(); setActiva(t.id); setEditando(t.id); }}>{texto}</button>
+            ) : <span className="hrs">{texto}</span>}
+          </td>
+        );
+      }
       case 'cost': return <td key={c} className="num">{millones(ci.costo, es)}</td>;
     }
   };
 
   return (
-    <section className="lista-v6" aria-label={x.tareasDe}>
+    <section className={`lista-v6${vista.densidad === 'compacta' ? ' d32' : vista.densidad === 'comoda' ? ' d48' : ''}`} aria-label={x.tareasDe}>
       <style>{CSS_V6}</style>
       <div className="sumline">
         <div>
@@ -304,7 +438,7 @@ export function ListaV6({
             <>
               <span className="sep" aria-hidden="true">·</span>
               <span className="mono">{nHechas}</span> {mostrarHechas ? x.aLaVista : x.ocultas}{' '}
-              <a href="#" onClick={(e) => { e.preventDefault(); setMostrarHechas((v) => !v); }}>{mostrarHechas ? x.ocultar : x.mostrar}</a>
+              <a href="#" onClick={(e) => { e.preventDefault(); cambiarVista({ ...vista, mostrarHechas: !mostrarHechas }); }}>{mostrarHechas ? x.ocultar : x.mostrar}</a>
             </>
           )}
           {nVencidas > 0 && (
@@ -324,6 +458,15 @@ export function ListaV6({
         </div>
       </div>
 
+      {vista.leyenda && (
+        <div className="leyenda" role="note" aria-label={x.leyenda}>
+          <span><span className="schip prog"><i aria-hidden="true" />{x.lProg}</span></span>
+          <span><span className="schip blocked"><i aria-hidden="true" />{x.lBloq}</span></span>
+          <span><span className="schip done"><i aria-hidden="true" />{x.lHecha}</span></span>
+          <span><span className="chip-red">{fechaCorta(hoy, idioma, hoy)}</span> {x.lVenc}</span>
+          <span><span className="mono">2/3</span> {x.lCnt}</span>
+        </div>
+      )}
       <div className="lwrap">
         <p id="lv6-ayuda" className="sr">{x.ayuda}</p>
         <table className="lt" role="treegrid" aria-label={x.tareasDe} aria-describedby="lv6-ayuda">
@@ -348,7 +491,7 @@ export function ListaV6({
                 const k = ({ s: 's', e: 'e', dur: 'dur', pct: 'pct', cost: 'cost' } as Record<string, Orden['k']>)[c];
                 return <Th key={c} k={k} num>{NOMBRE_COL(c, x, monedaCodigo)}</Th>;
               })}
-              <th className="col-plus">
+              <th className="col-plus" ref={cajaCols}>
                 <button type="button" className="col-plus-btn" aria-label={x.columnas} title={x.columnas} aria-expanded={menuCols}
                   onClick={() => setMenuCols((v) => !v)}>
                   +{ocultas.size > 0 && <span className="n">{ocultas.size}</span>}
@@ -383,15 +526,16 @@ export function ListaV6({
               const abierta = padre && !plegadas.has(t.id);
               const tabActiva = (activa ?? visibles[0]?.t.id) === t.id;
               const ruta = [...f.ancestros.map((a) => porId.get(a)?.t.name ?? ''), t.name].join(' › ');
+              const nivel = agrupar ? f.nivel : f.nivel - (f.ancestros.length - ancestrosVisibles(f).length);
               return (
                 <tr key={t.id} data-id={t.id} className={`${f.esFase ? 'grp' : padre ? 'par' : 'task'}${seleccionada === t.id ? ' sel' : ''}`}
-                  tabIndex={tabActiva ? 0 : -1} aria-level={f.nivel + 1} aria-expanded={padre ? abierta : undefined}
+                  tabIndex={tabActiva ? 0 : -1} aria-level={nivel + 1} aria-expanded={padre ? abierta : undefined}
                   aria-selected={seleccionada === t.id}
                   onClick={() => { setActiva(t.id); onAbrir?.(t); }}
                   onFocus={() => setActiva(t.id)}
                   onKeyDown={(e) => alTeclear(e, f, i)}>
                   <td className="c1">
-                    <div className="cell" style={{ paddingLeft: Math.min(f.nivel, 4) * 14 }}>
+                    <div className="cell" style={{ paddingLeft: Math.min(nivel, 4) * 14 }}>
                       {padre ? (
                         <button type="button" className={`chev${abierta ? '' : ' closed'}`} tabIndex={-1} aria-hidden="true"
                           onClick={(e) => { e.stopPropagation(); alternar(f); }}>▾</button>
@@ -425,7 +569,62 @@ export function ListaV6({
         </table>
       </div>
       {pie}
+      <div className="toast-zona" aria-live="polite">
+        {pendiente && (
+          <div className="toast">
+            <span>{x.guardadas(pendiente.wbs, horasCortas(pendiente.ahora, es), horasCortas(pendiente.antes, es))}</span>
+            <button type="button" onClick={deshacer}>{x.deshacer}</button>
+          </div>
+        )}
+      </div>
     </section>
+  );
+}
+
+/** F2 · la celda de horas en edición: Enter guarda (un aviso pide otro Enter), Esc cancela, salir guarda si no hay pegas. */
+function EditorDeHoras({ t, antes, est, es, x, hoy, cal, idioma, onGuardar, onCancelar }: {
+  t: Task; antes: number; est: number; es: boolean; x: typeof TXT.es; hoy: Date; cal: Calendario; idioma: 'es' | 'en';
+  onGuardar: (v: number) => void; onCancelar: () => void;
+}) {
+  const [texto, setTexto] = useState(horasCortas(antes, es));
+  const [msg, setMsg] = useState<{ txt: string; error: boolean } | null>(null);
+  const confirmado = useRef<string | null>(null);
+  const hecho = useRef(false);
+  const ref = useRef<HTMLInputElement>(null);
+  useEffect(() => { ref.current?.focus(); ref.current?.select(); }, []);
+  const mensaje = (j: ReturnType<typeof juzgarHoras>): string => {
+    if (j.tipo === 'error') return j.motivo === 'numero' ? x.numero : j.motivo === 'negativas' ? x.negativas : x.menos;
+    if (j.tipo !== 'aviso') return '';
+    const a = j.motivo === 'doble' ? x.doble(horasCortas(est, es))
+      : j.motivo === 'noEmpieza' ? x.noEmpieza(t.startDate ? fechaCorta(new Date(t.startDate), idioma, hoy) : '')
+      : x.porDia(j.dias ?? 0);
+    return `${a} ${x.otraVez}`;
+  };
+  const terminar = (f: () => void) => { hecho.current = true; f(); };
+  const intentar = (alSalir: boolean) => {
+    if (hecho.current) return;
+    const j = juzgarHoras(texto, antes, t, hoy, cal);
+    if (j.tipo === 'igual') return terminar(onCancelar);
+    if (j.tipo === 'ok') return terminar(() => onGuardar(j.valor));
+    if (alSalir) return terminar(onCancelar);
+    if (j.tipo === 'aviso' && confirmado.current === texto.trim()) return terminar(() => onGuardar(j.valor));
+    if (j.tipo === 'aviso') confirmado.current = texto.trim();
+    setMsg({ txt: mensaje(j), error: j.tipo === 'error' });
+  };
+  return (
+    <span className="hrs-edit">
+      <input ref={ref} value={texto} inputMode="decimal" aria-label={x.editarHoras(t.name)}
+        aria-invalid={msg?.error || undefined} aria-describedby={msg ? `lv6-h-${t.id}` : undefined}
+        onChange={(e) => { setTexto(e.target.value); setMsg(null); confirmado.current = null; }}
+        onKeyDown={(e) => {
+          e.stopPropagation();
+          if (e.key === 'Enter') { e.preventDefault(); intentar(false); }
+          else if (e.key === 'Escape') { e.preventDefault(); terminar(onCancelar); }
+        }}
+        onBlur={() => intentar(true)} />
+      <span className="est"> / {horasCortas(est, es)} h</span>
+      {msg && <span id={`lv6-h-${t.id}`} role="alert" className={`hrs-msg${msg.error ? ' err' : ''}`}>{msg.txt}</span>}
+    </span>
   );
 }
 
@@ -486,6 +685,21 @@ const CSS_V6 = `
 .lista-v6 .hrs{display:inline-flex;align-items:center;gap:4px;justify-content:flex-end}
 .lista-v6 .hrs b{font-weight:500;color:var(--v6-texto)}
 .lista-v6 .hrs .est{color:var(--v6-tenue)}
+.lista-v6 .hrs.ed{border:1px solid transparent;background:transparent;border-radius:6px;padding:0 5px;margin-right:-6px;height:26px;font:inherit;color:inherit;cursor:text}
+.lista-v6 .hrs.ed:hover{border-color:var(--v6-borde);background:var(--v6-tarjeta)}
+.lista-v6 .hrs-edit{position:relative;display:inline-flex;align-items:center;gap:4px;justify-content:flex-end}
+.lista-v6 .hrs-edit input{width:64px;height:26px;box-sizing:border-box;padding:0 6px;border-radius:6px;border:1px solid var(--v6-acento);background:var(--v6-tarjeta);color:var(--v6-texto);font:500 12px 'Geist Mono',monospace;text-align:right;outline:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--v6-acento),transparent 82%)}
+.lista-v6 .hrs-edit input[aria-invalid=true]{border-color:var(--v6-rojo);box-shadow:0 0 0 3px var(--v6-rojo-fondo)}
+.lista-v6 .hrs-edit .est{color:var(--v6-tenue)}
+.lista-v6 .hrs-msg{position:absolute;right:0;top:calc(100% + 6px);z-index:6;width:260px;white-space:normal;text-align:left;padding:8px 10px;border-radius:8px;border:1px solid var(--v6-borde);background:var(--v6-tarjeta);box-shadow:0 8px 24px -8px rgba(14,17,20,.2);font:400 12px/1.4 inherit;font-family:inherit;color:var(--v6-texto)}
+.lista-v6 .hrs-msg.err{border-color:var(--v6-rojo-borde);color:var(--v6-rojo)}
+.lista-v6.d32 .lt tbody td{height:32px}
+.lista-v6.d48 .lt tbody td{height:48px}
+.lista-v6 .leyenda{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;padding:6px 14px 8px;font-size:11px;color:var(--v6-tenue)}
+.lista-v6 .leyenda>span{display:inline-flex;align-items:center;gap:6px}
+.lista-v6 .toast-zona{position:absolute;left:50%;bottom:52px;transform:translateX(-50%);z-index:8;pointer-events:none}
+.lista-v6 .toast{pointer-events:auto;display:flex;align-items:center;gap:14px;padding:10px 12px 10px 14px;border-radius:10px;background:var(--v6-texto);color:var(--v6-tarjeta);font-size:12px;box-shadow:0 10px 30px -8px rgba(14,17,20,.35);white-space:nowrap}
+.lista-v6 .toast button{border:0;background:transparent;color:inherit;font:600 12px inherit;font-family:inherit;text-decoration:underline;text-underline-offset:2px;cursor:pointer}
 .lista-v6 th.col-plus,.lista-v6 td.col-plus{width:40px;min-width:40px;padding:0 8px 0 4px;text-align:right;position:relative}
 .lista-v6 .col-plus-btn{height:24px;min-width:24px;padding:0 4px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;gap:3px;color:var(--v6-tenue);border:1px solid transparent;background:transparent;cursor:pointer;font-size:14px}
 .lista-v6 .col-plus-btn:hover,.lista-v6 .col-plus-btn[aria-expanded=true]{background:var(--v6-fila-hover);color:var(--v6-texto);border-color:var(--v6-borde)}
