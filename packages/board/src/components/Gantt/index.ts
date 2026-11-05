@@ -17,7 +17,7 @@ export { GanttAIAssistant } from './GanttAIAssistant'; // v0.14.0: AI Assistant
 export { TagPicker, TagBadge, TagList } from './TagPicker'; // v0.17.158: Tags support
 // QA Asakaa · mejora fuerte 5: el motor del cronograma (tipos de enlace, desfase, días hábiles)
 export {
-  calendarioDe, habilDesde, sumarHabiles, habilesEntre, finConDuracion, enlacesDe, limiteDelEnlace,
+  calendarioDe, habilDesde, sumarHabiles, habilesEntre, diferenciaHabil, finConDuracion, enlacesDe, limiteDelEnlace,
   fechasQueCumplen, empujarSucesoras, conflictosDelCronograma, TODOS_LOS_DIAS,
 } from './motorDeProgramacion';
 export type { TipoDeEnlace, EnlaceDeTarea, Calendario, Limite, Ajuste, TareaEmpujada, Conflicto } from './motorDeProgramacion';

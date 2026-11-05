@@ -1,5 +1,5 @@
 import { useRef, useCallback, useEffect, useState } from 'react';
-import type { TipoDeEnlace } from './motorDeProgramacion';
+import { diferenciaHabil, type Calendario, type TipoDeEnlace } from './motorDeProgramacion';
 import { useGanttEnEspanol } from './GanttI18nContext';
 import { inicialesDe } from '../../utils/iniciales';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -56,6 +56,8 @@ interface TaskBarProps {
   alturaBarra?: number;
   /** Gantt v6: la duración en días hábiles, a la derecha de la barra («5 d»). */
   duracionV6?: string;
+  /** L1 · con el calendario, el retraso frente a la línea base va en días hábiles */
+  calendario?: Calendario;
   /** Gantt ronda 2 (Yesid) · R3 · una tarea TRANSVERSAL (dura casi todo el proyecto: seguimiento, informes): línea fina. */
   transversal?: boolean;
 }
@@ -87,6 +89,7 @@ export function TaskBar({
   v6 = false,
   alturaBarra,
   duracionV6,
+  calendario,
   transversal = false,
 }: TaskBarProps) {
   const es = useGanttEnEspanol(); // QA Asakaa 2.1: la ventanita salía en inglés
@@ -887,7 +890,7 @@ export function TaskBar({
 
         // Delay calculation
         const actualEndMs = task.endDate?.getTime() ?? 0;
-        const delayDays = Math.ceil((actualEndMs - blEndMs) / msPerDay);
+        const delayDays = calendario && task.endDate ? diferenciaHabil(new Date(blEndMs), task.endDate, calendario) : Math.ceil((actualEndMs - blEndMs) / msPerDay);
         const hasDelay = delayDays > 0;
         const isAhead = delayDays < -0;
 

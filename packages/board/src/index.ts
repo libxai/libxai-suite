@@ -98,7 +98,7 @@ export {
   calendarioDe,
   habilDesde,
   sumarHabiles,
-  habilesEntre,
+  habilesEntre, diferenciaHabil,
   finConDuracion,
   enlacesDe,
   limiteDelEnlace,

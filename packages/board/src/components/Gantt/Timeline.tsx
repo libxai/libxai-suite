@@ -1355,6 +1355,7 @@ export function Timeline({
               v6={v6}
               alturaBarra={ALTO_BARRA}
               duracionV6={v6 ? `${diasHabilesDe(task)} d` : undefined}
+              calendario={v6 ? calendarioV6 : undefined}
               transversal={esTransversal(task)}
             />
           );

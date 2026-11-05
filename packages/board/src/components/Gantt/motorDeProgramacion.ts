@@ -78,6 +78,20 @@ export function sumarHabiles(d: Date, n: number, cal: Calendario): Date {
 }
 
 /** Días hábiles de `inicio` a `fin`, los dos incluidos (la duración de una barra). Mínimo 1. */
+/**
+ * L1 · LA unidad del retraso: días hábiles de `desde` a `hasta`, sin contar `desde`; negativo si `hasta` es anterior. El 0 existe
+ * (`habilesEntre` cuenta duraciones y nunca baja de 1).
+ */
+export function diferenciaHabil(desde: Date, hasta: Date, cal: Calendario): number {
+  const a = soloDia(desde);
+  const b = soloDia(hasta);
+  const signo = b.getTime() >= a.getTime() ? 1 : -1;
+  const [ini, fin] = signo > 0 ? [a, b] : [b, a];
+  let n = 0;
+  for (let d = masUno(ini, 1); d.getTime() <= fin.getTime(); d = masUno(d, 1)) if (cal.esHabil(d)) n++;
+  return n * signo;
+}
+
 export function habilesEntre(inicio: Date, fin: Date, cal: Calendario): number {
   const a = soloDia(inicio);
   const b = soloDia(fin);
