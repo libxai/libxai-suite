@@ -752,8 +752,8 @@ export function Timeline({
                 const esHoy = mismoDia(h.date, hoyV6);
                 const num = String(h.date.getDate());
                 return (
-                  <g key={`dia-${i}`} data-dia-v6={festivo ? 'festivo' : finde ? 'finde' : undefined}>
-                    {festivo && <title>{[locale === 'es' ? 'Festivo' : 'Holiday', nombreDelFestivo(h.date)].filter(Boolean).join(': ')}</title>}
+                  <g key={`dia-${i}`} data-dia-v6={festivo ? 'festivo' : finde ? 'finde' : undefined}
+                    data-consejo={festivo ? [locale === 'es' ? 'Festivo' : 'Holiday', nombreDelFestivo(h.date)].filter(Boolean).join(': ') : undefined}>
                     <text x={cx} y={24 + 11} textAnchor="middle" dominantBaseline="middle" style={{ fill: V6S.tenue, fontSize: 11 }}>{LETRAS[h.date.getDay()]}</text>
                     {esHoy && <rect x={cx - 12} y={24 + 17} width={24} height={17} rx={8.5} style={{ fill: 'var(--v6-hoy-fondo, #0E1114)' }} />}
                     {esFin && !esHoy && <rect x={cx - (num.length > 1 ? 11 : 8)} y={24 + 17.5} width={num.length > 1 ? 22 : 16} height={16} rx={8} style={{ fill: 'none', stroke: V6S.texto2 }} strokeWidth={1} />}
