@@ -192,6 +192,10 @@ export {
   getListViewTheme,
 } from './components/ListView'
 export type { ListViewThemeName } from './components/ListView'
+// Maquetas v3 (Yesid) · las reglas de las vistas v6, también para Riesgos y Reportes (estado, vencidas, días hábiles)
+export { estadoDe, estadoDeHoja, estaVencida, diasDeRetraso, hojasDe, tieneHijas } from './components/ListView/v6/reglasDeLaLista'
+export type { EstadoV6 } from './components/ListView/v6/reglasDeLaLista'
+export { fechaCorta } from './components/Gantt/fechaCorta'
 // Maquetas v3 (Yesid) · el Calendario v6 (Asakaa)
 export { CalendarioV6, VISTA_CALENDARIO_V6_POR_DEFECTO, pasoDelCalendarioV6 } from './components/CalendarV2/v6/CalendarioV6'
 export type { CalendarioV6Props, VistaCalendarioV6, EscalaCalendarioV6 } from './components/CalendarV2/v6/CalendarioV6'
