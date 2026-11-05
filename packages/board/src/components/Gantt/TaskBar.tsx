@@ -700,6 +700,9 @@ export function TaskBar({
     <g
       ref={svgRef}
       data-task-bar="true"
+      /* G14 · las barras tienen rol y nombre */
+      role="img"
+      aria-label={`${task.name}, ${task.progress ?? 0}%`}
       /* 1.9.36 · estado y tipo por barra, para que la app pinte con CSS sin tocar task.color. */
       data-estado={isCompleted ? 'completed' : isOverdue ? 'overdue' : 'planned'}
       data-resumen={isSummaryTask ? 'true' : undefined}
