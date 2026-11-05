@@ -728,7 +728,13 @@ export function TaskBar({
         e.preventDefault();
         onContextMenu?.(task, e as any);
       }}
-      onMouseEnter={() => !isDragging && setIsHovered(true)}
+      onMouseEnter={(e) => {
+        if (isDragging) return;
+        setIsHovered(true);
+        /* G15 · el tooltip sale al entrar: antes esperaba al SIGUIENTE movimiento del ratón, y quien entraba y se paraba
+           sobre la barra no veía nada. */
+        if (onHoverChange && !task.segments) onHoverChange({ task, x, y, width, height, showBelow: false, mouseX: e.clientX, mouseY: e.clientY });
+      }}
       onMouseMove={(e) => {
         if (onHoverChange && isHovered && !isDragging && !task.segments) {
           onHoverChange({

@@ -74,6 +74,8 @@ interface TaskGridProps {
   showCriticalPath?: boolean;
   /** Gantt v6 (Asakaa): la tabla de la maqueta — Tarea · Resp. · Inicio · Fin · %, cabecera de 60 px. */
   v6?: boolean;
+  /** G15 · Alt+←/→: mover la tarea N días hábiles. */
+  onMoverDias?: (task: Task, dias: number) => void;
   /** Gantt v6: «13 tareas · completadas ocultas», encima de los títulos. */
   resumenV6?: string;
   /** Gantt v6: el botón «contraer todos los grupos». */
@@ -124,6 +126,7 @@ export function TaskGrid({
   scrollContainerRef, // v0.18.15
   showCriticalPath = false, // v5.1.0
   v6 = false,
+  onMoverDias,
   resumenV6,
   onContraerTodo,
   onMostrarOcultas,
@@ -251,6 +254,9 @@ export function TaskGrid({
     isTaskSelected,
   } = useGanttSelection(selectedTaskId);
 
+  /* G15 · el foco sigue a la selección con teclado: la tarea puede estar fuera de la franja que se pinta. */
+  const filaPorEnfocar = useRef<string | null>(null);
+
   // Keyboard shortcuts hook
   const { setIsEditing } = useGanttKeyboard({
     tasks,
@@ -259,6 +265,7 @@ export function TaskGrid({
       const flatTasks = flattenTasksUtil(tasks);
       const flatTaskIds = flatTasks.map(t => t.id);
       handleSelectionClick(taskId, flatTaskIds, multiSelect || false, false);
+      filaPorEnfocar.current = taskId;
       /*
        * SE AVISA HACIA FUERA. Antes esta seleccion moria aqui dentro: quien
        * montara el Gantt no tenia forma de seguir el resaltado, y el SaaS
@@ -290,6 +297,7 @@ export function TaskGrid({
       }
     },
     enableKeyboard: true,
+    v6: v6 ? { abrirPanel: (t: Task) => onTaskClick?.(t), moverDias: onMoverDias } : undefined,
   });
 
   const flattenTasks = (tasks: Task[], level = 0, parentWbs = ''): Array<{ task: Task; level: number }> => {
@@ -322,6 +330,34 @@ export function TaskGrid({
   };
 
   const flatTasks = flattenTasks(tasks);
+  /* G15 · un solo punto de Tab en toda la tabla: la seleccionada si se pinta; si no, la primera que se pinta. */
+  const filaConTab = (() => {
+    const desde = filasVisibles?.desde ?? 0;
+    const hasta = filasVisibles?.hasta ?? flatTasks.length - 1;
+    for (let i = desde; i <= hasta; i++) if (flatTasks[i] && isTaskSelected(flatTasks[i]!.task.id)) return flatTasks[i]!.task.id;
+    return flatTasks[desde]?.task.id;
+  })();
+  useEffect(() => {
+    const id = filaPorEnfocar.current;
+    if (!id) return;
+    filaPorEnfocar.current = null;
+    const indice = flatTasks.findIndex((f) => f.task.id === id);
+    const c = scrollContainerRef?.current;
+    if (indice < 0) return;
+    if (c) {
+      const arriba = indice * ROW_HEIGHT;
+      const alto = c.clientHeight - HEADER_HEIGHT;
+      if (arriba < c.scrollTop) c.scrollTop = arriba;
+      else if (arriba + ROW_HEIGHT > c.scrollTop + alto) c.scrollTop = arriba + ROW_HEIGHT - alto;
+    }
+    let intentos = 0;
+    const enfocar = () => {
+      const el = document.querySelector<HTMLElement>(`[data-task-row="${CSS.escape(id)}"]`);
+      if (el) el.focus({ preventScroll: true });
+      else if (intentos++ < 6) requestAnimationFrame(enfocar);
+    };
+    enfocar();
+  });
   const HEADER_HEIGHT = v6 ? 60 : 48; // Gantt v6: 24 (resumen) + 36 (títulos); Timeline igual
 
   // v0.17.221: Calculate content height to match Timeline exactly
@@ -1887,7 +1923,8 @@ export function TaskGrid({
 
       {/* Task Rows Container - v0.17.222: Now uses real scroll instead of CSS transform */}
       {/* minHeight ensures scroll area matches Timeline for proper sync */}
-      <div className="gantt-taskgrid-content" data-grid-body style={{ minHeight: contentHeight }}>
+      <div className="gantt-taskgrid-content" data-grid-body style={{ minHeight: contentHeight }}
+        role="treegrid" aria-label={esGrid ? 'Tareas del cronograma' : 'Schedule tasks'} aria-rowcount={flatTasks.length}>
       {/* Gantt ronda 2 (Yesid) · R1 · VIRTUALIZAR: solo las filas de la franja visible (y un margen); arriba y abajo, su alto. */}
       {filasVisibles && filasVisibles.desde > 0 && <div aria-hidden data-relleno-arriba style={{ height: filasVisibles.desde * ROW_HEIGHT }} />}
       {flatTasks.map(({ task, level }, index) => {
@@ -1910,6 +1947,12 @@ export function TaskGrid({
           <motion.div
             key={task.id}
             data-task-row={task.id}
+            role="row"
+            aria-rowindex={index + 1}
+            aria-level={level + 1}
+            aria-expanded={task.subtasks?.length ? !!task.isExpanded : undefined}
+            aria-selected={isSelected}
+            tabIndex={v6 ? (task.id === filaConTab ? 0 : -1) : undefined}
             className={`flex items-center cursor-pointer group ${draggedTaskId === task.id ? 'opacity-50' : ''}`}
             style={{
               position: 'relative', // v0.17.146: For drop indicator positioning
@@ -2028,6 +2071,7 @@ export function TaskGrid({
             return (
             <div
               key={`${task.id}-${column.id}`}
+              role="gridcell"
               className={v6 ? 'flex items-center' : `px-4 flex items-center ${
                 isNameColumn ? 'justify-start' : 'justify-center'
               }`}

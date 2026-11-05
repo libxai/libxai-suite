@@ -486,6 +486,8 @@ export interface GanttWorkingDaysConfig {
   enabledWeekdays?: boolean[];
   /** Holiday dates in 'YYYY-MM-DD' (workspace-local) to exclude. */
   holidayDates?: Set<string> | string[];
+  /** G15 · 'YYYY-MM-DD' → nombre del festivo, para su tooltip. */
+  holidayNames?: Record<string, string>;
 }
 
 export interface GanttConfig {

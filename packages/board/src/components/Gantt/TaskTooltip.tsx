@@ -14,6 +14,7 @@
 import { useLayoutEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Task } from './types';
+import { esVencida } from './vencidas';
 
 export interface TaskTooltipData {
   task: Task;
@@ -37,6 +38,8 @@ export interface WorkingDaysConfig {
   enabledWeekdays?: boolean[]; // length 7
   /** Holiday dates in 'YYYY-MM-DD' (workspace-local) to exclude. */
   holidayDates?: Set<string> | string[];
+  /** G15 · 'YYYY-MM-DD' → nombre del festivo, para su tooltip. */
+  holidayNames?: Record<string, string>;
 }
 
 interface TaskTooltipProps {
@@ -100,6 +103,7 @@ export function TaskTooltip({ tooltipData, theme, locale = 'en', workingDaysConf
     end: locale === 'es' ? 'Fin' : 'End',
     duration: locale === 'es' ? 'Duración' : 'Duration',
     progress: locale === 'es' ? 'Progreso' : 'Progress',
+    status: locale === 'es' ? 'Estado' : 'Status',
     assignees: locale === 'es' ? 'Asignados' : 'Assignees',
     estimated: locale === 'es' ? 'Estimado' : 'Estimated',
     logged: locale === 'es' ? 'Registrado' : 'Logged',
@@ -153,6 +157,12 @@ export function TaskTooltip({ tooltipData, theme, locale = 'en', workingDaysConf
     return `${hours}h ${mins}m`;
   };
 
+  /* G15 · el tooltip dice también el estado; vencida gana, como en la barra. */
+  const terminada = task.status === 'completed' || task.progress >= 100;
+  const estado = locale === 'es'
+    ? (terminada ? 'Completada' : esVencida(task) ? 'Vencida' : task.progress > 0 || task.status === 'in-progress' ? 'En progreso' : 'Por hacer')
+    : (terminada ? 'Completed' : esVencida(task) ? 'Overdue' : task.progress > 0 || task.status === 'in-progress' ? 'In progress' : 'To do');
+
   const labelColor = theme.textTertiary || '#9CA3AF';
   const valueColor = theme.textSecondary || '#D1D5DB';
   const nameColor = theme.textPrimary || '#F9FAFB';
@@ -193,6 +203,7 @@ export function TaskTooltip({ tooltipData, theme, locale = 'en', workingDaysConf
           <Row label={t.duration} value={getDuration()} labelColor={labelColor} valueColor={valueColor} />
           <Row label={t.end} value={task.endDate ? formatDate(task.endDate) : 'N/A'} labelColor={labelColor} valueColor={valueColor} />
           <Row label={t.progress} value={`${task.progress}%`} labelColor={labelColor} valueColor={valueColor} />
+          <Row label={t.status} value={estado} labelColor={labelColor} valueColor={valueColor} />
         </div>
 
         {/* Assignees */}

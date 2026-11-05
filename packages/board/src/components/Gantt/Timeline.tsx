@@ -280,6 +280,8 @@ export function Timeline({
     return raw instanceof Set ? raw : new Set(raw);
   }, [workingDaysConfig?.holidayDates]);
 
+  /* G15 · el festivo con su nombre: «Festivo: Todos los Santos». */
+  const nombreDelFestivo = (d: Date): string | undefined => workingDaysConfig?.holidayNames?.[`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`];
   const isHoliday = (date: Date): boolean => {
     if (!holidaySet) return false;
     const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -751,7 +753,7 @@ export function Timeline({
                 const num = String(h.date.getDate());
                 return (
                   <g key={`dia-${i}`} data-dia-v6={festivo ? 'festivo' : finde ? 'finde' : undefined}>
-                    {festivo && <title>{locale === 'es' ? 'Festivo' : 'Holiday'}</title>}
+                    {festivo && <title>{[locale === 'es' ? 'Festivo' : 'Holiday', nombreDelFestivo(h.date)].filter(Boolean).join(': ')}</title>}
                     <text x={cx} y={24 + 11} textAnchor="middle" dominantBaseline="middle" style={{ fill: V6S.tenue, fontSize: 11 }}>{LETRAS[h.date.getDay()]}</text>
                     {esHoy && <rect x={cx - 12} y={24 + 17} width={24} height={17} rx={8.5} style={{ fill: 'var(--v6-hoy-fondo, #0E1114)' }} />}
                     {esFin && !esHoy && <rect x={cx - (num.length > 1 ? 11 : 8)} y={24 + 17.5} width={num.length > 1 ? 22 : 16} height={16} rx={8} style={{ fill: 'none', stroke: V6S.texto2 }} strokeWidth={1} />}
@@ -1641,7 +1643,7 @@ export function Timeline({
             const xV6 = lado === 'left' ? ventanaVisible.izq + 4 : ventanaVisible.der - anchoV6 - 4;
             const yV6 = index * ROW_HEIGHT + ROW_HEIGHT / 2 - 11;
             return (
-              <g key={`fuera-${t.id}`} data-fuera-de-vista={lado} data-vencida={vencida || undefined} role="button" style={{ cursor: onIrAFecha ? 'pointer' : 'default' }} onClick={() => onIrAFecha?.(t.startDate!)}>
+              <g key={`fuera-${t.id}`} data-fuera-de-vista={lado} data-vencida={vencida || undefined} role="button" tabIndex={0} aria-label={locale === 'es' ? `Ir a «${t.name}»${vencida ? `, venció el ${fechaCorta(fecha, locale)}` : ''}` : `Go to "${t.name}"`} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onIrAFecha?.(t.startDate!); } }} style={{ cursor: onIrAFecha ? 'pointer' : 'default' }} onClick={() => onIrAFecha?.(t.startDate!)}>
                 <title>{locale === 'es' ? `Ir a «${t.name}»${vencida ? `, venció el ${fechaCorta(fecha, locale)}` : ''}` : `Go to "${t.name}"`}</title>
                 <rect x={xV6} y={yV6} width={anchoV6} height={22} rx={6} strokeWidth={1} style={{ fill: vencida ? 'var(--v6-rojo-fondo, #FBE9EA)' : V6S.tarjeta, stroke: vencida ? 'var(--v6-rojo-borde, rgba(192,48,58,0.75))' : V6S.borde }} />
                 <text x={xV6 + anchoV6 / 2} y={yV6 + 11.5} textAnchor="middle" dominantBaseline="middle" style={{ fill: vencida ? 'var(--v6-rojo, #B02A33)' : V6S.texto2, fontSize: 11, fontWeight: 500, fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}>{textoV6}</text>
@@ -1652,6 +1654,10 @@ export function Timeline({
             <g
               key={`fuera-${t.id}`}
               data-fuera-de-vista={lado}
+              role="button"
+              tabIndex={0}
+              aria-label={locale === 'es' ? `«${t.name}» está fuera de la vista: ir` : `"${t.name}" is out of view: go`}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onIrAFecha?.(t.startDate!); } }}
               style={{ cursor: onIrAFecha ? 'pointer' : 'default' }}
               onClick={() => onIrAFecha?.(t.startDate!)}
             >

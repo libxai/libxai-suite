@@ -1,3 +1,4 @@
+import { aplicarFiltros, cuantosFiltros, opcionesDeFiltro, SIN_FILTROS, type FiltrosDelGantt } from './filtrosDelGantt';
 import { createPortal } from 'react-dom';
 import { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo, useContext, forwardRef, useImperativeHandle } from 'react';
 import { Task, TimeScale, Theme, GanttConfig, GanttColumn, ColumnType, RowDensity, TaskFilterType } from './types';
@@ -8,7 +9,7 @@ import { TaskGrid } from './TaskGrid';
 import { Timeline } from './Timeline';
 import { anchoDelDia, conHoy, diasTrasHoy, fechaAlAbrir, HOY_AL_ABRIR, inicioDeLaEscala, ladoDeHoy } from './rangoDeLaEscala';
 import { esVencida } from './vencidas';
-import { calendarioDe, fechasQueCumplen, empujarSucesoras } from './motorDeProgramacion';
+import { calendarioDe, fechasQueCumplen, empujarSucesoras, sumarHabiles } from './motorDeProgramacion';
 import { ContextMenu, MenuIcons } from './ContextMenu'; // v0.8.0: Split task context menu
 import { TaskDetailModal } from '../TaskDetailModal'; // v0.17.244: Unified task detail modal (replaces TaskFormModal)
 import { GanttAIAssistant } from './GanttAIAssistant'; // v0.14.0: AI Assistant
@@ -217,6 +218,15 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     return 'all';
   });
   const taskFilter = externalTaskFilter ?? internalTaskFilter;
+  /* G13 · responsable, fase, fechas y prioridad; se guardan con el resto del filtro. */
+  const [filtros, setFiltros] = useState<FiltrosDelGantt>(() => {
+    if (!persistFilter) return SIN_FILTROS;
+    try {
+      const stored = localStorage.getItem(typeof persistFilter === 'string' ? persistFilter : 'gantt-filter-state');
+      const guardados = stored ? JSON.parse(stored).filtros : null;
+      return guardados ? { ...SIN_FILTROS, ...guardados } : SIN_FILTROS;
+    } catch { return SIN_FILTROS; }
+  });
   const setTaskFilter = externalOnTaskFilterChange ?? setInternalTaskFilter;
 
   // v0.18.0: Hide completed toggle (also persisted)
@@ -244,12 +254,12 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     if (!key) return;
 
     try {
-      const state = { taskFilter, hideCompleted };
+      const state = { taskFilter, hideCompleted, filtros };
       localStorage.setItem(key, JSON.stringify(state));
     } catch (e) {
       console.warn('[GanttBoard] Error saving filter state to localStorage:', e);
     }
-  }, [taskFilter, hideCompleted, getFilterStorageKey]);
+  }, [taskFilter, hideCompleted, filtros, getFilterStorageKey]);
 
   // v1.4.10: Reset filters when clearFiltersKey changes (for notification navigation)
   const prevClearFiltersKeyRef = useRef(clearFiltersKey);
@@ -258,6 +268,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     if (prevClearFiltersKeyRef.current !== clearFiltersKey && clearFiltersKey !== undefined) {
       setInternalTaskFilter('all');
       setHideCompleted(false);
+      setFiltros(SIN_FILTROS);
       // Also clear localStorage
       const key = getFilterStorageKey();
       if (key) {
@@ -825,7 +836,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
    */
   const busquedaExterna = (config.searchQuery ?? '').trim();
   const filteredTasks = useMemo((): Task[] => {
-    const base = filtrarPorEstado();
+    const base = aplicarFiltros(filtrarPorEstado(), filtros);
     if (!busquedaExterna) return base;
     const normal = (x: string) => x.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
     const q = normal(busquedaExterna);
@@ -895,7 +906,8 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
 
     return filterTasksRecursively(tasksWithStableWbs);
     }
-  }, [tasksWithStableWbs, taskFilter, hideCompleted, busquedaExterna]);
+  }, [tasksWithStableWbs, taskFilter, hideCompleted, busquedaExterna, filtros]);
+  const opcionesDeLosFiltros = useMemo(() => (disenoV6 ? opcionesDeFiltro(tasksWithStableWbs) : undefined), [disenoV6, tasksWithStableWbs]);
   /* Gantt v6 · «16 tareas · 38 completadas ocultas · Mostrar», encima de los títulos de la tabla. Gantt ronda 2 (Yesid)
      · P2 · UN SOLO contador de las ocultas, con cuántas son y cómo verlas (antes: el «1» de Filtros, la etiqueta
      «Ocultar completadas ×» y «completadas ocultas» aquí, tres avisos de lo mismo). */
@@ -916,9 +928,9 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       return `${base} · ${completadasOcultas} ${esVacio ? (completadasOcultas === 1 ? 'completada oculta' : 'completadas ocultas') : 'completed hidden'}`;
     }
     if (taskFilter === 'overdue') return `${base} · ${esVacio ? 'solo vencidas' : 'overdue only'}`;
-    if (taskFilter !== 'all') return `${base} · ${esVacio ? 'filtradas' : 'filtered'}`;
+    if (taskFilter !== 'all' || cuantosFiltros(filtros) > 0) return `${base} · ${esVacio ? 'filtradas' : 'filtered'}`;
     return base;
-  }, [disenoV6, filteredTasks, hideCompleted, completadasOcultas, taskFilter, esVacio]);
+  }, [disenoV6, filteredTasks, hideCompleted, completadasOcultas, taskFilter, esVacio, filtros]);
   const avisoVencidas = disenoV6 && taskFilter !== 'overdue' && vencidas > 0
     ? (esVacio ? `${vencidas} ${vencidas === 1 ? 'vencida' : 'vencidas'}` : `${vencidas} overdue`) : undefined;
   const contraerTodo = useCallback(() => {
@@ -1685,6 +1697,14 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     }
   }, [localTasks, onTaskUpdate, onDependentTasksScheduled, config]);
 
+  /* G15 · Alt+←/→: la tarea, un día hábil. Va por el mismo camino que arrastrar: enlaces, aviso y deshacer. Las fases se
+     calculan de sus hijas, así que no se mueven; y una tarea sin fechas no tiene nada que mover. */
+  const moverDias = useCallback((task: Task, dias: number) => {
+    if (permissions?.canUpdateTask === false || task.subtasks?.length || !task.startDate || !task.endDate) return;
+    const calendario = calendarioDe(config?.workingDaysConfig);
+    handleTaskDateChange(task, sumarHabiles(new Date(task.startDate), dias, calendario), sumarHabiles(new Date(task.endDate), dias, calendario));
+  }, [permissions?.canUpdateTask, config?.workingDaysConfig, handleTaskDateChange]);
+
   // 🚀 KILLER FEATURE #3: Handle context menu for Split task
   // This is BETTER than DHTMLX - they don't have a built-in split task feature
   const handleTaskContextMenu = useCallback((task: Task, event: React.MouseEvent) => {
@@ -2397,6 +2417,9 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         onTaskFilterChange={setTaskFilter}
         hideCompleted={hideCompleted}
         onHideCompletedChange={setHideCompleted}
+        filtros={filtros}
+        onFiltrosChange={setFiltros}
+        opcionesDeFiltro={opcionesDeLosFiltros}
         toolbarRightContent={toolbarRightContent}
         showCreateTaskButton={showCreateTaskButton && permissions?.canCreateTask !== false && !permissions?.canCreateSubtaskOnly}
         createTaskLabel={createTaskLabel}
@@ -2565,6 +2588,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
             templates={mergedTemplates}
             showCriticalPath={showCriticalPath}
             onTaskClick={onTaskClick}
+            onMoverDias={moverDias}
             onTaskSelectionChange={onTaskSelectionChange}
             selectedTaskId={selectedTaskId}
             onTaskDblClick={handleTaskDblClickInternal} // v0.10.0: Use internal handler that opens modal

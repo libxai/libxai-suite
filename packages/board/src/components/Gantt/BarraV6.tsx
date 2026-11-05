@@ -16,6 +16,7 @@ import { createPortal } from 'react-dom';
 import { Filter, ChevronDown, Plus, X, Check, Rows3, MoreHorizontal } from 'lucide-react';
 import type { TimeScale, RowDensity, TaskFilterType } from './types';
 import { useGanttI18n } from './GanttI18nContext';
+import { cuantosFiltros, SIN_FILTROS, SIN_RESPONSABLE, type FiltrosDelGantt, type OpcionesDeFiltro } from './filtrosDelGantt';
 
 export interface OpcionExtraV6 {
   id: string;
@@ -33,6 +34,10 @@ export interface BarraV6Props {
   onTaskFilterChange?: (f: TaskFilterType) => void;
   hideCompleted: boolean;
   onHideCompletedChange?: (h: boolean) => void;
+  /** G13 · responsable, fase, fechas y prioridad. */
+  filtros?: FiltrosDelGantt;
+  onFiltrosChange?: (f: FiltrosDelGantt) => void;
+  opcionesDeFiltro?: OpcionesDeFiltro;
   toolbarRightContent?: ReactNode;
   showCreateTaskButton?: boolean;
   createTaskLabel?: string;
@@ -76,6 +81,7 @@ const V = {
   sobreAcento: 'var(--v6-sobre-acento, #03231F)',
 };
 const MONO = "'JetBrains Mono', ui-monospace, Menlo, monospace";
+const ESTILO_FECHA: React.CSSProperties = { flex: '1 1 0', minWidth: 0, height: 30, boxSizing: 'border-box', padding: '0 4px', borderRadius: 8, border: `1px solid ${V.borde}`, background: V.tarjeta, color: V.texto, font: 'inherit', fontSize: 12 };
 
 /** Un desplegable sencillo: botón + panel en body (escapa del overflow de la cabecera). */
 function Desplegable({ boton, children, alinear = 'izquierda', ancho = 220 }: {
@@ -112,6 +118,7 @@ function Desplegable({ boton, children, alinear = 'izquierda', ancho = 220 }: {
           data-menu-v6
           style={{
             position: 'fixed', top: pos.top, left: pos.left, width: ancho, zIndex: 99999,
+            maxHeight: `calc(100vh - ${Math.round(pos.top) + 16}px)`, overflowY: 'auto',
             padding: 6, borderRadius: 12, background: V.tarjeta, border: `1px solid ${V.borde}`,
             boxShadow: '0 12px 32px -8px rgba(14,17,20,0.25)', color: V.texto, fontSize: 13,
           }}
@@ -170,7 +177,16 @@ export function BarraV6(p: BarraV6Props) {
   ];
   /* Gantt ronda 2 (Yesid) · P2 · «ocultar completadas» no cuenta aquí ni lleva etiqueta: su único aviso es el contador
      de la tabla («38 completadas ocultas · Mostrar»). */
-  const activos = p.taskFilter !== 'all' ? 1 : 0;
+  const filtrosG = p.filtros ?? SIN_FILTROS;
+  const activos = (p.taskFilter !== 'all' ? 1 : 0) + cuantosFiltros(filtrosG);
+  const cambiar = (c: Partial<FiltrosDelGantt>) => p.onFiltrosChange?.({ ...filtrosG, ...c });
+  const alternar = (lista: string[], v: string) => (lista.includes(v) ? lista.filter((x) => x !== v) : [...lista, v]);
+  const PRIORIDADES: Record<string, string> = { urgent: tx('Urgente', 'Urgent'), high: tx('Alta', 'High'), medium: tx('Media', 'Medium'), low: tx('Baja', 'Low') };
+  const nombreResponsable = (n: string) => (n === SIN_RESPONSABLE ? tx('Sin responsable', 'Unassigned') : n);
+  const nombreFase = (id: string) => p.opcionesDeFiltro?.fases.find((f) => f.id === id)?.nombre ?? id;
+  /* «Ana +2»: cabe en la barra y dice que hay más. */
+  const resumenDe = (nombres: string[]) => (nombres.length > 1 ? `${nombres[0]} +${nombres.length - 1}` : nombres[0] ?? '');
+  const op = p.opcionesDeFiltro;
   const DENSIDADES: Array<{ valor: RowDensity; etiqueta: string }> = [
     { valor: 'compact', etiqueta: tx('Compacta', 'Compact') },
     { valor: 'comfortable', etiqueta: tx('Normal', 'Normal') },
@@ -188,6 +204,7 @@ export function BarraV6(p: BarraV6Props) {
     <div data-barra-v6 className="flex flex-wrap items-center min-w-0" style={{ gap: 8, flex: '1 1 auto', fontSize: 13, color: V.texto }}>
       {p.onTaskFilterChange && (
         <Desplegable
+          ancho={280}
           boton={(abrir, abierto, ref) => (
             <button
               ref={ref}
@@ -195,6 +212,7 @@ export function BarraV6(p: BarraV6Props) {
               aria-haspopup="menu"
               aria-expanded={abierto}
               onClick={abrir}
+              data-boton-filtros-v6
               style={{ ...BOTON_BASE, padding: '0 8px 0 10px', background: V.tarjeta, color: V.texto, border: `1px solid ${activos ? V.acentoBordeSuave : V.borde}` }}
             >
               <Filter className="w-[15px] h-[15px]" style={{ color: activos ? V.acentoTexto : V.texto2 }} aria-hidden />
@@ -214,6 +232,59 @@ export function BarraV6(p: BarraV6Props) {
                   {f.etiqueta}
                 </Opcion>
               ))}
+              {/* G13 · estos no cierran el menú: casi siempre se marca más de uno. */}
+              {p.onFiltrosChange && op && (op.responsables.length > 0 || op.haySinResponsable) && (
+                <>
+                  <Separador />
+                  <Titulo>{tx('Responsable', 'Assignee')}</Titulo>
+                  {[...op.responsables, ...(op.haySinResponsable ? [SIN_RESPONSABLE] : [])].map((n) => (
+                    <Opcion key={n} marcada={filtrosG.responsables.includes(n)} alPulsar={() => cambiar({ responsables: alternar(filtrosG.responsables, n) })}>
+                      {nombreResponsable(n)}
+                    </Opcion>
+                  ))}
+                </>
+              )}
+              {p.onFiltrosChange && op && op.fases.length > 0 && (
+                <>
+                  <Separador />
+                  <Titulo>{tx('Fase', 'Phase')}</Titulo>
+                  {op.fases.map((f) => (
+                    <Opcion key={f.id} marcada={filtrosG.fases.includes(f.id)} alPulsar={() => cambiar({ fases: alternar(filtrosG.fases, f.id) })}>
+                      {f.nombre}
+                    </Opcion>
+                  ))}
+                </>
+              )}
+              {p.onFiltrosChange && op && op.prioridades.length > 0 && (
+                <>
+                  <Separador />
+                  <Titulo>{tx('Prioridad', 'Priority')}</Titulo>
+                  {op.prioridades.map((v) => (
+                    <Opcion key={v} marcada={filtrosG.prioridades.includes(v)} alPulsar={() => cambiar({ prioridades: alternar(filtrosG.prioridades, v) })}>
+                      {PRIORIDADES[v] ?? v}
+                    </Opcion>
+                  ))}
+                </>
+              )}
+              {p.onFiltrosChange && (
+                <>
+                  <Separador />
+                  <Titulo>{tx('Fechas', 'Dates')}</Titulo>
+                  <div className="flex items-center" style={{ gap: 6, padding: '2px 8px 6px' }}>
+                    <input type="date" aria-label={tx('Desde', 'From')} value={filtrosG.desde ?? ''} max={filtrosG.hasta ?? undefined} data-filtro-desde
+                      onChange={(e) => cambiar({ desde: e.target.value || null })} style={ESTILO_FECHA} />
+                    <span aria-hidden style={{ color: V.tenue }}>–</span>
+                    <input type="date" aria-label={tx('Hasta', 'To')} value={filtrosG.hasta ?? ''} min={filtrosG.desde ?? undefined} data-filtro-hasta
+                      onChange={(e) => cambiar({ hasta: e.target.value || null })} style={ESTILO_FECHA} />
+                  </div>
+                </>
+              )}
+              {activos > 0 && (
+                <>
+                  <Separador />
+                  <Opcion alPulsar={() => { p.onTaskFilterChange?.('all'); p.onFiltrosChange?.(SIN_FILTROS); cerrar(); }}>{tx('Quitar todos los filtros', 'Clear all filters')}</Opcion>
+                </>
+              )}
             </>
           )}
         </Desplegable>
@@ -226,6 +297,18 @@ export function BarraV6(p: BarraV6Props) {
           quitar={tx('Quitar filtro', 'Remove filter')}
           alQuitar={() => p.onTaskFilterChange?.('all')}
         />
+      )}
+      {filtrosG.responsables.length > 0 && (
+        <EtiquetaDeFiltro texto={resumenDe(filtrosG.responsables.map(nombreResponsable))} quitar={tx('Quitar filtro', 'Remove filter')} alQuitar={() => cambiar({ responsables: [] })} />
+      )}
+      {filtrosG.fases.length > 0 && (
+        <EtiquetaDeFiltro texto={resumenDe(filtrosG.fases.map(nombreFase))} quitar={tx('Quitar filtro', 'Remove filter')} alQuitar={() => cambiar({ fases: [] })} />
+      )}
+      {filtrosG.prioridades.length > 0 && (
+        <EtiquetaDeFiltro texto={resumenDe(filtrosG.prioridades.map((v) => PRIORIDADES[v] ?? v))} quitar={tx('Quitar filtro', 'Remove filter')} alQuitar={() => cambiar({ prioridades: [] })} />
+      )}
+      {(filtrosG.desde || filtrosG.hasta) && (
+        <EtiquetaDeFiltro texto={`${filtrosG.desde ?? '…'} – ${filtrosG.hasta ?? '…'}`} quitar={tx('Quitar filtro', 'Remove filter')} alQuitar={() => cambiar({ desde: null, hasta: null })} />
       )}
 
       <div aria-hidden style={{ flex: '1 1 0', minWidth: 0 }} />
