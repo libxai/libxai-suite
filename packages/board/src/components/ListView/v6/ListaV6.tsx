@@ -19,6 +19,7 @@ import {
   cifrasDe, diasDeRetraso, duracionHabil, estadoDe, estaVencida, horasCortas, juzgarHoras, millones, tieneHijas, type EstadoV6,
 } from './reglasDeLaLista';
 import { CSS_PANEL_V6, PanelDeTareaV6 } from './PanelDeTareaV6';
+import { PuntoDeRiesgo } from './PuntoDeRiesgo';
 import { CSS_RECURSOS_V6, RecursosDeLaListaV6 } from './RecursosDeLaListaV6';
 
 type Columna = 'who' | 'st' | 's' | 'e' | 'dur' | 'pct' | 'hrs' | 'cost';
@@ -69,6 +70,8 @@ export interface ListaV6Props {
   tarifaDePersona?: (id: string) => number | undefined;
   costoAlTerminar?: number | null;
   onVerRecursos?: () => void;
+  /** R6 · abrir un riesgo desde el panel de la tarea */
+  onVerRiesgo?: (id: string) => void;
 }
 
 interface Fila {
@@ -138,7 +141,7 @@ const iniciales = (n?: string) => (n ?? '').trim().split(/\s+/).slice(0, 2).map(
 export function ListaV6({
   tasks: tasksProp, es, cal, tarifaDe, monedaCodigo, conCosto = true, onAbrir, seleccionada = null, claveColumnas, pie, hoy: hoyProp,
   avanceTotal, vista: vistaProp, onVista, onRegistrarHoras, peticionColumnas, nombreProyecto,
-  tarifaDePersona, costoAlTerminar, onVerRecursos,
+  tarifaDePersona, costoAlTerminar, onVerRecursos, onVerRiesgo,
 }: ListaV6Props) {
   const x = es ? TXT.es : TXT.en;
   const idioma = es ? 'es' : 'en';
@@ -560,6 +563,7 @@ export function ListaV6({
                       ) : <span className="ind" />}
                       <span className="wbs">{f.wbs}</span>
                       <span className="nm" title={ruta}>{t.name}</span>
+                      <PuntoDeRiesgo riesgos={t.riesgos} es={es} />
                       {padre && <span className="cnt" title={x.hechas(ci.hechas, ci.hojas)}>{ci.hechas}/{ci.hojas}</span>}
                       {padre && ci.vencidas > 0 && <span className="od">{ci.vencidas} {ci.vencidas === 1 ? x.vencida : x.vencidas}</span>}
                     </div>
@@ -590,7 +594,7 @@ export function ListaV6({
         <PanelDeTareaV6 fila={filaDelPanel} es={es} cal={cal} hoy={hoy} nombreProyecto={nombreProyecto}
           cifras={cifras.get(filaDelPanel.t.id)!} estados={estados} nombreEstado={x.st} porId={porId} tarifaDe={tarifaDe}
           onCerrar={() => { const id = filaDelPanel.t.id; setEnPanel(null); if (visibles.some((f) => f.t.id === id)) enfocar(id); }}
-          onAbrirFicha={onAbrir} onIrA={irA} />
+          onAbrirFicha={onAbrir} onIrA={irA} onVerRiesgo={onVerRiesgo} />
       )}
       </div>
       {pie}

@@ -31,6 +31,8 @@ export interface DependentTaskPreview {
   color?: string;
 }
 
+export interface RiesgoDeLaTarea { id: string; codigo: string; titulo: string; nivel: 'bajo' | 'medio' | 'alto' | 'critico' }
+
 export interface Task {
   id: string;
   name: string;
@@ -41,6 +43,8 @@ export interface Task {
   // v0.17.54: Changed to string to support custom Kanban column statuses
   status?: string; // Default statuses: 'todo' | 'in-progress' | 'completed', plus custom column IDs
   dependencies?: string[];
+  /** R6 · los riesgos abiertos que afectan a la tarea (los pone la app: punto en la fila y en su panel) */
+  riesgos?: RiesgoDeLaTarea[];
   /**
    * QA Asakaa · mejora fuerte 5: el tipo (FS/SS/FF/SF) y el desfase (días hábiles) de cada
    * predecesora. Un id de `dependencies` sin entrada aquí es FS sin desfase.

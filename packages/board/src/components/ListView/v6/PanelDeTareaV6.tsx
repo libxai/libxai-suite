@@ -14,6 +14,7 @@ import { useEffect, useRef, type ReactNode } from 'react';
 import type { Task } from '../../Gantt/types';
 import type { Calendario } from '../../Gantt/motorDeProgramacion';
 import { fechaCorta } from '../../Gantt/fechaCorta';
+import { PuntoDeNivelDeRiesgo, nombreDeNivel, riesgoMayor } from './PuntoDeRiesgo';
 import { diasDeRetraso, duracionHabil, estaVencida, hojasDe, horasCortas, millones, tieneHijas, type CifrasDeFila, type EstadoV6 } from './reglasDeLaLista';
 
 const TXT = {
@@ -26,7 +27,7 @@ const TXT = {
     planeado: (v: string) => `de ${v} planeado`,
     hijas: (h: number, n: number) => `Tareas hijas · ${h} de ${n} tareas terminadas en total`,
     nota: 'El estado, las fechas y el avance de una tarea padre se calculan con sus hijas.',
-    comentar: 'Escriba un comentario; use @ para mencionar',
+    comentar: 'Escriba un comentario; use @ para mencionar', riesgo: 'Riesgo', riesgos: 'Riesgos',
     p: { low: 'Baja', medium: 'Media', high: 'Alta', urgent: 'Urgente' } as Record<string, string>,
   },
   en: {
@@ -38,7 +39,7 @@ const TXT = {
     planeado: (v: string) => `of ${v} planned`,
     hijas: (h: number, n: number) => `Subtasks · ${h} of ${n} tasks finished in total`,
     nota: 'The status, dates and progress of a parent task come from its subtasks.',
-    comentar: 'Write a comment; use @ to mention',
+    comentar: 'Write a comment; use @ to mention', riesgo: 'Risk', riesgos: 'Risks',
     p: { low: 'Low', medium: 'Medium', high: 'High', urgent: 'Urgent' } as Record<string, string>,
   },
 };
@@ -46,7 +47,7 @@ const TXT = {
 export interface FilaDelPanel { t: Task; wbs: string; ancestros: string[] }
 
 export function PanelDeTareaV6({
-  fila, es, cal, hoy, nombreProyecto, cifras, estados, nombreEstado, porId, tarifaDe, onCerrar, onAbrirFicha, onIrA, acciones,
+  fila, es, cal, hoy, nombreProyecto, cifras, estados, nombreEstado, porId, tarifaDe, onCerrar, onAbrirFicha, onIrA, onVerRiesgo, acciones,
 }: {
   fila: FilaDelPanel;
   es: boolean;
@@ -61,6 +62,8 @@ export function PanelDeTareaV6({
   onCerrar: () => void;
   onAbrirFicha?: (t: Task) => void;
   onIrA: (id: string) => void;
+  /** R6 · abrir el riesgo que afecta a la tarea */
+  onVerRiesgo?: (id: string) => void;
   /** el Tablero pone aquí «Mover a…» (o, en un padre, de dónde sale su estado) */
   acciones?: ReactNode;
 }) {
@@ -86,6 +89,8 @@ export function PanelDeTareaV6({
   const descripcion = String((t as { description?: string }).description ?? '').trim();
   const prioridad = t.priority ? x.p[t.priority] ?? t.priority : '—';
   const hijas = (t.subtasks ?? []).map((h) => porId.get(h.id)).filter((f): f is FilaDelPanel => !!f);
+  const riesgos = t.riesgos ?? [];
+  const mayor = riesgos.length ? riesgoMayor(riesgos) : undefined;
 
   return (
     <aside ref={caja} className="dpanel" aria-labelledby={`dp-t-${t.id}`}
@@ -112,6 +117,11 @@ export function PanelDeTareaV6({
           <span className={`schip ${e}`}><i aria-hidden="true" />{nombreEstado[e]}</span>
           {vencida && retraso > 0 && <span className="dp-late">{x.retraso(retraso)}</span>}
           {espera && <span className="dp-warn">{x.espera} <span className="mono">{espera.wbs}</span></span>}
+          {mayor && (
+            <button type="button" className="dp-risk" disabled={!onVerRiesgo} onClick={() => onVerRiesgo?.(mayor.id)}>
+              <PuntoDeNivelDeRiesgo nivel={mayor.nivel} />{x.riesgo} {nombreDeNivel(mayor.nivel, es).toLowerCase()} · {mayor.codigo}
+            </button>
+          )}
         </div>
         {acciones}
         {!t.isMilestone && (
@@ -178,6 +188,18 @@ export function PanelDeTareaV6({
             <p className="dp-nota">{x.nota}</p>
           </div>
         )}
+        {riesgos.length > 0 && (
+          <div>
+            <h3 className="dp-h">{x.riesgos}</h3>
+            {riesgos.map((r) => (
+              <button key={r.id} type="button" className="dp-link" disabled={!onVerRiesgo} onClick={() => onVerRiesgo?.(r.id)}>
+                <span className="mono tenue">{r.codigo}</span>
+                <span className="nm" title={r.titulo}>{r.titulo}</span>
+                <span className="end"><PuntoDeNivelDeRiesgo nivel={r.nivel} />{nombreDeNivel(r.nivel, es)}</span>
+              </button>
+            ))}
+          </div>
+        )}
         {onAbrirFicha && (
           <button type="button" className="cbox" onClick={() => onAbrirFicha(t)}>{x.comentar}</button>
         )}
@@ -201,6 +223,8 @@ export const CSS_PANEL_V6 = `
 .lista-v6 .dp-state{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .lista-v6 .dp-late{color:var(--v6-rojo);font-size:12px;font-weight:500}
 .lista-v6 .dp-warn{color:var(--v6-ambar);font-size:11px;font-weight:500}
+.lista-v6 .dp-risk{display:inline-flex;align-items:center;gap:6px;border:0;background:transparent;padding:0;font:inherit;font-size:12px;color:var(--v6-texto-2);cursor:pointer}
+.lista-v6 .dp-risk:hover:not(:disabled){color:var(--v6-texto);text-decoration:underline}
 .lista-v6 .dp-prog{display:flex;align-items:center;gap:10px}
 .lista-v6 .pbar{flex:1;height:4px;border-radius:2px;background:var(--v6-pista);overflow:hidden;display:block}
 .lista-v6 .pbar b{display:block;height:100%;background:var(--v6-acento);border-radius:2px}

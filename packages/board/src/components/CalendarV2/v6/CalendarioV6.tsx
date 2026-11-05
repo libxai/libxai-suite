@@ -21,6 +21,7 @@ import {
 } from '../../ListView/v6/reglasDeLaLista';
 import { CSS_V6 } from '../../ListView/v6/ListaV6';
 import { FILTROS_TABLERO_V6_VACIOS, type FiltrosTableroV6 } from '../../Board/v6/TableroV6';
+import { PuntoDeNivelDeRiesgo, nombreDeNivel, riesgoMayor } from '../../ListView/v6/PuntoDeRiesgo';
 
 export type EscalaCalendarioV6 = 'mes' | 'semana';
 /** El menú Vista del Calendario (lo lleva la app y lo recuerda). */
@@ -74,7 +75,7 @@ const TXT = {
     cerrar: 'Cerrar', retraso: (n: number) => `Retraso: ${n} ${n === 1 ? 'día hábil' : 'días hábiles'}`, espera: 'Espera a',
     fechas: 'Fechas', dur: 'Duración', dias: (n: number) => `${n} ${n === 1 ? 'día hábil' : 'días hábiles'}`, alDia: (h: string) => `· ${h} h al día`,
     avance: 'Avance', resp: 'Responsable', sinResp: 'Sin responsable', horas: 'Horas', registradas: 'registradas', dep: 'Depende de',
-    abrirFicha: 'Abrir ficha completa', calendario: 'Calendario del proyecto',
+    abrirFicha: 'Abrir ficha completa', calendario: 'Calendario del proyecto', riesgo: 'Riesgo',
     reprogramada: (n: string, a: string, b: string) => `«${n}»: ${a} → ${b}.`, deshacer: 'Deshacer', deshecho: (n: string) => `Cambio deshecho: «${n}» vuelve a sus fechas.`,
     recursos: 'Recursos e impacto de flujo de caja', personas: (n: number, mes: boolean) => `${n} ${n === 1 ? 'persona' : 'personas'} ${mes ? 'este mes' : 'esta semana'}`,
     persona: 'Persona', costo: (m: string) => (m ? `Costo (${m})` : 'Costo'), sinPeriodo: 'Sin tareas en el periodo', total: 'Total',
@@ -92,7 +93,7 @@ const TXT = {
     cerrar: 'Close', retraso: (n: number) => `Delay: ${n} working ${n === 1 ? 'day' : 'days'}`, espera: 'Waiting for',
     fechas: 'Dates', dur: 'Duration', dias: (n: number) => `${n} working ${n === 1 ? 'day' : 'days'}`, alDia: (h: string) => `· ${h} h a day`,
     avance: 'Progress', resp: 'Owner', sinResp: 'No owner', horas: 'Hours', registradas: 'logged', dep: 'Depends on',
-    abrirFicha: 'Open full task', calendario: 'Project calendar',
+    abrirFicha: 'Open full task', calendario: 'Project calendar', riesgo: 'Risk',
     reprogramada: (n: string, a: string, b: string) => `“${n}”: ${a} → ${b}.`, deshacer: 'Undo', deshecho: (n: string) => `Change undone: “${n}” is back on its dates.`,
     recursos: 'Resources and cash-flow impact', personas: (n: number, mes: boolean) => `${n} ${n === 1 ? 'person' : 'people'} ${mes ? 'this month' : 'this week'}`,
     persona: 'Person', costo: (m: string) => (m ? `Cost (${m})` : 'Cost'), sinPeriodo: 'No tasks in the period', total: 'Total',
@@ -125,6 +126,8 @@ export interface CalendarioV6Props {
   monedaCodigo?: string;
   nombreProyecto?: string;
   onAbrir?: (t: Task) => void;
+  /** R6 · abrir un riesgo desde la ficha de la tarea */
+  onVerRiesgo?: (id: string) => void;
   /** reprogramar arrastrando una barra; `false` si no se pudo */
   onReprogramar?: (t: Task, inicio: Date, fin: Date) => boolean | void | Promise<boolean | void>;
   hoy?: Date;
@@ -132,7 +135,7 @@ export interface CalendarioV6Props {
 
 export function CalendarioV6({
   tasks, es, cal, festivos = [], ancla, onAncla, vista, onVista, filtros, onFiltros, tarifaDe, conCosto = true, monedaCodigo,
-  nombreProyecto, onAbrir, onReprogramar, hoy: hoyProp,
+  nombreProyecto, onAbrir, onVerRiesgo, onReprogramar, hoy: hoyProp,
 }: CalendarioV6Props) {
   const x = es ? TXT.es : TXT.en;
   const idioma = es ? 'es' : 'en';
@@ -423,6 +426,7 @@ export function CalendarioV6({
     const reg = ((h.t as { timeLoggedMinutes?: number }).timeLoggedMinutes ?? 0) / 60;
     const deps = (h.t.dependencies ?? []).map((d) => porId.get(d)).filter((d): d is { t: Task; wbs: string } => !!d);
     const espera = h.estado === 'blocked' ? deps.find((d) => estadoDe(d.t) !== 'done') : undefined;
+    const riesgo = h.t.riesgos?.length ? riesgoMayor(h.t.riesgos) : undefined;
     return (
       <div className="cv-ficha" role="dialog" aria-labelledby={`cv-f-${id}`}>
         <div className="fi-top">
@@ -437,6 +441,11 @@ export function CalendarioV6({
           <span className={`schip ${h.estado}`}><i aria-hidden="true" />{x.st[h.estado]}</span>
           {vencida(h) && <span className="fi-late">{x.retraso(diasDeRetraso(h.t, hoy, cal))}</span>}
           {espera && <span className="fi-warn"><Advertencia />{x.espera} <span className="mono">{espera.wbs}</span></span>}
+          {riesgo && (
+            <button type="button" className="fi-risk" disabled={!onVerRiesgo} onClick={() => { cerrar(); onVerRiesgo?.(riesgo.id); }}>
+              <PuntoDeNivelDeRiesgo nivel={riesgo.nivel} />{x.riesgo} {nombreDeNivel(riesgo.nivel, es).toLowerCase()} · {riesgo.codigo}
+            </button>
+          )}
         </div>
         <dl className="fi-f">
           <dt>{x.fechas}</dt>
@@ -707,6 +716,8 @@ export const CSS_CALENDARIO_V6 = `
 .calendario-v6 .fi-crumb{font-size:11px;color:var(--v6-tenue);margin:3px 0 10px}
 .calendario-v6 .fi-state{display:flex;gap:8px 10px;flex-wrap:wrap;align-items:center;margin-bottom:6px}
 .calendario-v6 .fi-late{color:var(--v6-rojo);font-size:12px;font-weight:500}
+.calendario-v6 .fi-risk{display:inline-flex;align-items:center;gap:6px;border:0;background:transparent;padding:0;font:inherit;font-size:12px;color:var(--v6-texto-2);cursor:pointer}
+.calendario-v6 .fi-risk:hover:not(:disabled){color:var(--v6-texto);text-decoration:underline}
 .calendario-v6 .fi-warn{display:inline-flex;align-items:center;gap:5px;color:var(--v6-ambar);font-size:11px;font-weight:500}
 .calendario-v6 .fi-f{display:grid;grid-template-columns:92px 1fr;margin:0}
 .calendario-v6 .fi-f dt{font-size:11px;font-weight:500;color:var(--v6-tenue);min-height:28px;display:flex;align-items:center}

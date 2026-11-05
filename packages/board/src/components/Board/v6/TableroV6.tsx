@@ -26,6 +26,7 @@ import {
 } from '../../ListView/v6/reglasDeLaLista';
 import { CSS_V6 } from '../../ListView/v6/ListaV6';
 import { CSS_PANEL_V6, PanelDeTareaV6, type FilaDelPanel } from '../../ListView/v6/PanelDeTareaV6';
+import { PuntoDeRiesgo } from '../../ListView/v6/PuntoDeRiesgo';
 import { CSS_RECURSOS_V6, RecursosDeLaListaV6 } from '../../ListView/v6/RecursosDeLaListaV6';
 
 export type AgruparTableroV6 = 'fase' | 'padre' | 'todo';
@@ -219,12 +220,14 @@ export interface TableroV6Props {
   onCambiarPadre?: (t: Task, padre: string | null, posicion: number) => boolean | void | Promise<boolean | void>;
   /** la ficha completa de siempre */
   onAbrir?: (t: Task) => void;
+  /** R6 · abrir un riesgo desde el panel de la tarea */
+  onVerRiesgo?: (id: string) => void;
   hoy?: Date;
 }
 
 export function TableroV6({
   tasks: tasksProp, es, cal, tarifaDe, tarifaDePersona, monedaCodigo, conCosto = true, costoAlTerminar, onVerRecursos, nombreProyecto,
-  vista, onVista, filtros, onFiltros, onMover, onCambiarPadre, onAbrir, hoy: hoyProp,
+  vista, onVista, filtros, onFiltros, onMover, onCambiarPadre, onAbrir, onVerRiesgo, hoy: hoyProp,
 }: TableroV6Props) {
   const x = es ? TXT.es : TXT.en;
   const idioma = es ? 'es' : 'en';
@@ -695,6 +698,7 @@ export function TableroV6({
         onDragEnd={() => { setArrastre(null); setSobre(null); }}>
         <div className="kc-top">
           <span className="kc-path" title={rutaDe(h)}>{nombreNodo(n.padre)}</span>
+          <PuntoDeRiesgo riesgos={h.riesgos} es={es} />
           <span className="mono">{n.wbs}</span>
           <button type="button" className="kc-more" tabIndex={-1} aria-haspopup="menu" aria-expanded={menuDe === h.id} aria-label={x.acciones(`${n.wbs} ${h.name}`)}
             onClick={(ev) => { ev.stopPropagation(); setMenuDe(menuDe === h.id ? null : h.id); }}><Puntos /></button>
@@ -1040,7 +1044,7 @@ export function TableroV6({
             cifras={cifras.get(filaPanel.t.id) ?? cifrasDe(filaPanel.t, tarifaDe, hoy)} estados={estados} nombreEstado={x.st} porId={nodos}
             tarifaDe={tarifaDe} acciones={accionesDelPanel}
             onCerrar={() => { const id = filaPanel.t.id; setEnPanel(null); enfocar(id); }}
-            onAbrirFicha={onAbrir} onIrA={(id) => { setEnPanel(id); enfocar(id); }} />
+            onAbrirFicha={onAbrir} onVerRiesgo={onVerRiesgo} onIrA={(id) => { setEnPanel(id); enfocar(id); }} />
         )}
       </div>
 

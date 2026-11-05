@@ -196,6 +196,7 @@ export type { ListViewThemeName } from './components/ListView'
 export { estadoDe, estadoDeHoja, estaVencida, diasDeRetraso, hojasDe, tieneHijas } from './components/ListView/v6/reglasDeLaLista'
 export type { EstadoV6 } from './components/ListView/v6/reglasDeLaLista'
 export { fechaCorta } from './components/Gantt/fechaCorta'
+export type { RiesgoDeLaTarea } from './components/Gantt/types'
 // Maquetas v3 (Yesid) · el Calendario v6 (Asakaa)
 export { CalendarioV6, VISTA_CALENDARIO_V6_POR_DEFECTO, pasoDelCalendarioV6 } from './components/CalendarV2/v6/CalendarioV6'
 export type { CalendarioV6Props, VistaCalendarioV6, EscalaCalendarioV6 } from './components/CalendarV2/v6/CalendarioV6'

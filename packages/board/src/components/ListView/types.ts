@@ -489,6 +489,8 @@ export interface ListViewConfig {
   /** v6 · «Recursos e impacto de flujo de caja»: costo al terminar (EAC) y el enlace a Recursos */
   costoAlTerminarV6?: number | null;
   onVerRecursosV6?: () => void;
+  /** v6 · R6: abrir un riesgo desde el panel de la tarea */
+  onVerRiesgoV6?: (id: string) => void;
   /**
    * 1.9.39 · `false` quita el botón «Filters» (estado / ocultar completadas) de
    * la barra, para la app que tiene su propio sistema de filtros. Por defecto se pinta.

@@ -3,6 +3,7 @@ import { useGanttEnEspanol } from './GanttI18nContext';
 import { createPortal } from 'react-dom';
 import { ChevronDown, ChevronRight, ChevronLeft, Plus, Edit3, GripVertical, Calendar, Keyboard, ChevronsDownUp, User as IconoPersona } from 'lucide-react';
 import { MIN_COMIENZO, partirNombre, prefijosConHermanas, rutaDelNombre } from './nombreLargo';
+import { PuntoDeRiesgo } from '../ListView/v6/PuntoDeRiesgo';
 import { fechaCorta } from './fechaCorta';
 import { Task, GanttColumn, ColumnType, GanttTemplates } from './types';
 import { motion } from 'framer-motion';
@@ -795,6 +796,7 @@ export function TaskGrid({
               );
             })()
           )}
+          <PuntoDeRiesgo riesgos={task.riesgos} es={esGrid} />
           {showCriticalPath && task.isCriticalPath && (
             <span aria-label={esGrid ? 'En la ruta crítica' : 'On the critical path'} style={{ flex: 'none', width: 6, height: 6, borderRadius: '50%', background: 'var(--v6-rojo-punto, #D13A40)' }} />
           )}
