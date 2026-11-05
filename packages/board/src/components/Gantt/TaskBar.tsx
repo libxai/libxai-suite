@@ -1106,8 +1106,8 @@ export function TaskBar({
               <rect x={displayX} y={y} width={displayWidth * (avance / 100)} height={height} clipPath={`url(#${idRecorte})`} data-parte="avance" fill="var(--v6-acento, #0FA392)" style={{ pointerEvents: 'none' }} />
             )}
             {isAtRisk && (
-              /* P1-4 · «en riesgo» es ámbar en toda la app, no rojo */
-              <rect x={displayX} y={y} width={displayWidth} height={height} rx={6} fill="none" stroke="var(--v6-ambar-punto, #D9870B)" strokeWidth={1.5} data-parte="alerta" style={{ pointerEvents: 'none' }} />
+              /* P1-4 · G7 · la ruta crítica: borde de 2 px en `text`; el ámbar y el rojo quedan para riesgo y vencido */
+              <rect x={displayX} y={y} width={displayWidth} height={height} rx={6} fill="none" stroke="var(--v6-texto, #0E1114)" strokeWidth={2} data-parte="alerta" style={{ pointerEvents: 'none' }} />
             )}
             {duracionV6 && !isDragging && (
               <text x={displayX + displayWidth + 6} y={y + height / 2} dominantBaseline="middle" fill="var(--v6-tenue, #5F6972)" fontSize={11} fontFamily="'JetBrains Mono', ui-monospace, monospace" style={{ fontVariantNumeric: 'tabular-nums', pointerEvents: 'none', userSelect: 'none' }}>

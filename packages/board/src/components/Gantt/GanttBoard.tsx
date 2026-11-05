@@ -803,7 +803,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       const sorted = [...taskList].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
       return sorted.map((task, i) => {
         const seq = i + 1;
-        const wbsCode = parentWbs ? `${parentWbs}.${seq}` : `${seq}.0`;
+        const wbsCode = parentWbs ? `${parentWbs}.${seq}` : `${seq}`; /* G14 · «195», no «195.0» */
         const childPrefix = parentWbs ? `${parentWbs}.${seq}` : `${seq}`;
         return {
           ...task,
@@ -2369,11 +2369,12 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       ref={ganttContainerRef}
       className="flex flex-col h-full w-full"
       style={{
-        backgroundColor: theme.bgPrimary,
+        backgroundColor: disenoV6 ? 'var(--v6-tarjeta, #FFFFFF)' : theme.bgPrimary,
         fontFamily: 'Inter, sans-serif',
         minHeight: 0, // Critical for flex children to shrink
         // Chronos V2: Dot-grid background pattern
-        ...(theme.dotGrid && {
+        /* G16 · con la v6, fondos planos */
+        ...(theme.dotGrid && !disenoV6 && {
           backgroundImage: `radial-gradient(circle, ${theme.dotGrid} 1px, transparent 1px)`,
           backgroundSize: '24px 24px',
         }),
@@ -2550,6 +2551,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
             v6={!!disenoV6}
             resumenV6={resumenV6}
             onMostrarOcultas={disenoV6 && completadasOcultas > 0 ? () => setHideCompleted(false) : undefined}
+            onOcultarCompletadas={disenoV6 && !hideCompleted ? () => setHideCompleted(true) : undefined}
             avisoVencidas={avisoVencidas}
             onVerVencidas={avisoVencidas ? () => { setHideCompleted(false); setTaskFilter('overdue'); } : undefined}
             onContraerTodo={disenoV6 ? contraerTodo : undefined}
@@ -2656,6 +2658,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
             workingDaysConfig={config?.workingDaysConfig}
             ventanaVisible={ventanaVisible}
             onIrAFecha={(d: Date) => desplazarA(d, 'center')}
+            onExpandirGrupo={handleTaskToggle}
             finPlaneado={config?.finPlaneado ?? null}
             finPrevisto={config?.projectForecast?.expectedFinish ?? null}
           />

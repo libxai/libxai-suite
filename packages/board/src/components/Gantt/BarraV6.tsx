@@ -300,24 +300,7 @@ export function BarraV6(p: BarraV6Props) {
                 )}
               </>
             )}
-          </>
-        )}
-      </Desplegable>
-
-      <Desplegable
-        alinear="derecha"
-        ancho={248}
-        boton={(abrir, abierto, ref) => (
-          <button ref={ref} type="button" aria-haspopup="menu" aria-expanded={abierto} onClick={abrir}
-            aria-label={tx('Más opciones: vista, exportar, compartir', 'More options: view, export, share')}
-            title={tx('Más opciones', 'More options')}
-            style={{ ...BOTON_BASE, width: 36, justifyContent: 'center', padding: 0, border: 0, background: 'transparent', color: V.texto2 }}>
-            <MoreHorizontal className="w-4 h-4" aria-hidden />
-          </button>
-        )}
-      >
-        {(cerrar) => (
-          <>
+            <Separador />
             <Titulo>{tx('Ver', 'Show')}</Titulo>
             {p.onShowCriticalPathChange && (
               <Opcion marcada={p.showCriticalPath} alPulsar={() => p.onShowCriticalPathChange?.(!p.showCriticalPath)}>
@@ -356,8 +339,25 @@ export function BarraV6(p: BarraV6Props) {
                 ))}
               </>
             )}
-            {(exportar.length > 0 || p.onCopySnapshotLink) && <Separador />}
-            {exportar.map((x) => (
+          </>
+        )}
+      </Desplegable>
+
+      <Desplegable
+        alinear="derecha"
+        ancho={248}
+        boton={(abrir, abierto, ref) => (
+          <button ref={ref} type="button" aria-haspopup="menu" aria-expanded={abierto} onClick={abrir}
+            aria-label={tx('Más opciones: exportar, compartir', 'More options: export, share')}
+            title={tx('Más opciones', 'More options')}
+            style={{ ...BOTON_BASE, width: 36, justifyContent: 'center', padding: 0, border: 0, background: 'transparent', color: V.texto2 }}>
+            <MoreHorizontal className="w-4 h-4" aria-hidden />
+          </button>
+        )}
+      >
+        {(cerrar) => (
+          <>
+                        {exportar.map((x) => (
               <Opcion key={x.id} alPulsar={() => { cerrar(); void x.f(); }}>{x.etiqueta}</Opcion>
             ))}
             {p.onCopySnapshotLink && (

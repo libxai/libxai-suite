@@ -80,6 +80,8 @@ interface TaskGridProps {
   onContraerTodo?: () => void;
   /** Gantt ronda 2 · P2 · «Mostrar» las completadas ocultas, junto a su contador. */
   onMostrarOcultas?: () => void;
+  /** G14 · tras «Mostrar», la acción para volver a ocultar */
+  onOcultarCompletadas?: () => void;
   /** Gantt ronda 2 · R1 · las filas que se dibujan; `null`, todas. */
   filasVisibles?: { desde: number; hasta: number } | null;
   /** Gantt ronda 2 · R4 · «12 vencidas» y su «Ver» (activa el filtro «Solo vencidas»). */
@@ -125,6 +127,7 @@ export function TaskGrid({
   resumenV6,
   onContraerTodo,
   onMostrarOcultas,
+  onOcultarCompletadas,
   filasVisibles = null,
   avisoVencidas,
   onVerVencidas,
@@ -1086,7 +1089,10 @@ export function TaskGrid({
               style={v6 ? {
                 whiteSpace: 'nowrap', padding: 0, border: 0, background: 'transparent',
                 fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontVariantNumeric: 'tabular-nums', fontSize: 11,
-                color: 'var(--v6-texto-2, #4D5761)', cursor: isParentTask ? 'default' : 'pointer',
+                /* G2 · la fecha Fin de una vencida va en rojo */
+                color: !isStartDate && !isParentTask && task.status !== 'completed' && (task.progress ?? 0) < 100 && dateValue && new Date(dateValue).getTime() < new Date(new Date().toDateString()).getTime()
+                  ? 'var(--v6-rojo, #B02A33)' : 'var(--v6-texto-2, #4D5761)',
+                cursor: isParentTask ? 'default' : 'pointer',
               } : {
                 color: theme.textSecondary,
                 opacity: isParentTask ? 0.5 : 1,
@@ -1608,7 +1614,7 @@ export function TaskGrid({
     <div
       className="gantt-taskgrid-content"
       style={{
-        backgroundColor: theme.bgPrimary,
+        backgroundColor: v6 ? 'var(--v6-tarjeta, #FFFFFF)' : theme.bgPrimary,
         minWidth: totalColumnsWidth, // v0.17.194: Enable horizontal scroll when needed
       }}
     >
@@ -1628,6 +1634,15 @@ export function TaskGrid({
                   <button type="button" onClick={onMostrarOcultas} data-mostrar-ocultas
                     style={{ border: 0, padding: 0, background: 'transparent', font: 'inherit', color: 'var(--v6-acento-texto, #087F72)', fontWeight: 500, cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 2 }}>
                     {esGrid ? 'Mostrar' : 'Show'}
+                  </button>
+                </>
+              )}
+              {onOcultarCompletadas && (
+                <>
+                  {' · '}
+                  <button type="button" onClick={onOcultarCompletadas} data-ocultar-completadas
+                    style={{ border: 0, padding: 0, background: 'transparent', font: 'inherit', color: 'var(--v6-acento-texto, #087F72)', cursor: 'pointer' }}>
+                    {esGrid ? 'Ocultar completadas' : 'Hide completed'}
                   </button>
                 </>
               )}

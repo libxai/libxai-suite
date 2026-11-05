@@ -26,6 +26,8 @@ interface TimelineProps {
   /** Gantt ronda 2 (Yesid) · R1 · las filas que se dibujan (las visibles y un margen); `null`, todas (p. ej. al exportar). */
   filasVisibles?: { desde: number; hasta: number } | null;
   onIrAFecha?: (fecha: Date) => void;
+  /** G3 · despliega un grupo plegado */
+  onExpandirGrupo?: (id: string) => void;
   /** Mejora fuerte 6 · fin planeado del proyecto y fin previsto (pronóstico). */
   finPlaneado?: Date | null;
   finPrevisto?: Date | null;
@@ -106,6 +108,7 @@ export function Timeline({
   ventanaVisible,
   filasVisibles = null,
   onIrAFecha,
+  onExpandirGrupo,
   finPlaneado,
   finPrevisto,
   alturaCabecera,
@@ -262,9 +265,11 @@ export function Timeline({
   };
 
   // Check if date is weekend
+  /* G1 · si el espacio trabaja el sábado, se sombrea sólo el domingo: lo que se pinta es lo que se cuenta */
   const isWeekend = (date: Date): boolean => {
     const day = date.getDay();
-    return day === 0 || day === 6;
+    if (day !== 0 && day !== 6) return false;
+    return !(workingDaysConfig?.enabledWeekdays?.[day]);
   };
 
   // Holiday set (workspace-local 'YYYY-MM-DD') derived from workingDaysConfig.
@@ -284,6 +289,31 @@ export function Timeline({
   /* Gantt v6 · la duración en días hábiles (los laborables del espacio menos sus festivos). */
   const calendarioV6 = useMemo(() => calendarioDe(workingDaysConfig ?? null), [workingDaysConfig]);
   const diasHabilesDe = (t: Task): number => (t.startDate && t.endDate ? habilesEntre(t.startDate, t.endDate, calendarioV6) : 0);
+  /** G5 · lo que ocupa la etiqueta «12 d» después de una barra, con su margen */
+  const anchoDuracion = (t: Task): number => `${diasHabilesDe(t)} d`.length * 6.6 + 12;
+
+  /** G5 · el conector sale después de lo que hay junto a la barra: la duración y, si está vencida, su chip */
+  const salidaDelConector = (t: Task): number => {
+    const vencida = !t.subtasks?.length && t.status !== 'completed' && (t.progress ?? 0) < 100 && !!t.endDate && t.endDate.getTime() < new Date(new Date().toDateString()).getTime();
+    return anchoDuracion(t) + (vencida && t.endDate ? fechaCorta(t.endDate, locale).length * 6.6 + 16 : 0);
+  };
+
+  /* G3 · el chip de un grupo plegado: despliega lo necesario, lleva a la primera vencida y la resalta un momento */
+  const [resaltada, setResaltada] = useState<string | null>(null);
+  const irALaPrimeraVencida = (grupo: Task) => {
+    const hoy = new Date(new Date().toDateString()).getTime();
+    const buscar = (t: Task, camino: Task[]): { hoja: Task; camino: Task[] }[] => {
+      if (t.subtasks?.length) return t.subtasks.flatMap((s) => buscar(s, [...camino, t]));
+      const abierta = t.status !== 'completed' && (t.progress ?? 0) < 100;
+      return abierta && t.endDate && t.endDate.getTime() < hoy ? [{ hoja: t, camino }] : [];
+    };
+    const primera = buscar(grupo, []).sort((a, b) => a.hoja.endDate!.getTime() - b.hoja.endDate!.getTime())[0];
+    if (!primera) return;
+    for (const g of primera.camino) if (g.isExpanded === false) onExpandirGrupo?.(g.id);
+    onIrAFecha?.(primera.hoja.endDate!);
+    setResaltada(primera.hoja.id);
+    window.setTimeout(() => setResaltada(null), 2400);
+  };
 
   // Convert pixel position to date
   const pixelToDate = useCallback((pixelX: number): Date => {
@@ -606,6 +636,8 @@ export function Timeline({
    * previsto en un círculo y hoy en una píldora oscura.
    */
   const esV6Dia = v6 && timeScale === 'day';
+  /* G8 · la escala S, en dos filas como la D: el mes arriba y la semana debajo */
+  const esV6Semana = v6 && timeScale === 'week';
   const anchoDia = dayWidth * zoom;
   const mismoDia = (a?: Date | null, b?: Date | null) => !!a && !!b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
   const mesCorto = (d: Date) => d.toLocaleDateString(locale, { month: 'short' }).replace('.', '');
@@ -666,7 +698,7 @@ export function Timeline({
       data-gantt-chart
       /* 1.9.36 · la escala visible, para que la app ajuste por CSS (rayado solo en D, etc.). */
       data-escala={timeScale}
-      style={{ backgroundColor: theme.bgPrimary }}
+      style={{ backgroundColor: v6 ? 'var(--v6-tarjeta, #FFFFFF)' : theme.bgPrimary }}
     >
       {/* v0.13.7: Sticky Header - stays visible during vertical scroll */}
       {/* Chronos V2: Frosted glass header */}
@@ -735,8 +767,38 @@ export function Timeline({
             </g>
           )}
 
+          {esV6Semana && (
+            <g data-escala-v6="semana">
+              {headers.map((h, i) => {
+                const anterior = headers[i - 1]?.date;
+                if (anterior && anterior.getMonth() === h.date.getMonth()) return null;
+                return (
+                  <g key={`mes-${i}`}>
+                    {i > 0 && <line x1={h.x} y1={0} x2={h.x} y2={HEADER_HEIGHT} style={{ stroke: V6S.borde }} strokeWidth={1} />}
+                    <text x={h.x + 8} y={13} dominantBaseline="middle" style={{ fill: V6S.texto2, fontSize: 12, fontWeight: 500, fontFamily: 'Geist, sans-serif' }}>
+                      {h.date.toLocaleDateString(locale, { month: 'long', year: 'numeric' })}
+                    </text>
+                  </g>
+                );
+              })}
+              <line x1={0} y1={24.5} x2={Math.max(timelineWidth, 1000)} y2={24.5} style={{ stroke: V6S.linea }} strokeWidth={1} />
+              {headers.map((h, i) => {
+                const fin = new Date(h.date); fin.setDate(fin.getDate() + 6);
+                const rango = h.date.getMonth() === fin.getMonth() ? `${h.date.getDate()}–${fin.getDate()}` : `${h.date.getDate()}–${fin.getDate()} ${mesCorto(fin)}`;
+                return (
+                  <g key={`sem-${i}`}>
+                    {i > 0 && <line x1={h.x} y1={24.5} x2={h.x} y2={HEADER_HEIGHT} style={{ stroke: V6S.linea }} strokeWidth={1} />}
+                    <text x={h.x + 6} y={24 + 17} dominantBaseline="middle" style={{ fill: V6S.texto, fontSize: 11, fontFamily: 'Geist, sans-serif' }}>
+                      {rango}<tspan dx={5} style={{ fill: V6S.tenue, fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}>{getWeekNumber(h.date)}</tspan>
+                    </text>
+                  </g>
+                );
+              })}
+            </g>
+          )}
+
           {/* Header Grid Lines and Text */}
-          {!esV6Dia && headers.map((header, index) => (
+          {!esV6Dia && !esV6Semana && headers.map((header, index) => (
             <g key={`header-${index}`}>
               {/* Grid line in header - skip first line since TaskGrid border serves as divider */}
               {index > 0 && (
@@ -1112,7 +1174,7 @@ export function Timeline({
                 {xFinal - 2 > x0 && <rect x={x0} y={cy - 2} width={xFinal - 2 - x0} height={4} rx={2} data-parte="pista" fill="var(--v6-grupo, #8A939C)" />}
                 <rect x={xFinal - 2} y={cy - 5} width={2} height={10} rx={1} data-parte="remate" fill="var(--v6-grupo-remate, #3A434C)" />
                 {showCriticalPath && task.isCriticalPath && (
-                  <rect x={x0} y={cy - 3} width={Math.max(0, xFinal - x0)} height={6} rx={3} fill="none" stroke="var(--v6-rojo-punto, #D13A40)" strokeWidth={1.5} style={{ pointerEvents: 'none' }} />
+                  <rect x={x0} y={cy - 3} width={Math.max(0, xFinal - x0)} height={6} rx={3} fill="none" stroke="var(--v6-texto, #0E1114)" strokeWidth={1.5} style={{ pointerEvents: 'none' }} />
                 )}
                 <text x={xFinal + 6} y={cy} dominantBaseline="middle" fill="var(--v6-tenue, #5F6972)" fontSize={11} fontFamily="'JetBrains Mono', ui-monospace, monospace" style={{ fontVariantNumeric: 'tabular-nums', pointerEvents: 'none', userSelect: 'none' }}>
                   {`${diasHabilesDe(task)} d`}
@@ -1321,7 +1383,8 @@ export function Timeline({
             // Mejora fuerte 5 · FS: fin → inicio; SS: inicio → inicio; FF: fin → fin; SF: inicio → fin.
             const salidaPorInicio = tipo === 'SS' || tipo === 'SF';
             const entradaPorFin = tipo === 'FF' || tipo === 'SF';
-            const exitX = salidaPorInicio ? fromPos.x : fromPos.x + fromPos.width;
+            /* G5 · el conector sale después de la etiqueta de duración, no por encima */
+            const exitX = salidaPorInicio ? fromPos.x : fromPos.x + fromPos.width + (v6 ? salidaDelConector(depTask) : 0);
             const exitY = v6 ? fromIndex * ROW_HEIGHT + ROW_HEIGHT / 2 : fromIndex * ROW_HEIGHT + 26;
             const enterX = entradaPorFin ? toPos.x + toPos.width : toPos.x;
             const enterY = v6 ? toIndex * ROW_HEIGHT + ROW_HEIGHT / 2 : toIndex * ROW_HEIGHT + 26;
@@ -1336,12 +1399,12 @@ export function Timeline({
             const conflicto = enlacesEnConflicto.get(`${depId}>${task.id}`);
             const enConflicto = !!conflicto;
             const cpmColorOverride = enConflicto ? 'var(--v6-ambar, #F59E0B)' : showCriticalPath
-              ? (bothCritical ? '#EF4444' : 'rgba(255,255,255,0.10)')
+              ? (v6 ? (bothCritical ? 'var(--v6-texto, #0E1114)' : 'var(--v6-separador, #CDD2D8)') : (bothCritical ? '#EF4444' : 'rgba(255,255,255,0.10)'))
               : undefined;
             const cpmStrokeWidth = showCriticalPath
               ? (bothCritical ? 2 : 1)
               : undefined;
-            const cpmGlow = bothCritical
+            const cpmGlow = bothCritical && !v6
               ? 'drop-shadow(0 0 4px rgba(239, 68, 68, 0.3))'
               : undefined;
 
@@ -1522,6 +1585,10 @@ export function Timeline({
 
         {/* Mejora fuerte 6 · «indicador cuando una barra queda fuera de vista»: en su fila, junto al
             borde, la fecha y una flecha; un clic lleva a la barra. */}
+        {resaltada && flatTasks.some((t) => t.id === resaltada) && (
+          <rect data-fila-resaltada x={0} y={flatTasks.findIndex((t) => t.id === resaltada) * ROW_HEIGHT} width={Math.max(timelineWidth, 1000)} height={ROW_HEIGHT}
+            style={{ fill: 'var(--v6-rojo-fondo, #FBE9EA)', opacity: 0.7, pointerEvents: 'none' }} />
+        )}
         {ventanaVisible && flatTasks.map((t, index) => {
           if (!enFranja(index)) return null; // R1
           if (!t.startDate || !t.endDate) return null;
@@ -1532,18 +1599,33 @@ export function Timeline({
           if (vencidasDelGrupo > 0) {
             const textoG = `${lado === 'left' ? '‹ ' : ''}${vencidasDelGrupo} ${locale === 'es' ? (vencidasDelGrupo === 1 ? 'vencida' : 'vencidas') : 'overdue'}${lado === 'right' ? ' ›' : ''}`;
             const anchoG = textoG.length * 6.6 + 16;
-            const xG = lado === 'left' ? ventanaVisible.izq + 4 : lado === 'right' ? ventanaVisible.der - anchoG - 4 : pos.x + pos.width + 8;
+            const xG = lado === 'left' ? ventanaVisible.izq + 4 : lado === 'right' ? ventanaVisible.der - anchoG - 4 : pos.x + pos.width + anchoDuracion(t);
             const yG = index * ROW_HEIGHT + ROW_HEIGHT / 2 - 11;
             return (
-              <g key={`vencidas-${t.id}`} data-vencidas-del-grupo={vencidasDelGrupo} style={{ pointerEvents: lado ? 'auto' : 'none', cursor: lado && onIrAFecha ? 'pointer' : 'default' }}
-                onClick={() => { if (lado) onIrAFecha?.(t.startDate!); }}>
+              <g key={`vencidas-${t.id}`} data-vencidas-del-grupo={vencidasDelGrupo} role="button" tabIndex={0} aria-label={textoG}
+                style={{ pointerEvents: 'auto', cursor: onIrAFecha ? 'pointer' : 'default' }}
+                onClick={() => irALaPrimeraVencida(t)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); irALaPrimeraVencida(t); } }}>
                 <title>{locale === 'es' ? `${vencidasDelGrupo} ${vencidasDelGrupo === 1 ? 'tarea vencida' : 'tareas vencidas'} en «${t.name}»` : `${vencidasDelGrupo} overdue in "${t.name}"`}</title>
                 <rect x={xG} y={yG} width={anchoG} height={22} rx={6} strokeWidth={1} style={{ fill: 'var(--v6-rojo-fondo, #FBE9EA)', stroke: 'var(--v6-rojo-borde, rgba(192,48,58,0.75))' }} />
                 <text x={xG + anchoG / 2} y={yG + 11.5} textAnchor="middle" dominantBaseline="middle" style={{ fill: 'var(--v6-rojo, #B02A33)', fontSize: 11, fontWeight: 500, fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}>{textoG}</text>
               </g>
             );
           }
-          if (!lado) return null;
+          if (!lado) {
+            /* G2 · una vencida a la vista lleva su chip rojo con la fecha fin, después de la duración */
+            const hoyV6Num = new Date(new Date().toDateString()).getTime();
+            if (!v6 || t.subtasks?.length || t.status === 'completed' || (t.progress ?? 0) >= 100 || t.endDate.getTime() >= hoyV6Num) return null;
+            const textoV = fechaCorta(t.endDate, locale);
+            const anchoV = textoV.length * 6.6 + 12;
+            const xV = pos.x + pos.width + anchoDuracion(t);
+            const yV = index * ROW_HEIGHT + ROW_HEIGHT / 2 - 10;
+            return (
+              <g key={`vencida-${t.id}`} data-vencida-en-vista={t.id} style={{ pointerEvents: 'none' }}>
+                <rect x={xV} y={yV} width={anchoV} height={20} rx={6} strokeWidth={1} style={{ fill: 'var(--v6-rojo-fondo, #FBE9EA)', stroke: 'var(--v6-rojo-borde, rgba(192,48,58,.75))' }} />
+                <text x={xV + anchoV / 2} y={yV + 10.5} textAnchor="middle" dominantBaseline="middle" style={{ fill: 'var(--v6-rojo, #B02A33)', fontSize: 11, fontWeight: 500, fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}>{textoV}</text>
+              </g>
+            );
+          }
           const fecha = lado === 'left' ? t.endDate : t.startDate;
           const texto = lado === 'left'
             ? `◀ ${fechaCorta(fecha, locale)}`
