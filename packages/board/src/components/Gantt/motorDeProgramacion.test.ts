@@ -6,7 +6,7 @@
  *   oct 2026:  L5 M6 X7 J8 V9 | S10 D11 | L12(festivo) M13 X14 J15 V16 | S17 D18 | L19 …
  */
 import { describe, it, expect } from 'vitest';
-import {
+import { moverConservandoHabiles,
   calendarioDe, sumarHabiles, habilesEntre, finConDuracion, fechasQueCumplen, empujarSucesoras,
   conflictosDelCronograma, enlacesDe, TODOS_LOS_DIAS,
 } from './motorDeProgramacion';
@@ -125,5 +125,32 @@ describe('los conflictos', () => {
     const A = tarea('A', 5, 9);
     const B = tarea('B', 13, 14, { dependencies: ['A'] });
     expect(conflictosDelCronograma([A, B], CAL)).toEqual([]);
+  });
+});
+
+describe('moverConservandoHabiles (G12)', () => {
+  const lv = calendarioDe({ enabledWeekdays: [false, true, true, true, true, true, false] });
+  const d = (m: number, dia: number) => new Date(2026, m - 1, dia);
+  const ymd = (x: Date) => `${x.getMonth() + 1}/${x.getDate()}`;
+  const antes = { inicio: d(11, 3), fin: d(11, 6) }; // martes a viernes: 4 días hábiles
+
+  it('mover dos días conserva los 4 hábiles y no acaba en domingo', () => {
+    const r = moverConservandoHabiles(antes, d(11, 5), d(11, 8), lv);
+    expect([ymd(r.inicio), ymd(r.fin)]).toEqual(['11/5', '11/10']);
+  });
+  it('soltar en fin de semana lleva al lunes; hacia atrás, al viernes', () => {
+    expect(ymd(moverConservandoHabiles(antes, d(11, 7), d(11, 10), lv).inicio)).toBe('11/9');
+    const atras = moverConservandoHabiles({ inicio: d(11, 10), fin: d(11, 13) }, d(11, 8), d(11, 11), lv);
+    expect(ymd(atras.inicio)).toBe('11/6');
+  });
+  it('estirar no se toca: manda lo que se soltó', () => {
+    const r = moverConservandoHabiles(antes, d(11, 3), d(11, 12), lv);
+    expect(ymd(r.fin)).toBe('11/12');
+    const izquierda = moverConservandoHabiles(antes, d(11, 2), d(11, 6), lv);
+    expect(ymd(izquierda.inicio)).toBe('11/2');
+  });
+  it('un hito sigue siendo de un día', () => {
+    const r = moverConservandoHabiles({ inicio: d(11, 3), fin: d(11, 3) }, d(11, 5), d(11, 5), lv);
+    expect([ymd(r.inicio), ymd(r.fin)]).toEqual(['11/5', '11/5']);
   });
 });

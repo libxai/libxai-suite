@@ -77,6 +77,18 @@ export function sumarHabiles(d: Date, n: number, cal: Calendario): Date {
   return r;
 }
 
+/**
+ * G12 · mover una barra conserva sus días HÁBILES, no los naturales: arrastrar una tarea de martes a viernes dos días la
+ * dejaba de jueves a domingo. Solo actúa al MOVER (misma duración natural que antes); al estirar manda lo que se soltó.
+ */
+export function moverConservandoHabiles(antes: { inicio: Date; fin: Date }, inicio: Date, fin: Date, cal: Calendario): { inicio: Date; fin: Date } {
+  const seMovio = soloDia(inicio).getTime() !== soloDia(antes.inicio).getTime();
+  const mismaDuracion = soloDia(fin).getTime() - soloDia(inicio).getTime() === soloDia(antes.fin).getTime() - soloDia(antes.inicio).getTime();
+  if (!seMovio || !mismaDuracion) return { inicio, fin };
+  const nuevoInicio = habilDesde(inicio, cal, inicio < antes.inicio);
+  return { inicio: nuevoInicio, fin: finConDuracion(nuevoInicio, habilesEntre(antes.inicio, antes.fin, cal), cal) };
+}
+
 /** Días hábiles de `inicio` a `fin`, los dos incluidos (la duración de una barra). Mínimo 1. */
 /**
  * L1 · LA unidad del retraso: días hábiles de `desde` a `hasta`, sin contar `desde`; negativo si `hasta` es anterior. El 0 existe

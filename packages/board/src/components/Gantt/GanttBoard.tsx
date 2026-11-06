@@ -9,7 +9,7 @@ import { TaskGrid } from './TaskGrid';
 import { Timeline } from './Timeline';
 import { anchoDelDia, conHoy, diasTrasHoy, fechaAlAbrir, HOY_AL_ABRIR, inicioDeLaEscala, ladoDeHoy } from './rangoDeLaEscala';
 import { esVencida } from './vencidas';
-import { calendarioDe, fechasQueCumplen, empujarSucesoras, sumarHabiles } from './motorDeProgramacion';
+import { calendarioDe, fechasQueCumplen, empujarSucesoras, moverConservandoHabiles, sumarHabiles } from './motorDeProgramacion';
 import { ContextMenu, MenuIcons } from './ContextMenu'; // v0.8.0: Split task context menu
 import { TaskDetailModal } from '../TaskDetailModal'; // v0.17.244: Unified task detail modal (replaces TaskFormModal)
 import { GanttAIAssistant } from './GanttAIAssistant'; // v0.14.0: AI Assistant
@@ -484,8 +484,10 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
 
     // If we have preserved states, apply them; otherwise just use tasks as-is
     // Apply roll-up on initial load so parent dates/progress reflect children
+    /* G12 · lo que llega de la app no es un cambio del usuario: si entrara en el historial, Ctrl+Z volvería justo a lo
+       que se acaba de guardar y no pasaría nada. */
     if (expandedStatesRef.current.size > 0) {
-      setLocalTasks(rollUpParentDates(applyExpandedState(tasks)));
+      setLocalTasks(rollUpParentDates(applyExpandedState(tasks)), false);
     } else {
       // Still deduplicate even without preserved states
       const dedupeAll = (taskList: Task[]): Task[] => {
@@ -513,9 +515,9 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
           expandedStatesRef.current.set(t.id, abierto);
           return { ...t, isExpanded: abierto, subtasks: plegar(t.subtasks) };
         });
-        setLocalTasks(plegar(base));
+        setLocalTasks(plegar(base), false);
       } else {
-        setLocalTasks(base);
+        setLocalTasks(base, false);
       }
     }
   }, [tasks, setLocalTasks]);
@@ -946,9 +948,26 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   const rowHeight = disenoV6 ? ALTOS_V6[rowDensity].fila : getRowHeight(rowDensity);
 
   // Enable undo/redo keyboard shortcuts
+  /* G12 · Ctrl+Z solo cambiaba la pantalla: la base seguía con lo arrastrado y al recargar volvía. Lo deshecho se guarda
+     tarea por tarea, por el mismo camino que un arrastre. */
+  const estadoAntesDeDeshacer = useRef<Task[] | null>(null);
+  const deshacer = useCallback(() => { estadoAntesDeDeshacer.current = localTasks; undo(); }, [localTasks, undo]);
+  const rehacer = useCallback(() => { estadoAntesDeDeshacer.current = localTasks; redo(); }, [localTasks, redo]);
+  useEffect(() => {
+    const antes = estadoAntesDeDeshacer.current;
+    if (!antes || antes === localTasks) return;
+    estadoAntesDeDeshacer.current = null;
+    const previas = new Map(ganttUtils.flattenTasks(antes).map((t) => [t.id, t]));
+    const huella = (t: Task) => JSON.stringify([t.startDate, t.endDate, t.name, t.progress, t.status]);
+    for (const t of ganttUtils.flattenTasks(localTasks)) {
+      const p = previas.get(t.id);
+      if (p && huella(p) !== huella(t)) onTaskUpdate?.(t);
+    }
+  }, [localTasks, onTaskUpdate]);
+
   useGanttUndoRedoKeys({
-    undo,
-    redo,
+    undo: deshacer,
+    redo: rehacer,
     canUndo,
     canRedo,
     enabled: true,
@@ -1385,7 +1404,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       saveExpandedStatesToStorage();
 
       return newTasks;
-    });
+    }, false); /* plegar no es un cambio: no entra en Ctrl+Z */
     config.onTaskToggleExpand?.(taskId);
   }, [config, saveExpandedStatesToStorage]);
 
@@ -1614,6 +1633,11 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
        desfase, en días hábiles del espacio). Si no, se corre lo justo, conservando su duración
        hábil, y la app avisa (motorDeProgramacion.ts). */
     const calendario = calendarioDe(config?.workingDaysConfig);
+    if (task.startDate && task.endDate && !task.segments) {
+      const movida = moverConservandoHabiles({ inicio: new Date(task.startDate), fin: new Date(task.endDate) }, newStart, newEnd, calendario);
+      newStart = movida.inicio;
+      newEnd = movida.fin;
+    }
     const ajustadas = fechasQueCumplen(task, newStart, newEnd, localTasks, calendario);
     if (ajustadas.porQue) {
       newStart = ajustadas.inicio;
