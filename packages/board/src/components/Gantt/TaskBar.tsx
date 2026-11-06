@@ -900,6 +900,15 @@ export function TaskBar({
         const hasDelay = delayDays > 0;
         const isAhead = delayDays < -0;
 
+        /* A18 · con la v6, la barra gris DEBAJO de la tarea, como en la maqueta: la variación va en su columna y en el tooltip,
+           y al lado de la barra no se escribe nada más (G5). */
+        if (v6) {
+          return (
+            <rect data-linea-base={task.id} x={blX} y={y + height + 2} width={blWidth} height={3} rx={1.5}
+              style={{ fill: 'var(--v6-pista, #D5DADF)', pointerEvents: 'none' }} />
+          );
+        }
+
         return (
           <g style={{ pointerEvents: 'none' }}>
             {/* Baseline ghost bar — dashed outline */}

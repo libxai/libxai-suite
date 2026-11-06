@@ -6,7 +6,7 @@
  *   oct 2026:  L5 M6 X7 J8 V9 | S10 D11 | L12(festivo) M13 X14 J15 V16 | S17 D18 | L19 …
  */
 import { describe, it, expect } from 'vitest';
-import { moverConservandoHabiles,
+import { holguras, moverConservandoHabiles,
   calendarioDe, sumarHabiles, habilesEntre, finConDuracion, fechasQueCumplen, empujarSucesoras,
   conflictosDelCronograma, enlacesDe, TODOS_LOS_DIAS,
 } from './motorDeProgramacion';
@@ -152,5 +152,58 @@ describe('moverConservandoHabiles (G12)', () => {
   it('un hito sigue siendo de un día', () => {
     const r = moverConservandoHabiles({ inicio: d(11, 3), fin: d(11, 3) }, d(11, 5), d(11, 5), lv);
     expect([ymd(r.inicio), ymd(r.fin)]).toEqual(['11/5', '11/5']);
+  });
+});
+
+describe('holguras (A19)', () => {
+  const lv = calendarioDe({ enabledWeekdays: [false, true, true, true, true, true, false] });
+  const d = (m: number, dia: number) => new Date(2026, m - 1, dia);
+  const t = (id: string, ini: Date, fin: Date, extra: Partial<Task> = {}): Task => ({ id, name: id, startDate: ini, endDate: fin, progress: 0, ...extra } as Task);
+
+  it('la cadena más larga es crítica; la paralela tiene su holgura en días hábiles', () => {
+    /* A 2–6 nov → B 9–13 nov (FS). C 2–4 nov, suelta: puede correrse hasta el 13, 7 días hábiles. */
+    const r = holguras([t('A', d(11, 2), d(11, 6)), t('B', d(11, 9), d(11, 13), { dependencies: ['A'] }), t('C', d(11, 2), d(11, 4))], lv);
+    expect(r.get('A')).toMatchObject({ total: 0, critica: true });
+    expect(r.get('B')).toMatchObject({ total: 0, critica: true });
+    expect(r.get('C')).toMatchObject({ total: 7, critica: false });
+  });
+  it('los fines de semana no cuentan como holgura', () => {
+    const r = holguras([t('A', d(11, 2), d(11, 13)), t('C', d(11, 6), d(11, 6))], lv);
+    expect(r.get('C')?.total).toBe(5); /* del viernes 6 al viernes 13: 5 hábiles, no 7 */
+  });
+  it('el desfase consume holgura', () => {
+    /* A acaba el 4; B empieza el 9 con desfase de 2 (5 y 6): no le queda margen. */
+    const conLag = holguras([t('A', d(11, 2), d(11, 4)), t('B', d(11, 9), d(11, 13), { dependencyLinks: [{ id: 'A', type: 'FS', lag: 2 }] })], lv);
+    expect(conLag.get('A')?.total).toBe(0);
+    const sinLag = holguras([t('A', d(11, 2), d(11, 4)), t('B', d(11, 9), d(11, 13), { dependencies: ['A'] })], lv);
+    expect(sinLag.get('A')?.total).toBe(2);
+  });
+  it('SS y FF limitan por su lado', () => {
+    /* SS: B debe empezar como pronto cuando A. A puede empezar tan tarde como B. */
+    const ss = holguras([t('A', d(11, 2), d(11, 3)), t('B', d(11, 4), d(11, 6), { dependencyLinks: [{ id: 'A', type: 'SS', lag: 0 }] })], lv);
+    expect(ss.get('A')?.total).toBe(2);
+    /* FF: A no puede acabar después que B. */
+    const ff = holguras([t('A', d(11, 2), d(11, 3)), t('B', d(11, 2), d(11, 6), { dependencyLinks: [{ id: 'A', type: 'FF', lag: 0 }] })], lv);
+    expect(ff.get('A')?.total).toBe(3);
+  });
+  it('la holgura libre no pasa de lo que deja la sucesora', () => {
+    /* A acaba el 3; B empieza el 5: 1 día libre. C (después de B) es lo último. */
+    const r = holguras([t('A', d(11, 2), d(11, 3)), t('B', d(11, 5), d(11, 6), { dependencies: ['A'] }), t('X', d(11, 2), d(11, 13))], lv);
+    expect(r.get('A')?.libre).toBe(1);
+    expect(r.get('A')?.total).toBe(6);
+  });
+  it('una hija no se libra del límite de su fase', () => {
+    /* Fase con una sucesora que arranca justo después: su hija corta, dentro, tiene hueco hasta el fin de la fase y nada más. */
+    const fase = t('F', d(11, 2), d(11, 6), { subtasks: [t('h1', d(11, 2), d(11, 6)), t('h2', d(11, 2), d(11, 3))] });
+    const r = holguras([fase, t('S', d(11, 9), d(11, 13), { dependencies: ['F'] })], lv);
+    expect(r.get('h2')?.total).toBe(3);
+    expect(r.get('h1')?.critica).toBe(true);
+  });
+  it('un ciclo no cuelga', () => {
+    const r = holguras([t('A', d(11, 2), d(11, 3), { dependencies: ['B'] }), t('B', d(11, 4), d(11, 5), { dependencies: ['A'] })], lv);
+    expect(r.size).toBe(2);
+  });
+  it('sin fechas no hay nada que calcular', () => {
+    expect(holguras([{ id: 'x', name: 'x', progress: 0 } as Task], lv).size).toBe(0);
   });
 });

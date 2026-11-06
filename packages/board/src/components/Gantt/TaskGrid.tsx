@@ -7,6 +7,8 @@ import { PuntoDeRiesgo } from '../ListView/v6/PuntoDeRiesgo';
 import { fechaCorta } from './fechaCorta';
 import { Task, GanttColumn, ColumnType, GanttTemplates } from './types';
 import { motion } from 'framer-motion';
+import { COLUMNAS_OPCIONALES, textoDeColumna, tonoDeColumna, type ContextoDeColumnas } from './columnasDelGantt';
+import { MenuDeColumnasV6 } from './BarraV6';
 import { ColumnManager } from './ColumnManager'; // v0.17.215: Back with sticky positioning
 import { ContextMenu, ContextMenuItem, MenuIcons } from './ContextMenu';
 import { useGanttKeyboard } from './useGanttKeyboard';
@@ -76,6 +78,8 @@ interface TaskGridProps {
   v6?: boolean;
   /** G15 · Alt+←/→: mover la tarea N días hábiles. */
   onMoverDias?: (task: Task, dias: number) => void;
+  /** A14 · las columnas del «+». */
+  columnasV6?: { elegidas: ColumnType[]; alternar: (id: ColumnType) => void; contexto: ContextoDeColumnas; verCostos: boolean; hayLineaBase: boolean };
   /** Gantt v6: «13 tareas · completadas ocultas», encima de los títulos. */
   resumenV6?: string;
   /** Gantt v6: el botón «contraer todos los grupos». */
@@ -127,6 +131,7 @@ export function TaskGrid({
   showCriticalPath = false, // v5.1.0
   v6 = false,
   onMoverDias,
+  columnasV6,
   resumenV6,
   onContraerTodo,
   onMostrarOcultas,
@@ -867,6 +872,17 @@ export function TaskGrid({
             availableUsers={availableUsers}
             onChange={(users: User[]) => onTaskUpdate?.(task.id, { assignees: users.map((u) => ({ id: u.id, name: u.name, initials: u.initials, color: u.color })) })}
           />
+        </div>
+      );
+    }
+    if (columnasV6 && COLUMNAS_OPCIONALES.some((c) => c.id === column.id)) {
+      const tono = tonoDeColumna(column.id, task, columnasV6.contexto.cal);
+      const texto = textoDeColumna(column.id, task, columnasV6.contexto);
+      return (
+        <div className="truncate w-full" data-celda-v6={column.id} title={column.id === 'predecessors' && texto !== '—' ? texto : undefined}
+          style={{ fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontVariantNumeric: 'tabular-nums', fontSize: 12, fontWeight: isParentTask ? 500 : 400,
+            color: tono === 'rojo' ? 'var(--v6-rojo, #B02A33)' : tono === 'verde' ? 'var(--v6-acento-texto, #066A5F)' : texto === '—' ? 'var(--v6-tenue, #5F6972)' : 'var(--v6-texto-2, #4D5761)' }}>
+          {texto}
         </div>
       );
     }
@@ -1723,6 +1739,10 @@ export function TaskGrid({
                   : c.label}
               </div>
             ))}
+            {columnasV6 && (
+              <MenuDeColumnasV6 es={esGrid} elegidas={columnasV6.elegidas} alternar={columnasV6.alternar}
+                opciones={COLUMNAS_OPCIONALES.filter((c) => c.id !== 'cost' || columnasV6.verCostos)} />
+            )}
           </div>
         </div>
       ) : (

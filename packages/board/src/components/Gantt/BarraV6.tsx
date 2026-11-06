@@ -14,7 +14,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Filter, ChevronDown, Plus, X, Check, Rows3, MoreHorizontal } from 'lucide-react';
-import type { TimeScale, RowDensity, TaskFilterType } from './types';
+import type { ColumnType, TimeScale, RowDensity, TaskFilterType } from './types';
 import { useGanttI18n } from './GanttI18nContext';
 import { cuantosFiltros, SIN_FILTROS, SIN_RESPONSABLE, type FiltrosDelGantt, type OpcionesDeFiltro } from './filtrosDelGantt';
 
@@ -147,6 +147,37 @@ function Opcion({ children, marcada, alPulsar, icono }: { children: ReactNode; m
       <span className="flex-1">{children}</span>
       {marcada && <Check className="w-3.5 h-3.5" style={{ color: V.acentoTexto }} aria-hidden />}
     </button>
+  );
+}
+
+/** A14 · el «+» al final del encabezado de la tabla: elegir columnas no cierra el menú. */
+export function MenuDeColumnasV6({ es, elegidas, alternar, opciones }: {
+  es: boolean;
+  elegidas: ColumnType[];
+  alternar: (id: ColumnType) => void;
+  opciones: Array<{ id: ColumnType; es: string; en: string }>;
+}) {
+  const texto = es ? 'Ver u ocultar columnas' : 'Show or hide columns';
+  return (
+    <Desplegable
+      alinear="derecha"
+      ancho={220}
+      boton={(abrir, abierto, ref) => (
+        <button ref={ref} type="button" data-columnas-v6 aria-haspopup="menu" aria-expanded={abierto} aria-label={texto} title={texto} onClick={abrir}
+          style={{ flex: 'none', width: 20, height: 20, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 0, borderRadius: 6, background: 'transparent', color: V.tenue, cursor: 'pointer' }}>
+          <Plus className="w-[13px] h-[13px]" strokeWidth={2} aria-hidden />
+        </button>
+      )}
+    >
+      {() => (
+        <>
+          <Titulo>{es ? 'Columnas' : 'Columns'}</Titulo>
+          {opciones.map((c) => (
+            <Opcion key={c.id} marcada={elegidas.includes(c.id)} alPulsar={() => alternar(c.id)}>{es ? c.es : c.en}</Opcion>
+          ))}
+        </>
+      )}
+    </Desplegable>
   );
 }
 

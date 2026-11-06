@@ -15,6 +15,8 @@ import { useLayoutEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Task } from './types';
 import { esVencida } from './vencidas';
+import { variacion } from './columnasDelGantt';
+import { calendarioDe } from './motorDeProgramacion';
 
 export interface TaskTooltipData {
   task: Task;
@@ -104,6 +106,9 @@ export function TaskTooltip({ tooltipData, theme, locale = 'en', workingDaysConf
     duration: locale === 'es' ? 'Duración' : 'Duration',
     progress: locale === 'es' ? 'Progreso' : 'Progress',
     status: locale === 'es' ? 'Estado' : 'Status',
+    baselineEnd: locale === 'es' ? 'Fin L. base' : 'Baseline end',
+    variance: locale === 'es' ? 'Variación' : 'Variance',
+    slack: locale === 'es' ? 'Holgura' : 'Slack',
     assignees: locale === 'es' ? 'Asignados' : 'Assignees',
     estimated: locale === 'es' ? 'Estimado' : 'Estimated',
     logged: locale === 'es' ? 'Registrado' : 'Logged',
@@ -157,6 +162,7 @@ export function TaskTooltip({ tooltipData, theme, locale = 'en', workingDaysConf
     return `${hours}h ${mins}m`;
   };
 
+  const variacionLB = variacion(task, calendarioDe(workingDaysConfig));
   /* G15 · el tooltip dice también el estado; vencida gana, como en la barra. */
   const terminada = task.status === 'completed' || task.progress >= 100;
   const estado = locale === 'es'
@@ -204,6 +210,9 @@ export function TaskTooltip({ tooltipData, theme, locale = 'en', workingDaysConf
           <Row label={t.end} value={task.endDate ? formatDate(task.endDate) : 'N/A'} labelColor={labelColor} valueColor={valueColor} />
           <Row label={t.progress} value={`${task.progress}%`} labelColor={labelColor} valueColor={valueColor} />
           <Row label={t.status} value={estado} labelColor={labelColor} valueColor={valueColor} />
+          {task.cpmData && !task.subtasks?.length && <Row label={t.slack} value={`${task.cpmData.totalFloat} d`} labelColor={labelColor} valueColor={valueColor} />}
+          {task.baselineEndDate && <Row label={t.baselineEnd} value={formatDate(task.baselineEndDate)} labelColor={labelColor} valueColor={valueColor} />}
+          {variacionLB !== null && <Row label={t.variance} value={`${variacionLB > 0 ? '+' : ''}${variacionLB} d`} labelColor={labelColor} valueColor={valueColor} />}
         </div>
 
         {/* Assignees */}

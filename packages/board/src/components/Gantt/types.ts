@@ -122,7 +122,9 @@ export type DependencyLineStyle = 'curved' | 'squared'; // v0.17.310: Dependency
 export type TaskFilterType = 'all' | 'incomplete' | 'in_progress' | 'completed' | 'overdue';
 
 // v0.17.29: Added 'priority' column type
-export type ColumnType = 'name' | 'startDate' | 'endDate' | 'duration' | 'assignees' | 'status' | 'progress' | 'priority';
+export type ColumnType = 'name' | 'startDate' | 'endDate' | 'duration' | 'assignees' | 'status' | 'progress' | 'priority'
+  /* A14 · las de elegir con el «+» del Gantt v6 */
+  | 'predecessors' | 'hours' | 'cost' | 'slack' | 'baselineEnd' | 'variance';
 
 export interface GanttColumn {
   id: ColumnType;
@@ -875,4 +877,8 @@ export interface GanttConfig {
   rateMap?: Record<string, number>;
   /** v2.5.0: Default hourly rate fallback when rateMap has no match for a user */
   defaultRate?: number;
+  /** A14 · quien puede ver dinero: sin esto, la columna Costo no se ofrece. */
+  verCostos?: boolean;
+  /** A14 · el dinero con el formato de la app. */
+  formatearDinero?: (valor: number) => string;
 }

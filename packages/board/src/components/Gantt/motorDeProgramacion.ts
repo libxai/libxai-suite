@@ -275,3 +275,86 @@ export function conflictosDelCronograma(todas: Task[], cal: Calendario): Conflic
 export function diasDeCalendario(a: Date, b: Date): number {
   return Math.round((soloDia(b).getTime() - soloDia(a).getTime()) / MS_DIA);
 }
+
+/** A19 · la holgura de una tarea, en días hábiles. */
+export interface HolguraDeTarea {
+  /** Cuánto puede retrasarse sin mover el fin del proyecto. */
+  total: number;
+  /** Cuánto puede retrasarse sin mover a ninguna sucesora. */
+  libre: number;
+  critica: boolean;
+}
+
+/**
+ * A19 · HOLGURA Y RUTA CRÍTICA con el calendario del espacio y los cuatro tipos de enlace con su desfase.
+ *
+ * Las fechas de cada tarea son sus fechas tempranas: las programó el motor de arriba, que ya cumple los enlaces. Solo
+ * hace falta la pasada hacia atrás desde el fin del proyecto. Todo se cuenta en días hábiles, numerados desde el inicio
+ * del proyecto. Una fase cede su límite a sus hijas: si la fase tiene una sucesora, sus hijas tampoco pueden pasarse.
+ */
+export function holguras(tareas: Task[], cal: Calendario): Map<string, HolguraDeTarea> {
+  const todas = [...aplanar(tareas).values()].filter((t) => t.startDate && t.endDate);
+  const fuera = new Map<string, HolguraDeTarea>();
+  if (todas.length === 0) return fuera;
+  const inicioDelProyecto = todas.reduce((m, t) => (t.startDate! < m ? t.startDate! : m), todas[0]!.startDate!);
+  const finDelProyecto = todas.reduce((m, t) => (t.endDate! > m ? t.endDate! : m), todas[0]!.endDate!);
+  const memo = new Map<number, number>();
+  const n = (d: Date) => {
+    const k = soloDia(d).getTime();
+    let v = memo.get(k);
+    if (v === undefined) { v = diferenciaHabil(inicioDelProyecto, d, cal); memo.set(k, v); }
+    return v;
+  };
+  const ef = new Map(todas.map((t) => [t.id, { es: n(t.startDate!), ef: n(t.endDate!), dur: habilesEntre(t.startDate!, t.endDate!, cal) }]));
+  const fin = n(finDelProyecto);
+
+  type Arista = { hacia: string; tipo: EnlaceDeTarea['type']; lag: number };
+  const sucesoras = new Map<string, Arista[]>();
+  const anadir = (de: string, a: Arista) => { const l = sucesoras.get(de); if (l) l.push(a); else sucesoras.set(de, [a]); };
+  for (const t of todas) {
+    for (const e of enlacesDe(t)) if (ef.has(e.id)) anadir(e.id, { hacia: t.id, tipo: e.type, lag: e.lag });
+    /* La hija hereda el límite de su fase: una arista FF sin desfase hacia ella. */
+    for (const h of t.subtasks ?? []) if (ef.has(h.id)) anadir(h.id, { hacia: t.id, tipo: 'FF', lag: 0 });
+  }
+
+  const lf = new Map<string, number>();
+  const enCurso = new Set<string>();
+  const tardio = (id: string): number => {
+    const ya = lf.get(id);
+    if (ya !== undefined) return ya;
+    const d = ef.get(id)!;
+    /* Un ciclo no debería existir (el motor los rechaza), pero un dato viejo no puede colgar la pantalla. */
+    if (enCurso.has(id)) return fin;
+    enCurso.add(id);
+    let limite = fin;
+    for (const a of sucesoras.get(id) ?? []) {
+      const lfB = tardio(a.hacia);
+      const lsB = lfB - ef.get(a.hacia)!.dur + 1;
+      const tope = a.tipo === 'FS' ? lsB - 1 - a.lag
+        : a.tipo === 'SS' ? lsB - a.lag + d.dur - 1
+        : a.tipo === 'FF' ? lfB - a.lag
+        : lfB - a.lag + d.dur - 1; /* SF */
+      limite = Math.min(limite, tope);
+    }
+    enCurso.delete(id);
+    lf.set(id, limite);
+    return limite;
+  };
+
+  for (const t of todas) {
+    const d = ef.get(t.id)!;
+    const total = tardio(t.id) - d.ef;
+    let libre = fin - d.ef;
+    for (const a of sucesoras.get(t.id) ?? []) {
+      if (t.subtasks?.some((h) => h.id === a.hacia)) continue;
+      const b = ef.get(a.hacia)!;
+      const margen = a.tipo === 'FS' ? b.es - d.ef - 1 - a.lag
+        : a.tipo === 'SS' ? b.es - d.es - a.lag
+        : a.tipo === 'FF' ? b.ef - d.ef - a.lag
+        : b.ef - d.es - a.lag;
+      libre = Math.min(libre, margen);
+    }
+    fuera.set(t.id, { total, libre: Math.max(0, Math.min(libre, Math.max(total, 0))), critica: total <= 0 });
+  }
+  return fuera;
+}

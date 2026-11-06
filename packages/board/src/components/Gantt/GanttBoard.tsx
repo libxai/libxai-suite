@@ -9,7 +9,8 @@ import { TaskGrid } from './TaskGrid';
 import { Timeline } from './Timeline';
 import { anchoDelDia, conHoy, diasTrasHoy, fechaAlAbrir, HOY_AL_ABRIR, inicioDeLaEscala, ladoDeHoy } from './rangoDeLaEscala';
 import { esVencida } from './vencidas';
-import { calendarioDe, fechasQueCumplen, empujarSucesoras, moverConservandoHabiles, sumarHabiles } from './motorDeProgramacion';
+import { calendarioDe, fechasQueCumplen, empujarSucesoras, holguras, moverConservandoHabiles, sumarHabiles } from './motorDeProgramacion';
+import { COLUMNAS_OPCIONALES, type ContextoDeColumnas } from './columnasDelGantt';
 import { ContextMenu, MenuIcons } from './ContextMenu'; // v0.8.0: Split task context menu
 import { TaskDetailModal } from '../TaskDetailModal'; // v0.17.244: Unified task detail modal (replaces TaskFormModal)
 import { GanttAIAssistant } from './GanttAIAssistant'; // v0.14.0: AI Assistant
@@ -218,6 +219,20 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     return 'all';
   });
   const taskFilter = externalTaskFilter ?? internalTaskFilter;
+  /* A14 · se recuerdan en este navegador, para todos los proyectos. */
+  const [columnasElegidas, setColumnasElegidas] = useState<ColumnType[]>(() => {
+    try {
+      const v = JSON.parse(localStorage.getItem('gantt-columnas-v6') ?? '[]');
+      return Array.isArray(v) ? v : [];
+    } catch { return []; }
+  });
+  const alternarColumnaV6 = useCallback((id: ColumnType) => {
+    setColumnasElegidas((l) => {
+      const nueva = l.includes(id) ? l.filter((x) => x !== id) : [...l, id];
+      try { localStorage.setItem('gantt-columnas-v6', JSON.stringify(nueva)); } catch { /* sin almacenamiento */ }
+      return nueva;
+    });
+  }, []);
   /* G13 · responsable, fase, fechas y prioridad; se guardan con el resto del filtro. */
   const [filtros, setFiltros] = useState<FiltrosDelGantt>(() => {
     if (!persistFilter) return SIN_FILTROS;
@@ -574,7 +589,11 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     { id: 'startDate', label: esVacio ? 'Inicio' : 'Start', width: anchoFecha, visible: true, sortable: false, resizable: false },
     { id: 'endDate', label: esVacio ? 'Fin' : 'End', width: anchoFecha, visible: true, sortable: false, resizable: false },
     { id: 'progress', label: '%', width: 40, visible: true, sortable: false, resizable: false },
-  ] : null, [disenoV6, esVacio, anchoFecha]);
+    /* A14 · las elegidas con el «+», detrás de las de siempre */
+    ...COLUMNAS_OPCIONALES.filter((c) => columnasElegidas.includes(c.id)).map((c) => ({
+      id: c.id, label: esVacio ? c.es : c.en, width: c.ancho, visible: true, sortable: false, resizable: false,
+    })),
+  ] : null, [disenoV6, esVacio, anchoFecha, columnasElegidas]);
 
   // Column configuration - Default: Only show task name
   // v0.13.8: Name column is resizable with min/max width constraints
@@ -727,8 +746,11 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   const BUTTONS_WIDTH = 60; // Space for ColumnManager + Keyboard buttons
   const MAX_VIEWPORT_PERCENT = 0.6; // 60% of viewport width max
   const gridWidth = useMemo(() => {
-    /* Gantt v6: la tabla de la maqueta mide 544 px (Tarea · Resp. · Inicio · Fin · %), salvo que se arrastre. */
-    if (disenoV6 && gridWidthOverride === null) return 544;
+    /* Gantt v6: la tabla de la maqueta mide 544 px (Tarea · Resp. · Inicio · Fin · %), salvo que se arrastre. Cada columna
+       elegida con el «+» añade la suya, con su separación. */
+    if (disenoV6 && gridWidthOverride === null) {
+      return 544 + COLUMNAS_OPCIONALES.filter((c) => columnasElegidas.includes(c.id)).reduce((s, c) => s + c.ancho + 10, 0);
+    }
     const minRequired = 200; // Minimum: just name column
     const contentWidth = calculatedGridWidth + BUTTONS_WIDTH;
     // Max: 60% of viewport OR content width, whichever is larger
@@ -741,7 +763,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     }
     // Default: show all visible columns + buttons (exact fit)
     return Math.max(minRequired, contentWidth);
-  }, [gridWidthOverride, calculatedGridWidth, disenoV6]);
+  }, [gridWidthOverride, calculatedGridWidth, disenoV6, columnasElegidas]);
 
   const gridScrollRef = useRef<HTMLDivElement>(null);
   const gridScrollInnerRef = useRef<HTMLDivElement>(null); // v0.18.15: The actual scrollable .gantt-grid-scroll element
@@ -776,8 +798,27 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     // needed: either auto-CPM is enabled AND the user is showing the critical
     // path, or showCriticalPath is on. With CPM off-by-default this skips the
     // heavy calc on every mount/view-switch until the user toggles it on.
-    if (!enableAutoCriticalPath || !showCriticalPath) {
+    const conRuta = enableAutoCriticalPath && showCriticalPath;
+    /* A19 · con la v6 la holgura va en el tooltip y en su columna, también con la ruta crítica apagada. */
+    if (!conRuta && !disenoV6) {
       return localTasks;
+    }
+
+    if (disenoV6) {
+      const calendario = calendarioDe(config?.workingDaysConfig);
+      const h = holguras(localTasks, calendario);
+      const marcar = (lista: Task[]): Task[] => lista.map((task) => {
+        const subtasks = task.subtasks ? marcar(task.subtasks) : undefined;
+        const r = h.get(task.id);
+        const critica = !!r?.critica;
+        return {
+          ...task,
+          subtasks,
+          isCriticalPath: conRuta ? critica : task.isCriticalPath,
+          cpmData: r ? { earlyStart: 0, earlyFinish: 0, lateStart: 0, lateFinish: 0, totalFloat: r.total, freeFloat: r.libre, isCritical: critica } : undefined,
+        };
+      });
+      return marcar(localTasks);
     }
 
     const cpmMap = ganttUtils.calculateCriticalPathFull(localTasks);
@@ -799,7 +840,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     };
 
     return markCritical(localTasks);
-  }, [localTasks, enableAutoCriticalPath, showCriticalPath]);
+  }, [localTasks, enableAutoCriticalPath, showCriticalPath, disenoV6, config?.workingDaysConfig]);
 
   // v5.1.0: Check if any task has dependencies (for disabling CPM button)
   const hasDependencies = useMemo(() => {
@@ -1721,10 +1762,27 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     }
   }, [localTasks, onTaskUpdate, onDependentTasksScheduled, config]);
 
+  /* A14 · lo que necesitan las columnas calculadas. */
+  const contextoDeColumnas = useMemo((): ContextoDeColumnas => {
+    const rateMap = config.rateMap;
+    const porDefecto = config.defaultRate ?? 0;
+    return {
+      cal: calendarioDe(config?.workingDaysConfig),
+      es: esVacio,
+      wbsDe: new Map(ganttUtils.flattenTasks(tasksWithStableWbs).map((t) => [t.id, t.wbsCode ?? ''])),
+      tarifa: config.verCostos ? (t: Task) => {
+        const tarifas = (t.assignees ?? []).map((a) => { const id = (a as unknown as { id?: string }).id; return id ? rateMap?.[id] : undefined; }).filter((n): n is number => typeof n === 'number');
+        return tarifas.length ? tarifas.reduce((s, n) => s + n, 0) / tarifas.length : porDefecto;
+      } : undefined,
+      dinero: config.formatearDinero,
+    };
+  }, [config.rateMap, config.defaultRate, config.verCostos, config.formatearDinero, config?.workingDaysConfig, esVacio, tasksWithStableWbs]);
+
   /* G15 · Alt+←/→: la tarea, un día hábil. Va por el mismo camino que arrastrar: enlaces, aviso y deshacer. Las fases se
      calculan de sus hijas, así que no se mueven; y una tarea sin fechas no tiene nada que mover. */
   const moverDias = useCallback((task: Task, dias: number) => {
-    if (permissions?.canUpdateTask === false || task.subtasks?.length || !task.startDate || !task.endDate) return;
+    if (permissions?.canUpdateTask === false || permissions?.canEditTask?.(task) === false) return;
+    if (task.subtasks?.length || !task.startDate || !task.endDate) return;
     const calendario = calendarioDe(config?.workingDaysConfig);
     handleTaskDateChange(task, sumarHabiles(new Date(task.startDate), dias, calendario), sumarHabiles(new Date(task.endDate), dias, calendario));
   }, [permissions?.canUpdateTask, config?.workingDaysConfig, handleTaskDateChange]);
@@ -2613,6 +2671,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
             showCriticalPath={showCriticalPath}
             onTaskClick={onTaskClick}
             onMoverDias={moverDias}
+            columnasV6={disenoV6 ? { elegidas: columnasElegidas, alternar: alternarColumnaV6, contexto: contextoDeColumnas, verCostos: !!config.verCostos, hayLineaBase: !!config.showBaseline } : undefined}
             onTaskSelectionChange={onTaskSelectionChange}
             selectedTaskId={selectedTaskId}
             onTaskDblClick={handleTaskDblClickInternal} // v0.10.0: Use internal handler that opens modal
