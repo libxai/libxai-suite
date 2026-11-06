@@ -496,6 +496,8 @@ export interface GanttWorkingDaysConfig {
   holidayDates?: Set<string> | string[];
   /** G15 · 'YYYY-MM-DD' → nombre del festivo, para su tooltip. */
   holidayNames?: Record<string, string>;
+  /** A20 · la jornada, en minutos: sin ella no se mira la sobreasignación. */
+  minutosPorDia?: number;
 }
 
 export interface GanttConfig {

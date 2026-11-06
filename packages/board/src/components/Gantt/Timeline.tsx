@@ -4,6 +4,7 @@ import { TaskBar, TaskTooltipData } from './TaskBar';
 import { vencidasDebajo } from './vencidas';
 import { fechaCorta } from './fechaCorta';
 import { TaskTooltip, WorkingDaysConfig } from './TaskTooltip';
+import { inicialesDeLaBarra, tareasSobreasignadas } from './cargaDePersonas';
 import { DependencyLine } from './DependencyLine';
 import { Milestone } from './Milestone';
 import { ganttUtils } from './ganttUtils';
@@ -292,7 +293,13 @@ export function Timeline({
   const calendarioV6 = useMemo(() => calendarioDe(workingDaysConfig ?? null), [workingDaysConfig]);
   const diasHabilesDe = (t: Task): number => (t.startDate && t.endDate ? habilesEntre(t.startDate, t.endDate, calendarioV6) : 0);
   /** G5 · lo que ocupa la etiqueta «12 d» después de una barra, con su margen */
-  const anchoDuracion = (t: Task): number => `${diasHabilesDe(t)} d`.length * 6.6 + 12;
+  const etiquetaDeBarra = (t: Task): string => [`${diasHabilesDe(t)} d`, inicialesDeLaBarra(t)].filter(Boolean).join(' · ');
+  const anchoDuracion = (t: Task): number => etiquetaDeBarra(t).length * 6.6 + 12;
+  /* A20 · con la v6, solo si la app dice cuánto dura la jornada. */
+  const sobreasignadas = useMemo(
+    () => (v6 && workingDaysConfig?.minutosPorDia ? tareasSobreasignadas(tasks, calendarioV6, workingDaysConfig.minutosPorDia) : new Set<string>()),
+    [v6, tasks, calendarioV6, workingDaysConfig?.minutosPorDia],
+  );
 
   /** G5 · el conector sale después de lo que hay junto a la barra: la duración y, si está vencida, su chip */
   const salidaDelConector = (t: Task): number => {
@@ -1394,7 +1401,8 @@ export function Timeline({
               onProgressChange={onTaskProgressDrag}
               v6={v6}
               alturaBarra={ALTO_BARRA}
-              duracionV6={v6 ? `${diasHabilesDe(task)} d` : undefined}
+              duracionV6={v6 ? etiquetaDeBarra(task) : undefined}
+              sobreasignada={sobreasignadas.has(task.id)}
               calendario={v6 ? calendarioV6 : undefined}
               transversal={esTransversal(task)}
             />

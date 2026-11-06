@@ -56,6 +56,8 @@ interface TaskBarProps {
   alturaBarra?: number;
   /** Gantt v6: la duración en días hábiles, a la derecha de la barra («5 d»). */
   duracionV6?: string;
+  /** A20 · su responsable pasa de la jornada algún día de esta tarea: la etiqueta va en ámbar. */
+  sobreasignada?: boolean;
   /** L1 · con el calendario, el retraso frente a la línea base va en días hábiles */
   calendario?: Calendario;
   /** Gantt ronda 2 (Yesid) · R3 · una tarea TRANSVERSAL (dura casi todo el proyecto: seguimiento, informes): línea fina. */
@@ -89,6 +91,7 @@ export function TaskBar({
   v6 = false,
   alturaBarra,
   duracionV6,
+  sobreasignada = false,
   calendario,
   transversal = false,
 }: TaskBarProps) {
@@ -1090,7 +1093,7 @@ export function TaskBar({
               <line x1={x0 + 1} y1={yM - 5} x2={x0 + 1} y2={yM + 5} stroke="var(--v6-acento-borde, rgba(8,127,114,0.85))" strokeWidth={2} style={{ pointerEvents: 'none' }} />
               <line x1={x1 - 1} y1={yM - 5} x2={x1 - 1} y2={yM + 5} stroke="var(--v6-acento-borde, rgba(8,127,114,0.85))" strokeWidth={2} style={{ pointerEvents: 'none' }} />
               {duracionV6 && !isDragging && (
-                <text x={displayX + displayWidth + 6} y={y + height / 2} dominantBaseline="middle" fill="var(--v6-tenue, #5F6972)" fontSize={11} fontFamily="'JetBrains Mono', ui-monospace, monospace" style={{ fontVariantNumeric: 'tabular-nums', pointerEvents: 'none', userSelect: 'none' }}>
+                <text x={displayX + displayWidth + 6} y={y + height / 2} dominantBaseline="middle" data-etiqueta-barra data-sobreasignada={sobreasignada || undefined} fill={sobreasignada ? 'var(--v6-ambar, #9A5B00)' : 'var(--v6-tenue, #5F6972)'} fontSize={11} fontFamily="'JetBrains Mono', ui-monospace, monospace" style={{ fontVariantNumeric: 'tabular-nums', pointerEvents: 'none', userSelect: 'none' }}>
                   {duracionV6}
                 </text>
               )}
@@ -1131,7 +1134,7 @@ export function TaskBar({
               <rect x={displayX} y={y} width={displayWidth} height={height} rx={6} fill="none" stroke="var(--v6-texto, #0E1114)" strokeWidth={2} data-parte="alerta" style={{ pointerEvents: 'none' }} />
             )}
             {duracionV6 && !isDragging && (
-              <text x={displayX + displayWidth + 6} y={y + height / 2} dominantBaseline="middle" fill="var(--v6-tenue, #5F6972)" fontSize={11} fontFamily="'JetBrains Mono', ui-monospace, monospace" style={{ fontVariantNumeric: 'tabular-nums', pointerEvents: 'none', userSelect: 'none' }}>
+              <text x={displayX + displayWidth + 6} y={y + height / 2} dominantBaseline="middle" data-etiqueta-barra data-sobreasignada={sobreasignada || undefined} fill={sobreasignada ? 'var(--v6-ambar, #9A5B00)' : 'var(--v6-tenue, #5F6972)'} fontSize={11} fontFamily="'JetBrains Mono', ui-monospace, monospace" style={{ fontVariantNumeric: 'tabular-nums', pointerEvents: 'none', userSelect: 'none' }}>
                 {duracionV6}
               </text>
             )}
