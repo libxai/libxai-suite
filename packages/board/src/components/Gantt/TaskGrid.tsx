@@ -2,13 +2,14 @@ import { useState, useEffect, useRef, useContext, useMemo } from 'react';
 import { useGanttEnEspanol } from './GanttI18nContext';
 import { createPortal } from 'react-dom';
 import { ChevronDown, ChevronRight, ChevronLeft, Plus, Edit3, GripVertical, Calendar, Keyboard, ChevronsDownUp, User as IconoPersona } from 'lucide-react';
+import { Lock } from 'lucide-react';
 import { MIN_COMIENZO, partirNombre, prefijosConHermanas, rutaDelNombre } from './nombreLargo';
 import { PuntoDeRiesgo } from '../ListView/v6/PuntoDeRiesgo';
 import { fechaCorta } from './fechaCorta';
 import { Task, GanttColumn, ColumnType, GanttTemplates } from './types';
 import { motion } from 'framer-motion';
 import { COLUMNAS_OPCIONALES, textoDeColumna, tonoDeColumna, type ContextoDeColumnas } from './columnasDelGantt';
-import { habilesEntre } from './motorDeProgramacion';
+import { habilesEntre, pasaDeSuLimite } from './motorDeProgramacion';
 import { MenuDeColumnasV6 } from './BarraV6';
 import { ColumnManager } from './ColumnManager'; // v0.17.215: Back with sticky positioning
 import { ContextMenu, ContextMenuItem, MenuIcons } from './ContextMenu';
@@ -892,6 +893,7 @@ export function TaskGrid({
               );
             })()
           )}
+          {task.fijada && <Lock aria-label={esGrid ? 'Fechas fijadas' : 'Dates locked'} data-tarea-fijada style={{ flex: 'none', width: 11, height: 11, color: 'var(--v6-tenue, #5F6972)' }} />}
           <PuntoDeRiesgo riesgos={task.riesgos} es={esGrid} />
           {showCriticalPath && task.isCriticalPath && (
             <span aria-label={esGrid ? 'En la ruta crítica' : 'On the critical path'} style={{ flex: 'none', width: 6, height: 6, borderRadius: '50%', background: 'var(--v6-rojo-punto, #D13A40)' }} />
@@ -1219,7 +1221,7 @@ export function TaskGrid({
                 whiteSpace: 'nowrap', padding: 0, border: 0, background: 'transparent',
                 fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontVariantNumeric: 'tabular-nums', fontSize: 11,
                 /* G2 · la fecha Fin de una vencida va en rojo */
-                color: !isStartDate && !isParentTask && task.status !== 'completed' && (task.progress ?? 0) < 100 && dateValue && new Date(dateValue).getTime() < new Date(new Date().toDateString()).getTime()
+                color: !isStartDate && pasaDeSuLimite(task) ? 'var(--v6-rojo, #B02A33)' : !isStartDate && !isParentTask && task.status !== 'completed' && (task.progress ?? 0) < 100 && dateValue && new Date(dateValue).getTime() < new Date(new Date().toDateString()).getTime()
                   ? 'var(--v6-rojo, #B02A33)' : 'var(--v6-texto-2, #4D5761)',
                 cursor: isParentTask ? 'default' : 'pointer',
               } : {

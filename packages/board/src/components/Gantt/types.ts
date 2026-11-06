@@ -54,6 +54,12 @@ export interface Task {
   isExpanded?: boolean;
   isMilestone?: boolean;
   isCriticalPath?: boolean;
+  /** A17 · fijada a mano: nada la mueve, ni arrastrar ni los enlaces. Si un enlace deja de cumplirse, sale como conflicto. */
+  fijada?: boolean;
+  /** A17 · restricción: no empieza antes de esta fecha. */
+  noAntesDe?: Date;
+  /** A17 · restricción: debe terminar como tarde esta fecha. */
+  terminarEl?: Date;
 
   // v5.1.0: CPM data — populated when enableAutoCriticalPath is on
   cpmData?: {
@@ -852,6 +858,8 @@ export interface GanttConfig {
   onTaskDuplicate?: (task: Task) => void; // v1.4.14: Now receives full Task with subtasks
   /** 1.9.47 · QA Asakaa E14: el menú contextual «Dependencias…» (si falta, abre onTaskEdit). */
   onTaskDependencies?: (task: Task) => void;
+  /** A17 · se intentó mover una tarea fijada. */
+  onTareaFijada?: (task: Task) => void;
   /** 1.9.47 · QA Asakaa E14: una tarea se soltó antes de que acabe su predecesora y se ajustó al primer día posible. */
   onDependencyConstraint?: (info: { task: Task; predecessor: Task; earliestStart: Date }) => void;
   onTaskMove?: (taskId: string, direction: 'up' | 'down') => void;

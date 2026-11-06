@@ -1674,6 +1674,8 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   // When you move a task, all dependent tasks are automatically rescheduled
   // This is BETTER than DHTMLX - they require manual configuration
   const handleTaskDateChange = useCallback((task: Task, newStart: Date, newEnd: Date) => {
+    /* A17 · fijada: no se mueve. La barra vuelve a su sitio sola: aquí no cambia nada. */
+    if (task.fijada) { config?.onTareaFijada?.(task); return; }
     /* QA Asakaa E14 + mejora fuerte 5: la tarea cumple TODOS sus enlaces (FS/SS/FF/SF con su
        desfase, en días hábiles del espacio). Si no, se corre lo justo, conservando su duración
        hábil, y la app avisa (motorDeProgramacion.ts). */

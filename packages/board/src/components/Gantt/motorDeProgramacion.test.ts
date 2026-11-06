@@ -6,7 +6,7 @@
  *   oct 2026:  L5 M6 X7 J8 V9 | S10 D11 | L12(festivo) M13 X14 J15 V16 | S17 D18 | L19 …
  */
 import { describe, it, expect } from 'vitest';
-import { holguras, moverConservandoHabiles,
+import { pasaDeSuLimite, holguras, moverConservandoHabiles,
   calendarioDe, sumarHabiles, habilesEntre, finConDuracion, fechasQueCumplen, empujarSucesoras,
   conflictosDelCronograma, enlacesDe, TODOS_LOS_DIAS,
 } from './motorDeProgramacion';
@@ -205,5 +205,44 @@ describe('holguras (A19)', () => {
   });
   it('sin fechas no hay nada que calcular', () => {
     expect(holguras([{ id: 'x', name: 'x', progress: 0 } as Task], lv).size).toBe(0);
+  });
+});
+
+describe('restricciones y fijadas (A17)', () => {
+  const lv = calendarioDe({ enabledWeekdays: [false, true, true, true, true, true, false] });
+  const d = (m: number, dia: number) => new Date(2026, m - 1, dia);
+  const t = (id: string, ini: Date, fin: Date, extra: Partial<Task> = {}): Task => ({ id, name: id, startDate: ini, endDate: fin, progress: 0, ...extra } as Task);
+
+  it('«no antes de» corre la tarea conservando sus días hábiles, y dice que es una restricción', () => {
+    const a = t('A', d(11, 3), d(11, 6), { noAntesDe: d(11, 10) });
+    const r = fechasQueCumplen(a, d(11, 3), d(11, 6), [a], lv);
+    expect([r.inicio.getDate(), r.fin.getDate()]).toEqual([10, 13]);
+    expect(r.porQue?.restriccion).toBe(true);
+  });
+  it('una restricción cumplida no mueve nada', () => {
+    const a = t('A', d(11, 12), d(11, 13), { noAntesDe: d(11, 10) });
+    expect(fechasQueCumplen(a, d(11, 12), d(11, 13), [a], lv).porQue).toBeNull();
+  });
+  it('un enlace también puede correrla más allá de su restricción', () => {
+    const p = t('P', d(11, 2), d(11, 20));
+    const a = t('A', d(11, 3), d(11, 4), { noAntesDe: d(11, 10), dependencies: ['P'] });
+    expect(fechasQueCumplen(a, d(11, 3), d(11, 4), [p, a], lv).inicio.getDate()).toBe(23);
+  });
+  it('una fijada no se empuja: el enlace queda como conflicto', () => {
+    const p = t('P', d(11, 2), d(11, 10));
+    const s = t('S', d(11, 4), d(11, 5), { dependencies: ['P'], fijada: true });
+    expect(empujarSucesoras([p, s], ['P'], lv)).toEqual([]);
+    expect(conflictosDelCronograma([p, s], lv).map((c) => c.sucesora.id)).toEqual(['S']);
+  });
+  it('la cadena se corta en la fijada', () => {
+    const p = t('P', d(11, 2), d(11, 10));
+    const f = t('F', d(11, 4), d(11, 5), { dependencies: ['P'], fijada: true });
+    const n = t('N', d(11, 6), d(11, 6), { dependencies: ['F'] });
+    expect(empujarSucesoras([p, f, n], ['P'], lv)).toEqual([]);
+  });
+  it('terminar el: se sabe si la tarea se pasa, y el mismo día no es pasarse', () => {
+    expect(pasaDeSuLimite(t('A', d(11, 3), d(11, 6), { terminarEl: d(11, 5) }))).toBe(true);
+    expect(pasaDeSuLimite(t('A', d(11, 3), d(11, 6), { terminarEl: d(11, 6) }))).toBe(false);
+    expect(pasaDeSuLimite(t('A', d(11, 3), d(11, 6)))).toBe(false);
   });
 });

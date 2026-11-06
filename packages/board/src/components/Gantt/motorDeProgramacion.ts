@@ -139,6 +139,8 @@ export interface Limite {
   finMin?: Date;
   enlace: EnlaceDeTarea;
   predecesora: Task;
+  /** A17 · no lo pide un enlace, sino la restricción «no antes de» de la propia tarea. */
+  restriccion?: boolean;
 }
 
 /** Lo que exige UN enlace a su sucesora (null si la predecesora no tiene fechas). */
@@ -166,7 +168,7 @@ export interface Ajuste {
  * Un hito ocupa un solo día: inicio = fin.
  */
 export function fechasQueCumplen(
-  tarea: Pick<Task, 'id' | 'dependencies' | 'dependencyLinks' | 'isMilestone'>,
+  tarea: Pick<Task, 'id' | 'dependencies' | 'dependencyLinks' | 'isMilestone' | 'noAntesDe'>,
   inicio: Date,
   fin: Date,
   todas: Task[] | Map<string, Task>,
@@ -179,6 +181,12 @@ export function fechasQueCumplen(
   // Iterar: correr por un límite de inicio puede no bastar para uno de fin y viceversa.
   for (let vuelta = 0; vuelta < 8; vuelta++) {
     let movido = false;
+    /* A17 · la restricción manda como un enlace más. */
+    if (tarea.noAntesDe && antes(ini, tarea.noAntesDe)) {
+      ini = habilDesde(new Date(tarea.noAntesDe), cal);
+      porQue = { inicioMin: new Date(tarea.noAntesDe), enlace: { id: tarea.id, type: 'FS', lag: 0 }, predecesora: tarea as Task, restriccion: true };
+      movido = true;
+    }
     const finActual = tarea.isMilestone ? ini : finConDuracion(ini, dur, cal);
     for (const e of enlacesDe(tarea)) {
       const pred = porId.get(e.id);
@@ -229,6 +237,8 @@ export function empujarSucesoras(todas: Task[], movidas: Iterable<string>, cal: 
     for (const sid of sucesoras.get(id) ?? []) {
       const s = porId.get(sid);
       if (!s?.startDate || !s.endDate) continue;
+      /* A17 · una fijada no se empuja: el enlace roto se queda como conflicto, a la vista. */
+      if (s.fijada) continue;
       const a = fechasQueCumplen(s, s.startDate, s.endDate, porId, cal);
       if (!a.porQue) continue;
       const nueva: Task = { ...s, startDate: a.inicio, endDate: a.fin };
@@ -269,6 +279,11 @@ export function conflictosDelCronograma(todas: Task[], cal: Calendario): Conflic
     }
   }
   return fuera;
+}
+
+/** A17 · ¿la tarea acaba después de su «terminar el»? */
+export function pasaDeSuLimite(t: Pick<Task, 'endDate' | 'terminarEl'>): boolean {
+  return !!t.terminarEl && !!t.endDate && antes(new Date(t.terminarEl), new Date(t.endDate));
 }
 
 /** Los días de calendario entre dos fechas (para quien aún los necesita, p. ej. el arrastre). */

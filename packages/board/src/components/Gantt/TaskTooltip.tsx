@@ -106,6 +106,8 @@ export function TaskTooltip({ tooltipData, theme, locale = 'en', workingDaysConf
     duration: locale === 'es' ? 'Duración' : 'Duration',
     progress: locale === 'es' ? 'Progreso' : 'Progress',
     status: locale === 'es' ? 'Estado' : 'Status',
+    terminarEl: locale === 'es' ? 'Terminar el' : 'Finish by',
+    noAntesDe: locale === 'es' ? 'No antes de' : 'Not before',
     baselineEnd: locale === 'es' ? 'Fin L. base' : 'Baseline end',
     variance: locale === 'es' ? 'Variación' : 'Variance',
     slack: locale === 'es' ? 'Holgura' : 'Slack',
@@ -211,6 +213,8 @@ export function TaskTooltip({ tooltipData, theme, locale = 'en', workingDaysConf
           <Row label={t.progress} value={`${task.progress}%`} labelColor={labelColor} valueColor={valueColor} />
           <Row label={t.status} value={estado} labelColor={labelColor} valueColor={valueColor} />
           {task.cpmData && !task.subtasks?.length && <Row label={t.slack} value={`${task.cpmData.totalFloat} d`} labelColor={labelColor} valueColor={valueColor} />}
+          {task.terminarEl && <Row label={t.terminarEl} value={formatDate(task.terminarEl)} labelColor={labelColor} valueColor={valueColor} />}
+          {task.noAntesDe && <Row label={t.noAntesDe} value={formatDate(task.noAntesDe)} labelColor={labelColor} valueColor={valueColor} />}
           {task.baselineEndDate && <Row label={t.baselineEnd} value={formatDate(task.baselineEndDate)} labelColor={labelColor} valueColor={valueColor} />}
           {variacionLB !== null && <Row label={t.variance} value={`${variacionLB > 0 ? '+' : ''}${variacionLB} d`} labelColor={labelColor} valueColor={valueColor} />}
         </div>
