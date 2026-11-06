@@ -4,7 +4,7 @@
  * Como `hideCompleted`, solo OCULTAN: los datos no se tocan. Mandan las tareas de trabajo: un grupo se queda si le
  * queda alguna hija, y se va si no, aunque él coincida (la barra de resumen no es trabajo de nadie).
  */
-import type { Task } from './types';
+import type { ColumnType, RowDensity, Task, TaskFilterType, TimeScale } from './types';
 
 export interface FiltrosDelGantt {
   responsables: string[];
@@ -91,4 +91,30 @@ export function aplicarFiltros(tareas: Task[], f: FiltrosDelGantt): Task[] {
   };
   const raiz = f.fases.length ? tareas.filter((t) => f.fases.includes(t.id)) : tareas;
   return recorrer(raiz);
+}
+
+/** A15 · una vista guardada: lo que se ve, con su nombre. */
+export interface VistaGuardada {
+  nombre: string;
+  taskFilter: TaskFilterType;
+  filtros: FiltrosDelGantt;
+  columnas: ColumnType[];
+  escala: TimeScale;
+  densidad: RowDensity;
+}
+
+const CLAVE_DE_VISTAS = 'gantt-vistas-v6';
+
+export function leerVistas(): VistaGuardada[] {
+  try {
+    const v = JSON.parse(localStorage.getItem(CLAVE_DE_VISTAS) ?? '[]');
+    return Array.isArray(v) ? v : [];
+  } catch { return []; }
+}
+export function escribirVistas(v: VistaGuardada[]): void {
+  try { localStorage.setItem(CLAVE_DE_VISTAS, JSON.stringify(v)); } catch { /* sin almacenamiento */ }
+}
+/** Guardar con un nombre que ya existe la sustituye, en su sitio. */
+export function conVista(lista: VistaGuardada[], vista: VistaGuardada): VistaGuardada[] {
+  return lista.some((v) => v.nombre === vista.nombre) ? lista.map((v) => (v.nombre === vista.nombre ? vista : v)) : [...lista, vista];
 }

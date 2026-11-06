@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { anchoDelDia, conHoy, diasTrasHoy, fechaAlAbrir, inicioDeLaEscala, ladoDeHoy, ladoFueraDeVista } from './rangoDeLaEscala';
+import { escalaParaAjustar, anchoDelDia, conHoy, diasTrasHoy, fechaAlAbrir, inicioDeLaEscala, ladoDeHoy, ladoFueraDeVista } from './rangoDeLaEscala';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -92,5 +92,25 @@ describe('mejora fuerte 6 · barra fuera de vista', () => {
 describe('ronda 3 · A3 · sitio tras hoy para dejarlo a 1/3', () => {
   it('en las tres escalas, la escala sigue tras hoy al menos 1.400 px (2/3 de una pantalla de ~2.100)', () => {
     for (const e of ['day', 'week', 'month'] as const) expect(diasTrasHoy(e) * anchoDelDia(e)).toBeGreaterThanOrEqual(1400);
+  });
+});
+
+describe('Trimestre y Año (A15)', () => {
+  it('empiezan en el primer día del trimestre y del año', () => {
+    const d = new Date(2026, 10, 18);
+    expect(inicioDeLaEscala(d, 'quarter')).toEqual(new Date(2026, 9, 1));
+    expect(inicioDeLaEscala(d, 'year')).toEqual(new Date(2026, 0, 1));
+    expect(inicioDeLaEscala(new Date(2026, 2, 31), 'quarter')).toEqual(new Date(2026, 0, 1));
+  });
+  it('cada escala más larga dibuja menos por día', () => {
+    expect(anchoDelDia('month')).toBeGreaterThan(anchoDelDia('quarter'));
+    expect(anchoDelDia('quarter')).toBeGreaterThan(anchoDelDia('year'));
+  });
+  it('ajustar elige la escala por lo que dura', () => {
+    expect(escalaParaAjustar(14)).toBe('day');
+    expect(escalaParaAjustar(90)).toBe('week');
+    expect(escalaParaAjustar(200)).toBe('month');
+    expect(escalaParaAjustar(600)).toBe('quarter');
+    expect(escalaParaAjustar(2000)).toBe('year');
   });
 });

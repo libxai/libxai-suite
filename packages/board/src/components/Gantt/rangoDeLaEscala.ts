@@ -11,14 +11,14 @@
  * de una semana, en sábado. Ahora el rango empieza en un lunes (Semana) o en
  * un día 1 (Mes); cabecera, barras y línea de hoy comparten ese origen.
  */
-export type EscalaDelGantt = 'day' | 'week' | 'month';
+export type EscalaDelGantt = 'day' | 'week' | 'month' | 'quarter' | 'year';
 
 /**
  * QA Asakaa · mejora fuerte 6 («falta la lógica de escalas»): el ancho de UN día en cada escala,
  * en un solo sitio. Estaba copiado en siete; una copia distinta es justo el tipo de fallo de E13.
  */
 export function anchoDelDia(escala: EscalaDelGantt): number {
-  return escala === 'day' ? 60 : escala === 'week' ? 20 : 8;
+  return escala === 'day' ? 60 : escala === 'week' ? 20 : escala === 'month' ? 8 : escala === 'quarter' ? 3 : 1.4;
 }
 
 export function inicioDeLaEscala(fecha: Date, escala: EscalaDelGantt): Date {
@@ -28,6 +28,10 @@ export function inicioDeLaEscala(fecha: Date, escala: EscalaDelGantt): Date {
     d.setDate(d.getDate() - desdeLunes);
   } else if (escala === 'month') {
     d.setDate(1);
+  } else if (escala === 'quarter') {
+    d.setMonth(Math.floor(d.getMonth() / 3) * 3, 1);
+  } else if (escala === 'year') {
+    d.setMonth(0, 1);
   }
   return d;
 }
@@ -88,4 +92,9 @@ export function ladoDeHoy(hoyX: number, izquierda: number, derecha: number): 'le
   if (hoyX < izquierda) return 'left';
   if (hoyX > derecha) return 'right';
   return null;
+}
+
+/** A15 · «Ajustar al proyecto»: la escala con la que todo el rango cabe en una pantalla de ~1.000 px. */
+export function escalaParaAjustar(dias: number): EscalaDelGantt {
+  return dias <= 21 ? 'day' : dias <= 122 ? 'week' : dias <= 300 ? 'month' : dias <= 900 ? 'quarter' : 'year';
 }

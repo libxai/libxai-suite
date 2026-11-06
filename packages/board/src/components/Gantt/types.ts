@@ -112,7 +112,7 @@ export interface Task {
   };
 }
 
-export type TimeScale = 'day' | 'week' | 'month';
+export type TimeScale = 'day' | 'week' | 'month' | 'quarter' | 'year'; /* A15 · Trimestre y Año, solo en la v6 */
 export type Theme = 'dark' | 'light' | 'neutral';
 export type RowDensity = 'compact' | 'comfortable' | 'spacious';
 export type DependencyLineStyle = 'curved' | 'squared'; // v0.17.310: Dependency line style

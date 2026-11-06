@@ -16,7 +16,7 @@ import { createPortal } from 'react-dom';
 import { Filter, ChevronDown, Plus, X, Check, Rows3, MoreHorizontal } from 'lucide-react';
 import type { ColumnType, TimeScale, RowDensity, TaskFilterType } from './types';
 import { useGanttI18n } from './GanttI18nContext';
-import { cuantosFiltros, SIN_FILTROS, SIN_RESPONSABLE, type FiltrosDelGantt, type OpcionesDeFiltro } from './filtrosDelGantt';
+import { cuantosFiltros, SIN_FILTROS, SIN_RESPONSABLE, type FiltrosDelGantt, type OpcionesDeFiltro, type VistaGuardada } from './filtrosDelGantt';
 
 export interface OpcionExtraV6 {
   id: string;
@@ -38,6 +38,12 @@ export interface BarraV6Props {
   filtros?: FiltrosDelGantt;
   onFiltrosChange?: (f: FiltrosDelGantt) => void;
   opcionesDeFiltro?: OpcionesDeFiltro;
+  /** A15 */
+  vistasGuardadas?: VistaGuardada[];
+  onGuardarVista?: (nombre: string) => void;
+  onAplicarVista?: (v: VistaGuardada) => void;
+  onBorrarVista?: (nombre: string) => void;
+  onAjustarAlProyecto?: () => void;
   toolbarRightContent?: ReactNode;
   showCreateTaskButton?: boolean;
   createTaskLabel?: string;
@@ -181,6 +187,22 @@ export function MenuDeColumnasV6({ es, elegidas, alternar, opciones }: {
   );
 }
 
+/** A15 · el nombre de una vista nueva: un campo, porque el menú no se cierra al escribir. */
+function GuardarVista({ alGuardar, texto, guardar }: { alGuardar: (nombre: string) => void; texto: string; guardar: string }) {
+  const [nombre, setNombre] = useState('');
+  const enviar = () => { const n = nombre.trim(); if (n) { alGuardar(n); setNombre(''); } };
+  return (
+    <div className="flex items-center" style={{ gap: 6, padding: '2px 8px 6px' }}>
+      <input data-nombre-de-vista value={nombre} placeholder={texto} aria-label={texto} onChange={(e) => setNombre(e.target.value)}
+        onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter') enviar(); }} style={{ ...ESTILO_FECHA, padding: '0 8px' }} />
+      <button type="button" data-guardar-vista onClick={enviar} disabled={!nombre.trim()}
+        style={{ flex: 'none', height: 30, padding: '0 10px', border: 0, borderRadius: 8, background: V.acento, color: V.sobreAcento, font: 'inherit', fontSize: 12, fontWeight: 500, cursor: 'pointer', opacity: nombre.trim() ? 1 : 0.5 }}>
+        {guardar}
+      </button>
+    </div>
+  );
+}
+
 function Titulo({ children }: { children: ReactNode }) {
   return <div style={{ padding: '6px 8px 4px', fontSize: 11, fontWeight: 500, color: V.tenue }}>{children}</div>;
 }
@@ -316,6 +338,22 @@ export function BarraV6(p: BarraV6Props) {
                   <Opcion alPulsar={() => { p.onTaskFilterChange?.('all'); p.onFiltrosChange?.(SIN_FILTROS); cerrar(); }}>{tx('Quitar todos los filtros', 'Clear all filters')}</Opcion>
                 </>
               )}
+              {p.onGuardarVista && (
+                <>
+                  <Separador />
+                  <Titulo>{tx('Vistas guardadas', 'Saved views')}</Titulo>
+                  {(p.vistasGuardadas ?? []).map((v) => (
+                    <div key={v.nombre} className="flex items-center" data-vista-guardada={v.nombre}>
+                      <div className="flex-1 min-w-0"><Opcion alPulsar={() => { p.onAplicarVista?.(v); cerrar(); }}>{v.nombre}</Opcion></div>
+                      <button type="button" aria-label={`${tx('Borrar vista', 'Delete view')} ${v.nombre}`} onClick={() => p.onBorrarVista?.(v.nombre)}
+                        style={{ flex: 'none', width: 24, height: 24, padding: 0, border: 0, borderRadius: 6, background: 'transparent', color: V.tenue, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <X className="w-3 h-3" strokeWidth={2} aria-hidden />
+                      </button>
+                    </div>
+                  ))}
+                  <GuardarVista alGuardar={p.onGuardarVista} texto={tx('Guardar la vista actual', 'Save current view')} guardar={tx('Guardar', 'Save')} />
+                </>
+              )}
             </>
           )}
         </Desplegable>
@@ -347,7 +385,7 @@ export function BarraV6(p: BarraV6Props) {
       <div role="group" aria-label={tx('Escala de tiempo', 'Time scale')}
         className="flex items-center"
         style={{ height: 36, boxSizing: 'border-box', gap: 2, padding: '0 2px', border: `1px solid ${V.borde}`, borderRadius: 10, background: V.segmentado }}>
-        {([['day', tx('D', 'D'), tx('Día', 'Day')], ['week', tx('S', 'W'), tx('Semana', 'Week')], ['month', tx('M', 'M'), tx('Mes', 'Month')]] as const).map(([valor, corta, larga]) => {
+        {([['day', tx('D', 'D'), tx('Día', 'Day')], ['week', tx('S', 'W'), tx('Semana', 'Week')], ['month', tx('M', 'M'), tx('Mes', 'Month')], ['quarter', tx('T', 'Q'), tx('Trimestre', 'Quarter')], ['year', tx('A', 'Y'), tx('Año', 'Year')]] as const).map(([valor, corta, larga]) => {
           const activa = p.timeScale === valor;
           return (
             <button
@@ -396,6 +434,12 @@ export function BarraV6(p: BarraV6Props) {
                 {d.etiqueta}
               </Opcion>
             ))}
+            {p.onAjustarAlProyecto && (
+              <>
+                <Separador />
+                <Opcion alPulsar={() => { p.onAjustarAlProyecto?.(); cerrar(); }}>{tx('Ajustar al proyecto', 'Fit to project')}</Opcion>
+              </>
+            )}
             {p.contenidoDeVista && (<><Separador />{p.contenidoDeVista(cerrar)}</>)}
             {(p.onHideCompletedChange || p.onLeyendaVisibleChange) && (
               <>

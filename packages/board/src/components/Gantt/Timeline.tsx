@@ -611,6 +611,17 @@ export function Timeline({
           x,
         });
         current.setDate(current.getDate() + 7);
+      } else if (timeScale === 'quarter' || timeScale === 'year') {
+        /* A15 · la fila de abajo: meses en Trimestre, trimestres en Año. La de arriba la agrupa (ver esV6Largo). */
+        const trimestre = Math.floor(current.getMonth() / 3) + 1;
+        result.push({
+          date: new Date(current),
+          label: timeScale === 'quarter'
+            ? current.toLocaleDateString(locale, { month: 'short' }).replace('.', '')
+            : `${String(locale).startsWith('es') ? 'T' : 'Q'}${trimestre}`,
+          x,
+        });
+        current.setMonth(current.getMonth() + (timeScale === 'quarter' ? 1 : 3));
       } else {
         result.push({
           date: new Date(current),
@@ -640,6 +651,7 @@ export function Timeline({
   const esV6Dia = v6 && timeScale === 'day';
   /* G8 · la escala S, en dos filas como la D: el mes arriba y la semana debajo */
   const esV6Semana = v6 && timeScale === 'week';
+  const esV6Largo = v6 && (timeScale === 'quarter' || timeScale === 'year');
   const anchoDia = dayWidth * zoom;
   const mismoDia = (a?: Date | null, b?: Date | null) => !!a && !!b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
   const mesCorto = (d: Date) => d.toLocaleDateString(locale, { month: 'short' }).replace('.', '');
@@ -799,8 +811,34 @@ export function Timeline({
             </g>
           )}
 
+          {esV6Largo && (
+            <g data-escala-v6={timeScale}>
+              {headers.map((h, i) => {
+                const grupo = (d: Date) => (timeScale === 'quarter' ? `${d.getFullYear()}-${Math.floor(d.getMonth() / 3)}` : String(d.getFullYear()));
+                const anterior = headers[i - 1]?.date;
+                if (anterior && grupo(anterior) === grupo(h.date)) return null;
+                const letra = String(locale).startsWith('es') ? 'T' : 'Q';
+                return (
+                  <g key={`grupo-${i}`}>
+                    {i > 0 && <line x1={h.x} y1={0} x2={h.x} y2={HEADER_HEIGHT} style={{ stroke: V6S.borde }} strokeWidth={1} />}
+                    <text x={h.x + 8} y={13} dominantBaseline="middle" style={{ fill: V6S.texto2, fontSize: 12, fontWeight: 500, fontFamily: 'Geist, sans-serif' }}>
+                      {timeScale === 'quarter' ? `${letra}${Math.floor(h.date.getMonth() / 3) + 1} ${h.date.getFullYear()}` : h.date.getFullYear()}
+                    </text>
+                  </g>
+                );
+              })}
+              <line x1={0} y1={24.5} x2={Math.max(timelineWidth, 1000)} y2={24.5} style={{ stroke: V6S.linea }} strokeWidth={1} />
+              {headers.map((h, i) => (
+                <g key={`sub-${i}`}>
+                  {i > 0 && <line x1={h.x} y1={24.5} x2={h.x} y2={HEADER_HEIGHT} style={{ stroke: V6S.linea }} strokeWidth={1} />}
+                  <text x={h.x + 6} y={24 + 17} dominantBaseline="middle" style={{ fill: V6S.texto, fontSize: 11, fontFamily: 'Geist, sans-serif' }}>{h.label}</text>
+                </g>
+              ))}
+            </g>
+          )}
+
           {/* Header Grid Lines and Text */}
-          {!esV6Dia && !esV6Semana && headers.map((header, index) => (
+          {!esV6Dia && !esV6Semana && !esV6Largo && headers.map((header, index) => (
             <g key={`header-${index}`}>
               {/* Grid line in header - skip first line since TaskGrid border serves as divider */}
               {index > 0 && (

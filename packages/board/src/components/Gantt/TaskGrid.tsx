@@ -8,6 +8,7 @@ import { fechaCorta } from './fechaCorta';
 import { Task, GanttColumn, ColumnType, GanttTemplates } from './types';
 import { motion } from 'framer-motion';
 import { COLUMNAS_OPCIONALES, textoDeColumna, tonoDeColumna, type ContextoDeColumnas } from './columnasDelGantt';
+import { habilesEntre } from './motorDeProgramacion';
 import { MenuDeColumnasV6 } from './BarraV6';
 import { ColumnManager } from './ColumnManager'; // v0.17.215: Back with sticky positioning
 import { ContextMenu, ContextMenuItem, MenuIcons } from './ContextMenu';
@@ -78,6 +79,10 @@ interface TaskGridProps {
   v6?: boolean;
   /** G15 · Alt+←/→: mover la tarea N días hábiles. */
   onMoverDias?: (task: Task, dias: number) => void;
+  /** A12 · editar en la celda. */
+  puedeEditarEnTabla?: (task: Task) => boolean;
+  onDuracionEnTabla?: (task: Task, dias: number) => void;
+  onProgresoEnTabla?: (task: Task, avance: number) => void;
   /** A14 · las columnas del «+». */
   columnasV6?: { elegidas: ColumnType[]; alternar: (id: ColumnType) => void; contexto: ContextoDeColumnas; verCostos: boolean; hayLineaBase: boolean };
   /** Gantt v6: «13 tareas · completadas ocultas», encima de los títulos. */
@@ -93,6 +98,40 @@ interface TaskGridProps {
   /** Gantt ronda 2 · R4 · «12 vencidas» y su «Ver» (activa el filtro «Solo vencidas»). */
   avisoVencidas?: string;
   onVerVencidas?: () => void;
+}
+
+/** A12 · un número que se edita en su celda: clic o Enter para escribir, Enter o salir guarda, Escape deja como estaba. */
+function CeldaNumericaV6({ valor, sufijo, min, max, derecha, etiqueta, alGuardar }: {
+  valor: number; sufijo: string; min: number; max: number; derecha?: boolean; etiqueta: string; alGuardar: (n: number) => void;
+}) {
+  const [texto, setTexto] = useState<string | null>(null);
+  const guardar = () => {
+    const n = Number(texto);
+    setTexto(null);
+    if (texto !== null && texto.trim() !== '' && Number.isFinite(n) && n !== valor) alGuardar(Math.min(max, Math.max(min, Math.round(n))));
+  };
+  const estilo: React.CSSProperties = { width: '100%', textAlign: derecha ? 'right' : 'left', fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontVariantNumeric: 'tabular-nums', fontSize: 12, color: 'var(--v6-texto-2, #4D5761)' };
+  if (texto === null) {
+    return (
+      <button type="button" data-celda-editable aria-label={`${etiqueta}: ${valor} ${sufijo}`} onClick={(e) => { e.stopPropagation(); setTexto(String(valor)); }}
+        style={{ ...estilo, background: 'transparent', border: 0, padding: 0, cursor: 'text' }}>
+        {sufijo === '%' ? `${valor}%` : `${valor} ${sufijo}`}
+      </button>
+    );
+  }
+  return (
+    <input autoFocus type="number" min={min} max={max} value={texto} aria-label={etiqueta}
+      onClick={(e) => e.stopPropagation()}
+      onFocus={(e) => e.currentTarget.select()}
+      onChange={(e) => setTexto(e.target.value)}
+      onBlur={guardar}
+      onKeyDown={(e) => {
+        e.stopPropagation();
+        if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); }
+        if (e.key === 'Escape') setTexto(null);
+      }}
+      style={{ ...estilo, height: 24, boxSizing: 'border-box', padding: '0 4px', borderRadius: 6, border: '1px solid var(--v6-acento, #0FA392)', background: 'var(--v6-tarjeta, #fff)', outline: 'none' }} />
+  );
 }
 
 export function TaskGrid({
@@ -132,6 +171,9 @@ export function TaskGrid({
   v6 = false,
   onMoverDias,
   columnasV6,
+  puedeEditarEnTabla = () => true,
+  onDuracionEnTabla,
+  onProgresoEnTabla,
   resumenV6,
   onContraerTodo,
   onMostrarOcultas,
@@ -815,7 +857,17 @@ export function TaskGrid({
               type="text"
               value={editingTaskName}
               onChange={(e) => setEditingTaskName(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleRenameSave(task.id); else if (e.key === 'Escape') handleRenameCancel(); }}
+              onKeyDown={(e) => {
+                e.stopPropagation();
+                if (e.key === 'Escape') { handleRenameCancel(); return; }
+                /* A12 · dentro de la celda, Enter guarda y crea la siguiente; Tab sangra y Mayús+Tab quita sangría. */
+                if (e.key === 'Enter') { handleRenameSave(task.id); onTaskCreate?.(task.id, 'below'); return; }
+                if (e.key === 'Tab') {
+                  e.preventDefault();
+                  handleRenameSave(task.id);
+                  if (e.shiftKey) onTaskOutdent?.([task.id]); else onTaskIndent?.([task.id]);
+                }
+              }}
               onBlur={() => handleRenameSave(task.id)}
               className="flex-1 min-w-0 px-2 py-1 rounded border outline-none"
               style={{ background: 'var(--v6-tarjeta, #fff)', borderColor: 'var(--v6-acento, #0FA392)', color: 'var(--v6-texto, #0E1114)', font: 'inherit', fontSize: 13 }}
@@ -875,6 +927,24 @@ export function TaskGrid({
         </div>
       );
     }
+    if (columnasV6 && column.id === 'duration' && !isParentTask && task.startDate && task.endDate && !task.isMilestone && puedeEditarEnTabla(task)) {
+      const cal = columnasV6.contexto.cal;
+      const dias = habilesEntre(new Date(task.startDate), new Date(task.endDate), cal);
+      return (
+        <CeldaNumericaV6 valor={dias} sufijo="d" min={1} max={3650} etiqueta={`${esGrid ? 'Duración de' : 'Duration of'} ${task.name}`}
+          alGuardar={(n) => onDuracionEnTabla?.(task, n)} />
+      );
+    }
+    if (columnasV6 && column.id === 'predecessors' && !isParentTask && onTaskDependencies && puedeEditarEnTabla(task)) {
+      const texto = textoDeColumna('predecessors', task, columnasV6.contexto);
+      return (
+        <button type="button" data-celda-v6="predecessors" className="truncate w-full" title={esGrid ? 'Editar predecesoras' : 'Edit predecessors'}
+          onClick={(e) => { e.stopPropagation(); onTaskDependencies(task); }}
+          style={{ textAlign: 'left', background: 'transparent', border: 0, padding: 0, cursor: 'pointer', fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontSize: 12, color: texto === '—' ? 'var(--v6-tenue, #5F6972)' : 'var(--v6-texto-2, #4D5761)' }}>
+          {texto}
+        </button>
+      );
+    }
     if (columnasV6 && COLUMNAS_OPCIONALES.some((c) => c.id === column.id)) {
       const tono = tonoDeColumna(column.id, task, columnasV6.contexto.cal);
       const texto = textoDeColumna(column.id, task, columnasV6.contexto);
@@ -884,6 +954,13 @@ export function TaskGrid({
             color: tono === 'rojo' ? 'var(--v6-rojo, #B02A33)' : tono === 'verde' ? 'var(--v6-acento-texto, #066A5F)' : texto === '—' ? 'var(--v6-tenue, #5F6972)' : 'var(--v6-texto-2, #4D5761)' }}>
           {texto}
         </div>
+      );
+    }
+    if (column.id === 'progress' && !isParentTask && onProgresoEnTabla && puedeEditarEnTabla(task)) {
+      const p = Math.round(task.progress || 0);
+      return (
+        <CeldaNumericaV6 valor={p} sufijo="%" min={0} max={100} derecha etiqueta={`${esGrid ? 'Avance de' : 'Progress of'} ${task.name}`}
+          alGuardar={(n) => onProgresoEnTabla(task, n)} />
       );
     }
     if (column.id === 'progress') {

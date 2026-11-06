@@ -1,4 +1,4 @@
-import { aplicarFiltros, cuantosFiltros, opcionesDeFiltro, SIN_FILTROS, type FiltrosDelGantt } from './filtrosDelGantt';
+import { aplicarFiltros, cuantosFiltros, opcionesDeFiltro, SIN_FILTROS, conVista, escribirVistas, leerVistas, type FiltrosDelGantt, type VistaGuardada } from './filtrosDelGantt';
 import { createPortal } from 'react-dom';
 import { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo, useContext, forwardRef, useImperativeHandle } from 'react';
 import { Task, TimeScale, Theme, GanttConfig, GanttColumn, ColumnType, RowDensity, TaskFilterType } from './types';
@@ -7,9 +7,9 @@ import { GanttToolbar } from './GanttToolbar';
 import { BarraV6 } from './BarraV6';
 import { TaskGrid } from './TaskGrid';
 import { Timeline } from './Timeline';
-import { anchoDelDia, conHoy, diasTrasHoy, fechaAlAbrir, HOY_AL_ABRIR, inicioDeLaEscala, ladoDeHoy } from './rangoDeLaEscala';
+import { anchoDelDia, escalaParaAjustar, conHoy, diasTrasHoy, fechaAlAbrir, HOY_AL_ABRIR, inicioDeLaEscala, ladoDeHoy } from './rangoDeLaEscala';
 import { esVencida } from './vencidas';
-import { calendarioDe, fechasQueCumplen, empujarSucesoras, holguras, moverConservandoHabiles, sumarHabiles } from './motorDeProgramacion';
+import { calendarioDe, fechasQueCumplen, finConDuracion, empujarSucesoras, holguras, moverConservandoHabiles, sumarHabiles } from './motorDeProgramacion';
 import { COLUMNAS_OPCIONALES, type ContextoDeColumnas } from './columnasDelGantt';
 import { ContextMenu, MenuIcons } from './ContextMenu'; // v0.8.0: Split task context menu
 import { TaskDetailModal } from '../TaskDetailModal'; // v0.17.244: Unified task detail modal (replaces TaskFormModal)
@@ -1028,6 +1028,23 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     scrollEl.scrollTo({ left: Math.max(0, target), behavior: 'auto' });
   };
 
+  const encajarEnFechas = (start: Date, end: Date) => {
+    const dias = Math.max(1, (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    /* A15 · la v6 tiene también Trimestre y Año. */
+    const propuesta = escalaParaAjustar(dias);
+    const escala: TimeScale = disenoV6 ? propuesta : (propuesta === 'day' || propuesta === 'week' ? propuesta : 'month');
+    pendingScrollRef.current = start;
+    setTimeScale(escala);
+    // Misma escala: no hay re-render que consuma el desplazamiento.
+    if (escala === scrollToTodayDepsRef.current?.timeScale) {
+      requestAnimationFrame(() => {
+        const d = pendingScrollRef.current;
+        pendingScrollRef.current = null;
+        if (d) desplazarA(d);
+      });
+    }
+  };
+
   useImperativeHandle(ref, () => ({
     // ==================== CRUD Methods ====================
     getTask: (id: string) => ganttUtils.findTaskById(localTasks, id),
@@ -1364,20 +1381,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
 
     scrollToDate: (date: Date, align: 'start' | 'center' = 'start') => desplazarA(date, align),
 
-    fitToDates: (start: Date, end: Date) => {
-      const dias = Math.max(1, (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-      const escala: TimeScale = dias <= 21 ? 'day' : dias <= 122 ? 'week' : 'month';
-      pendingScrollRef.current = start;
-      setTimeScale(escala);
-      // Misma escala: no hay re-render que consuma el desplazamiento.
-      if (escala === scrollToTodayDepsRef.current?.timeScale) {
-        requestAnimationFrame(() => {
-          const d = pendingScrollRef.current;
-          pendingScrollRef.current = null;
-          if (d) desplazarA(d);
-        });
-      }
-    },
+    fitToDates: encajarEnFechas,
 
     scrollToToday: () => {
       const scrollEl = timelineScrollRef.current;
@@ -1761,6 +1765,31 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       }
     }
   }, [localTasks, onTaskUpdate, onDependentTasksScheduled, config]);
+
+  /* A15 · «Ajustar al proyecto»: del primer inicio al último fin que se ve. */
+  const ajustarAlProyecto = useCallback(() => {
+    const fechas = ganttUtils.flattenTasks(localTasks).flatMap((t) => [t.startDate, t.endDate]).filter((d): d is Date => !!d).map((d) => new Date(d).getTime());
+    if (fechas.length) encajarEnFechas(new Date(Math.min(...fechas)), new Date(Math.max(...fechas)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localTasks]);
+
+  /* A15 · las vistas guardadas: filtros, columnas, escala y densidad, con su nombre, en este navegador. */
+  const [vistasGuardadas, setVistasGuardadas] = useState<VistaGuardada[]>(leerVistas);
+  const guardarVista = useCallback((nombre: string) => {
+    const vista: VistaGuardada = { nombre, taskFilter, filtros, columnas: columnasElegidas, escala: timeScale, densidad: rowDensity };
+    setVistasGuardadas((l) => { const nueva = conVista(l, vista); escribirVistas(nueva); return nueva; });
+  }, [taskFilter, filtros, columnasElegidas, timeScale, rowDensity]);
+  const borrarVista = useCallback((nombre: string) => {
+    setVistasGuardadas((l) => { const nueva = l.filter((v) => v.nombre !== nombre); escribirVistas(nueva); return nueva; });
+  }, []);
+  const aplicarVista = useCallback((v: VistaGuardada) => {
+    setTaskFilter(v.taskFilter);
+    setFiltros({ ...SIN_FILTROS, ...v.filtros });
+    setColumnasElegidas(v.columnas);
+    try { localStorage.setItem('gantt-columnas-v6', JSON.stringify(v.columnas)); } catch { /* sin almacenamiento */ }
+    setTimeScale(v.escala);
+    cambiarDensidad(v.densidad);
+  }, [setTaskFilter, cambiarDensidad, setTimeScale]);
 
   /* A14 · lo que necesitan las columnas calculadas. */
   const contextoDeColumnas = useMemo((): ContextoDeColumnas => {
@@ -2502,6 +2531,11 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         filtros={filtros}
         onFiltrosChange={setFiltros}
         opcionesDeFiltro={opcionesDeLosFiltros}
+        vistasGuardadas={vistasGuardadas}
+        onGuardarVista={guardarVista}
+        onAplicarVista={aplicarVista}
+        onBorrarVista={borrarVista}
+        onAjustarAlProyecto={ajustarAlProyecto}
         toolbarRightContent={toolbarRightContent}
         showCreateTaskButton={showCreateTaskButton && permissions?.canCreateTask !== false && !permissions?.canCreateSubtaskOnly}
         createTaskLabel={createTaskLabel}
@@ -2671,6 +2705,12 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
             showCriticalPath={showCriticalPath}
             onTaskClick={onTaskClick}
             onMoverDias={moverDias}
+            puedeEditarEnTabla={(t: Task) => permissions?.canUpdateTask !== false && permissions?.canEditTask?.(t) !== false}
+            onDuracionEnTabla={(t: Task, dias: number) => {
+              if (!t.startDate) return;
+              handleTaskDateChange(t, new Date(t.startDate), finConDuracion(new Date(t.startDate), dias, calendarioDe(config?.workingDaysConfig)));
+            }}
+            onProgresoEnTabla={(t: Task, avance: number) => handleTaskUpdate(t.id, { progress: avance, ...(avance === 100 ? { status: 'completed' } : t.status === 'completed' ? { status: 'in-progress' } : {}) })}
             columnasV6={disenoV6 ? { elegidas: columnasElegidas, alternar: alternarColumnaV6, contexto: contextoDeColumnas, verCostos: !!config.verCostos, hayLineaBase: !!config.showBaseline } : undefined}
             onTaskSelectionChange={onTaskSelectionChange}
             selectedTaskId={selectedTaskId}
