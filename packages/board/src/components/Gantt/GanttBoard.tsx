@@ -11,6 +11,8 @@ import { anchoDelDia, escalaParaAjustar, conHoy, diasTrasHoy, fechaAlAbrir, HOY_
 import { esVencida } from './vencidas';
 import { calendarioDe, fechasQueCumplen, finConDuracion, empujarSucesoras, holguras, moverConservandoHabiles, sumarHabiles } from './motorDeProgramacion';
 import { COLUMNAS_OPCIONALES, type ContextoDeColumnas } from './columnasDelGantt';
+import { aPdf, aPng, type DatosDelDocumento, type OpcionesDeExportacion } from './exportarDocumento';
+import { fechaCorta } from './fechaCorta';
 import { ContextMenu, MenuIcons } from './ContextMenu'; // v0.8.0: Split task context menu
 import { TaskDetailModal } from '../TaskDetailModal'; // v0.17.244: Unified task detail modal (replaces TaskFormModal)
 import { GanttAIAssistant } from './GanttAIAssistant'; // v0.14.0: AI Assistant
@@ -1045,7 +1047,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     }
   };
 
-  useImperativeHandle(ref, () => ({
+  const crearApi = (): GanttBoardRef => ({
     // ==================== CRUD Methods ====================
     getTask: (id: string) => ganttUtils.findTaskById(localTasks, id),
 
@@ -1399,7 +1401,11 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       const target = Math.max(0, todayX - viewportWidth * HOY_AL_ABRIR);
       scrollEl.scrollTo({ left: target, behavior: 'smooth' });
     },
-  }), [localTasks, undo, redo, canUndo, canRedo, clearHistory, theme, rowHeight]);
+  });
+  useImperativeHandle(ref, crearApi, [localTasks, undo, redo, canUndo, canRedo, clearHistory, theme, rowHeight]);
+  /* A22 · lo mismo por dentro: el documento parte de la captura del PNG. */
+  const apiInterna = useRef<GanttBoardRef | null>(null);
+  useImperativeHandle(apiInterna, crearApi, [localTasks, undo, redo, canUndo, canRedo, clearHistory, theme, rowHeight]);
 
   // Handle column toggle (memoized)
   const handleToggleColumn = useCallback((columnId: ColumnType) => {
@@ -2154,6 +2160,75 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     onExportSuccess?.('png');
   }, [theme, onExportSuccess]);
 
+  /* A22 · el documento: encabezado, leyenda, papel y rango.
+     Tabla y diagrama se capturan por separado y se unen: el diagrama vive en un scroll de miles de píxeles y, capturado junto a
+     la tabla, salía EN BLANCO aunque el fichero se descargara. Del diagrama se recorta lo que importa: el proyecto o lo que se veía. */
+  const exportarDocumento = useCallback(async (formato: 'pdf' | 'png', opciones: OpcionesDeExportacion) => {
+    const tl = timelineScrollRef.current;
+    const panelTabla = (gridScrollInnerRef.current || gridScrollRef.current?.querySelector('.gantt-grid-scroll')) as HTMLElement | null;
+    const diagrama = tl?.querySelector('[data-gantt-chart]') as HTMLElement | null;
+    const contenidoTabla = panelTabla?.querySelector('.gantt-taskgrid-content') as HTMLElement | null;
+    const sd = scrollToTodayDepsRef.current;
+    if (!tl || !panelTabla || !diagrama || !contenidoTabla || !sd) return;
+    await new Promise((r) => setTimeout(r, 200)); // que se cierre el menú
+    const izquierda = tl.scrollLeft;
+    const anchoVista = tl.clientWidth;
+    const escala = 2;
+    setDibujarTodo(true);
+    await new Promise((r) => setTimeout(r, 150));
+    const lienzo = document.createElement('canvas');
+    try {
+      const svg = diagrama.querySelector('svg');
+      const anchoTotal = Number(svg?.getAttribute('width')) || diagrama.scrollWidth;
+      const alto = 60 + contenidoTabla.scrollHeight;
+      const opcionesDeCaptura = { backgroundColor: theme.bgPrimary, pixelRatio: escala, skipFonts: false, filter: (n: unknown) => !(n instanceof Element) || getComputedStyle(n).position !== 'fixed' };
+      const [urlTabla, urlDiagrama] = await Promise.all([
+        toPng(panelTabla, { ...opcionesDeCaptura, width: gridWidth, height: alto, style: { height: `${alto}px`, overflow: 'visible' } }),
+        toPng(diagrama, { ...opcionesDeCaptura, width: anchoTotal, height: alto, style: { width: `${anchoTotal}px`, height: `${alto}px`, overflow: 'visible' } }),
+      ]);
+      const cargar = (url: string) => new Promise<HTMLImageElement>((ok, mal) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => mal(new Error('imagen')); i.src = url; });
+      const [imgTabla, imgDiagrama] = await Promise.all([cargar(urlTabla), cargar(urlDiagrama)]);
+      const pxDia = anchoDelDia(sd.timeScale) * sd.zoom;
+      const xDe = (d: number) => ((d - sd.startDate.getTime()) / 864e5) * pxDia;
+      const fechas = ganttUtils.flattenTasks(filteredTasks).flatMap((t) => [t.startDate, t.endDate]).filter((d): d is Date => !!d).map((d) => new Date(d).getTime());
+      const desde = opciones.rango === 'vista' || fechas.length === 0 ? izquierda : Math.max(0, xDe(Math.min(...fechas)) - pxDia * 2);
+      const hasta = opciones.rango === 'vista' || fechas.length === 0 ? izquierda + anchoVista : Math.min(anchoTotal, xDe(Math.max(...fechas)) + pxDia * 3 + 60);
+      const trozo = Math.max(1, hasta - desde);
+      lienzo.width = (gridWidth + trozo) * escala;
+      lienzo.height = alto * escala;
+      const ctx = lienzo.getContext('2d');
+      if (!ctx) return;
+      ctx.fillStyle = theme.bgPrimary || '#FFFFFF';
+      ctx.fillRect(0, 0, lienzo.width, lienzo.height);
+      ctx.drawImage(imgTabla, 0, 0);
+      ctx.drawImage(imgDiagrama, desde * escala, 0, trozo * escala, lienzo.height, gridWidth * escala, 0, trozo * escala, lienzo.height);
+    } finally {
+      setDibujarTodo(false);
+    }
+    const escalaCaptura = escala;
+    const hoy = new Date();
+    const datos: DatosDelDocumento = {
+      imagen: lienzo,
+      cabeceraPx: 60 * escalaCaptura,
+      filaPx: rowHeight * escalaCaptura,
+      titulo: projectName || (esVacio ? 'Cronograma' : 'Schedule'),
+      fecha: fechaCorta(hoy, esVacio ? 'es' : 'en'),
+      leyenda: [
+        { texto: esVacio ? 'En curso' : 'In progress', color: '#0FA392' },
+        { texto: esVacio ? 'Vencida' : 'Overdue', color: '#C0303A' },
+        { texto: esVacio ? 'Fase' : 'Phase', color: '#6B7480' },
+        { texto: esVacio ? 'Línea base' : 'Baseline', color: '#D5DADF' },
+      ],
+      etiquetaPagina: (n, de) => (esVacio ? `Página ${n} de ${de}` : `Page ${n} of ${de}`),
+    };
+    /* La fecha local: `toISOString` da el día siguiente por la noche en Bogotá. */
+    const dia = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
+    const nombre = `${(projectName || 'gantt').replace(/[^\p{L}\p{N}]+/gu, '-')}-${dia}`;
+    if (formato === 'pdf') await aPdf(datos, opciones.papel, `${nombre}.pdf`);
+    else aPng(datos, `${nombre}.png`);
+    onExportSuccess?.(formato);
+  }, [gridWidth, rowHeight, projectName, esVacio, onExportSuccess, theme, filteredTasks]);
+
   const handleExportPDF = useCallback(async () => {
     await ganttUtils.exportToPDF(localTasks);
     onExportSuccess?.('pdf');
@@ -2554,6 +2629,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         highlightWeekends={highlightWeekends}
         onHighlightWeekendsChange={handleHighlightWeekendsChange}
         hasDependencies={hasDependencies}
+        onExportarDocumento={showExportButton ? exportarDocumento : undefined}
         onExportPNG={showExportButton ? handleExportPNG : undefined}
         onExportPDF={showExportButton ? handleExportPDF : undefined}
         onExportExcel={showExportButton ? handleExportExcel : undefined}

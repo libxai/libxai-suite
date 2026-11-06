@@ -16,6 +16,7 @@ import { createPortal } from 'react-dom';
 import { Filter, ChevronDown, Plus, X, Check, Rows3, MoreHorizontal } from 'lucide-react';
 import type { ColumnType, TimeScale, RowDensity, TaskFilterType } from './types';
 import { useGanttI18n } from './GanttI18nContext';
+import type { OpcionesDeExportacion, Papel, RangoDeExportacion } from './exportarDocumento';
 import { cuantosFiltros, SIN_FILTROS, SIN_RESPONSABLE, type FiltrosDelGantt, type OpcionesDeFiltro, type VistaGuardada } from './filtrosDelGantt';
 
 export interface OpcionExtraV6 {
@@ -60,6 +61,8 @@ export interface BarraV6Props {
   highlightWeekends: boolean;
   onHighlightWeekendsChange?: (v: boolean) => void;
   hasDependencies?: boolean;
+  /** A22 · PDF e imagen con encabezado, leyenda, papel y rango. */
+  onExportarDocumento?: (formato: 'pdf' | 'png', opciones: OpcionesDeExportacion) => Promise<void>;
   onExportPNG?: () => Promise<void>;
   onExportPDF?: () => Promise<void>;
   onExportExcel?: () => Promise<void>;
@@ -230,6 +233,8 @@ export function BarraV6(p: BarraV6Props) {
   ];
   /* Gantt ronda 2 (Yesid) · P2 · «ocultar completadas» no cuenta aquí ni lleva etiqueta: su único aviso es el contador
      de la tabla («38 completadas ocultas · Mostrar»). */
+  const [papel, setPapel] = useState<Papel>('carta');
+  const [rango, setRango] = useState<RangoDeExportacion>('todo');
   const filtrosG = p.filtros ?? SIN_FILTROS;
   const activos = (p.taskFilter !== 'all' ? 1 : 0) + cuantosFiltros(filtrosG);
   const cambiar = (c: Partial<FiltrosDelGantt>) => p.onFiltrosChange?.({ ...filtrosG, ...c });
@@ -247,8 +252,8 @@ export function BarraV6(p: BarraV6Props) {
   ];
   const densidad = DENSIDADES.find((d) => d.valor === p.rowDensity) ?? DENSIDADES[1]!;
   const exportar = [
-    p.onExportPNG && { id: 'png', etiqueta: tx('Exportar imagen (PNG)', 'Export image (PNG)'), f: p.onExportPNG },
-    p.onExportPDF && { id: 'pdf', etiqueta: tx('Exportar PDF', 'Export PDF'), f: p.onExportPDF },
+    !p.onExportarDocumento && p.onExportPNG && { id: 'png', etiqueta: tx('Exportar imagen (PNG)', 'Export image (PNG)'), f: p.onExportPNG },
+    !p.onExportarDocumento && p.onExportPDF && { id: 'pdf', etiqueta: tx('Exportar PDF', 'Export PDF'), f: p.onExportPDF },
     p.onExportExcel && { id: 'xlsx', etiqueta: tx('Exportar Excel', 'Export Excel'), f: p.onExportExcel },
     p.onExportMSProject && { id: 'msp', etiqueta: tx('Exportar a MS Project', 'Export to MS Project'), f: p.onExportMSProject },
   ].filter(Boolean) as Array<{ id: string; etiqueta: string; f: () => unknown }>;
@@ -515,8 +520,25 @@ export function BarraV6(p: BarraV6Props) {
       >
         {(cerrar) => (
           <>
-                        {exportar.map((x) => (
-              <Opcion key={x.id} alPulsar={() => { cerrar(); void x.f(); }}>{x.etiqueta}</Opcion>
+            {p.onExportarDocumento && (
+              <>
+                <Titulo>{tx('Exportar', 'Export')}</Titulo>
+                <div className="flex items-center" style={{ gap: 6, padding: '2px 8px 6px' }}>
+                  <select aria-label={tx('Papel', 'Paper')} data-papel value={papel} onChange={(e) => setPapel(e.target.value as Papel)} style={ESTILO_FECHA}>
+                    <option value="carta">{tx('Carta', 'Letter')}</option>
+                    <option value="a4">A4</option>
+                    <option value="plotter">{tx('Plotter (A1)', 'Plotter (A1)')}</option>
+                  </select>
+                  <select aria-label={tx('Rango', 'Range')} data-rango value={rango} onChange={(e) => setRango(e.target.value as RangoDeExportacion)} style={ESTILO_FECHA}>
+                    <option value="todo">{tx('Todo', 'Everything')}</option>
+                    <option value="vista">{tx('Lo que se ve', 'Current view')}</option>
+                  </select>
+                </div>
+                <Opcion alPulsar={() => { cerrar(); void p.onExportarDocumento?.('pdf', { papel, rango }); }}>{tx('Exportar PDF', 'Export PDF')}</Opcion>
+                <Opcion alPulsar={() => { cerrar(); void p.onExportarDocumento?.('png', { papel, rango }); }}>{tx('Exportar imagen (PNG)', 'Export image (PNG)')}</Opcion>
+              </>
+            )}
+                        {exportar.map((x) => (              <Opcion key={x.id} alPulsar={() => { cerrar(); void x.f(); }}>{x.etiqueta}</Opcion>
             ))}
             {p.onCopySnapshotLink && (
               <Opcion alPulsar={() => { cerrar(); p.onCopySnapshotLink?.(); }}>{tx('Copiar enlace', 'Copy link')}</Opcion>
