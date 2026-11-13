@@ -2813,8 +2813,17 @@ export function ListView({
                             )}
                           </div>
                         </div>
-                      ) : showFillHandle && fillCol ? (
+                      ) : canFill && fillCol ? (
                         /*
+                         * El envoltorio está SIEMPRE que la celda admite relleno;
+                         * solo el tirador depende del hover (David, 13-nov). Antes
+                         * el envoltorio aparecía y desaparecía con el ratón: al
+                         * llevarlo al calendario de fecha (portal a body) la fila
+                         * perdía el hover, React desmontaba el selector y el
+                         * calendario se cerraba antes del clic. Por eso la fecha
+                         * de una subtarea no se dejaba elegir y la de un padre
+                         * (sin relleno) sí.
+                         *
                          * v1.9.28 · el tirador se ancla al CONTENIDO, no a la
                          * celda. Antes iba en la esquina de la celda entera
                          * (`right: 2`), y como las celdas van centradas, el
@@ -2826,7 +2835,7 @@ export function ListView({
                          */
                         <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
                           {renderCell(task, column)}
-                          <span
+                          {showFillHandle && <span
                             title="Arrastrá hacia abajo para aplicar a varias tareas"
                             onMouseDown={(e) => handleFillDragStart(e, task.id, fillCol, index)}
                             style={{
@@ -2841,7 +2850,7 @@ export function ListView({
                               cursor: 'crosshair',
                               zIndex: 5,
                             }}
-                          />
+                          />}
                         </span>
                       ) : (
                         renderCell(task, column)

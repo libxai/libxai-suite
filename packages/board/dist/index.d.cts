@@ -480,6 +480,20 @@ interface GanttConfig {
     toolbarContainer?: HTMLElement | null;
     /** 1.9.35 · oculta el selector de nivel WBS (All / L1 / L2…) de la barra. */
     hideWbsLevel?: boolean;
+    /** 1.9.36 · cabecera de la escala W: 'number' («Week 36», por defecto) o 'range' («Sep 1–7»). */
+    weekHeaderFormat?: 'number' | 'range';
+    /**
+     * 1.9.36 · columnas visibles por defecto (además de «name»). Solo cambia el
+     * punto de partida: lo que el usuario guardó con persistColumns manda.
+     */
+    defaultVisibleColumns?: ColumnType$1[];
+    /** 1.9.43 · texto del buscador de la app: oculta (sin tocar datos) las tareas que no coinciden por nombre. */
+    searchQuery?: string;
+    /** 1.9.45 · pinta una fila «+ Add task» al final de la rejilla; la app decide qué hace al pulsarla. */
+    addTaskRow?: {
+        label: string;
+        onClick: () => void;
+    };
     templates?: GanttTemplates;
     permissions?: GanttPermissions;
     disableScrollSync?: boolean;
@@ -1020,6 +1034,12 @@ interface BoardConfig {
     columnWidth?: number;
     /** Estimated card height for virtualization */
     cardHeight?: number;
+    /**
+     * 1.9.37 · columnas plegadas: no pintan sus tarjetas pero siguen aceptando
+     * arrastres. La app decide cuáles y pinta su propio aviso (p. ej. en
+     * renderColumnFooter, «27 completed · Show»).
+     */
+    collapsedColumnIds?: string[];
     /** Enable keyboard shortcuts */
     enableKeyboardShortcuts?: boolean;
     /** Show card count in column headers */
@@ -2905,6 +2925,11 @@ interface TaskGridProps {
     onTaskDuplicate?: (taskIds: string[]) => void;
     onTaskCreate?: (afterTaskId: string, direction: 'above' | 'below') => void;
     onTaskRename?: (taskId: string, newName: string) => void;
+    /** 1.9.45 · fila «+ Add task» al final de la rejilla (la app decide qué hace). */
+    addTaskRow?: {
+        label: string;
+        onClick: () => void;
+    };
     onCreateSubtask?: (parentTaskId: string) => void;
     onOpenTaskModal?: (task: Task) => void;
     /** v1.9.6: ahora recibe TODOS los ids a borrar (bulk desde el menú contextual
@@ -2921,7 +2946,7 @@ interface TaskGridProps {
 declare function TaskGrid({ tasks, theme, rowHeight: ROW_HEIGHT, availableUsers, templates: _templates, // TODO: Use templates for custom rendering
 onTaskClick, onTaskSelectionChange, selectedTaskId, onTaskDblClick, // v0.8.0
 onTaskContextMenu, // v0.8.0
-onTaskToggle, scrollTop: _scrollTop, columns, onToggleColumn, onColumnResize, onTaskUpdate, onBulkFill, onTaskIndent, onTaskOutdent, onTaskMove, onMultiTaskDelete, onTaskDuplicate, onTaskCreate, onTaskRename, onCreateSubtask, onOpenTaskModal, onDeleteRequest, // v0.17.34
+onTaskToggle, scrollTop: _scrollTop, columns, onToggleColumn, onColumnResize, onTaskUpdate, onBulkFill, onTaskIndent, onTaskOutdent, onTaskMove, onMultiTaskDelete, onTaskDuplicate, onTaskCreate, onTaskRename, addTaskRow, onCreateSubtask, onOpenTaskModal, onDeleteRequest, // v0.17.34
 onTaskReparent, // v0.17.68
 allTasks, // v1.9.10: árbol completo para traducir posición con filtros activos
 scrollContainerRef, // v0.18.15
@@ -2962,6 +2987,8 @@ interface TimelineProps {
     showCriticalPath?: boolean;
     showDependencies?: boolean;
     highlightWeekends?: boolean;
+    /** 1.9.36 · 'range' pinta «Sep 1–7» en la escala W. */
+    weekHeaderFormat?: 'number' | 'range';
     /** v4.1.0: Per-task edit check — returns false for read-only bars */
     canEditTask?: (task: Task) => boolean;
     /** v4.2.0: Committed on pointerup after dragging the progress edge of a task bar. */
@@ -2980,7 +3007,7 @@ declare function Timeline({ tasks, theme, rowHeight: ROW_HEIGHT, timeScale, star
 templates, dependencyLineStyle, // v0.17.310
 showTaskBarLabels, onTaskClick, onTaskDblClick, // v0.8.0
 onTaskContextMenu, // v0.8.0
-onTaskDateChange, onDependencyCreate, onDependencyDelete, showBaseline, showCriticalPath, showDependencies, highlightWeekends, canEditTask, onTaskProgressDrag, workingDaysConfig, }: TimelineProps): react_jsx_runtime.JSX.Element;
+onTaskDateChange, onDependencyCreate, onDependencyDelete, showBaseline, showCriticalPath, showDependencies, highlightWeekends, weekHeaderFormat, canEditTask, onTaskProgressDrag, workingDaysConfig, }: TimelineProps): react_jsx_runtime.JSX.Element;
 
 interface TaskTooltipData {
     task: Task;
@@ -3695,6 +3722,8 @@ interface GanttTranslations {
         share: string;
         copySnapshotLink: string;
         copied: string;
+        /** 1.9.44 · tooltip del gestor de columnas de la rejilla. */
+        columns: string;
     };
     contextMenu: {
         editTask: string;
@@ -4169,6 +4198,39 @@ interface ListViewConfig {
      * botón de crear. Para cabeceras de una sola fila.
      */
     toolbarContainer?: HTMLElement | null;
+    /**
+     * 1.9.38 · la app decide qué es «vencida» (su zona, su regla de terminada).
+     * Con ella, la fecha de fin vencida sale en rojo con icono y la celda lleva
+     * `data-vencida`. Sin ella, nada cambia.
+     */
+    isTaskOverdue?: (task: Task) => boolean;
+    /** 1.9.38 · cómo se ve una completada: 'strike' (tachada, por defecto) o 'dim' (atenuada, sin tachar). */
+    completedStyle?: 'strike' | 'dim';
+    /** 1.9.38 · 'compact': filas de una línea y 40 px; 'comfortable' (por defecto) las de dos líneas y 56 px. */
+    rowDensity?: 'comfortable' | 'compact';
+    /**
+     * 1.9.39 · `false` quita el botón «Filters» (estado / ocultar completadas) de
+     * la barra, para la app que tiene su propio sistema de filtros. Por defecto se pinta.
+     */
+    showStatusFilter?: boolean;
+    /**
+     * 1.9.40 · 'status' agrupa las tareas raíz en To do · In progress · Completed
+     * (las subtareas van con su padre); dentro, por fin ascendente. Por defecto, sin agrupar.
+     */
+    groupBy?: 'none' | 'status' | 'assignee' | 'due';
+    /**
+     * 1.9.44 · con groupBy 'due', a qué grupo va cada tarea. La regla la pone la app
+     * (la de vencida del Overview). Sin ella, todas caen en 'none' (Sin fecha).
+     */
+    dueBucket?: (task: Task) => 'overdue' | 'today' | 'week' | 'later' | 'past' | 'none';
+    /** 1.9.40 · grupos plegados al empezar (por defecto ['completed']). */
+    defaultCollapsedGroups?: string[];
+    /** 1.9.40 · si se da, qué grupos están plegados se recuerda en localStorage con esta clave. */
+    groupStateKey?: string;
+    /** 1.9.41 · una casilla por fila y Shift+clic para un rango; avisa con callbacks.onSelectionChange. */
+    selectable?: boolean;
+    /** 1.9.41 · selección controlada por la app (p. ej. para vaciarla tras una acción en masa). */
+    selectedIds?: string[];
 }
 /**
  * ListView translations
@@ -4526,6 +4588,12 @@ interface CalTask {
      *  si la tarea es de primer nivel, su propia fase es ella misma. */
     phaseId?: string;
     phaseName?: string;
+    /** 1.9.42 · estado para los chips del modo vencimiento. */
+    done?: boolean;
+    overdue?: boolean;
+    milestone?: boolean;
+    /** 1.9.42 · tarea padre (contenedor): el modo vencimiento no la pinta. */
+    container?: boolean;
 }
 interface DayItem {
     serial: number;
@@ -4641,8 +4709,21 @@ interface Props {
         start: string;
         end: string;
     }) => void;
+    /**
+     * 1.9.42 · 'due': el Mes responde «qué vence cada día» — un chip por tarea en
+     * su fecha de fin, tantos como quepan y «+N more»; la rejilla llena el alto sin
+     * scroll. 'span' (por defecto): las barras de siempre.
+     */
+    monthMode?: 'span' | 'due';
+    /**
+     * 1.9.44 · abrir SIEMPRE en el mes de hoy (Yesid, 2-oct). Sin esto se mantiene
+     * REQ-07 §2.5: si el mes actual no tiene tareas, abrir en el de la primera.
+     */
+    openOnToday?: boolean;
+    /** 1.9.42 · `false`: ni horas ni coste en las barras. */
+    showValues?: boolean;
 }
-declare function CalendarView({ tasks, projectName, projectId, projectColor, locale, themeMode, hourlyRate, money, onMoneyChange, onTaskOpen, toolbarContainer, hiddenViews, mostrarFiltroDeFases, mostrarConmutadorDeDinero, onCreateTask, canReschedule, onReschedule, members, holidayDates, timesheetSettings, onVisibleRangeChange, }: Props): react_jsx_runtime.JSX.Element;
+declare function CalendarView({ tasks, projectName, projectId, projectColor, locale, themeMode, hourlyRate, money, onMoneyChange, onTaskOpen, toolbarContainer, hiddenViews, mostrarFiltroDeFases, mostrarConmutadorDeDinero, onCreateTask, canReschedule, onReschedule, members, holidayDates, timesheetSettings, onVisibleRangeChange, monthMode, showValues, openOnToday, }: Props): react_jsx_runtime.JSX.Element;
 
 /**
  * Simulación de reprogramación con CPM (Calendario, Sprint 3, regla C5).
