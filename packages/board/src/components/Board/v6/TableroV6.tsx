@@ -17,7 +17,7 @@
  *
  * Las reglas son las de la Lista (`reglasDeLaLista.ts`), el panel es el de la Lista y el pie de Recursos también.
  */
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type ReactNode } from 'react';
 import type { Task } from '../../Gantt/types';
 import type { Calendario } from '../../Gantt/motorDeProgramacion';
 import { fechaCorta } from '../../Gantt/fechaCorta';
@@ -25,8 +25,9 @@ import {
   cifrasDe, diasDeRetraso, estadoDe, estadoDeHoja, estaVencida, hojasDe, horasCortas, tieneHijas, type CifrasDeFila, type EstadoV6,
 } from '../../ListView/v6/reglasDeLaLista';
 import { CSS_V6 } from '../../ListView/v6/ListaV6';
-import { CSS_PANEL_V6, PanelDeTareaV6, type FilaDelPanel } from '../../ListView/v6/PanelDeTareaV6';
-import { PuntoDeRiesgo } from '../../ListView/v6/PuntoDeRiesgo';
+import { CSS_PANEL_V6, type FilaDelPanel } from '../../ListView/v6/PanelDeTareaV6';
+import { CSS_PANEL_V4, PanelDeTareaV4, type AccionesDelPanelV4 } from '../../ListView/v6/PanelDeTareaV4';
+import { EscudoDeRiesgo } from '../../ListView/v6/PuntoDeRiesgo';
 import { CSS_RECURSOS_V6, RecursosDeLaListaV6 } from '../../ListView/v6/RecursosDeLaListaV6';
 
 export type AgruparTableroV6 = 'fase' | 'padre' | 'todo';
@@ -121,6 +122,22 @@ const TXT = {
     faseNoSeCierra: 'Una fase se completa con su última tarea; para cerrarla de una vez, use la Lista o el Gantt.',
     avance: 'Avance', porConfirmar: 'por confirmar', numeroAvance: 'Escriba un número entero entre 0 y 100.',
     avanceCambio: (n: string, a: number, b: number) => `Avance de «${n}»: ${a}% → ${b}%.`, avanceConfirmado: (p: number) => `Avance confirmado: ${p}%.`,
+    /* guía v4 */
+    ayudaTit: 'Cómo leer el tablero y atajos de teclado', comoLeer: 'Cómo leer el tablero', teclado: 'Teclado',
+    lVencida: 'Fecha de fin vencida', lAvance: 'Avance de la tarea', lBloq: 'Bloqueada, o empieza antes de que termine otra',
+    lRiesgo: 'Riesgo abierto; el color es su nivel', lCarril: 'Carril: terminadas, en curso, bloqueadas y por hacer',
+    kMover: 'Mover la tarjeta de columna', kAbrir: 'Abrir el detalle', kMenu: 'Menú de la tarjeta', kRecorrer: 'Recorrer las tarjetas',
+    kCerrar: 'Cerrar el panel', mayus: 'Mayús',
+    notaAyuda: 'Una tarjeta es una tarea sin hijas. El estado de una fase o de una tarea padre se calcula con sus hijas: por eso se mueven las tarjetas, no los carriles.',
+    soltarCompletar: 'Soltar para completar',
+    railTip: (n: number) => `Completadas · ${n}\nClic para mostrar la columna. Suelte aquí una tarjeta para completarla.`,
+    resumenCarril: (e: string, p: number, h: number, n: number) => `${e} · ${p}% de avance · ${h} de ${n} ${n === 1 ? 'terminada' : 'terminadas'}`,
+    verResumen: 'Ver el resumen del carril', resumenDelCarril: 'Resumen del carril', avancePorHoras: 'Avance (por horas estimadas)',
+    terminadasT: 'Terminadas', enCursoT: 'En curso', bloqueadasT: 'Bloqueadas', porHacerT: 'Por hacer', vencidasT: 'Vencidas',
+    tarjetasCarril: 'Tarjetas en este carril', deN: (a: number, b: number) => `${a} de ${b}`,
+    abrirDetalleDe: (n: string) => `Abrir el detalle de ${n}`, tareasDirectas: 'tareas directas',
+    padreSubs: (n: number) => `Tarea padre · ${n} ${n === 1 ? 'subtarea' : 'subtareas'}`,
+    dependeDe: (w: string, n: string, e: string) => `Depende de ${w} ${n} (${e})`,
   },
   en: {
     st: { todo: 'To do', prog: 'In progress', blocked: 'Blocked', done: 'Completed' } as Record<EstadoV6, string>,
@@ -176,6 +193,21 @@ const TXT = {
     faseNoSeCierra: 'A phase completes with its last task; to close it at once, use the List or the Gantt.',
     avance: 'Progress', porConfirmar: 'to confirm', numeroAvance: 'Type a whole number between 0 and 100.',
     avanceCambio: (n: string, a: number, b: number) => `Progress of “${n}”: ${a}% → ${b}%.`, avanceConfirmado: (p: number) => `Progress confirmed: ${p}%.`,
+    ayudaTit: 'How to read the board and keyboard shortcuts', comoLeer: 'How to read the board', teclado: 'Keyboard',
+    lVencida: 'Overdue end date', lAvance: 'Task progress', lBloq: 'Blocked, or starts before another one ends',
+    lRiesgo: 'Open risk; the colour is its level', lCarril: 'Lane: finished, in progress, blocked and to do',
+    kMover: 'Move the card to another column', kAbrir: 'Open the details', kMenu: 'Card menu', kRecorrer: 'Move between cards',
+    kCerrar: 'Close the panel', mayus: 'Shift',
+    notaAyuda: 'A card is a task with no children. The status of a phase or a parent task comes from its children: that is why cards move, not lanes.',
+    soltarCompletar: 'Drop to complete',
+    railTip: (n: number) => `Completed · ${n}\nClick to show the column. Drop a card here to complete it.`,
+    resumenCarril: (e: string, p: number, h: number, n: number) => `${e} · ${p}% progress · ${h} of ${n} finished`,
+    verResumen: 'See the lane summary', resumenDelCarril: 'Lane summary', avancePorHoras: 'Progress (by estimated hours)',
+    terminadasT: 'Finished', enCursoT: 'In progress', bloqueadasT: 'Blocked', porHacerT: 'To do', vencidasT: 'Overdue',
+    tarjetasCarril: 'Cards in this lane', deN: (a: number, b: number) => `${a} of ${b}`,
+    abrirDetalleDe: (n: string) => `Open the details of ${n}`, tareasDirectas: 'direct tasks',
+    padreSubs: (n: number) => `Parent task · ${n} ${n === 1 ? 'subtask' : 'subtasks'}`,
+    dependeDe: (w: string, n: string, e: string) => `Depends on ${w} ${n} (${e})`,
   },
 };
 type Textos = typeof TXT.es | typeof TXT.en;
@@ -222,12 +254,14 @@ export interface TableroV6Props {
   onAbrir?: (t: Task) => void;
   /** R6 · abrir un riesgo desde el panel de la tarea */
   onVerRiesgo?: (id: string) => void;
+  /** guía v4 · lo que el panel hace con la app (historial, cronómetro, horas, restricción, enlaces, abrir en la Lista) */
+  panel?: AccionesDelPanelV4;
   hoy?: Date;
 }
 
 export function TableroV6({
   tasks: tasksProp, es, cal, tarifaDe, tarifaDePersona, monedaCodigo, conCosto = true, costoAlTerminar, onVerRecursos, nombreProyecto,
-  vista, onVista, filtros, onFiltros, onMover, onCambiarPadre, onAbrir, onVerRiesgo, hoy: hoyProp,
+  vista, onVista, filtros, onFiltros, onMover, onCambiarPadre, onAbrir, onVerRiesgo, panel, hoy: hoyProp,
 }: TableroV6Props) {
   const x = es ? TXT.es : TXT.en;
   const idioma = es ? 'es' : 'en';
@@ -280,16 +314,13 @@ export function TableroV6({
   const rutaDe = (h: Task) => { const n = nodos.get(h.id); return n ? n.ancestros.map(nombreNodo).join(' › ') : ''; };
 
   /* filtros */
-  const [nodoFiltro, setNodoFiltro] = useState<string | null>(null);
-  useEffect(() => { if (nodoFiltro && !nodos.has(nodoFiltro)) setNodoFiltro(null); }, [nodoFiltro, nodos]);
   const pasa = useCallback((h: Task) => {
     if (filtros.vencidas && !estaVencida(h, hoy)) return false;
     if (filtros.bloqueadas && estadoDeHoja(h) !== 'blocked') return false;
     if (filtros.responsables.length && !filtros.responsables.includes(claveDe(responsableDe(h)))) return false;
-    if (nodoFiltro && !nodos.get(h.id)?.ancestros.includes(nodoFiltro)) return false;
     return true;
-  }, [filtros, nodoFiltro, nodos, hoy]);
-  const nFiltros = (filtros.vencidas ? 1 : 0) + (filtros.bloqueadas ? 1 : 0) + (filtros.responsables.length ? 1 : 0) + (nodoFiltro ? 1 : 0);
+  }, [filtros, hoy]);
+  const nFiltros = (filtros.vencidas ? 1 : 0) + (filtros.bloqueadas ? 1 : 0) + (filtros.responsables.length ? 1 : 0);
   const filtradas = useMemo(() => hojas.filter(pasa), [hojas, pasa]);
   const mostrarHechas = vista.mostrarHechas;
   const visibles = useMemo(() => filtradas.filter((h) => mostrarHechas || estadoDeHoja(h) !== 'done'), [filtradas, mostrarHechas]);
@@ -640,10 +671,10 @@ export function TableroV6({
     const tip = `${x.calculado}: ${porQue(hs)}.\n${x.regla}`;
     return <span className={`schip ${e}`} tabIndex={0} role="note" aria-label={`${x.calculado}: ${x.st[e]}. ${porQue(hs)}.`} title={tip}><i aria-hidden="true" />{x.st[e]}</span>;
   };
-  const barraApilada = (hs: Task[]) => {
+  const barraApilada = (hs: Task[], decorativa = false) => {
     const c = contar(hs, hoy); const n = hs.length || 1;
     return (
-      <span className="sbar" role="img" aria-label={x.sbar(c)} title={x.sbar(c)}>
+      <span className="sbar" {...(decorativa ? { 'aria-hidden': true } : { role: 'img', 'aria-label': x.sbar(c), title: x.sbar(c) })}>
         {(['done', 'prog', 'blocked', 'todo'] as EstadoV6[]).map((k) => (c[k] ? <b key={k} className={k} style={{ width: `${(100 * c[k]) / n}%` }} /> : null))}
       </span>
     );
@@ -652,6 +683,8 @@ export function TableroV6({
   /* dependencias: la abierta que manda */
   const predecesoras = (h: Task) => (h.dependencies ?? []).map((id) => nodos.get(id)).filter((d): d is Nodo => !!d && estados.get(d.t.id) !== 'done');
   const finDe = (n: Nodo) => (tieneHijas(n.t) ? Math.max(...hojasDe(n.t).map((l) => fechaDia(l.endDate)).filter((v) => !Number.isNaN(v))) : fechaDia(n.t.endDate));
+  /* guía v4 · lo que la detiene va bajo el nombre, en ámbar («Espera a 3.1.2 · …», «Empieza antes de que termine …»);
+   * la dependencia que no estorba va en la línea de abajo, en gris («Después de 3.3.1.1») */
   const espera = (h: Task): ReactNode => {
     if (estadoDeHoja(h) === 'done') return null;
     const ds = predecesoras(h);
@@ -659,24 +692,46 @@ export function TableroV6({
     if (estadoDeHoja(h) === 'blocked') {
       const d = ds[0];
       return (
-        <div className="warn" title={d ? `${x.espera} ${d.wbs} ${d.t.name} (${x.st[estados.get(d.t.id) ?? 'todo']})` : undefined}>
+        <div className="warn kc-warn" title={d ? `${x.espera} ${d.wbs} ${d.t.name} (${x.st[estados.get(d.t.id) ?? 'todo']})` : undefined}>
           <Advertencia /><span>{d ? `${x.espera} ${nombreDe(d)}` : x.bloqueadaSinCausa}</span>
         </div>
       );
     }
     const choque = ds.find((d) => finDe(d) >= fechaDia(h.startDate));
-    if (choque) return <div className="warn" title={`${choque.wbs} ${choque.t.name}`}><Advertencia /><span>{x.empiezaAntes} {choque.wbs}</span></div>;
-    if (!ds.length) return null;
-    return <div className="after" title={ds.map((d) => `${d.wbs} ${d.t.name}`).join(', ')}>{x.despues} {ds[0]!.wbs}{ds.length > 1 ? x.yMas(ds.length - 1) : ''}</div>;
+    if (choque) return <div className="warn kc-warn" title={`${choque.wbs} ${choque.t.name}`}><Advertencia /><span>{x.empiezaAntes} {choque.wbs}</span></div>;
+    return null;
+  };
+  const despues = (h: Task): ReactNode => {
+    if (estadoDeHoja(h) === 'done' || estadoDeHoja(h) === 'blocked') return null;
+    const ds = predecesoras(h);
+    if (!ds.length || ds.some((d) => finDe(d) >= fechaDia(h.startDate))) return null;
+    const d = ds[0]!;
+    return (
+      <span className="kc-after" title={x.dependeDe(d.wbs, d.t.name, x.st[estados.get(d.t.id) ?? 'todo'])}>
+        {x.despues} {d.wbs}{ds.length > 1 ? x.yMas(ds.length - 1) : ''}
+      </span>
+    );
   };
 
+  /* la miga de la tarjeta: solo los padres intermedios que el carril no dice ya (sin agrupar, también la fase) */
+  const migaDe = (h: Task, c: Carril): string[] => {
+    const anc = nodos.get(h.id)?.ancestros ?? [];
+    const nombre = (id: string) => nodos.get(id)?.t.name ?? '';
+    if (vista.agrupar === 'todo' || !c.nodo) return anc.map(nombre);
+    if (vista.agrupar === 'fase') return anc.slice(1).map(nombre);
+    const i = anc.indexOf(c.clave);
+    return (i > -1 ? anc.slice(i + 1) : []).map(nombre);
+  };
+
+  /* las fechas en Geist con cifras tabulares (no en Mono: la guía deja el Mono para los identificadores) */
   const fechas = (h: Task) => {
     const venc = estaVencida(h, hoy);
     const fin = h.endDate ? fechaCorta(new Date(h.endDate), idioma, hoy) : '—';
     const ini = h.startDate ? fechaCorta(new Date(h.startDate), idioma, hoy) : '—';
-    const chip = venc ? <span className="chip-red" title={x.vencidaHace(diasDeRetraso(h, hoy, cal))}>{fin}</span> : null;
-    if (h.isMilestone) return <span className="kc-dates"><i className="diamond" aria-hidden="true" />{x.hito} · {chip ?? fin}</span>;
-    if (venc) return <span className="kc-dates"><span className="start">{ini} –</span>{chip}</span>;
+    const retraso = venc ? x.vencidaHace(diasDeRetraso(h, hoy, cal)) : '';
+    const chip = venc ? <span className="chip-red">{fin}</span> : null;
+    if (h.isMilestone) return <span className="kc-dates" title={retraso || undefined}><i className="diamond" aria-hidden="true" />{x.hito} · {chip ?? fin}</span>;
+    if (venc) return <span className="kc-dates" title={`${ini} – ${fin} · ${retraso}`}><span className="start">{ini} –</span>{chip}</span>;
     return <span className="kc-dates plain">{ini} – {fin}</span>;
   };
 
@@ -688,6 +743,7 @@ export function TableroV6({
     const reg = ((h as { timeLoggedMinutes?: number }).timeLoggedMinutes ?? 0) / 60;
     const est = ((h as { effortMinutes?: number }).effortMinutes ?? 0) / 60;
     const desc = String((h as { description?: string }).description ?? '').trim();
+    const miga = migaDe(h, c);
     const etiqueta = [`${n.wbs} ${h.name}`, x.st[e], estaVencida(h, hoy) ? x.vencidaHace(diasDeRetraso(h, hoy, cal)) : null, `${nombreNodo(n.padre)}`].filter(Boolean).join('. ');
     return (
       <article key={h.id} className={`kcard${hecha ? ' isdone' : ''}${enPanel === h.id ? ' sel' : ''}${arrastre?.id === h.id ? ' dragging' : ''}`}
@@ -697,9 +753,10 @@ export function TableroV6({
         onDragStart={(ev) => { ev.dataTransfer.effectAllowed = 'move'; ev.dataTransfer.setData('text/plain', h.id); setArrastre({ id: h.id, carril: c.clave }); }}
         onDragEnd={() => { setArrastre(null); setSobre(null); }}>
         <div className="kc-top">
-          <span className="kc-path" title={rutaDe(h)}>{nombreNodo(n.padre)}</span>
-          <PuntoDeRiesgo riesgos={h.riesgos} es={es} />
-          <span className="mono">{n.wbs}</span>
+          <span className="kc-w">{n.wbs}</span>
+          {miga.length > 0 && <span className="kc-path" title={rutaDe(h)}>{miga.join(' › ')}</span>}
+          <EscudoDeRiesgo riesgos={h.riesgos} es={es} />
+          <span className="kc-sp" />
           <button type="button" className="kc-more" tabIndex={-1} aria-haspopup="menu" aria-expanded={menuDe === h.id} aria-label={x.acciones(`${n.wbs} ${h.name}`)}
             onClick={(ev) => { ev.stopPropagation(); setMenuDe(menuDe === h.id ? null : h.id); }}><Puntos /></button>
         </div>
@@ -707,15 +764,20 @@ export function TableroV6({
         <div className="kc-name">{h.name}</div>
         {desc && <div className="kc-desc">{desc}</div>}
         {espera(h)}
-        {!hecha && !h.isMilestone && (pct > 0 || e === 'prog') && (
-          <div className="kc-prog"><span className="pbar" aria-hidden="true"><b style={{ width: `${Math.min(100, pct)}%` }} /></span><span className={`pct${pct ? ' on' : ' zero'}`}>{pct}%</span>{porConfirmar.has(h.id) && <span className="unc">{x.porConfirmar}</span>}</div>
-        )}
         <div className="kc-bot">
+          <span className="kc-w kc-w2">{n.wbs}</span>
           {fechas(h)}
-          <span className="kc-r">
-            {vista.horas && !h.isMilestone && est > 0 && <span className="kc-hrs" title={x.horasTit}>{horasCortas(reg, es)}/{horasCortas(est, es)} h</span>}
-            {avatar(responsableDe(h))}
-          </span>
+          {!hecha && !h.isMilestone && (pct > 0 || e === 'prog') && (
+            <span className="kc-pg">
+              <span className="minibar" aria-hidden="true"><b style={{ width: `${Math.min(100, pct)}%` }} /></span>
+              <span className={`pct${pct ? ' on' : ' zero'}`}>{pct}%</span>
+              {porConfirmar.has(h.id) && <span className="unc">{x.porConfirmar}</span>}
+            </span>
+          )}
+          {despues(h)}
+          <span className="kc-sp" />
+          {vista.horas && !h.isMilestone && est > 0 && <span className="kc-hrs" title={x.horasTit}>{horasCortas(reg, es)}/{horasCortas(est, es)} h</span>}
+          {avatar(responsableDe(h))}
         </div>
       </article>
     );
@@ -769,11 +831,18 @@ export function TableroV6({
         onDragStart={(ev) => { ev.dataTransfer.effectAllowed = 'move'; ev.dataTransfer.setData('text/plain', n.t.id); setArrastre({ id: n.t.id, carril: c.clave, padre: true }); }}
         onDragEnd={() => { setArrastre(null); setSobre(null); }}>
         <div className="kc-top">
-          <span className="kc-path" title={n.ancestros.map(nombreNodo).join(' › ')}>{nombreNodo(n.padre)}</span>
-          <span className="mono">{n.wbs}</span>
+          <span className="kc-w">{n.wbs}</span>
+          <span className="kc-path" title={n.ancestros.map(nombreNodo).join(' › ')}>{x.padreSubs(hs.length)}</span>
         </div>
         <div className="kc-name">{n.t.name}</div>
-        <div className="kc-sum">{barraApilada(hs)}<span className="mono">{cc.done}/{hs.length}</span></div>
+        <div className="kc-bot">
+          <span className="kc-w kc-w2">{n.wbs}</span>
+          <span className="kc-sum">{barraApilada(hs)}<span className="num">{cc.done}/{hs.length}</span></span>
+          {cc.vencidas ? <span className="chip-red">{cc.vencidas} {x.vencidaN(cc.vencidas)}</span>
+            : <span className="kc-dates plain">{fecha(ini)} – {fecha(fin)}</span>}
+          <span className="kc-sp" />
+          {avatar(responsableDe(n.t))}
+        </div>
         {vista.subtareas === 'bajo' && (
           <button type="button" className="kc-kids" aria-expanded={abierto}
             onClick={(ev) => { ev.stopPropagation(); setSubsAbiertas((s) => { const nn = new Set(s); if (nn.has(n.t.id)) nn.delete(n.t.id); else nn.add(n.t.id); return nn; }); }}>
@@ -781,11 +850,6 @@ export function TableroV6({
           </button>
         )}
         {vista.subtareas === 'bajo' && abierto && <ul className="kc-kl">{filasHijas(n.t, 0, c)}</ul>}
-        <div className="kc-bot">
-          {cc.vencidas ? <span className="chip-red">{cc.vencidas} {x.vencidaN(cc.vencidas)}</span>
-            : <span className="kc-dates plain">{fecha(ini)} – {fecha(fin)}</span>}
-          <span className="kc-r">{avatar(responsableDe(n.t))}</span>
-        </div>
       </article>
     );
   };
@@ -845,34 +909,60 @@ export function TableroV6({
             onDragLeave={() => setSobre((s) => (s === clave ? null : s))}
             onDrop={(ev) => soltar(c, e, ev)}>
             {items.length ? items.map((it) => (it.tipo === 'hoja' ? tarjeta(it.t, c) : tarjetaPadre(it.n, c)))
-              : <span className="empty-t">{arrastre && !ajena ? x.suelte : x.sinTareas}</span>}
+              : <span className="empty-t" aria-hidden={!arrastre || ajena}>{x.suelte}</span>}
           </div>
         );
       })}
     </div>
   );
 
-  const chipsDePadres = (fase: Nodo) => {
-    const hijosPadre = (t: Task): Task[] => (t.subtasks ?? []).filter((s) => tieneHijas(s));
-    const chip = (t: Task): ReactNode => {
-      const n = nodos.get(t.id)!;
-      const hs = hojasDe(t);
-      const hechas = hs.filter((h) => estadoDeHoja(h) === 'done').length;
-      const e = estados.get(t.id) ?? 'todo';
-      const on = nodoFiltro === t.id;
-      return (
-        <Fragment key={t.id}>
-          <button type="button" className="sub" aria-pressed={on} onClick={() => setNodoFiltro(on ? null : t.id)}
-            title={`${on ? x.quitar : `${x.ver} ${n.wbs} ${t.name}`} · ${x.st[e]}, ${x.terminadas(hechas, hs.length)}`}>
-            <span className="mono">{n.wbs}</span>{t.name}<i className={`sdot ${e}`} aria-hidden="true" /><span className="mono">{hechas}/{hs.length}</span>
-          </button>
-          {hijosPadre(t).map((s) => <Fragment key={s.id}><span className="sep" aria-hidden="true">›</span>{chip(s)}</Fragment>)}
-        </Fragment>
-      );
+  /* guía v4 · la cabecera de carril trae cuatro datos —nombre, barra, «1/9», vencidas y bloqueadas—; el resto, en el
+   * resumen que abre la barra */
+  const [infoDe, setInfoDe] = useState<string | null>(null);
+  const [ayuda, setAyuda] = useState(false);
+  useEffect(() => {
+    if (!ayuda) return;
+    const fuera = (ev: MouseEvent) => { if (!(ev.target as HTMLElement).closest?.('.kb-ayuda, .help-btn')) setAyuda(false); };
+    const esc = (ev: globalThis.KeyboardEvent) => { if (ev.key === 'Escape') setAyuda(false); };
+    document.addEventListener('mousedown', fuera);
+    document.addEventListener('keydown', esc);
+    return () => { document.removeEventListener('mousedown', fuera); document.removeEventListener('keydown', esc); };
+  }, [ayuda]);
+  useEffect(() => {
+    if (infoDe === null) return;
+    const fuera = (ev: MouseEvent) => { if (!(ev.target as HTMLElement).closest?.('.lane-pop, .lane-pg')) setInfoDe(null); };
+    const esc = (ev: globalThis.KeyboardEvent) => {
+      if (ev.key !== 'Escape') return;
+      const k = infoDe; setInfoDe(null);
+      requestAnimationFrame(() => raiz.current?.querySelector<HTMLElement>(`[data-carril="${CSS.escape(k)}"] .lane-pg`)?.focus());
     };
-    const tops = hijosPadre(fase.t);
-    if (!tops.length) return null;
-    return <div className="subs" role="group">{tops.map((t) => <span key={t.id} className="sgrp">{chip(t)}</span>)}</div>;
+    document.addEventListener('mousedown', fuera);
+    document.addEventListener('keydown', esc);
+    return () => { document.removeEventListener('mousedown', fuera); document.removeEventListener('keydown', esc); };
+  }, [infoDe]);
+
+  const resumenDelCarril = (c: Carril) => {
+    const n = c.nodo;
+    const cc = contar(c.todas, hoy);
+    const nombre = n ? nombreNodo(n.t.id) : x.sinFase;
+    return (
+      <div className="lane-pop" role="dialog" aria-label={`${x.resumenDelCarril}: ${nombre}`}>
+        <h6>{nombre}</h6>
+        <div className="li-st">{chipCalculado(c.todas)}<span>{x.calculado}: {porQue(c.todas)}.</span></div>
+        {barraApilada(c.todas, true)}
+        <dl>
+          <dt>{x.avancePorHoras}</dt><dd className="num">{avanceDe(c.todas)}%</dd>
+          <dt>{x.terminadasT}</dt><dd className="num">{x.deN(cc.done, c.todas.length)}</dd>
+          <dt>{x.enCursoT}</dt><dd className="num">{cc.prog}</dd>
+          <dt>{x.bloqueadasT}</dt><dd className="num">{cc.blocked}</dd>
+          <dt>{x.porHacerT}</dt><dd className="num">{cc.todo}</dd>
+          <dt>{x.vencidasT}</dt><dd className={`num${cc.vencidas ? ' red' : ''}`}>{cc.vencidas}</dd>
+          {vista.agrupar === 'padre' && n && <><dt>{x.tarjetasCarril}</dt><dd className="num">{x.deN(c.propias.length, c.todas.length)}</dd></>}
+        </dl>
+        <p>{x.regla}</p>
+        {n && <button type="button" className="kb-btn2 sm" onClick={() => { setInfoDe(null); setEnPanel(n.t.id); }}>{x.abrirDetalle}</button>}
+      </div>
+    );
   };
 
   const cabecera = (c: Carril) => {
@@ -880,24 +970,29 @@ export function TableroV6({
     const plegado = estaPlegado(c);
     const cc = contar(c.todas, hoy);
     const porPadre = vista.agrupar === 'padre';
+    const nombre = n ? nombreNodo(n.t.id) : x.sinFase;
     const titulo = !n ? x.sinFase
-      : n.nivel === 0 ? <>{`${x.fase} ${n.wbs} · ${n.t.name}`}{porPadre && <span className="path"> {x.directas}</span>}</>
+      : n.nivel === 0 ? <>{`${x.fase} ${n.wbs} · ${n.t.name}`}{porPadre && <span className="path">{x.tareasDirectas}</span>}</>
         : <><span className="w">{n.wbs}</span>{n.t.name}</>;
+    const resumen = x.resumenCarril(x.st[estadoDe({ id: '_', name: '', progress: 0, subtasks: c.todas } as Task)], avanceDe(c.todas), cc.done, c.todas.length);
+    const abierto = infoDe === c.clave;
     return (
-      <header className="lane-h">
-        {porPadre && n && n.nivel > 0 && <span className="tree" style={{ width: n.nivel * 12 }} aria-hidden="true" />}
-        <button type="button" className="tg" aria-expanded={!plegado} onClick={() => alternarCarril(c)}
-          aria-label={`${plegado ? x.desplegar : x.plegar} · ${n ? nombreNodo(n.t.id) : x.sinFase}`}><Chevron /></button>
-        <h3>{titulo}</h3>
-        {chipCalculado(c.todas)}
-        <span className="meta">
-          <span className="mono">{avanceDe(c.todas)}%</span>
-          {barraApilada(c.todas)}
-          <span>{x.terminadas(cc.done, c.todas.length)}</span>
-          {cc.vencidas > 0 && <span className="red"><span className="mono">{cc.vencidas}</span> {x.vencidaN(cc.vencidas)}</span>}
-          {cc.blocked > 0 && <span className="bl"><i aria-hidden="true" /><span className="mono">{cc.blocked}</span> {x.bloqueadaN(cc.blocked)}</span>}
-          {porPadre && n && <span>{x.enCarril(c.propias.length, hojasDe(n.t).length, n.nivel === 0 ? x.enLaFase : `${x.en} ${n.t.name}`)}</span>}
-        </span>
+      <header className="lane-h" style={porPadre && n && n.nivel > 0 ? { paddingLeft: n.nivel * 20 } : undefined}>
+        <div className="lane-hi">
+          <button type="button" className="tg" aria-expanded={!plegado} onClick={() => alternarCarril(c)}
+            aria-label={`${plegado ? x.desplegar : x.plegar} · ${nombre}`}><Chevron /></button>
+          <h3>
+            {n ? <button type="button" className="lane-t" title={x.abrirDetalleDe(nombre)} onClick={() => setEnPanel(n.t.id)}>{titulo}</button>
+              : <span className="lane-t">{titulo}</span>}
+          </h3>
+          <button type="button" className="lane-pg" aria-haspopup="dialog" aria-expanded={abierto} aria-label={`${resumen}. ${x.verResumen}`} title={resumen}
+            onClick={() => setInfoDe(abierto ? null : c.clave)}>
+            {barraApilada(c.todas, true)}<span className="num">{cc.done}/{c.todas.length}</span>
+          </button>
+          {cc.vencidas > 0 && <span className="lane-c red"><span className="num">{cc.vencidas}</span> {x.vencidaN(cc.vencidas)}</span>}
+          {cc.blocked > 0 && <span className="lane-c"><span className="schip blocked"><i aria-hidden="true" /><span><span className="num">{cc.blocked}</span> {x.bloqueadaN(cc.blocked)}</span></span></span>}
+          {abierto && resumenDelCarril(c)}
+        </div>
       </header>
     );
   };
@@ -914,57 +1009,28 @@ export function TableroV6({
     chipsDeFiltro.push(['r', `${x.responsable}: ${filtros.responsables.map((k) => (k ? nombres.find((p) => p.clave === k)?.nombre ?? k : x.sinResp)).join(', ')}`,
       () => onFiltros({ ...filtros, responsables: [] })]);
   }
-  if (nodoFiltro) { const n = nodos.get(nodoFiltro); if (n) chipsDeFiltro.push(['n', `${n.wbs} ${n.t.name}`, () => setNodoFiltro(null)]); }
 
   const filaPanel = enPanel ? nodos.get(enPanel) ?? null : null;
   const abiertasDelPanel = filaPanel && tieneHijas(filaPanel.t) ? hojasDe(filaPanel.t).filter((h) => estadoDeHoja(h) !== 'done').length : 0;
-  const accionesDelPanel = filaPanel && (tieneHijas(filaPanel.t)
-    ? (
-      <div className="dp-rama">
-        <p className="dp-nota" style={{ margin: 0 }}>{x.padreNoSeMueve(hojasDe(filaPanel.t).length)}</p>
-        {filaPanel.nivel === 0 ? <p className="dp-nota" style={{ margin: 0 }}>{x.faseNoSeCierra}</p>
-          : abiertasDelPanel > 0 && (confirmarRama === filaPanel.t.id ? (
-            <div className="dp-confirma" role="group">
-              <span>{x.confirmarRama(abiertasDelPanel)}</span>
-              <button type="button" className="kb-btn" onClick={() => void completarRama(filaPanel)}>{x.completar}</button>
-              <button type="button" className="kb-btn2" onClick={() => setConfirmarRama(null)}>{x.cancelar}</button>
-            </div>
-          ) : (
-            <button type="button" className="kb-btn2" onClick={() => setConfirmarRama(filaPanel.t.id)}>{x.completarRama(abiertasDelPanel)}</button>
-          ))}
-      </div>
-    )
-    : (
-      <div className="dp-rama">
-        <label className="dp-mover">
-          <span>{x.moverA}</span>
-          <select value={estadoDeHoja(filaPanel.t)} onChange={(ev) => {
-            const a = ev.target.value as EstadoV6;
-            if (a === 'done' && !mostrarHechas) onVista({ ...vista, mostrarHechas: true });
-            void mover(filaPanel.t, a);
-          }}>
-            {ORDEN.map((e) => <option key={e} value={e}>{x.st[e]}</option>)}
-          </select>
-        </label>
-        {!filaPanel.t.isMilestone && (
-          <label className="dp-mover">
-            <span>{x.avance}</span>
-            <input key={`${filaPanel.t.id}-${Math.round(filaPanel.t.progress ?? 0)}`} inputMode="numeric" defaultValue={Math.round(filaPanel.t.progress ?? 0)}
-              aria-invalid={!!errorAvance || undefined} aria-describedby={errorAvance ? 'kb-v6-avance' : undefined}
-              onKeyDown={(ev) => { if (ev.key === 'Enter') { ev.preventDefault(); void fijarAvance(filaPanel.t, ev.currentTarget.value); } }}
-              onBlur={(ev) => { if (ev.currentTarget.value.trim() !== String(Math.round(filaPanel.t.progress ?? 0)) || porConfirmar.has(filaPanel.t.id)) void fijarAvance(filaPanel.t, ev.currentTarget.value); }} />
-            <span>%</span>
-            {porConfirmar.has(filaPanel.t.id) && <span className="unc">{x.porConfirmar}</span>}
-          </label>
-        )}
-        {errorAvance && <p id="kb-v6-avance" role="alert" className="dp-err">{errorAvance}</p>}
-      </div>
-    ));
+  /* guía v4 · en una tarea padre (no en una fase): «Completar la rama», con su confirmación */
+  const ramaDelPanel = filaPanel && tieneHijas(filaPanel.t) && filaPanel.nivel > 0 && abiertasDelPanel > 0 && (
+    <div className="dp-rama">
+      {confirmarRama === filaPanel.t.id ? (
+        <div className="dp-confirma" role="group">
+          <span>{x.confirmarRama(abiertasDelPanel)}</span>
+          <button type="button" className="kb-btn" onClick={() => void completarRama(filaPanel)}>{x.completar}</button>
+          <button type="button" className="kb-btn2" onClick={() => setConfirmarRama(null)}>{x.cancelar}</button>
+        </div>
+      ) : (
+        <button type="button" className="kb-btn2" onClick={() => setConfirmarRama(filaPanel.t.id)}>{x.completarRama(abiertasDelPanel)}</button>
+      )}
+    </div>
+  );
 
   return (
-    <section className={`lista-v6 tablero-v6${mostrarHechas ? ' show-done' : ''}${vista.densidad === 'compacta' ? ' dens-compact' : vista.densidad === 'comoda' ? ' dens-comfy' : ''}`}
+    <section className={`lista-v6 tablero-v6${mostrarHechas ? ' show-done' : ''}${filaPanel ? ' has-panel' : ''}${vista.densidad === 'compacta' ? ' dens-compact' : vista.densidad === 'comoda' ? ' dens-comfy' : ''}`}
       aria-label={x.tablero}>
-      <style>{CSS_V6 + CSS_PANEL_V6 + CSS_RECURSOS_V6 + CSS_TABLERO_V6}</style>
+      <style>{CSS_V6 + CSS_PANEL_V6 + CSS_RECURSOS_V6 + CSS_TABLERO_V6 + CSS_PANEL_V4}</style>
       <p id="kb-v6-ayuda" className="sr">{x.ayuda}</p>
       <div className="sumline">
         <div>
@@ -986,21 +1052,24 @@ export function TableroV6({
             </button>
           ))}
         </div>
-        <div>
+        <div className="sum-r">
           {vista.agrupar !== 'todo' && carrilesVisibles.some((c) => c.nodo) && (
             <a href="#" onClick={(ev) => { ev.preventDefault(); plegarTodo(); }}>{algoAbierto ? x.plegar : x.desplegar}</a>
           )}
+          <button type="button" className="help-btn" aria-haspopup="dialog" aria-expanded={ayuda} aria-label={x.ayudaTit} title={x.ayudaTit}
+            onClick={() => setAyuda((v) => !v)}><Pregunta /></button>
+          {ayuda && <Ayuda x={x} hoy={hoy} idioma={idioma} es={es} />}
         </div>
       </div>
 
       <div className={`lbody${filaPanel ? ' has-panel' : ''}`}>
-        <div className="kb-scroll" ref={raiz}>
-          <div className="kb-in">
+        <div className={`kb-scroll${arrastre ? ' is-drag' : ''}`} ref={raiz}>
+          <div className={`kb-in${mostrarHechas ? ' full' : ''}`}>
             <div className="kb-main">
               <div className="kb-grid kb-head">
                 {columnas.map((e) => (
                   <div key={e} className="colh">
-                    {x.st[e]}<span className="n">{cuenta(e)}</span>
+                    <span className={`schip ${e}`}><i aria-hidden="true" />{x.st[e]}</span><span className="n num">{cuenta(e)}</span>
                     {e === 'done' && (
                       <button type="button" className="colh-fold" aria-label={x.plegarColumna} onClick={() => onVista({ ...vista, mostrarHechas: false })}><Chevron /></button>
                     )}
@@ -1011,50 +1080,53 @@ export function TableroV6({
                 <div className="kb-empty" role="status">
                   <h3>{x.ningunaCoincide}</h3>
                   <p>{x.ningunaTexto}</p>
-                  <button type="button" className="kb-btn" onClick={() => { onFiltros(FILTROS_TABLERO_V6_VACIOS); setNodoFiltro(null); }}>{x.quitarFiltros}</button>
+                  <button type="button" className="kb-btn" onClick={() => onFiltros(FILTROS_TABLERO_V6_VACIOS)}>{x.quitarFiltros}</button>
                 </div>
               ) : carrilesVisibles.map((c) => (
                 vista.agrupar === 'todo'
-                  ? <section key="todo" className="lane" aria-label={x.todas}>{fila(c)}</section>
+                  ? <section key="todo" className="lane lane-todo" aria-label={x.todas}>{fila(c)}</section>
                   : (
-                    <section key={c.clave || 'sin-fase'} className={`lane${estaPlegado(c) ? ' closed' : ''}`} aria-label={c.nodo ? nombreNodo(c.nodo.t.id) : x.sinFase}>
+                    <section key={c.clave || 'sin-fase'} data-carril={c.clave} className={`lane${estaPlegado(c) ? ' closed' : ''}`} aria-label={c.nodo ? nombreNodo(c.nodo.t.id) : x.sinFase}>
                       {cabecera(c)}
-                      {vista.agrupar === 'fase' && c.nodo && !estaPlegado(c) && chipsDePadres(c.nodo)}
                       {!estaPlegado(c) && fila(c)}
                     </section>
                   )
               ))}
             </div>
             {!mostrarHechas && (
+              /* guía v4 · «Completadas» es un riel plegado con icono y contador horizontal; también es zona de soltar */
               <div className={`done-rail${sobre === 'rail' ? ' over' : ''}`}
+                onClick={(ev) => { if (ev.target === ev.currentTarget) onVista({ ...vista, mostrarHechas: true }); }}
                 onDragOver={(ev) => { if (!arrastre) return; ev.preventDefault(); setSobre('rail'); }}
                 onDragLeave={() => setSobre((s) => (s === 'rail' ? null : s))}
                 onDrop={(ev) => soltar(null, 'done', ev)}>
-                <button type="button" className="rail-btn" aria-expanded={false} aria-label={x.mostrarColumna(nHechas)}
+                <button type="button" className="rail-btn" aria-expanded={false} aria-label={x.mostrarColumna(nHechas)} title={x.railTip(nHechas)}
                   onClick={() => onVista({ ...vista, mostrarHechas: true })}>
-                  <span aria-hidden="true" className="ck">✓</span>
-                  <span className="rail-t">{x.completadas} · <span className="mono">{nHechas}</span></span>
+                  <span className="schip done"><i aria-hidden="true" /></span><span className="num">{nHechas}</span>
                 </button>
+                <span className="rail-drop" aria-hidden="true">{x.soltarCompletar}</span>
               </div>
             )}
           </div>
         </div>
         {filaPanel && (
-          <PanelDeTareaV6 fila={filaPanel} es={es} cal={cal} hoy={hoy} nombreProyecto={nombreProyecto}
+          <PanelDeTareaV4 fila={filaPanel} es={es} cal={cal} hoy={hoy} nombreProyecto={nombreProyecto}
             cifras={cifras.get(filaPanel.t.id) ?? cifrasDe(filaPanel.t, tarifaDe, hoy)} estados={estados} nombreEstado={x.st} porId={nodos}
-            tarifaDe={tarifaDe} acciones={accionesDelPanel}
+            tarifaDe={tarifaDe} conCosto={conCosto} rama={ramaDelPanel || undefined}
+            onEstado={(t, e) => { if (e === 'done' && !mostrarHechas) onVista({ ...vista, mostrarHechas: true }); void mover(t, e); }}
+            onAvance={(t, texto) => void fijarAvance(t, texto)} porConfirmar={porConfirmar.has(filaPanel.t.id)} errorAvance={errorAvance}
+            onCambiarPadre={onCambiarPadre ? (t, padreId) => { const d = nodos.get(padreId); if (d) void cambiarPadre(t, d, estadoDeHoja(t)); } : undefined}
+            acciones={panel}
             onCerrar={() => { const id = filaPanel.t.id; setEnPanel(null); enfocar(id); }}
             onAbrirFicha={onAbrir} onVerRiesgo={onVerRiesgo} onIrA={(id) => { setEnPanel(id); enfocar(id); }} />
         )}
       </div>
 
-      {(conCosto || vista.leyenda) && (
+      {/* guía v4 · la leyenda y los atajos van en el «?» de la línea de resumen; el pie es el de la Lista */}
+      {conCosto && (
         <div className="vfoot">
-          {conCosto && (
-            <RecursosDeLaListaV6 tasks={tasks} es={es} tarifaDe={tarifaDe} tarifaDePersona={tarifaDePersona}
-              monedaCodigo={monedaCodigo} costoAlTerminar={costoAlTerminar} onVerRecursos={onVerRecursos} />
-          )}
-          {vista.leyenda && <Leyenda x={x} hoy={hoy} idioma={idioma} />}
+          <RecursosDeLaListaV6 tasks={tasks} es={es} tarifaDe={tarifaDe} tarifaDePersona={tarifaDePersona}
+            monedaCodigo={monedaCodigo} costoAlTerminar={costoAlTerminar} onVerRecursos={onVerRecursos} />
         </div>
       )}
       <div className="toast-zona" aria-live="polite">
@@ -1070,17 +1142,33 @@ export function TableroV6({
   );
 }
 
-function Leyenda({ x, hoy, idioma }: { x: Textos; hoy: Date; idioma: 'es' | 'en' }) {
+/** Guía v4 · «La leyenda y los atajos de teclado, en el «?» de la línea de resumen». */
+function Ayuda({ x, hoy, idioma, es }: { x: Textos; hoy: Date; idioma: 'es' | 'en'; es: boolean }) {
+  const teclas = (ks: string[]) => <span className="lg-keys">{ks.map((k) => <kbd key={k}>{k}</kbd>)}</span>;
   return (
-    <div className="leyenda" role="note" aria-label={x.leyenda}>
-      {(['todo', 'prog', 'blocked', 'done'] as EstadoV6[]).map((e) => (
-        <span key={e}><span className={`schip ${e}`}><i aria-hidden="true" />{x.st[e]}</span></span>
-      ))}
-      <span><span className="chip-red">{fechaCorta(hoy, idioma, hoy)}</span> {x.lVenc}</span>
-      <span><span className="lg-bar" aria-hidden="true" /> {x.lBarra}</span>
-      <span><kbd>Alt</kbd>+<kbd>←</kbd>/<kbd>→</kbd> {x.lAlt}</span>
+    <div className="kb-ayuda" role="dialog" aria-label={x.ayudaTit}>
+      <h6>{x.comoLeer}</h6>
+      <div className="legend">
+        <span><span className="chip-red">{fechaCorta(hoy, idioma, hoy)}</span>{x.lVencida}</span>
+        <span><span className="minibar" style={{ width: 28 }} aria-hidden="true"><b style={{ width: '60%' }} /></span>{x.lAvance}</span>
+        <span><span className="kc-warn-i" aria-hidden="true"><Advertencia /></span>{x.lBloq}</span>
+        <span><EscudoDeRiesgo riesgos={[{ id: '_', codigo: '', titulo: '', nivel: 'alto' }]} es={es} />{x.lRiesgo}</span>
+        <span><i className="diamond" aria-hidden="true" />{x.hito}</span>
+        <span><span className="sbar" aria-hidden="true"><b className="done" style={{ width: '30%' }} /><b className="prog" style={{ width: '25%' }} /><b className="blocked" style={{ width: '15%' }} /></span>{x.lCarril}</span>
+        <h6>{x.teclado}</h6>
+        <span>{teclas(['Alt', '←', '→'])}{x.kMover}</span>
+        <span>{teclas(['Enter'])}{x.kAbrir}</span>
+        <span>{teclas([x.mayus, 'F10'])}{x.kMenu}</span>
+        <span>{teclas(['↑', '↓', '←', '→'])}{x.kRecorrer}</span>
+        <span>{teclas(['Esc'])}{x.kCerrar}</span>
+        <p className="note">{x.notaAyuda}</p>
+      </div>
     </div>
   );
+}
+
+function Pregunta() {
+  return <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><circle cx="8" cy="8" r="5.5" /><path d="M6.4 6.4a1.7 1.7 0 1 1 2.4 1.6c-.5.3-.8.6-.8 1.2M8 11.2v.1" /></svg>;
 }
 
 function Chevron() {
@@ -1093,138 +1181,228 @@ function Advertencia() {
   return <svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"><path d="M8 2.5 14 13H2L8 2.5Z" /><path d="M8 6.5v3M8 11.2v.1" strokeLinecap="round" /></svg>;
 }
 
-/* Las medidas son las de la maqueta; los tokens, los del Gantt v6 (`--v6-*`). */
+/*
+ * Guía v4 de Yesid (maqueta asakaa-tablero.html). Los colores son los tokens `--v4-*` de la app (Asakaa), con los `--v6-*`
+ * de respaldo; las medidas, las de la maqueta: un solo fondo continuo y las tarjetas como única caja.
+ */
 export const CSS_TABLERO_V6 = `
-.tablero-v6 .lbody{border-top:1px solid var(--v6-linea)}
-.tablero-v6 .kb-scroll{flex:1;min-width:0;overflow:auto;max-height:calc(100vh - 262px);min-height:420px;container-type:inline-size;padding:0 14px}
-.tablero-v6 .kb-in{display:flex;gap:12px;align-items:flex-start;width:max-content;min-width:100%}
-/* el ancho es el de sus columnas: una cabecera de carril larga envuelve, no empuja la columna Completadas */
-.tablero-v6 .kb-main{flex:none;--cw:clamp(256px,calc((100cqw - 80px) / 3),340px);width:calc(var(--cw) * 3 + 24px)}
-.tablero-v6.show-done .kb-main{--cw:clamp(256px,calc((100cqw - 36px) / 4),340px);width:calc(var(--cw) * 4 + 36px)}
-.tablero-v6 .kb-grid{display:grid;grid-template-columns:repeat(3,var(--cw));column-gap:12px;align-items:start}
-.tablero-v6.show-done .kb-grid{grid-template-columns:repeat(4,var(--cw))}
-.tablero-v6 .kb-head{position:sticky;top:0;z-index:6;background:var(--v6-tarjeta);padding:8px 0 6px}
-.tablero-v6 .colh{height:32px;display:flex;align-items:center;gap:8px;padding:0 4px 0 10px;border-radius:10px;background:var(--v6-linea);font-size:12px;font-weight:600;color:var(--v6-texto)}
-.tablero-v6 .colh .n{font:400 11px 'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:var(--v6-tenue)}
-.tablero-v6 .colh-fold{margin-left:auto;width:24px;height:24px;border-radius:6px;display:grid;place-items:center;color:var(--v6-texto-2);border:0;background:transparent;cursor:pointer}
-.tablero-v6 .colh-fold:hover{background:var(--v6-fila-hover);color:var(--v6-texto)}
+.tablero-v6{
+  --kb-text:var(--v4-text,var(--v6-texto));--kb-text2:var(--v4-text2,var(--v6-texto-2));--kb-text3:var(--v4-text3,var(--v6-tenue));
+  --kb-card:var(--v4-card,var(--v6-tarjeta));--kb-border:var(--v4-border,var(--v6-borde));--kb-soft:var(--v4-soft,var(--v6-linea));
+  --kb-guide:var(--v4-guide,var(--v6-separador));--kb-hover:var(--v4-hover,var(--v6-fila-hover));--kb-ctl-bd:var(--v4-ctl-bd,var(--v6-tenue-borde));
+  --kb-brand:var(--v4-brand,var(--v6-acento));--kb-acc:var(--v4-acc,var(--v6-acento-texto));--kb-sel:var(--v4-sel-bg,var(--v6-fila-seleccionada));
+  --kb-red:var(--v4-red,var(--v6-rojo));--kb-red-bd:var(--v4-red-bd,var(--v6-rojo-borde));--kb-red-bg:var(--v4-red-bg,var(--v6-rojo-fondo));
+  --kb-amber:var(--v4-amber,var(--v6-ambar));--kb-fill:var(--v4-fill,var(--v6-acento));--kb-track:var(--v4-track,var(--v6-pista));
+  --kb-st-todo:var(--v4-st-todo,#7F8891);--kb-st-prog:var(--v4-st-prog,var(--v6-acento-texto));--kb-st-blocked:var(--v4-st-blocked,var(--v6-ambar));--kb-st-done:var(--v4-st-done,#7F8891);
+  --kb-lvl-critico:var(--v4-lvl-critico,#D13A40);--kb-lvl-alto:var(--v4-lvl-alto,#D9730D);--kb-lvl-medio:var(--v4-lvl-medio,#B8860B);--kb-lvl-bajo:var(--v4-lvl-bajo,#8A939C);
+  --kb-pop:var(--v4-pop,0 8px 28px -6px rgba(14,17,20,.18),0 1px 2px rgba(14,17,20,.06));
+  --kb-bg:#F7F8F9;--kc-bg:var(--kb-card);--cmin:264px;
+  background:var(--kb-bg);overflow:hidden;color:var(--kb-text)
+}
+:is(html.dark,[data-theme=dark]) .tablero-v6{--kb-bg:#0C0E10;--kc-bg:#15181B}
+.tablero-v6.has-panel{--cmin:224px}
+.tablero-v6.show-done{--cmin:248px}
+.tablero-v6.show-done.has-panel{--cmin:224px}
+.tablero-v6 .num{font-variant-numeric:tabular-nums}
+/* línea de resumen */
+.tablero-v6 .sumline{margin:0;padding:6px 14px;min-height:36px;font-size:12px;color:var(--kb-text3);background:var(--kb-card);border-radius:16px 16px 0 0}
+.tablero-v6 .sumline a{color:var(--kb-acc);font-weight:500;text-decoration:none}
+.tablero-v6 .sumline a:hover{text-decoration:underline;text-underline-offset:2px}
+.tablero-v6 .sumline .red,.tablero-v6 .sumline a.red{color:var(--kb-red)}
+.tablero-v6 .sumline .sep{margin:0 6px;color:var(--kb-guide)}
+.tablero-v6 .sum-r{position:relative;display:flex;align-items:center;gap:10px}
+.tablero-v6 .help-btn{width:24px;height:24px;border-radius:6px;display:grid;place-items:center;border:0;background:transparent;color:var(--kb-text3);cursor:pointer}
+.tablero-v6 .help-btn:hover,.tablero-v6 .help-btn[aria-expanded=true]{background:var(--kb-hover);color:var(--kb-text)}
+.tablero-v6 .kb-ayuda{position:absolute;right:0;top:30px;z-index:40;width:320px;max-width:calc(100vw - 32px);padding:10px 12px;border-radius:8px;border:1px solid var(--kb-border);background:var(--kb-card);box-shadow:var(--kb-pop);color:var(--kb-text2);font-size:12px;cursor:default}
+.tablero-v6 .kb-ayuda h6{margin:2px 0 8px;font-size:12px;font-weight:500;color:var(--kb-text3)}
+.tablero-v6 .kb-ayuda .legend{display:flex;flex-direction:column;gap:8px}
+.tablero-v6 .kb-ayuda .legend>h6{margin:6px 0 0}
+.tablero-v6 .kb-ayuda .legend>span{display:flex;align-items:center;gap:8px;line-height:1.35}
+.tablero-v6 .kb-ayuda .lg-keys{display:inline-flex;gap:3px;flex:none;min-width:84px}
+.tablero-v6 .kb-ayuda kbd{font:400 11px 'Geist Mono',monospace;border:1px solid var(--kb-border);border-radius:4px;padding:1px 5px;color:var(--kb-text3)}
+.tablero-v6 .kb-ayuda .note{margin:4px 0 0;color:var(--kb-text3);line-height:1.45}
+.tablero-v6 .kc-warn-i{display:inline-grid;place-items:center;color:var(--kb-amber);flex:none}
+/* el lienzo */
+.tablero-v6 .lbody{display:flex;min-height:0;border-top:1px solid var(--kb-border)}
+.tablero-v6 .kb-scroll{flex:1;min-width:0;overflow:auto;max-height:calc(100vh - 262px);min-height:420px;padding:0 14px 16px;position:relative;overscroll-behavior:contain;scroll-padding:88px 8px 12px}
+.tablero-v6 .kb-in{display:grid;grid-template-columns:minmax(calc(3 * var(--cmin) + 24px),1fr) 44px;column-gap:12px;align-items:stretch;min-height:100%}
+.tablero-v6 .kb-in.full{grid-template-columns:minmax(calc(4 * var(--cmin) + 36px),1fr)}
+.tablero-v6 .kb-main{min-width:0}
+.tablero-v6 .kb-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));column-gap:12px}
+.tablero-v6 .kb-in.full .kb-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+/* cabecera de columnas: el icono del estado, su nombre y cuántas */
+.tablero-v6 .kb-head{position:sticky;top:0;z-index:6;background:var(--kb-bg);height:40px;align-items:center;box-shadow:0 1px 0 var(--kb-border)}
+.tablero-v6 .colh{height:28px;display:flex;align-items:center;gap:8px;padding:0 2px;min-width:0;background:none;border-radius:0}
+.tablero-v6 .colh .schip{color:var(--kb-text);font-weight:600}
+.tablero-v6 .colh .n{font-size:12px;color:var(--kb-text3)}
+.tablero-v6 .colh-fold{margin-left:auto;width:24px;height:24px;border-radius:6px;display:grid;place-items:center;color:var(--kb-text2);border:0;background:transparent;cursor:pointer}
+.tablero-v6 .colh-fold:hover{background:var(--kb-hover);color:var(--kb-text)}
 .tablero-v6 .colh-fold svg{transform:rotate(90deg)}
-.tablero-v6 .done-rail{flex:none;width:44px;margin-top:8px;background:var(--v6-linea);border-radius:12px;align-self:stretch}
-.tablero-v6 .done-rail.over{box-shadow:inset 0 0 0 1.5px var(--v6-tenue)}
-.tablero-v6 .rail-btn{position:sticky;top:8px;width:44px;min-height:170px;display:flex;flex-direction:column;align-items:center;gap:8px;padding:10px 0;border-radius:12px;border:0;background:transparent;color:var(--v6-texto);font:inherit;font-size:12px;font-weight:600;cursor:pointer}
-.tablero-v6 .rail-btn:hover{background:var(--v6-fila-hover)}
-.tablero-v6 .rail-btn .ck{color:var(--v6-tenue);font-size:12px}
-.tablero-v6 .rail-t{writing-mode:vertical-rl;white-space:nowrap}
-.tablero-v6 .rail-t .mono{font-size:11px;color:var(--v6-tenue)}
-.tablero-v6 .lane{border-top:1px solid var(--v6-linea)}
-.tablero-v6 .lane-h{position:sticky;top:46px;z-index:4;background:var(--v6-tarjeta);display:flex;align-items:center;gap:6px 10px;min-height:44px;padding:6px 0;flex-wrap:wrap}
-.tablero-v6 .lane-h .tg{width:24px;height:24px;border-radius:6px;display:grid;place-items:center;color:var(--v6-tenue);flex:none;border:0;background:transparent;cursor:pointer}
-.tablero-v6 .lane-h .tg:hover{background:var(--v6-fila-hover);color:var(--v6-texto)}
-.tablero-v6 .lane.closed .lane-h .tg svg{transform:rotate(-90deg)}
-.tablero-v6 .lane-h h3{margin:0;font-size:13px;font-weight:600;white-space:nowrap;display:flex;align-items:baseline;gap:6px;color:var(--v6-texto)}
-.tablero-v6 .lane-h h3 .w{font:400 11px 'Geist Mono',monospace;color:var(--v6-tenue)}
-.tablero-v6 .lane-h h3 .path{color:var(--v6-tenue);font-weight:500}
-.tablero-v6 .tree{flex:none;align-self:stretch;position:relative}
-.tablero-v6 .tree::before{content:'';position:absolute;right:2px;top:-6px;height:calc(50% + 6px);width:9px;border-left:1px solid var(--v6-separador);border-bottom:1px solid var(--v6-separador);border-bottom-left-radius:5px}
-.tablero-v6 .lane-h .meta{display:flex;align-items:center;gap:6px 10px;font-size:11px;color:var(--v6-tenue);font-weight:500;flex-wrap:wrap}
-.tablero-v6 .meta .red{color:var(--v6-rojo)}
-.tablero-v6 .meta .bl{display:inline-flex;align-items:center;gap:5px;color:var(--v6-texto-2)}
-.tablero-v6 .meta .bl i,.tablero-v6 .sdot{width:6px;height:6px;border-radius:50%;background:var(--v6-tenue);flex:none;display:inline-block}
-.tablero-v6 .meta .bl i,.tablero-v6 .sdot.blocked{background:var(--v6-ambar)}
-.tablero-v6 .sdot.prog{background:var(--v6-acento-texto)}
-.tablero-v6 .sdot.done{width:auto;height:auto;background:none;line-height:1}
-.tablero-v6 .sdot.done::before{content:'✓';font-size:11px;font-style:normal;color:var(--v6-tenue)}
+/* el riel «Completadas»: columna plegada con icono y contador (también zona de soltar) */
+.tablero-v6 .done-rail{position:relative;border-left:1px solid var(--kb-border);margin-bottom:-16px;cursor:pointer;transition:background .12s}
+.tablero-v6 .done-rail:hover{background:var(--kb-hover)}
+.tablero-v6 .rail-btn{position:sticky;top:0;z-index:6;width:100%;height:40px;display:flex;align-items:center;justify-content:center;gap:5px;border:0;background:transparent;color:var(--kb-text2);font:inherit;font-size:12px;font-weight:500;cursor:pointer}
+.tablero-v6 .rail-btn .schip{height:auto}
+.tablero-v6 .rail-btn:focus-visible{outline:2px solid var(--kb-acc);outline-offset:-2px}
+.tablero-v6 .rail-drop{position:sticky;top:48px;display:none;writing-mode:vertical-rl;margin:8px auto 0;font-size:12px;color:var(--kb-text2);white-space:nowrap}
+.tablero-v6 .is-drag .done-rail{border-left-style:dashed;border-left-color:var(--kb-guide)}
+.tablero-v6 .is-drag .done-rail .rail-btn{color:var(--kb-text3)}
+.tablero-v6 .is-drag .rail-drop{display:block}
+.tablero-v6 .is-drag .done-rail.over{box-shadow:inset 0 0 0 1.5px var(--kb-brand);background:var(--kb-sel)}
+.tablero-v6 .is-drag .done-rail.over .rail-drop{color:var(--kb-acc);font-weight:500}
+/* los estados: icono con forma propia (anillo, medio disco, pausa, visto), sin píldora */
+.tablero-v6 .schip{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0;border-radius:0;background:none;color:var(--kb-text2);font-size:12px;font-weight:500;white-space:nowrap}
+.tablero-v6 .schip::before,.tablero-v6 .schip.done::before{content:none}
+.tablero-v6 .schip i{position:relative;display:inline-block;width:12px;height:12px;box-sizing:border-box;border-radius:50%;border:1.5px solid var(--kb-st-todo);background:none;flex:none}
+.tablero-v6 .schip.prog i{border-color:var(--kb-st-prog);background:linear-gradient(90deg,transparent 50%,var(--kb-st-prog) 50%)}
+.tablero-v6 .schip.blocked i{border-color:var(--kb-st-blocked);background:linear-gradient(var(--kb-card),var(--kb-card)) center/6px 2px no-repeat,var(--kb-st-blocked)}
+.tablero-v6 .schip.done{color:var(--kb-text3)}
+.tablero-v6 .schip.done i{display:inline-block;border-color:var(--kb-st-done);background:var(--kb-st-done)}
+.tablero-v6 .schip.done i::after{content:'';position:absolute;left:3px;top:.8px;width:3px;height:6px;border:solid var(--kb-card);border-width:0 1.5px 1.5px 0;transform:rotate(42deg)}
 .tablero-v6 .schip[role=note]{cursor:help}
-.tablero-v6 .sbar{display:inline-flex;gap:1px;width:64px;height:4px;border-radius:2px;background:var(--v6-pista);overflow:hidden;flex:none}
+/* carriles */
+.tablero-v6 .lane{border-top:0}
+.tablero-v6 .lane+.lane{border-top:1px solid var(--kb-border)}
+.tablero-v6 .lane-h{position:sticky;top:40px;z-index:4;background:var(--kb-bg);height:40px;min-height:0;display:flex;align-items:center;padding:0;flex-wrap:nowrap}
+.tablero-v6 .lane-hi{position:sticky;left:0;display:inline-flex;align-items:center;gap:10px;min-width:0;max-width:100%}
+.tablero-v6 .lane-h .tg{width:24px;height:24px;margin:0 -4px;border-radius:6px;display:grid;place-items:center;color:var(--kb-text3);flex:none;border:0;background:transparent;cursor:pointer}
+.tablero-v6 .lane-h .tg:hover{background:var(--kb-hover);color:var(--kb-text)}
+.tablero-v6 .lane-h .tg svg{transition:transform .12s}
+.tablero-v6 .lane.closed .lane-h .tg svg{transform:rotate(-90deg)}
+.tablero-v6 .lane-h h3{margin:0;font-size:13px;font-weight:600;white-space:nowrap;flex:none;display:block;color:var(--kb-text)}
+.tablero-v6 .lane-t{display:inline-flex;align-items:baseline;gap:6px;height:28px;padding:0 6px;margin:0 -6px;border-radius:6px;border:0;background:transparent;color:inherit;font:inherit;font-weight:inherit;line-height:28px;cursor:pointer}
+.tablero-v6 span.lane-t{cursor:default}
+.tablero-v6 button.lane-t:hover{background:var(--kb-hover)}
+.tablero-v6 .lane-t .w{font:400 12px 'Geist Mono',monospace;color:var(--kb-text3)}
+.tablero-v6 .lane-t .path{color:var(--kb-text3);font-weight:400;font-size:12px}
+.tablero-v6 .lane-pg{height:28px;display:inline-flex;align-items:center;gap:8px;padding:0 6px;border-radius:6px;border:0;background:transparent;font:inherit;font-size:12px;color:var(--kb-text2);flex:none;cursor:pointer}
+.tablero-v6 .lane-pg:hover,.tablero-v6 .lane-pg[aria-expanded=true]{background:var(--kb-hover);color:var(--kb-text)}
+.tablero-v6 .lane-c{display:inline-block;font-size:12px;font-weight:500;white-space:nowrap;flex:none;color:var(--kb-text2)}
+.tablero-v6 .lane-c.red{color:var(--kb-red)}
+.tablero-v6 .lane-c .schip{height:auto;gap:5px}
+.tablero-v6 .lane-pop{position:absolute;left:0;top:36px;z-index:30;width:300px;max-width:calc(100vw - 32px);padding:12px;border-radius:8px;border:1px solid var(--kb-border);background:var(--kb-card);box-shadow:var(--kb-pop);font-size:12px;font-weight:400;color:var(--kb-text2);white-space:normal;cursor:default}
+.tablero-v6 .lane-pop h6{margin:0 0 8px;font-size:13px;font-weight:600;color:var(--kb-text)}
+.tablero-v6 .lane-pop .li-st{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.tablero-v6 .lane-pop .sbar{width:100%;margin-bottom:10px}
+.tablero-v6 .lane-pop dl{display:grid;grid-template-columns:1fr auto;gap:4px 12px;margin:0 0 8px}
+.tablero-v6 .lane-pop dt{color:var(--kb-text3)}
+.tablero-v6 .lane-pop dd{margin:0;text-align:right;color:var(--kb-text);font-weight:500}
+.tablero-v6 .lane-pop dd.red{color:var(--kb-red)}
+.tablero-v6 .lane-pop p{margin:0 0 10px;color:var(--kb-text3);line-height:1.45}
+.tablero-v6 .sbar{display:inline-flex;gap:1px;width:64px;height:4px;border-radius:2px;background:var(--kb-track);overflow:hidden;flex:none}
 .tablero-v6 .sbar b{display:block;height:100%}
-.tablero-v6 .sbar .done{background:var(--v6-acento)}
-.tablero-v6 .sbar .prog{background:color-mix(in srgb,var(--v6-acento) 45%,var(--v6-tarjeta))}
-.tablero-v6 .sbar .blocked{background:var(--v6-ambar)}
-.tablero-v6 .sbar .todo{background:var(--v6-separador)}
-.tablero-v6 .subs{display:flex;gap:6px 12px;flex-wrap:wrap;align-items:center;padding:0 0 10px 34px}
-.tablero-v6 .sgrp{display:inline-flex;align-items:center;gap:4px;flex-wrap:wrap}
-.tablero-v6 .sgrp .sep{color:var(--v6-tenue);font-size:12px}
-.tablero-v6 .sub{height:24px;display:inline-flex;align-items:center;gap:6px;padding:0 8px;border-radius:999px;border:1px solid var(--v6-borde);background:var(--v6-tarjeta);font:inherit;font-size:11px;font-weight:500;color:var(--v6-texto-2);white-space:nowrap;cursor:pointer}
-.tablero-v6 .sub:hover{border-color:var(--v6-separador);color:var(--v6-texto)}
-.tablero-v6 .sub .mono{font-size:11px;color:var(--v6-tenue)}
-.tablero-v6 .sub[aria-pressed=true]{border-color:var(--v6-acento);background:var(--v6-fila-seleccionada);color:var(--v6-texto)}
-.tablero-v6 .kb-row{padding-bottom:12px}
-.tablero-v6 .kb-cell{background:var(--v6-linea);border-radius:12px;padding:8px;display:flex;flex-direction:column;gap:8px;min-height:40px;position:relative;transition:background .12s}
-.tablero-v6 .kb-cell.empty{height:40px;padding:0 8px;justify-content:center;align-items:center;box-sizing:border-box}
-.tablero-v6 .kb-cell.over{background:color-mix(in srgb,var(--v6-linea),var(--v6-acento) 10%)}
+.tablero-v6 .sbar .done{background:var(--kb-fill)}
+.tablero-v6 .sbar .prog{background:color-mix(in srgb,var(--kb-fill) 45%,var(--kb-card))}
+.tablero-v6 .sbar .blocked{background:var(--kb-st-blocked)}
+.tablero-v6 .sbar .todo{background:var(--kb-track)}
+.tablero-v6 .sdot{width:6px;height:6px;border-radius:50%;background:var(--kb-st-todo);flex:none;display:inline-block}
+.tablero-v6 .sdot.blocked{background:var(--kb-st-blocked)}
+.tablero-v6 .sdot.prog{background:var(--kb-st-prog)}
+.tablero-v6 .sdot.done{width:auto;height:auto;background:none;line-height:1}
+.tablero-v6 .sdot.done::before{content:'✓';font-size:12px;font-style:normal;color:var(--kb-text3)}
+.tablero-v6 .kb-row{padding-bottom:14px;align-items:stretch}
+.tablero-v6 .lane-todo .kb-row{padding-top:12px}
+/* celdas: sin bandeja; la zona de soltar solo se dibuja al arrastrar */
+.tablero-v6 .kb-cell{display:flex;flex-direction:column;gap:6px;min-height:36px;padding:0;background:none;border-radius:8px;position:relative;container-type:inline-size;outline:1px dashed transparent;outline-offset:3px;transition:background .12s,outline-color .12s}
+.tablero-v6 .kb-cell.empty{height:auto;padding:0}
+.tablero-v6 .empty-t{display:none;margin:auto;font-size:12px;font-weight:400;color:var(--kb-text3)}
+.tablero-v6 .is-drag .kb-cell:not(.off){outline-color:var(--kb-guide)}
+.tablero-v6 .is-drag .kb-cell.empty:not(.off) .empty-t{display:block}
+.tablero-v6 .kb-cell.over{background:var(--kb-sel);outline-color:var(--kb-brand)!important}
+.tablero-v6 .kb-cell.over .empty-t{display:none!important}
 .tablero-v6 .kb-cell.off{opacity:.45}
-.tablero-v6 .empty-t{font-size:11px;font-weight:500;color:var(--v6-tenue)}
-.tablero-v6 .kcard{position:relative;background:var(--v6-tarjeta);border:1px solid var(--v6-borde);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;cursor:grab;user-select:none;outline:none}
-.tablero-v6 .kcard:hover{border-color:var(--v6-separador)}
-.tablero-v6 .kcard:focus-visible{box-shadow:0 0 0 2px var(--v6-acento-texto)}
-.tablero-v6 .kcard.sel{border-color:var(--v6-acento);background:color-mix(in srgb,var(--v6-tarjeta),var(--v6-acento) 7%)}
+/* la tarjeta: 80 px en densidad normal (código y ruta · nombre · fechas, avance y responsable) */
+.tablero-v6 .kcard{position:relative;background:var(--kc-bg);border:1px solid var(--kb-border);border-radius:8px;padding:8px 12px;display:flex;flex-direction:column;gap:0;cursor:grab;user-select:none;min-width:0;outline:none;transition:border-color .12s}
+.tablero-v6 .kcard:hover{border-color:var(--kb-guide)}
+.tablero-v6 .kcard:focus-visible{box-shadow:0 0 0 2px var(--kb-acc)}
+.tablero-v6 .kcard.sel{border-color:var(--kb-brand);box-shadow:0 0 0 1px var(--kb-brand);background:var(--kc-bg)}
 .tablero-v6 .kcard.dragging{opacity:.4}
-.tablero-v6 .kc-top{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--v6-tenue);min-height:16px}
-.tablero-v6 .kc-path{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
-.tablero-v6 .kc-top .mono{font-size:11px;flex:none}
-.tablero-v6 .kc-name{font-size:13px;font-weight:500;line-height:1.4;color:var(--v6-texto);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.tablero-v6 .kcard.isdone .kc-name{color:var(--v6-texto-2)}
-.tablero-v6 .warn{color:var(--v6-ambar);font-size:11px;font-weight:500;display:flex;align-items:flex-start;gap:5px;line-height:1.4}
-.tablero-v6 .warn svg{flex:none;margin-top:1px}
-.tablero-v6 .after{font-size:11px;font-weight:500;color:var(--v6-tenue)}
-.tablero-v6 .kc-prog{display:flex;align-items:center;gap:8px}
-.tablero-v6 .kc-prog .pbar{flex:1}
-.tablero-v6 .pct.on{color:var(--v6-acento-texto)}
-.tablero-v6 .kc-bot{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:22px}
-.tablero-v6 .kc-r{display:flex;align-items:center;gap:8px}
-.tablero-v6 .kc-dates{display:flex;align-items:center;gap:6px;font:400 11px 'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:var(--v6-texto-2);white-space:nowrap}
-.tablero-v6 .kc-hrs{font:400 11px 'Geist Mono',monospace;color:var(--v6-tenue)}
-.tablero-v6 .kc-desc{display:none;color:var(--v6-tenue);font-size:12px;font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tablero-v6 .diamond{width:9px;height:9px;background:var(--v6-texto-2);transform:rotate(45deg);border-radius:1.5px;display:inline-block;flex:none}
+.tablero-v6 .kc-top{display:flex;align-items:center;gap:6px;height:16px;min-height:0;font-size:12px;color:var(--kb-text3);min-width:0}
+.tablero-v6 .kc-w{font:400 12px 'Geist Mono',monospace;color:var(--kb-text3);flex:none;letter-spacing:-.03em}
+.tablero-v6 .kc-path{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:400}
+.tablero-v6 .kc-sp{flex:1 1 0;min-width:0}
+.tablero-v6 .kc-risk{display:inline-grid;place-items:center;width:16px;height:16px;flex:none;color:var(--kb-lvl-medio)}
+.tablero-v6 .kc-risk svg{width:14px;height:14px;stroke:currentColor;stroke-width:1.5;stroke-linejoin:round;fill:color-mix(in srgb,currentColor 18%,transparent)}
+.tablero-v6 .kc-risk[data-nivel=critico]{color:var(--kb-lvl-critico)}
+.tablero-v6 .kc-risk[data-nivel=alto]{color:var(--kb-lvl-alto)}
+.tablero-v6 .kc-risk[data-nivel=bajo]{color:var(--kb-lvl-bajo)}
+.tablero-v6 .kc-name{margin-top:2px;font-size:13px;font-weight:500;line-height:18px;color:var(--kb-text);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tablero-v6 .kcard.isdone .kc-name{color:var(--kb-text2)}
+.tablero-v6 .kc-desc{display:none;margin-top:2px;color:var(--kb-text3);font-size:12px;font-weight:400;line-height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tablero-v6 .kc-warn{margin-top:4px;display:flex;align-items:center;gap:5px;min-width:0;height:16px;color:var(--kb-amber);font-size:12px;font-weight:500;line-height:16px}
+.tablero-v6 .kc-warn svg{flex:none;margin:0}
+.tablero-v6 .kc-warn span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tablero-v6 .kc-bot{display:flex;align-items:center;justify-content:flex-start;gap:10px;height:20px;min-height:0;margin-top:6px;min-width:0;font-size:12px;color:var(--kb-text2)}
+.tablero-v6 .kc-bot .avatar{width:20px;height:20px;font-size:11px}
+.tablero-v6 .kc-w2{display:none}
+.tablero-v6 .kc-dates{display:inline-flex;align-items:center;gap:6px;font:400 12px var(--v4-ff-sans,inherit);font-variant-numeric:tabular-nums;color:var(--kb-text2);white-space:nowrap;flex:none}
+.tablero-v6 .kc-pg{display:inline-flex;align-items:center;gap:6px;flex:none}
+.tablero-v6 .minibar{display:inline-block;width:64px;height:4px;border-radius:2px;background:var(--kb-track);overflow:hidden}
+.tablero-v6 .minibar b{display:block;height:100%;background:var(--kb-fill)}
+.tablero-v6 .kc-pg .minibar{width:40px}
+.tablero-v6 .pct{font:500 12px var(--v4-ff-sans,inherit);font-variant-numeric:tabular-nums;color:var(--kb-text3)}
+.tablero-v6 .pct.on{color:var(--kb-acc)}
+.tablero-v6 .kc-pg .unc{color:var(--kb-text3)}
+.tablero-v6 .kc-after{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--kb-text3)}
+.tablero-v6 .kc-hrs{color:var(--kb-text3);font-variant-numeric:tabular-nums;white-space:nowrap;flex:none}
+.tablero-v6 .kc-sum{display:inline-flex;align-items:center;gap:6px;flex:none;font-size:12px;color:var(--kb-text3)}
+.tablero-v6 .kc-sum .sbar{width:40px}
+.tablero-v6 .chip-red{display:inline-flex;align-items:center;gap:3px;height:20px;padding:0 7px;border-radius:6px;border:1px solid var(--kb-red-bd);background:var(--kb-red-bg);color:var(--kb-red);font:500 12px var(--v4-ff-sans,inherit);font-variant-numeric:tabular-nums;white-space:nowrap}
+.tablero-v6 .diamond{width:9px;height:9px;background:var(--kb-text2);transform:rotate(45deg);border-radius:1.5px;display:inline-block;flex:none}
+@container (max-width:300px){.tablero-v6 .kc-dates .start{display:none}.tablero-v6 .kc-bot{gap:8px}}
+@container (max-width:250px){.tablero-v6 .kc-pg .minibar{display:none}.tablero-v6 .kc-after{display:none}}
 .tablero-v6.dens-comfy .kc-desc{display:block}
-.tablero-v6.dens-compact .kcard{gap:4px;padding:8px 10px}
-.tablero-v6.dens-compact .kc-bot .avatar,.tablero-v6.dens-compact .kc-dates.plain,.tablero-v6.dens-compact .kc-dates .start{display:none}
-.tablero-v6.dens-compact .kc-bot{min-height:0}
-.tablero-v6.dens-compact .kc-bot:not(:has(.chip-red,.diamond,.kc-hrs)){display:none}
-.tablero-v6 .kb-empty{display:flex;flex-direction:column;align-items:center;gap:8px;padding:64px 16px;text-align:center}
-.tablero-v6 .kb-empty h3{margin:4px 0 0;font-size:15px;font-weight:600;color:var(--v6-texto)}
-.tablero-v6 .kb-empty p{margin:0 0 6px;color:var(--v6-texto-2)}
-.tablero-v6 .kb-btn{height:32px;padding:0 12px;border-radius:8px;border:0;background:var(--v6-acento);color:var(--v6-sobre-acento);font:inherit;font-size:12px;font-weight:500;cursor:pointer}
-.tablero-v6 .fchip{height:20px;display:inline-flex;align-items:center;gap:4px;padding:0 3px 0 8px;margin-left:6px;border-radius:999px;border:1px solid var(--v6-acento);background:var(--v6-fila-seleccionada);color:var(--v6-texto);font:inherit;font-size:11px;font-weight:500;vertical-align:middle;cursor:pointer}
-.tablero-v6 .fchip .x{width:16px;height:16px;border-radius:50%;display:grid;place-items:center;color:var(--v6-texto-2)}
-.tablero-v6 .fchip:hover .x{background:var(--v6-fila-hover);color:var(--v6-texto)}
-.tablero-v6 .leyenda .lg-bar{display:inline-block;width:22px;height:4px;border-radius:2px;background:var(--v6-acento)}
-.tablero-v6 .leyenda kbd{font:400 11px 'Geist Mono',monospace;border:1px solid var(--v6-borde);border-radius:4px;padding:0 4px;color:var(--v6-texto-2)}
-.tablero-v6 .dp-mover{display:flex;align-items:center;gap:10px;font-size:11px;font-weight:500;color:var(--v6-tenue)}
-.tablero-v6 .dp-mover select{height:30px;padding:0 8px;border-radius:8px;border:1px solid var(--v6-borde);background:var(--v6-tarjeta);color:var(--v6-texto);font:inherit;font-size:12px}
-.tablero-v6 .kc-more{width:24px;height:24px;margin:-5px -7px -5px -2px;border-radius:6px;display:grid;place-items:center;color:var(--v6-texto-2);opacity:0;flex:none;border:0;background:transparent;cursor:pointer}
+.tablero-v6.dens-compact .kcard{padding:6px 10px}
+.tablero-v6.dens-compact .kc-top{display:none}
+.tablero-v6.dens-compact .kc-name{margin-top:0;-webkit-line-clamp:1}
+.tablero-v6.dens-compact .kc-bot{margin-top:3px}
+.tablero-v6.dens-compact .kc-w2{display:inline}
+.tablero-v6.dens-compact .kc-warn{margin-top:2px}
+/* menú ⋯ de la tarjeta */
+.tablero-v6 .kc-more{width:24px;height:24px;margin:-4px -6px -4px -2px;border-radius:6px;display:grid;place-items:center;color:var(--kb-text2);opacity:0;flex:none;border:0;background:transparent;cursor:pointer}
 .tablero-v6 .kcard:hover .kc-more,.tablero-v6 .kcard:focus .kc-more,.tablero-v6 .kcard:focus-within .kc-more,.tablero-v6 .kc-more[aria-expanded=true]{opacity:1}
-.tablero-v6 .kc-more:hover{background:var(--v6-fila-hover);color:var(--v6-texto)}
-.tablero-v6 .kc-menu{position:absolute;right:6px;top:30px;z-index:30;min-width:200px;padding:6px;border-radius:10px;border:1px solid var(--v6-borde);background:var(--v6-tarjeta);box-shadow:0 8px 28px -6px rgba(14,17,20,.18);display:flex;flex-direction:column;cursor:default}
-.tablero-v6 .kc-menu button{display:flex;align-items:center;gap:8px;width:100%;padding:7px 8px;border:0;border-radius:6px;background:transparent;font:inherit;font-size:12px;color:var(--v6-texto);text-align:left;cursor:pointer}
-.tablero-v6 .kc-menu button:hover,.tablero-v6 .kc-menu button:focus-visible{background:var(--v6-fila-hover);outline:none}
-.tablero-v6 .kc-menu button[aria-disabled=true]{color:var(--v6-tenue);cursor:default}
-.tablero-v6 .kc-menu .hint{margin-left:auto;font:400 11px 'Geist Mono',monospace;color:var(--v6-tenue)}
-.tablero-v6 .kc-menu hr{border:0;border-top:1px solid var(--v6-linea);margin:4px 0}
-.tablero-v6 .kc-menu h6{margin:4px 8px 2px;font-size:11px;font-weight:500;color:var(--v6-tenue)}
+.tablero-v6 .kc-more:hover{background:var(--kb-hover);color:var(--kb-text)}
+.tablero-v6 .kc-menu{position:absolute;right:6px;top:30px;z-index:30;min-width:200px;padding:6px;border-radius:8px;border:1px solid var(--kb-border);background:var(--kb-card);box-shadow:var(--kb-pop);display:flex;flex-direction:column;cursor:default}
+.tablero-v6 .kc-menu button{display:flex;align-items:center;gap:8px;width:100%;min-height:32px;padding:0 8px;border:0;border-radius:6px;background:transparent;font:inherit;font-size:13px;color:var(--kb-text);text-align:left;cursor:pointer}
+.tablero-v6 .kc-menu button:hover,.tablero-v6 .kc-menu button:focus-visible{background:var(--kb-hover);outline:none}
+.tablero-v6 .kc-menu button[aria-disabled=true]{color:var(--kb-text3);cursor:default}
+.tablero-v6 .kc-menu .hint{margin-left:auto;font:400 11px 'Geist Mono',monospace;color:var(--kb-text3)}
+.tablero-v6 .kc-menu hr{border:0;border-top:1px solid var(--kb-soft);margin:4px 0}
+.tablero-v6 .kc-menu h6{margin:6px 8px 4px;font-size:12px;font-weight:500;color:var(--kb-text3)}
+/* tarjeta de una tarea padre («Subtareas: bajo su padre / ocultas») */
 .tablero-v6 .kpar{cursor:pointer}
-.tablero-v6 .kc-sum{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--v6-tenue)}
-.tablero-v6 .kc-sum .sbar{flex:1;width:auto}
-.tablero-v6 .kc-kids{align-self:flex-start;height:24px;padding:0 6px;margin:-2px 0 -2px -6px;border-radius:6px;border:0;background:transparent;font:inherit;font-size:11px;font-weight:500;color:var(--v6-acento-texto);display:inline-flex;align-items:center;gap:4px;cursor:pointer}
-.tablero-v6 .kc-kids:hover{background:var(--v6-fila-hover)}
+.tablero-v6 .kc-kids{align-self:flex-start;height:24px;padding:0 6px;margin:6px 0 -2px -6px;border-radius:6px;border:0;background:transparent;font:inherit;font-size:12px;font-weight:500;color:var(--kb-acc);display:inline-flex;align-items:center;gap:4px;cursor:pointer}
+.tablero-v6 .kc-kids:hover{background:var(--kb-hover)}
 .tablero-v6 .kc-kids svg{transition:transform .15s}
 .tablero-v6 .kc-kids[aria-expanded=false] svg{transform:rotate(-90deg)}
-.tablero-v6 .kc-kl{list-style:none;margin:0;padding:4px 0 0;border-top:1px solid var(--v6-linea);display:flex;flex-direction:column}
-.tablero-v6 .kc-kl button{display:flex;align-items:center;gap:6px;width:100%;min-height:28px;border:0;background:transparent;color:var(--v6-texto);font:inherit;font-size:12px;border-radius:6px;padding:0 4px;text-align:left;cursor:pointer}
+.tablero-v6 .kc-kl{list-style:none;margin:6px 0 0;padding:4px 0 0;border-top:1px solid var(--kb-soft);display:flex;flex-direction:column}
+.tablero-v6 .kc-kl button{display:flex;align-items:center;gap:6px;width:100%;min-height:28px;border:0;background:transparent;color:var(--kb-text);font:inherit;font-size:12px;border-radius:6px;padding:0 4px;text-align:left;cursor:pointer}
 .tablero-v6 .kc-kl button[draggable=true]{cursor:grab}
-.tablero-v6 .kc-kl button:hover{background:var(--v6-fila-hover)}
-.tablero-v6 .kc-kl .mono{font-size:11px;color:var(--v6-tenue);flex:none}
+.tablero-v6 .kc-kl button:hover{background:var(--kb-hover)}
+.tablero-v6 .kc-kl .mono{font-size:12px;color:var(--kb-text3);flex:none}
 .tablero-v6 .kc-kl .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.tablero-v6 .kc-kl .sub-par{color:var(--v6-texto-2);font-weight:600}
+.tablero-v6 .kc-kl .sub-par{color:var(--kb-text2);font-weight:600}
 .tablero-v6 .kc-kl .chip-red{height:18px;padding:0 5px}
-.tablero-v6 .unc{font-size:11px;color:var(--v6-tenue);white-space:nowrap}
+/* vacío por filtros, avisos y panel */
+.tablero-v6 .kb-empty{display:flex;flex-direction:column;align-items:center;gap:8px;padding:64px 16px;text-align:center}
+.tablero-v6 .kb-empty h3{margin:4px 0 0;font-size:16px;font-weight:600;color:var(--kb-text)}
+.tablero-v6 .kb-empty p{margin:0 0 6px;font-size:13px;color:var(--kb-text2)}
+.tablero-v6 .kb-btn{height:36px;padding:0 14px;border-radius:8px;border:0;background:var(--kb-brand);color:var(--v4-on-brand,var(--v6-sobre-acento));font:inherit;font-size:13px;font-weight:500;cursor:pointer}
+.tablero-v6 .kb-btn2{align-self:flex-start;height:32px;padding:0 12px;border-radius:8px;border:1px solid var(--v4-btn-bd,var(--v6-borde));background:var(--kb-card);color:var(--kb-text);font:inherit;font-size:12px;font-weight:500;cursor:pointer}
+.tablero-v6 .kb-btn2.sm{height:28px;padding:0 10px}
+.tablero-v6 .kb-btn2:hover{background:var(--kb-hover)}
+.tablero-v6 .fchip{height:22px;display:inline-flex;align-items:center;gap:4px;padding:0 3px 0 8px;margin-left:6px;border-radius:999px;border:1px solid var(--kb-brand);background:var(--kb-sel);color:var(--kb-text);font:inherit;font-size:12px;font-weight:500;vertical-align:middle;cursor:pointer}
+.tablero-v6 .fchip .x{width:16px;height:16px;border-radius:50%;display:grid;place-items:center;color:var(--kb-text2)}
+.tablero-v6 .fchip:hover .x{background:var(--kb-hover);color:var(--kb-text)}
+.tablero-v6 .vfoot{background:var(--kb-card);border-radius:0 0 16px 16px}
+.tablero-v6 .unc{font-size:12px;color:var(--kb-text3);white-space:nowrap}
+.tablero-v6 .dp-mover{display:flex;align-items:center;gap:10px;font-size:12px;font-weight:500;color:var(--kb-text3)}
+.tablero-v6 .dp-mover select{height:30px;padding:0 8px;border-radius:8px;border:1px solid var(--kb-ctl-bd);background:var(--kb-card);color:var(--kb-text);font:inherit;font-size:12px}
 .tablero-v6 .dp-rama{display:flex;flex-direction:column;gap:8px}
-.tablero-v6 .dp-mover input{width:56px;height:30px;box-sizing:border-box;padding:0 8px;border-radius:8px;border:1px solid var(--v6-borde);background:var(--v6-tarjeta);color:var(--v6-texto);font:500 12px 'Geist Mono',monospace;text-align:right}
-.tablero-v6 .dp-mover input[aria-invalid=true]{border-color:var(--v6-rojo)}
-.tablero-v6 .dp-err{margin:0;font-size:12px;color:var(--v6-rojo)}
-.tablero-v6 .dp-confirma{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--v6-texto-2)}
-.tablero-v6 .kb-btn2{align-self:flex-start;height:32px;padding:0 12px;border-radius:8px;border:1px solid var(--v6-borde);background:var(--v6-tarjeta);color:var(--v6-texto);font:inherit;font-size:12px;font-weight:500;cursor:pointer}
-.tablero-v6 .kb-btn2:hover{background:var(--v6-fila-hover)}
+.tablero-v6 .dp-mover input{width:56px;height:30px;box-sizing:border-box;padding:0 8px;border-radius:8px;border:1px solid var(--kb-ctl-bd);background:var(--kb-card);color:var(--kb-text);font:500 12px var(--v4-ff-sans,inherit);font-variant-numeric:tabular-nums;text-align:right}
+.tablero-v6 .dp-mover input[aria-invalid=true]{border-color:var(--kb-red)}
+.tablero-v6 .dp-err{margin:0;font-size:12px;color:var(--kb-red)}
+.tablero-v6 .dp-confirma{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--kb-text2)}
 .tablero-v6 .toast-t{white-space:normal;max-width:560px}
 .tablero-v6 .toast{white-space:normal}
 `;

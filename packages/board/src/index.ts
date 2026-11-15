@@ -203,6 +203,10 @@ export type { CalendarioV6Props, VistaCalendarioV6, EscalaCalendarioV6 } from '.
 // Maquetas v3 (Yesid) · el Tablero v6 (Asakaa)
 export { TableroV6, VISTA_TABLERO_V6_POR_DEFECTO, FILTROS_TABLERO_V6_VACIOS, STATUS_DE_ESTADO_V6, responsablesDelTablero } from './components/Board/v6/TableroV6'
 export type { TableroV6Props, VistaTableroV6, FiltrosTableroV6, AgruparTableroV6, SubtareasTableroV6 } from './components/Board/v6/TableroV6'
+// Guía v4 · el panel de la tarea (Tablero y Lista)
+export { PanelDeTareaV4, textoDeRestriccion, cambiosDeRestriccion, textoDeDesfase, leerHoras } from './components/ListView/v6/PanelDeTareaV4'
+export type { AccionesDelPanelV4, EntradaDelHistorialV4, OrigenDelCambio, TipoDeEnlaceV4, PanelDeTareaV4Props } from './components/ListView/v6/PanelDeTareaV4'
+export { EscudoDeRiesgo, tituloDelEscudo } from './components/ListView/v6/PuntoDeRiesgo'
 // Maquetas v3 (Yesid) · el menú Vista de la Lista v6
 export { VISTA_V6_POR_DEFECTO } from './components/ListView'
 export type { VistaV6 } from './components/ListView'

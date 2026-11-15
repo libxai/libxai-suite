@@ -32,6 +32,29 @@ export function PuntoDeNivelDeRiesgo({ nivel, tam = 8 }: { nivel: RiesgoDeLaTare
   );
 }
 
+/** «Riesgo R-01 · Alto: Retraso del proveedor (y 1 más)», el globo del escudo (guía v4). */
+export function tituloDelEscudo(rs: RiesgoDeLaTarea[], es: boolean): string {
+  const r = riesgoMayor(rs);
+  if (!r) return '';
+  const mas = rs.length > 1 ? (es ? ` (y ${rs.length - 1} más)` : ` (and ${rs.length - 1} more)`) : '';
+  return `${es ? 'Riesgo' : 'Risk'} ${r.codigo} · ${nombreDeNivel(r.nivel, es)}${r.titulo ? `: ${r.titulo}` : ''}${mas}`;
+}
+
+/**
+ * Guía v4 · «El riesgo es un escudo con el color del nivel y un tooltip, no un punto gris» (Tablero y Lista). El color
+ * lo pone el CSS de la vista por `data-nivel` (tokens `--v4-lvl-*`); aquí solo la forma.
+ */
+export function EscudoDeRiesgo({ riesgos, es, className = 'kc-risk' }: { riesgos?: RiesgoDeLaTarea[]; es: boolean; className?: string }) {
+  const r = riesgos?.length ? riesgoMayor(riesgos) : undefined;
+  if (!r) return null;
+  const titulo = tituloDelEscudo(riesgos!, es);
+  return (
+    <span className={className} data-nivel={r.nivel} data-punto-riesgo={r.nivel} role="img" aria-label={titulo} title={titulo}>
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2l5 2v4c0 3-2.2 5.3-5 6-2.8-.7-5-3-5-6V4z" /></svg>
+    </span>
+  );
+}
+
 export function PuntoDeRiesgo({ riesgos, es }: { riesgos?: RiesgoDeLaTarea[]; es: boolean }) {
   const r = riesgos?.length ? riesgoMayor(riesgos) : undefined;
   if (!r) return null;
