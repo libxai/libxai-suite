@@ -207,6 +207,10 @@ export type { TableroV6Props, VistaTableroV6, FiltrosTableroV6, AgruparTableroV6
 export { PanelDeTareaV4, textoDeRestriccion, cambiosDeRestriccion, textoDeDesfase, leerHoras } from './components/ListView/v6/PanelDeTareaV4'
 export type { AccionesDelPanelV4, EntradaDelHistorialV4, OrigenDelCambio, TipoDeEnlaceV4, PanelDeTareaV4Props } from './components/ListView/v6/PanelDeTareaV4'
 export { EscudoDeRiesgo, tituloDelEscudo } from './components/ListView/v6/PuntoDeRiesgo'
+export { CostosDelProyectoV4, personasDelProyecto } from './components/ListView/v6/CostosDelProyectoV4'
+export type { SaludDelPieV4 } from './components/ListView/v6/CostosDelProyectoV4'
+export { FILTROS_LISTA_V4_VACIOS } from './components/ListView/v6/ListaV6'
+export type { FiltrosDeLaListaV4 } from './components/ListView/v6/ListaV6'
 // Maquetas v3 (Yesid) · el menú Vista de la Lista v6
 export { VISTA_V6_POR_DEFECTO } from './components/ListView'
 export type { VistaV6 } from './components/ListView'

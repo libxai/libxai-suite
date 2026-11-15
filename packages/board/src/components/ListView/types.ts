@@ -491,6 +491,15 @@ export interface ListViewConfig {
   onVerRecursosV6?: () => void;
   /** v6 · R6: abrir un riesgo desde el panel de la tarea */
   onVerRiesgoV6?: (id: string) => void;
+  /** guía v4 · el pie «Costos del proyecto» con las cifras de la cabecera */
+  saludV4?: import('./v6/CostosDelProyectoV4').SaludDelPieV4 | null;
+  /** guía v4 · lo que el panel de la tarea hace con la app */
+  panelV4?: import('./v6/PanelDeTareaV4').AccionesDelPanelV4;
+  /** guía v4 · guardar el estado y el avance de una hoja desde el panel */
+  onGuardarEstadoV4?: (t: import('../Gantt/types').Task, status: string, progreso: number) => boolean | void | Promise<boolean | void>;
+  /** guía v4 · los filtros de la barra de la Lista */
+  filtrosV4?: import('./v6/ListaV6').FiltrosDeLaListaV4;
+  onFiltrosV4?: (f: import('./v6/ListaV6').FiltrosDeLaListaV4) => void;
   /**
    * 1.9.39 · `false` quita el botón «Filters» (estado / ocultar completadas) de
    * la barra, para la app que tiene su propio sistema de filtros. Por defecto se pinta.

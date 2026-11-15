@@ -497,7 +497,7 @@ export function PanelDeTareaV4({
                 {hecha || !onAvance || !puede ? <span className={`pct${(hecha || pct) ? ' on' : ' zero'}`}>{hecha ? 100 : pct}%</span> : (
                   <label className="dp-pin">
                     <span className="sr">{x.avanceSr}</span>
-                    <input key={`${t.id}-${pct}`} inputMode="numeric" maxLength={3} defaultValue={pct} aria-invalid={!!errorAvance || undefined}
+                    <input key={`${t.id}-${pct}`} inputMode="numeric" maxLength={3} defaultValue={pct} aria-label={x.avanceSr} aria-invalid={!!errorAvance || undefined}
                       aria-describedby={`${uid}-pct`} className={errorAvance ? 'bad' : undefined}
                       onKeyDown={(ev) => { if (ev.key === 'Enter') { ev.preventDefault(); onAvance(t, ev.currentTarget.value); } }}
                       onBlur={(ev) => { if (ev.currentTarget.value.trim() !== String(pct) || porConfirmar) onAvance(t, ev.currentTarget.value); }} />%

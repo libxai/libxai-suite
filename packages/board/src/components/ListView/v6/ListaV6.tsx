@@ -16,11 +16,13 @@ import type { Task } from '../../Gantt/types';
 import type { Calendario } from '../../Gantt/motorDeProgramacion';
 import { fechaCorta } from '../../Gantt/fechaCorta';
 import {
-  cifrasDe, diasDeRetraso, duracionHabil, estadoDe, estaVencida, horasCortas, juzgarHoras, millones, tieneHijas, type EstadoV6,
+  cifrasDe, diasDeRetraso, duracionHabil, estadoDe, estadoDeHoja, estaVencida, horasCortas, juzgarHoras, millones, tieneHijas, type EstadoV6,
 } from './reglasDeLaLista';
-import { CSS_PANEL_V6, PanelDeTareaV6 } from './PanelDeTareaV6';
-import { PuntoDeRiesgo } from './PuntoDeRiesgo';
-import { CSS_RECURSOS_V6, RecursosDeLaListaV6 } from './RecursosDeLaListaV6';
+import { CSS_PANEL_V6 } from './PanelDeTareaV6';
+import { CSS_PANEL_V4, PanelDeTareaV4, type AccionesDelPanelV4 } from './PanelDeTareaV4';
+import { EscudoDeRiesgo } from './PuntoDeRiesgo';
+import { CSS_RECURSOS_V6 } from './RecursosDeLaListaV6';
+import { CSS_COSTOS_V4, CostosDelProyectoV4, type SaludDelPieV4 } from './CostosDelProyectoV4';
 
 type Columna = 'who' | 'st' | 's' | 'e' | 'dur' | 'pct' | 'hrs' | 'cost';
 const COLUMNAS: Columna[] = ['who', 'st', 's', 'e', 'dur', 'pct', 'hrs', 'cost'];
@@ -34,6 +36,12 @@ export interface VistaV6 {
   leyenda: boolean;
 }
 export const VISTA_V6_POR_DEFECTO: VistaV6 = { densidad: 'normal', mostrarHechas: false, agruparPorFase: true, leyenda: false };
+
+/** Guía v4 · «Filtros» de la Lista: Estado, Responsable, «Solo vencidas» y «Con riesgo abierto» (la clave de cada
+ * responsable: su id, o su nombre; '' = sin responsable). Los lleva la app. */
+export interface FiltrosDeLaListaV4 { estados: EstadoV6[]; responsables: string[]; vencidas: boolean; conRiesgo: boolean }
+export const FILTROS_LISTA_V4_VACIOS: FiltrosDeLaListaV4 = { estados: [], responsables: [], vencidas: false, conRiesgo: false };
+const claveDeResponsable = (t: Task) => { const a = (t.assignees ?? [])[0] as { id?: string; name?: string } | undefined; return a ? a.id || a.name || '?' : ''; };
 
 /** F2 · el aviso de unas horas recién escritas: se registran pasados 5 s (antes, «Deshacer» no escribe nada) */
 interface HorasPendientes { id: string; wbs: string; antes: number; ahora: number; t: Task }
@@ -72,6 +80,15 @@ export interface ListaV6Props {
   onVerRecursos?: () => void;
   /** R6 · abrir un riesgo desde el panel de la tarea */
   onVerRiesgo?: (id: string) => void;
+  /** guía v4 · el pie «Costos del proyecto»: las cifras de la cabecera (sin ellas, suma las de las tareas) */
+  salud?: SaludDelPieV4 | null;
+  /** guía v4 · lo que el panel de la tarea hace con la app (historial, cronómetro, horas, restricción, enlaces) */
+  panel?: AccionesDelPanelV4;
+  /** guía v4 · guardar el estado y el avance de una hoja desde el panel; `false` si no se pudo */
+  onGuardarEstado?: (t: Task, status: string, progreso: number) => boolean | void | Promise<boolean | void>;
+  /** guía v4 · los filtros de la barra («Filtros»); sin ellos, solo el «Ver» de las vencidas */
+  filtros?: FiltrosDeLaListaV4;
+  onFiltros?: (f: FiltrosDeLaListaV4) => void;
 }
 
 interface Fila {
@@ -87,8 +104,22 @@ const TXT = {
   es: {
     tareas: 'tareas', tarea: 'tarea', ocultas: 'completadas ocultas', aLaVista: 'completadas a la vista', mostrar: 'Mostrar', ocultar: 'Ocultar',
     vencidas: 'vencidas', vencida: 'vencida', ver: 'Ver', filtrando: 'Filtrando: vencidas', quitar: 'Quitar el filtro de vencidas',
-    plegar: 'Plegar todo', desplegar: 'Desplegar todo', wbs: 'WBS y tarea', resp: 'Responsable', estado: 'Estado', inicio: 'Inicio', fin: 'Fin',
-    dur: 'Duración (d háb.)', horas: 'Horas reg./est.', costo: 'Costo', total: 'Total del proyecto', columnas: 'Ver u ocultar columnas',
+    plegar: 'Plegar todo', desplegar: 'Desplegar todo', wbs: 'Tarea', resp: 'Responsable', estado: 'Estado', inicio: 'Inicio', fin: 'Fin',
+    dur: 'Duración', avance: 'Avance', horas: 'Horas', costo: 'Costo', total: 'Total del proyecto', columnas: 'Ver u ocultar columnas',
+    tips: {
+      who: 'Responsable de la tarea', st: 'Estado de la tarea; el de una fase o tarea padre se calcula con sus hijas',
+      s: 'Fecha de inicio', e: 'Fecha de fin; en rojo, vencida (días hábiles del calendario del proyecto)',
+      dur: 'Duración en días hábiles del calendario del proyecto',
+      pct: 'Avance en %. El de una fase o del proyecto es el de sus tareas, ponderado por sus horas estimadas (una tarea sin estimar pesa como 1 h)',
+      hrs: 'Horas registradas / estimadas, en horas', cost: (m: string) => `Costo real${m ? ` en ${m}` : ''}: horas registradas × tarifa de cada persona`,
+    } as Record<string, string | ((m: string) => string)>,
+    sinEstimar: 'Sin estimar', sinEstimarTip: 'Esta tarea no tiene horas estimadas: para el avance pesa como 1 h.',
+    vencidaEl: (f: string, n: number) => `${f}, vencida hace ${n} ${n === 1 ? 'día hábil' : 'días hábiles'}`,
+    ayudaTit: 'Cómo leer la lista y atajos de teclado', comoLeer: 'Cómo leer la lista', teclado: 'Teclado',
+    lVencida: 'Fecha de fin vencida', lRiesgo: 'Riesgo abierto; el color es su nivel', lSinEst: 'Tarea sin horas estimadas',
+    lGuia: 'Cada nivel de la jerarquía sangra 20 px; la guía une a las hijas con su padre',
+    kFilas: 'Cambiar de fila', kAbrir: 'Desplegar o plegar', kDetalle: 'Abrir el detalle', kHoras: 'Editar las horas registradas', kCerrar: 'Cerrar el panel',
+    numeroAvance: 'Escriba un número entero entre 0 y 100.', fEstado: 'Estado', fRiesgo: 'Con riesgo abierto', quitarFiltro: 'Quitar el filtro',
     todas: 'Mostrar todas', ayuda: 'Flechas arriba y abajo: cambiar de fila. Flecha derecha: desplegar; flecha izquierda: plegar o ir a la fila padre. Enter: abrir el detalle. F2: editar las horas.',
     st: { done: 'Completada', prog: 'En progreso', blocked: 'Bloqueada', todo: 'Por hacer' } as Record<EstadoV6, string>,
     venceHace: (n: number) => (n === 1 ? 'Vencida hace 1 día hábil' : `Vencida hace ${n} días hábiles`),
@@ -106,8 +137,22 @@ const TXT = {
   en: {
     tareas: 'tasks', tarea: 'task', ocultas: 'completed hidden', aLaVista: 'completed shown', mostrar: 'Show', ocultar: 'Hide',
     vencidas: 'overdue', vencida: 'overdue', ver: 'View', filtrando: 'Filtering: overdue', quitar: 'Clear the overdue filter',
-    plegar: 'Collapse all', desplegar: 'Expand all', wbs: 'WBS and task', resp: 'Owner', estado: 'Status', inicio: 'Start', fin: 'End',
-    dur: 'Duration (work d)', horas: 'Hours logged/est.', costo: 'Cost', total: 'Project total', columnas: 'Show or hide columns',
+    plegar: 'Collapse all', desplegar: 'Expand all', wbs: 'Task', resp: 'Owner', estado: 'Status', inicio: 'Start', fin: 'End',
+    dur: 'Duration', avance: 'Progress', horas: 'Hours', costo: 'Cost', total: 'Project total', columnas: 'Show or hide columns',
+    tips: {
+      who: 'Task owner', st: 'Task status; a phase’s or parent task’s comes from its subtasks',
+      s: 'Start date', e: 'End date; in red, overdue (working days of the project calendar)',
+      dur: 'Duration in working days of the project calendar',
+      pct: 'Progress in %. A phase’s or the project’s is its tasks’, weighted by their estimated hours (a task without an estimate weighs 1 h)',
+      hrs: 'Hours logged / estimated, in hours', cost: (m: string) => `Actual cost${m ? ` in ${m}` : ''}: logged hours × each person’s rate`,
+    } as Record<string, string | ((m: string) => string)>,
+    sinEstimar: 'Not estimated', sinEstimarTip: 'This task has no estimated hours: for progress it weighs 1 h.',
+    vencidaEl: (f: string, n: number) => `${f}, overdue by ${n} working ${n === 1 ? 'day' : 'days'}`,
+    ayudaTit: 'How to read the list and keyboard shortcuts', comoLeer: 'How to read the list', teclado: 'Keyboard',
+    lVencida: 'Overdue end date', lRiesgo: 'Open risk; the colour is its level', lSinEst: 'Task without estimated hours',
+    lGuia: 'Each hierarchy level is indented 20 px; the guide joins the subtasks with their parent',
+    kFilas: 'Change row', kAbrir: 'Expand or collapse', kDetalle: 'Open the details', kHoras: 'Edit the logged hours', kCerrar: 'Close the panel',
+    numeroAvance: 'Type a whole number between 0 and 100.', fEstado: 'Status', fRiesgo: 'With an open risk', quitarFiltro: 'Remove the filter',
     todas: 'Show all', ayuda: 'Up and down arrows: change row. Right arrow: expand; left arrow: collapse or go to the parent row. Enter: open the details. F2: edit the hours.',
     st: { done: 'Completed', prog: 'In progress', blocked: 'Blocked', todo: 'To do' } as Record<EstadoV6, string>,
     venceHace: (n: number) => (n === 1 ? 'Overdue by 1 working day' : `Overdue by ${n} working days`),
@@ -124,14 +169,23 @@ const TXT = {
   },
 };
 
-const NOMBRE_COL = (c: Columna, x: typeof TXT.es, moneda?: string | null): string => ({
-  who: x.resp, st: x.estado, s: x.inicio, e: x.fin, dur: x.dur, pct: '%', hrs: x.horas, cost: moneda ? `${x.costo} (${moneda})` : x.costo,
+/* guía v4 · cabeceras sin abreviar; la unidad va en el globo */
+const NOMBRE_COL = (c: Columna, x: typeof TXT.es): string => ({
+  who: x.resp, st: x.estado, s: x.inicio, e: x.fin, dur: x.dur, pct: x.avance, hrs: x.horas, cost: x.costo,
 }[c]);
+const AYUDA_COL = (c: Columna, x: typeof TXT.es, moneda?: string | null): string => {
+  const a = x.tips[c];
+  return typeof a === 'function' ? a(moneda ?? '') : a ?? '';
+};
+/* guía v4 · abre con Tarea, Estado, Fin, Avance, Horas y Costo: Inicio y Duración, en el «+» */
+const OCULTAS_POR_DEFECTO: Columna[] = ['s', 'dur'];
 
 function leerOcultas(clave?: string): Set<Columna> {
-  if (!clave) return new Set();
+  if (!clave) return new Set(OCULTAS_POR_DEFECTO);
   try {
-    const v = JSON.parse(localStorage.getItem(clave) ?? '[]');
+    const guardado = localStorage.getItem(clave);
+    if (guardado == null) return new Set(OCULTAS_POR_DEFECTO);
+    const v = JSON.parse(guardado);
     return new Set((Array.isArray(v) ? v : []).filter((c): c is Columna => COLUMNAS.includes(c)));
   } catch { return new Set(); }
 }
@@ -139,12 +193,14 @@ function leerOcultas(clave?: string): Set<Columna> {
 const iniciales = (n?: string) => (n ?? '').trim().split(/\s+/).slice(0, 2).map((p) => p[0] ?? '').join('').toUpperCase();
 
 export function ListaV6({
-  tasks: tasksProp, es, cal, tarifaDe, monedaCodigo, conCosto = true, onAbrir, seleccionada = null, claveColumnas, pie, hoy: hoyProp,
+  tasks: tasksProp, es, cal, tarifaDe, monedaCodigo, conCosto: conCostoProp = true, onAbrir, seleccionada = null, claveColumnas, pie, hoy: hoyProp,
   avanceTotal, vista: vistaProp, onVista, onRegistrarHoras, peticionColumnas, nombreProyecto,
-  tarifaDePersona, costoAlTerminar, onVerRecursos, onVerRiesgo,
+  tarifaDePersona, onVerRecursos, onVerRiesgo, salud, panel, onGuardarEstado, filtros: filtrosProp, onFiltros,
 }: ListaV6Props) {
   const x = es ? TXT.es : TXT.en;
   const idioma = es ? 'es' : 'en';
+  /* guía v4 · sin permiso de dinero (sql/481: la base no manda tarifas), la columna de costo no existe */
+  const conCosto = conCostoProp && (salud ? salud.veDinero : true);
   const hoy = useMemo(() => hoyProp ?? new Date(), [hoyProp]);
   const [vistaInterna, setVistaInterna] = useState<VistaV6>(VISTA_V6_POR_DEFECTO);
   const vista = vistaProp ?? vistaInterna;
@@ -224,6 +280,9 @@ export function ListaV6({
     return out;
   }, [tasks]);
   const porId = useMemo(() => new Map(todas.map((f) => [f.t.id, f])), [todas]);
+  const todasRef = useRef(todas);
+  todasRef.current = todas;
+  const irARef = useRef<(id: string) => void>(() => {});
   const cifras = useMemo(() => new Map(todas.map((f) => [f.t.id, cifrasDe(f.t, tarifaDe, hoy)])), [todas, tarifaDe, hoy]);
   const estados = useMemo(() => new Map(todas.map((f) => [f.t.id, estadoDe(f.t)])), [todas]);
 
@@ -238,12 +297,23 @@ export function ListaV6({
   const nVencidas = hojas.filter((f) => estaVencida(f.t, hoy)).length;
 
   /* las vencidas y sus padres, para el filtro «Ver» */
+  const f4 = filtrosProp ?? FILTROS_LISTA_V4_VACIOS;
+  const soloVencidas = filtro === 'vencidas' || f4.vencidas;
   const enElFiltro = useMemo(() => {
-    if (filtro !== 'vencidas') return null;
+    if (!soloVencidas && !f4.estados.length && !f4.responsables.length && !f4.conRiesgo) return null;
     const ok = new Set<string>();
-    for (const f of todas) if (estaVencida(f.t, hoy)) { ok.add(f.t.id); f.ancestros.forEach((a) => ok.add(a)); }
+    for (const f of todas) {
+      if (tieneHijas(f.t)) continue;
+      if (soloVencidas && !estaVencida(f.t, hoy)) continue;
+      if (f4.estados.length && !f4.estados.includes(estadoDeHoja(f.t))) continue;
+      if (f4.responsables.length && !f4.responsables.includes(claveDeResponsable(f.t))) continue;
+      if (f4.conRiesgo && !(f.t.riesgos ?? []).length) continue;
+      ok.add(f.t.id); f.ancestros.forEach((a) => ok.add(a));
+    }
     return ok;
-  }, [filtro, todas, hoy]);
+  }, [soloVencidas, f4.estados, f4.responsables, f4.conRiesgo, todas, hoy]);
+  /* filtrar por «Completada» enseña las completadas aunque estén ocultas */
+  const verHechas = mostrarHechas || f4.estados.includes('done');
 
   /* el orden: por WBS, o por la columna, entre hermanas */
   const ordenadas = useMemo(() => {
@@ -283,9 +353,9 @@ export function ListaV6({
     if (ancestrosVisibles(f).some((a) => plegadas.has(a))) return false;
     if (enElFiltro && !enElFiltro.has(f.t.id)) return false;
     if (f.esFase) return true;
-    if (!mostrarHechas && estados.get(f.t.id) === 'done' && !f.ancestros.some((a) => abiertasConHechas.has(a))) return false;
+    if (!verHechas && estados.get(f.t.id) === 'done' && !f.ancestros.some((a) => abiertasConHechas.has(a))) return false;
     return true;
-  }), [ordenadas, plegadas, enElFiltro, mostrarHechas, estados, abiertasConHechas, agrupar, ancestrosVisibles]);
+  }), [ordenadas, plegadas, enElFiltro, verHechas, estados, abiertasConHechas, agrupar, ancestrosVisibles]);
 
   const plegables = todas.filter((f) => tieneHijas(f.t));
   const algoAbierto = plegables.some((f) => !plegadas.has(f.t.id));
@@ -350,6 +420,55 @@ export function ListaV6({
     setEnPanel(id);
     enfocar(id);
   };
+  irARef.current = irA;
+
+  /* guía v4 · el panel cambia el estado y el avance de una hoja (la regla del %: al completar, 100; al reabrir, se conserva
+   * y queda «por confirmar») */
+  const [porConfirmar, setPorConfirmar] = useState<Set<string>>(new Set());
+  const [errorAvance, setErrorAvance] = useState<string | null>(null);
+  const STATUS: Record<EstadoV6, string> = { todo: 'todo', prog: 'in-progress', blocked: 'blocked', done: 'completed' };
+  const guardarEstado = async (t: Task, e: EstadoV6) => {
+    const de = estadoDeHoja(t);
+    if (!onGuardarEstado || de === e) return;
+    const progreso = e === 'done' ? 100 : Math.round(t.progress ?? 0);
+    if (de === 'done' && e !== 'done') setPorConfirmar((p) => new Set(p).add(t.id));
+    if (e === 'done') setPorConfirmar((p) => { const n = new Set(p); n.delete(t.id); return n; });
+    await onGuardarEstado(t, STATUS[e], progreso);
+  };
+  const guardarAvance = async (t: Task, texto: string) => {
+    const v = texto.trim();
+    if (!/^\d{1,3}$/.test(v) || Number(v) > 100) { setErrorAvance(x.numeroAvance); return; }
+    setErrorAvance(null);
+    setPorConfirmar((p) => { const n = new Set(p); n.delete(t.id); return n; });
+    if (Number(v) === Math.round(t.progress ?? 0)) return;
+    await onGuardarEstado?.(t, String(t.status ?? STATUS[estadoDeHoja(t)]), Number(v));
+  };
+  useEffect(() => { setErrorAvance(null); }, [enPanel]);
+
+  /* guía v4 · «Cómo leer la lista y atajos», en el «?» de la línea de resumen */
+  const [ayuda, setAyuda] = useState(false);
+  useEffect(() => {
+    if (!ayuda) return;
+    const fuera = (e: MouseEvent) => { if (!(e.target as HTMLElement).closest?.('.lv-ayuda, .help-btn')) setAyuda(false); };
+    const esc = (e: globalThis.KeyboardEvent) => { if (e.key === 'Escape') setAyuda(false); };
+    document.addEventListener('mousedown', fuera);
+    document.addEventListener('keydown', esc);
+    return () => { document.removeEventListener('mousedown', fuera); document.removeEventListener('keydown', esc); };
+  }, [ayuda]);
+
+  /* guía v4 · enlaces profundos: #t=3.4 abre el panel de esa tarea y #vencidas filtra las vencidas */
+  const conTareas = todas.length > 0;
+  useEffect(() => {
+    if (!conTareas || typeof window === 'undefined') return;
+    const leer = () => {
+      const h = decodeURIComponent(window.location.hash.replace(/^#/, ''));
+      if (h === 'vencidas') setFiltro('vencidas');
+      else if (h.startsWith('t=')) { const f = todasRef.current.find((r) => r.wbs === h.slice(2)); if (f) irARef.current(f.t.id); }
+    };
+    leer();
+    window.addEventListener('hashchange', leer);
+    return () => window.removeEventListener('hashchange', leer);
+  }, [conTareas]);
 
   const total = useMemo(() => tasks.reduce((a, t) => {
     const c = cifrasDe(t, tarifaDe, hoy);
@@ -392,8 +511,8 @@ export function ListaV6({
 
   const ordenarPor = (k: Orden['k']) => setOrden((o) => (o.k === k ? { k, desc: !o.desc } : { k, desc: false }));
   const ariaSort = (k: Orden['k']) => (orden.k === k ? (orden.desc ? 'descending' : 'ascending') : 'none') as 'ascending' | 'descending' | 'none';
-  const Th = ({ k, children, num, dur }: { k?: Orden['k']; children: ReactNode; num?: boolean; dur?: boolean }) => (
-    <th scope="col" className={[num && 'num', dur && 'col-dur'].filter(Boolean).join(' ') || undefined} aria-sort={k ? ariaSort(k) : undefined}>
+  const Th = ({ k, children, num, dur, ayuda }: { k?: Orden['k']; children: ReactNode; num?: boolean; dur?: boolean; ayuda?: string }) => (
+    <th scope="col" className={[num && 'num', dur && 'col-dur'].filter(Boolean).join(' ') || undefined} aria-sort={k ? ariaSort(k) : undefined} title={ayuda}>
       {k ? (
         <button type="button" className="sortb" onClick={() => ordenarPor(k)}>
           {children}
@@ -427,7 +546,7 @@ export function ListaV6({
         const txt = t.endDate ? fechaCorta(new Date(t.endDate), idioma, hoy) : '—';
         if (estaVencida(t, hoy)) {
           const n = diasDeRetraso(t, hoy, cal);
-          return <td key={c} className="num dt"><span className="chip-red" title={x.venceHace(n)}>{txt}<span className="sr">, {x.venceHace(n)}</span></span></td>;
+          return <td key={c} className="num dt"><span className="chip-red" title={x.vencidaEl(txt, n)}>{txt}<span className="sr">, {x.venceHace(n)}</span></span></td>;
         }
         return <td key={c} className="num dt">{txt}</td>;
       }
@@ -440,7 +559,11 @@ export function ListaV6({
               onGuardar={(v) => guardarHoras(t, f.wbs, ci.reg, v)} onCancelar={() => { setEditando(null); enfocar(t.id); }} />
           </td>
         );
-        const texto = <><b>{horasCortas(ci.reg, es)}</b><span className="est"> / {horasCortas(ci.est, es)} h</span></>;
+        /* guía v4 · una hoja sin horas estimadas dice «Sin estimar» (para el avance pesa como 1 h) */
+        const sinEstimar = !padre && !t.isMilestone && !ci.est;
+        const texto = sinEstimar
+          ? <><b>{horasCortas(ci.reg, es)}</b><span className="est"> / </span><span className="noest" title={x.sinEstimarTip}>{x.sinEstimar}</span></>
+          : <><b>{horasCortas(ci.reg, es)}</b><span className="est"> / {horasCortas(ci.est, es)} h</span></>;
         return (
           <td key={c} className="num">
             {!padre && onRegistrarHoras ? (
@@ -455,12 +578,21 @@ export function ListaV6({
   };
 
   return (
-    <section className={`lista-v6${vista.densidad === 'compacta' ? ' d32' : vista.densidad === 'comoda' ? ' d48' : ''}`} aria-label={x.tareasDe}>
-      <style>{CSS_V6 + CSS_PANEL_V6 + CSS_RECURSOS_V6}</style>
+    <section className={`lista-v6 lista-v4${vista.densidad === 'compacta' ? ' d32' : vista.densidad === 'comoda' ? ' d48' : ''}${filaDelPanel ? ' has-panel' : ''}`} aria-label={x.tareasDe}>
+      <style>{CSS_V6 + CSS_PANEL_V6 + CSS_RECURSOS_V6 + CSS_PANEL_V4 + CSS_COSTOS_V4 + CSS_LISTA_V4}</style>
       <div className="sumline">
         <div>
-          {filtro === 'vencidas' && (
-            <span className="fchip">{x.filtrando}<button type="button" aria-label={x.quitar} onClick={() => setFiltro(null)}>×</button></span>
+          {soloVencidas && (
+            <span className="fchip">{x.filtrando}<button type="button" aria-label={x.quitar} onClick={() => { setFiltro(null); if (f4.vencidas) onFiltros?.({ ...f4, vencidas: false }); }}>×</button></span>
+          )}
+          {f4.estados.length > 0 && (
+            <span className="fchip">{x.fEstado}: {f4.estados.map((e) => x.st[e]).join(', ')}<button type="button" aria-label={`${x.quitarFiltro}: ${x.fEstado}`} onClick={() => onFiltros?.({ ...f4, estados: [] })}>×</button></span>
+          )}
+          {f4.responsables.length > 0 && (
+            <span className="fchip">{x.resp}: {f4.responsables.length}<button type="button" aria-label={`${x.quitarFiltro}: ${x.resp}`} onClick={() => onFiltros?.({ ...f4, responsables: [] })}>×</button></span>
+          )}
+          {f4.conRiesgo && (
+            <span className="fchip">{x.fRiesgo}<button type="button" aria-label={`${x.quitarFiltro}: ${x.fRiesgo}`} onClick={() => onFiltros?.({ ...f4, conRiesgo: false })}>×</button></span>
           )}
           <span className="mono">{nAbiertas}</span> {nAbiertas === 1 ? x.tarea : x.tareas}
           {nHechas > 0 && (
@@ -478,12 +610,34 @@ export function ListaV6({
             </>
           )}
         </div>
-        <div>
+        <div className="sum-r">
           <a href="#" onClick={(e) => {
             e.preventDefault();
             setPlegadas(algoAbierto ? new Set(plegables.map((f) => f.t.id)) : new Set());
             if (!algoAbierto) setAbiertasConHechas(new Set());
           }}>{algoAbierto ? x.plegar : x.desplegar}</a>
+          <button type="button" className="help-btn" aria-haspopup="dialog" aria-expanded={ayuda} aria-label={x.ayudaTit} title={x.ayudaTit}
+            onClick={() => setAyuda((v) => !v)}>
+            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><circle cx="8" cy="8" r="5.5" /><path d="M6.4 6.4a1.7 1.7 0 1 1 2.4 1.6c-.5.3-.8.6-.8 1.2M8 11.2v.1" /></svg>
+          </button>
+          {ayuda && (
+            <div className="lv-ayuda" role="dialog" aria-label={x.ayudaTit}>
+              <h6>{x.comoLeer}</h6>
+              <div className="legend">
+                <span><span className="chip-red">{fechaCorta(hoy, idioma, hoy)}</span>{x.lVencida}</span>
+                {(['todo', 'prog', 'blocked', 'done'] as EstadoV6[]).map((e) => <span key={e}><span className={`schip ${e}`}><i aria-hidden="true" />{x.st[e]}</span></span>)}
+                <span><span aria-hidden="true"><EscudoDeRiesgo riesgos={[{ id: '_', codigo: '', titulo: '', nivel: 'alto' }]} es={es} className="rk" /></span>{x.lRiesgo}</span>
+                <span><span className="noest">{x.sinEstimar}</span>{x.lSinEst}</span>
+                <span><span className="gd-muestra" aria-hidden="true" />{x.lGuia}</span>
+                <h6>{x.teclado}</h6>
+                <span><span className="lg-keys"><kbd>↑</kbd><kbd>↓</kbd></span>{x.kFilas}</span>
+                <span><span className="lg-keys"><kbd>←</kbd><kbd>→</kbd></span>{x.kAbrir}</span>
+                <span><span className="lg-keys"><kbd>Enter</kbd></span>{x.kDetalle}</span>
+                <span><span className="lg-keys"><kbd>F2</kbd></span>{x.kHoras}</span>
+                <span><span className="lg-keys"><kbd>Esc</kbd></span>{x.kCerrar}</span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -507,15 +661,15 @@ export function ListaV6({
                     </svg>
                   </th>
                 );
-                if (c === 'st') return <th key={c} scope="col">{x.estado}</th>;
-                if (c === 'hrs') return <th key={c} scope="col" className="num">{x.horas}</th>;
+                if (c === 'st') return <th key={c} scope="col" className="col-st" title={AYUDA_COL(c, x)}>{x.estado}</th>;
+                if (c === 'hrs') return <th key={c} scope="col" className="num col-hrs" title={AYUDA_COL(c, x)}>{x.horas}</th>;
                 const k = ({ s: 's', e: 'e', dur: 'dur', pct: 'pct', cost: 'cost' } as Record<string, Orden['k']>)[c];
-                return <Th key={c} k={k} num dur={c === 'dur'}>{NOMBRE_COL(c, x, monedaCodigo)}</Th>;
+                return <Th key={c} k={k} num dur={c === 'dur'} ayuda={AYUDA_COL(c, x, monedaCodigo)}>{NOMBRE_COL(c, x)}</Th>;
               })}
               <th className="col-plus" ref={cajaCols}>
                 <button type="button" className="col-plus-btn" aria-label={x.columnas} title={x.columnas} aria-expanded={menuCols}
                   onClick={() => setMenuCols((v) => !v)}>
-                  +{ocultas.size > 0 && <span className="n">{ocultas.size}</span>}
+                  +{ocultas.size > 0 && !(ocultas.size === OCULTAS_POR_DEFECTO.length && OCULTAS_POR_DEFECTO.every((c) => ocultas.has(c))) && <span className="n">{ocultas.size}</span>}
                 </button>
                 {menuCols && (
                   <div className="cols-menu" role="menu" onKeyDown={(e) => { if (e.key === 'Escape') setMenuCols(false); }}>
@@ -526,7 +680,7 @@ export function ListaV6({
                           if (e.target.checked) n.delete(c); else n.add(c);
                           guardarOcultas(n);
                         }} />
-                        {NOMBRE_COL(c, x, monedaCodigo)}
+                        {NOMBRE_COL(c, x)}
                       </label>
                     ))}
                     <hr />
@@ -556,14 +710,17 @@ export function ListaV6({
                   onFocus={() => setActiva(t.id)}
                   onKeyDown={(e) => alTeclear(e, f, i)}>
                   <td className="c1">
-                    <div className="cell" style={{ paddingLeft: Math.min(nivel, 4) * 14 }}>
+                    <div className="cell">
+                      {nivel > 0 && <span className="gd" style={{ ['--n' as string]: nivel }} aria-hidden="true" />}
                       {padre ? (
                         <button type="button" className={`chev${abierta ? '' : ' closed'}`} tabIndex={-1} aria-hidden="true"
-                          onClick={(e) => { e.stopPropagation(); alternar(f); }}>▾</button>
+                          onClick={(e) => { e.stopPropagation(); alternar(f); }}>
+                          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M4 6l4 4 4-4" /></svg>
+                        </button>
                       ) : <span className="ind" />}
                       <span className="wbs">{f.wbs}</span>
                       <span className="nm" title={ruta}>{t.name}</span>
-                      <PuntoDeRiesgo riesgos={t.riesgos} es={es} />
+                      <EscudoDeRiesgo riesgos={t.riesgos} es={es} className="rk" />
                       {padre && <span className="cnt" title={x.hechas(ci.hechas, ci.hojas)}>{ci.hechas}/{ci.hojas}</span>}
                       {padre && ci.vencidas > 0 && <span className="od">{ci.vencidas} {ci.vencidas === 1 ? x.vencida : x.vencidas}</span>}
                     </div>
@@ -591,31 +748,22 @@ export function ListaV6({
         </table>
       </div>
       {filaDelPanel && (
-        <PanelDeTareaV6 fila={filaDelPanel} es={es} cal={cal} hoy={hoy} nombreProyecto={nombreProyecto}
-          cifras={cifras.get(filaDelPanel.t.id)!} estados={estados} nombreEstado={x.st} porId={porId} tarifaDe={tarifaDe}
+        <PanelDeTareaV4 fila={filaDelPanel} es={es} cal={cal} hoy={hoy} nombreProyecto={nombreProyecto}
+          cifras={cifras.get(filaDelPanel.t.id)!} estados={estados} nombreEstado={x.st} porId={porId} tarifaDe={tarifaDe} conCosto={conCosto}
+          onEstado={onGuardarEstado ? (t, e) => void guardarEstado(t, e) : undefined}
+          onAvance={onGuardarEstado ? (t, texto) => void guardarAvance(t, texto) : undefined}
+          porConfirmar={porConfirmar.has(filaDelPanel.t.id)} errorAvance={errorAvance}
+          acciones={panel ? { ...panel, onAbrirEnLista: undefined } : undefined}
           onCerrar={() => { const id = filaDelPanel.t.id; setEnPanel(null); if (visibles.some((f) => f.t.id === id)) enfocar(id); }}
           onAbrirFicha={onAbrir} onIrA={irA} onVerRiesgo={onVerRiesgo} />
       )}
       </div>
-      {pie}
-      {/* el pie de la maqueta: Recursos a la izquierda (plegado) y la leyenda, si se pidió en Vista, a la derecha */}
-      {(conCosto || vista.leyenda) && (
-        <div className="vfoot">
-          {conCosto && (
-            <RecursosDeLaListaV6 tasks={tasks} es={es} tarifaDe={tarifaDe} tarifaDePersona={tarifaDePersona}
-              monedaCodigo={monedaCodigo ?? undefined} costoAlTerminar={costoAlTerminar} onVerRecursos={onVerRecursos} />
-          )}
-          {vista.leyenda && (
-            <div className="leyenda" role="note" aria-label={x.leyenda}>
-              {(['todo', 'prog', 'blocked', 'done'] as EstadoV6[]).map((e) => (
-                <span key={e}><span className={`schip ${e}`}><i aria-hidden="true" />{x.st[e]}</span></span>
-              ))}
-              <span><span className="chip-red">{fechaCorta(hoy, idioma, hoy)}</span> {x.lVenc}</span>
-              <span><span className="mono">12 d</span> {x.lDur}</span>
-            </div>
-          )}
-        </div>
-      )}
+      {/* guía v4 · un solo pie, «Costos del proyecto» (el mismo del Tablero); el pie de la app, solo si no manda las cifras */}
+      {salud === undefined && pie}
+      <div className="vfoot vfoot-fin">
+        <CostosDelProyectoV4 tasks={tasks} es={es} tarifaDe={tarifaDe} tarifaDePersona={tarifaDePersona} monedaCodigo={monedaCodigo}
+          salud={salud} conCosto={conCosto} onVerRecursos={onVerRecursos} />
+      </div>
       <div className="toast-zona" aria-live="polite">
         {pendiente && (
           <div className="toast">
@@ -756,4 +904,109 @@ export const CSS_V6 = `
 .lista-v6 .cols-menu label:hover,.lista-v6 .cols-menu .mi:hover{background:var(--v6-fila-hover)}
 .lista-v6 .cols-menu hr{border:0;border-top:1px solid var(--v6-linea);margin:4px 0}
 .lista-v6 .cols-menu .mi{border:0;background:transparent;text-align:left;padding:6px 8px;border-radius:6px;font:inherit;color:var(--v6-acento-texto);cursor:pointer}
+`;
+
+/*
+ * Guía v4 de Yesid (maqueta asakaa-lista.html). Todo cuelga de `.lista-v6.lista-v4`: la Lista; el Tablero y el Calendario
+ * siguen con `CSS_V6`. Colores `--v4-*` con los `--v6-*` de respaldo; medidas de la maqueta (cifras en Geist con números
+ * tabulares, Mono solo en el WBS; 20 px por nivel con una guía vertical por cada ascendiente).
+ */
+export const CSS_LISTA_V4 = `
+.lista-v6.lista-v4{
+  --lv-text:var(--v4-text,var(--v6-texto));--lv-text2:var(--v4-text2,var(--v6-texto-2));--lv-text3:var(--v4-text3,var(--v6-tenue));
+  --lv-card:var(--v4-card,var(--v6-tarjeta));--lv-border:var(--v4-border,var(--v6-borde));--lv-soft:var(--v4-soft,var(--v6-linea));
+  --lv-guide:var(--v4-guide,var(--v6-separador));--lv-hover:var(--v4-hover,var(--v6-fila-hover));--lv-brand:var(--v4-brand,var(--v6-acento));
+  --lv-acc:var(--v4-acc,var(--v6-acento-texto));--lv-red:var(--v4-red,var(--v6-rojo));--lv-pop:var(--v4-pop,0 8px 28px -6px rgba(14,17,20,.18));
+  --rh:40px;color:var(--lv-text)
+}
+.lista-v6.lista-v4.d32{--rh:32px}
+.lista-v6.lista-v4.d48{--rh:48px}
+.lista-v6.lista-v4 .num{font-variant-numeric:tabular-nums}
+/* línea de resumen y su «?» */
+.lista-v6.lista-v4 .sumline{margin:0;padding:6px 14px;min-height:36px;font-size:12px;color:var(--lv-text3)}
+.lista-v6.lista-v4 .sumline .mono{font-family:inherit;font-variant-numeric:tabular-nums}
+.lista-v6.lista-v4 .sumline a{color:var(--lv-acc);text-decoration:none}
+.lista-v6.lista-v4 .sumline a:hover{text-decoration:underline;text-underline-offset:2px}
+.lista-v6.lista-v4 .sumline a.red{color:var(--lv-red)}
+.lista-v6.lista-v4 .sum-r{position:relative;display:flex;align-items:center;gap:10px;flex:none}
+.lista-v6.lista-v4 .help-btn{width:24px;height:24px;border-radius:6px;display:grid;place-items:center;border:0;background:transparent;color:var(--lv-text3);cursor:pointer}
+.lista-v6.lista-v4 .help-btn:hover,.lista-v6.lista-v4 .help-btn[aria-expanded=true]{background:var(--lv-hover);color:var(--lv-text)}
+.lista-v6.lista-v4 .lv-ayuda{position:absolute;right:0;top:30px;z-index:40;width:320px;max-width:calc(100vw - 32px);padding:10px 12px;border-radius:8px;border:1px solid var(--lv-border);background:var(--lv-card);box-shadow:var(--lv-pop);font-size:12px;color:var(--lv-text2);text-align:left;cursor:default}
+.lista-v6.lista-v4 .lv-ayuda h6{margin:2px 0 8px;font-size:12px;font-weight:500;color:var(--lv-text3)}
+.lista-v6.lista-v4 .lv-ayuda .legend{display:flex;flex-direction:column;gap:8px}
+.lista-v6.lista-v4 .lv-ayuda .legend>h6{margin:6px 0 0}
+.lista-v6.lista-v4 .lv-ayuda .legend>span{display:flex;align-items:center;gap:8px;line-height:1.35}
+.lista-v6.lista-v4 .lv-ayuda .lg-keys{display:inline-flex;gap:3px;flex:none;min-width:64px}
+.lista-v6.lista-v4 .lv-ayuda kbd{font:400 11px 'Geist Mono',monospace;border:1px solid var(--lv-border);border-radius:4px;padding:1px 5px;color:var(--lv-text3)}
+.lista-v6.lista-v4 .gd-muestra{width:40px;height:16px;flex:none;background:repeating-linear-gradient(90deg,transparent 0 9px,var(--lv-border) 9px 10px,transparent 10px 20px)}
+/* la tabla */
+.lista-v6.lista-v4 .lbody{position:relative;border-top:1px solid var(--lv-soft)}
+.lista-v6.lista-v4 .lwrap{border-top:0;scroll-padding:36px 0 40px;overscroll-behavior:contain}
+.lista-v6.lista-v4 .lt th,.lista-v6.lista-v4 .lt td{height:var(--rh);border-bottom:1px solid var(--lv-soft);background:var(--lv-card)}
+.lista-v6.lista-v4 .lt thead th{height:36px;font-size:12px;font-weight:500;color:var(--lv-text3);box-shadow:inset 0 -1px 0 var(--lv-border);border-bottom:0}
+.lista-v6.lista-v4 .lt thead th.num{font-size:12px;font-weight:500;color:var(--lv-text3)}
+.lista-v6.lista-v4 .lt thead th[title]{cursor:help}
+.lista-v6.lista-v4 .lt thead th[title] .sortb{cursor:pointer}
+.lista-v6.lista-v4 .lt .c1{width:38%;min-width:320px;max-width:560px;padding-left:8px}
+.lista-v6.lista-v4 .lt thead .c1{padding-left:14px}
+.lista-v6.lista-v4 .lt .col-who{width:40px;padding:0 6px;text-align:center}
+.lista-v6.lista-v4 .lt .col-hrs{min-width:126px}
+.lista-v6.lista-v4 .lt .cell{display:flex;align-items:center;gap:0;min-width:0;height:calc(var(--rh) - 1px)}
+.lista-v6.lista-v4 .lt .gd{flex:none;align-self:stretch;width:calc(var(--n) * 20px);background:repeating-linear-gradient(90deg,transparent 0 9px,var(--lv-border) 9px 10px,transparent 10px 20px)}
+.lista-v6.lista-v4 .lt .chev,.lista-v6.lista-v4 .lt .ind{width:20px;height:24px;flex:none;margin:0}
+.lista-v6.lista-v4 .lt .chev{border-radius:6px;display:grid;place-items:center;color:var(--lv-text3);transform:none}
+.lista-v6.lista-v4 .lt .chev:hover{background:var(--lv-hover);color:var(--lv-text)}
+.lista-v6.lista-v4 .lt .chev svg{transition:transform .15s}
+.lista-v6.lista-v4 .lt .chev.closed{transform:none}
+.lista-v6.lista-v4 .lt .chev.closed svg{transform:rotate(-90deg)}
+.lista-v6.lista-v4 .lt .wbs{font:400 12px 'Geist Mono',monospace;color:var(--lv-text3);flex:none;margin:0 8px 0 4px;min-width:0;text-align:left}
+.lista-v6.lista-v4 .lt .nm{overflow:hidden;text-overflow:ellipsis;font-weight:500;min-width:0}
+.lista-v6.lista-v4 .lt .cnt{font:400 12px var(--v4-ff-sans,inherit);font-variant-numeric:tabular-nums;color:var(--lv-text3);flex:none;margin-left:8px}
+.lista-v6.lista-v4 .lt .od{color:var(--lv-red);font-weight:500;font-size:12px;flex:none;margin-left:8px}
+.lista-v6.lista-v4 .lt .num{font-family:var(--v4-ff-sans,inherit);font-variant-numeric:tabular-nums;font-weight:400;font-size:13px;color:var(--lv-text2)}
+.lista-v6.lista-v4 .lt .dt{font-size:13px}
+.lista-v6.lista-v4 .lt tbody tr.sel>td{background:color-mix(in srgb,var(--lv-card),var(--lv-brand) 8%)}
+.lista-v6.lista-v4 .lt tbody tr.sel>td.c1{box-shadow:inset 2px 0 0 var(--lv-brand)}
+.lista-v6.lista-v4 .lt tr.grp td,.lista-v6.lista-v4 .lt tr.par td{font-weight:400}
+.lista-v6.lista-v4 .lt tr.grp .nm,.lista-v6.lista-v4 .lt tr.par .nm{font-weight:600}
+.lista-v6.lista-v4 .lt tr.grp .num,.lista-v6.lista-v4 .lt tr.par .num{color:var(--lv-text);font-weight:400}
+.lista-v6.lista-v4 .lt tfoot td{font-weight:600;border-bottom:0;border-top:0;box-shadow:inset 0 1px 0 var(--lv-border);height:40px}
+.lista-v6.lista-v4 .lt tfoot .num{color:var(--lv-text);font-weight:600}
+.lista-v6.lista-v4 .lt tfoot .cell{padding-left:24px;height:39px}
+.lista-v6.lista-v4 .lt tfoot .cell .ind{display:none}
+.lista-v6.lista-v4 .noest{font-size:12px;color:var(--lv-text3);cursor:help}
+.lista-v6.lista-v4 .lt .vacia{font-size:13px}
+/* escudo de riesgo junto al nombre */
+.lista-v6.lista-v4 .rk{display:inline-grid;place-items:center;width:20px;height:20px;flex:none;margin-left:6px;border-radius:4px;color:var(--v4-lvl-medio,#B8860B)}
+.lista-v6.lista-v4 .rk svg{width:14px;height:14px;stroke:currentColor;stroke-width:1.7;stroke-linejoin:round;fill:color-mix(in srgb,currentColor 16%,transparent)}
+.lista-v6.lista-v4 .rk[data-nivel=alto]{color:var(--v4-lvl-alto,#D9730D)}
+.lista-v6.lista-v4 .rk[data-nivel=critico]{color:var(--v4-lvl-critico,#D13A40)}
+.lista-v6.lista-v4 .rk[data-nivel=bajo]{color:var(--v4-lvl-bajo,#8A939C)}
+.lista-v6.lista-v4 .rk[data-nivel=alto] svg,.lista-v6.lista-v4 .rk[data-nivel=critico] svg{fill:color-mix(in srgb,currentColor 34%,transparent)}
+/* estados: icono con forma propia, sin píldora (como en el Tablero) */
+.lista-v6.lista-v4 .schip{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0;border-radius:0;background:none;color:var(--lv-text2);font-size:12px;font-weight:500;white-space:nowrap}
+.lista-v6.lista-v4 .schip::before,.lista-v6.lista-v4 .schip.done::before{content:none}
+.lista-v6.lista-v4 .schip i{position:relative;display:inline-block;width:12px;height:12px;box-sizing:border-box;border-radius:50%;border:1.5px solid var(--v4-st-todo,#7F8891);background:none;flex:none}
+.lista-v6.lista-v4 .schip.prog i{border-color:var(--v4-st-prog,#0A8073);background:linear-gradient(90deg,transparent 50%,var(--v4-st-prog,#0A8073) 50%)}
+.lista-v6.lista-v4 .schip.blocked i{border-color:var(--v4-st-blocked,#B26A00);background:linear-gradient(var(--lv-card),var(--lv-card)) center/6px 2px no-repeat,var(--v4-st-blocked,#B26A00)}
+.lista-v6.lista-v4 .schip.done{color:var(--lv-text3)}
+.lista-v6.lista-v4 .schip.done i{display:inline-block;border-color:var(--v4-st-done,#7F8891);background:var(--v4-st-done,#7F8891)}
+.lista-v6.lista-v4 .schip.done i::after{content:'';position:absolute;left:3px;top:.8px;width:3px;height:6px;border:solid var(--lv-card);border-width:0 1.5px 1.5px 0;transform:rotate(42deg)}
+.lista-v6.lista-v4 .chip-red{font:500 12px var(--v4-ff-sans,inherit);font-variant-numeric:tabular-nums;border-color:var(--v4-red-bd,var(--v6-rojo-borde));background:var(--v4-red-bg,var(--v6-rojo-fondo));color:var(--lv-red)}
+.lista-v6.lista-v4 .pct{font:400 13px var(--v4-ff-sans,inherit);font-variant-numeric:tabular-nums;color:var(--lv-acc)}
+.lista-v6.lista-v4 .pct.zero{color:var(--lv-text2)}
+.lista-v6.lista-v4 .hrs b{font-weight:400;color:var(--lv-text)}
+.lista-v6.lista-v4 .hrs .est{color:var(--lv-text3);white-space:pre}
+/* F2 · la celda de horas mantiene su ancho al editar */
+.lista-v6.lista-v4 .hrs-edit input{width:52px;font:400 13px var(--v4-ff-sans,inherit);font-variant-numeric:tabular-nums}
+.lista-v6.lista-v4 .col-plus-btn .n{font:500 11px var(--v4-ff-sans,inherit)}
+.lista-v6.lista-v4 .cols-menu{font-size:13px}
+.lista-v6.lista-v4 .fchip{font-size:12px}
+/* el panel: por debajo de 1200 px de contenido es una capa sobre la tabla; en el teléfono, toda la pantalla */
+@container lista-v6 (max-width:1199px){
+  .lista-v6.lista-v4 .dp4{position:absolute;right:0;top:0;bottom:0;z-index:20;max-height:none;box-shadow:var(--lv-pop)}
+}
+@container lista-v6 (max-width:599px){
+  .lista-v6.lista-v4 .dp4{width:100%;border-left:0}
+}
 `;

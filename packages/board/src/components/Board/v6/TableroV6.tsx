@@ -28,7 +28,8 @@ import { CSS_V6 } from '../../ListView/v6/ListaV6';
 import { CSS_PANEL_V6, type FilaDelPanel } from '../../ListView/v6/PanelDeTareaV6';
 import { CSS_PANEL_V4, PanelDeTareaV4, type AccionesDelPanelV4 } from '../../ListView/v6/PanelDeTareaV4';
 import { EscudoDeRiesgo } from '../../ListView/v6/PuntoDeRiesgo';
-import { CSS_RECURSOS_V6, RecursosDeLaListaV6 } from '../../ListView/v6/RecursosDeLaListaV6';
+import { CSS_RECURSOS_V6 } from '../../ListView/v6/RecursosDeLaListaV6';
+import { CSS_COSTOS_V4, CostosDelProyectoV4, type SaludDelPieV4 } from '../../ListView/v6/CostosDelProyectoV4';
 
 export type AgruparTableroV6 = 'fase' | 'padre' | 'todo';
 /** Subtareas: separadas (cada hoja, su tarjeta), bajo su padre (la tarjeta del padre las lista) u ocultas (sólo el padre). */
@@ -256,12 +257,14 @@ export interface TableroV6Props {
   onVerRiesgo?: (id: string) => void;
   /** guía v4 · lo que el panel hace con la app (historial, cronómetro, horas, restricción, enlaces, abrir en la Lista) */
   panel?: AccionesDelPanelV4;
+  /** guía v4 · el pie «Costos del proyecto» (el mismo de la Lista) con las cifras de la cabecera */
+  salud?: SaludDelPieV4 | null;
   hoy?: Date;
 }
 
 export function TableroV6({
-  tasks: tasksProp, es, cal, tarifaDe, tarifaDePersona, monedaCodigo, conCosto = true, costoAlTerminar, onVerRecursos, nombreProyecto,
-  vista, onVista, filtros, onFiltros, onMover, onCambiarPadre, onAbrir, onVerRiesgo, panel, hoy: hoyProp,
+  tasks: tasksProp, es, cal, tarifaDe, tarifaDePersona, monedaCodigo, conCosto = true, onVerRecursos, nombreProyecto,
+  vista, onVista, filtros, onFiltros, onMover, onCambiarPadre, onAbrir, onVerRiesgo, panel, salud, hoy: hoyProp,
 }: TableroV6Props) {
   const x = es ? TXT.es : TXT.en;
   const idioma = es ? 'es' : 'en';
@@ -1030,7 +1033,7 @@ export function TableroV6({
   return (
     <section className={`lista-v6 tablero-v6${mostrarHechas ? ' show-done' : ''}${filaPanel ? ' has-panel' : ''}${vista.densidad === 'compacta' ? ' dens-compact' : vista.densidad === 'comoda' ? ' dens-comfy' : ''}`}
       aria-label={x.tablero}>
-      <style>{CSS_V6 + CSS_PANEL_V6 + CSS_RECURSOS_V6 + CSS_TABLERO_V6 + CSS_PANEL_V4}</style>
+      <style>{CSS_V6 + CSS_PANEL_V6 + CSS_RECURSOS_V6 + CSS_TABLERO_V6 + CSS_PANEL_V4 + CSS_COSTOS_V4}</style>
       <p id="kb-v6-ayuda" className="sr">{x.ayuda}</p>
       <div className="sumline">
         <div>
@@ -1123,12 +1126,10 @@ export function TableroV6({
       </div>
 
       {/* guía v4 · la leyenda y los atajos van en el «?» de la línea de resumen; el pie es el de la Lista */}
-      {conCosto && (
-        <div className="vfoot">
-          <RecursosDeLaListaV6 tasks={tasks} es={es} tarifaDe={tarifaDe} tarifaDePersona={tarifaDePersona}
-            monedaCodigo={monedaCodigo} costoAlTerminar={costoAlTerminar} onVerRecursos={onVerRecursos} />
-        </div>
-      )}
+      <div className="vfoot vfoot-fin">
+        <CostosDelProyectoV4 tasks={tasks} es={es} tarifaDe={tarifaDe} tarifaDePersona={tarifaDePersona} monedaCodigo={monedaCodigo}
+          salud={salud} conCosto={conCosto} onVerRecursos={onVerRecursos} />
+      </div>
       <div className="toast-zona" aria-live="polite">
         {aviso && (
           <div className="toast">
