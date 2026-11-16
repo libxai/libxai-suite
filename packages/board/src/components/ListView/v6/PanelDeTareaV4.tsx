@@ -38,7 +38,8 @@ export interface AccionesDelPanelV4 {
   onCronometro?: (t: Task) => void | Promise<void>;
   /** registrar horas de hoy en la tarea; `false` si no se pudo (la app dice por qué) */
   onRegistrarHoras?: (t: Task, horas: number) => boolean | void | Promise<boolean | void>;
-  onAbrirEnLista?: (t: Task) => void;
+  /** «Abrir en la Lista»: la Lista abre su panel con #t=<wbs> */
+  onAbrirEnLista?: (t: Task, wbs: string) => void;
   onCopiarEnlace?: (t: Task) => void;
 }
 
@@ -405,7 +406,7 @@ export function PanelDeTareaV4({
             }}><Reloj />{x.verHist}</button>
           )}
           {acciones.onCopiarEnlace && <button type="button" role="menuitem" tabIndex={-1} onClick={() => { setMenuMas(false); acciones.onCopiarEnlace?.(t); }}><Copiar />{x.copiar}</button>}
-          {acciones.onAbrirEnLista && <button type="button" role="menuitem" tabIndex={-1} onClick={() => { setMenuMas(false); acciones.onAbrirEnLista?.(t); }}><Lista />{x.lista}</button>}
+          {acciones.onAbrirEnLista && <button type="button" role="menuitem" tabIndex={-1} onClick={() => { setMenuMas(false); acciones.onAbrirEnLista?.(t, wbs); }}><Lista />{x.lista}</button>}
           {onAbrirFicha && <button type="button" role="menuitem" tabIndex={-1} onClick={() => { setMenuMas(false); onAbrirFicha(t); }}><Externo />{x.ficha}</button>}
         </div>
       )}
@@ -471,7 +472,7 @@ export function PanelDeTareaV4({
           {rama}
           {descripcion && <div><h3 className="dp-h">{x.desc}</h3><p className="dp-desc">{descripcion}</p></div>}
           {acciones.cargarHistorial && historialEn}
-          {acciones.onAbrirEnLista && <button type="button" className="dp-link" onClick={() => acciones.onAbrirEnLista?.(t)}><Lista />{x.lista}</button>}
+          {acciones.onAbrirEnLista && <button type="button" className="dp-link" onClick={() => acciones.onAbrirEnLista?.(t, wbs)}><Lista />{x.lista}</button>}
         </div>
       ) : (
         <div className="dp-in">
@@ -646,7 +647,7 @@ export function PanelDeTareaV4({
           {acciones.cargarHistorial && historialEn}
           <div className="dp-foot">
             {onAbrirFicha && <button type="button" className="cbox" onClick={() => onAbrirFicha(t)}>{x.comentar}</button>}
-            {acciones.onAbrirEnLista && <button type="button" className="dp-link" onClick={() => acciones.onAbrirEnLista?.(t)}><Lista />{x.lista}</button>}
+            {acciones.onAbrirEnLista && <button type="button" className="dp-link" onClick={() => acciones.onAbrirEnLista?.(t, wbs)}><Lista />{x.lista}</button>}
           </div>
         </div>
       )}
