@@ -30,6 +30,8 @@ export interface SaludDelPieV4 {
   horasGanadas: number;
   /** «No evaluable»: el motivo (costos, márgenes y tarifas no se calculan) */
   noEvaluable?: string | null;
+  /** v4 · el motivo corto que sigue a «No evaluable» en el pie («por horas sin registrar»); sin él, el de las escalas */
+  noEvaluableCorto?: string | null;
   /** por qué quien mira ve la tarifa de cada persona («porque gerencia este proyecto») */
   porQueVe?: string | null;
 }
@@ -154,7 +156,7 @@ export function CostosDelProyectoV4({ tasks, es, tarifaDe, tarifaDePersona, mone
   const candado = (texto: string) => <span className="locked"><Candado />{texto}</span>;
 
   const resumen = !veDinero ? <>{candado(x.bloqueado)}<span>· {x.personas(activos)}</span></>
-    : ne ? <><span className="ne plain" title={ne}>{x.ne}</span><span>{x.porEscalas} · {x.personas(activos)}</span></>
+    : ne ? <><span className="ne plain" title={ne}>{x.ne}</span><span>{salud?.noEvaluableCorto ?? x.porEscalas} · {x.personas(activos)}</span></>
       : (
         <span>
           {x.real} <span className="num">{largo(real)}</span> {x.de} <span className="num">{largo(planeado)}</span> {x.planeado}

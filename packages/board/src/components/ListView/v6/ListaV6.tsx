@@ -77,6 +77,8 @@ export interface ListaV6Props {
   /** «Recursos e impacto de flujo de caja»: la tarifa de cada persona, el costo al terminar (EAC) y el enlace a Recursos */
   tarifaDePersona?: (id: string) => number | undefined;
   costoAlTerminar?: number | null;
+  /** v4 · «una sola verdad»: el fin previsto de la cabecera del proyecto; el total lo dice y el fin del plan va en su globo */
+  finPrevisto?: Date | null;
   onVerRecursos?: () => void;
   /** R6 · abrir un riesgo desde el panel de la tarea */
   onVerRiesgo?: (id: string) => void;
@@ -106,6 +108,7 @@ const TXT = {
     vencidas: 'vencidas', vencida: 'vencida', ver: 'Ver', filtrando: 'Filtrando: vencidas', quitar: 'Quitar el filtro de vencidas',
     plegar: 'Plegar todo', desplegar: 'Desplegar todo', wbs: 'Tarea', resp: 'Responsable', estado: 'Estado', inicio: 'Inicio', fin: 'Fin',
     dur: 'Duración', avance: 'Avance', horas: 'Horas', costo: 'Costo', total: 'Total del proyecto', columnas: 'Ver u ocultar columnas',
+    finPrevistoTip: (p: string, plan: string) => `Fin previsto: ${p}, con lo vencido corrido. El plan vigente termina el ${plan}.`,
     tips: {
       who: 'Responsable de la tarea', st: 'Estado de la tarea; el de una fase o tarea padre se calcula con sus hijas',
       s: 'Fecha de inicio', e: 'Fecha de fin; en rojo, vencida (días hábiles del calendario del proyecto)',
@@ -139,6 +142,7 @@ const TXT = {
     vencidas: 'overdue', vencida: 'overdue', ver: 'View', filtrando: 'Filtering: overdue', quitar: 'Clear the overdue filter',
     plegar: 'Collapse all', desplegar: 'Expand all', wbs: 'Task', resp: 'Owner', estado: 'Status', inicio: 'Start', fin: 'End',
     dur: 'Duration', avance: 'Progress', horas: 'Hours', costo: 'Cost', total: 'Project total', columnas: 'Show or hide columns',
+    finPrevistoTip: (p: string, plan: string) => `Forecast end: ${p}, with overdue work moved forward. The current plan ends on ${plan}.`,
     tips: {
       who: 'Task owner', st: 'Task status; a phase’s or parent task’s comes from its subtasks',
       s: 'Start date', e: 'End date; in red, overdue (working days of the project calendar)',
@@ -195,7 +199,7 @@ const iniciales = (n?: string) => (n ?? '').trim().split(/\s+/).slice(0, 2).map(
 export function ListaV6({
   tasks: tasksProp, es, cal, tarifaDe, monedaCodigo, conCosto: conCostoProp = true, onAbrir, seleccionada = null, claveColumnas, pie, hoy: hoyProp,
   avanceTotal, vista: vistaProp, onVista, onRegistrarHoras, peticionColumnas, nombreProyecto,
-  tarifaDePersona, onVerRecursos, onVerRiesgo, salud, panel, onGuardarEstado, filtros: filtrosProp, onFiltros,
+  tarifaDePersona, onVerRecursos, onVerRiesgo, salud, panel, onGuardarEstado, filtros: filtrosProp, onFiltros, finPrevisto,
 }: ListaV6Props) {
   const x = es ? TXT.es : TXT.en;
   const idioma = es ? 'es' : 'en';
@@ -736,7 +740,18 @@ export function ListaV6({
               <td className="c1"><div className="cell"><span className="ind" />{x.total}</div></td>
               {columnas.map((c) => {
                 if (c === 's') return <td key={c} className="num dt">{fechasDelProyecto.ini ? fechaCorta(fechasDelProyecto.ini, idioma, hoy) : '—'}</td>;
-                if (c === 'e') return <td key={c} className="num dt">{fechasDelProyecto.fin ? fechaCorta(fechasDelProyecto.fin, idioma, hoy) : '—'}</td>;
+                if (c === 'e') {
+                  /* v4 · «una sola verdad»: el fin previsto de la cabecera; el del plan, en el globo si difiere */
+                  const fin = finPrevisto ?? fechasDelProyecto.fin;
+                  const plan = fechasDelProyecto.fin;
+                  const difiere = !!finPrevisto && !!plan && fechaCorta(finPrevisto, idioma, hoy) !== fechaCorta(plan, idioma, hoy);
+                  return (
+                    <td key={c} className="num dt" data-fin-previsto
+                      title={difiere ? x.finPrevistoTip(fechaCorta(finPrevisto!, idioma, hoy), fechaCorta(plan!, idioma, hoy)) : undefined}>
+                      {fin ? fechaCorta(fin, idioma, hoy) : '—'}
+                    </td>
+                  );
+                }
                 if (c === 'pct') return <td key={c} className="num">{avanceTotal != null ? Math.round(avanceTotal) : pctTotal}%</td>;
                 if (c === 'hrs') return <td key={c} className="num">{horasCortas(total.reg, es)} / {horasCortas(total.est, es)} h</td>;
                 if (c === 'cost') return <td key={c} className="num">{millones(total.costo, es)}</td>;

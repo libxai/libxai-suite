@@ -106,6 +106,13 @@ describe('Lista v4 · el pie «Costos del proyecto»', () => {
     expect(ne[0]!.getAttribute('title')).toBe('Tarifas en escalas distintas');
   });
 
+  it('«No evaluable» por horas sin registrar: el pie dice ese motivo, no el de las escalas («una sola verdad»)', () => {
+    const { container } = montar({ salud: { ...SALUD, noEvaluable: 'Falta registrar el 78%', noEvaluableCorto: 'por horas sin registrar' } });
+    const resumen = (container.querySelector('details.fin summary') as HTMLElement).textContent ?? '';
+    expect(resumen).toContain('por horas sin registrar');
+    expect(resumen).not.toContain('escalas');
+  });
+
   it('sin permiso de dinero: horas por persona y «Visible para gerente y Finanzas»', () => {
     const { container } = montar({ salud: { ...SALUD, veDinero: false }, conCosto: false });
     const pie = container.querySelector('details.fin') as HTMLElement;
@@ -113,6 +120,19 @@ describe('Lista v4 · el pie «Costos del proyecto»', () => {
     expect(pie.textContent).toContain('Horas por persona');
     expect(pie.textContent).not.toMatch(/Tarifa|\$/);
     expect(container.querySelector('thead th[title^="Costo real"]')).toBeNull();
+  });
+});
+
+describe('Lista v4 · el total y la cabecera («una sola verdad»)', () => {
+  it('el «Fin» del total es el fin previsto de la cabecera; el del plan va en el globo', () => {
+    const { container } = montar({ finPrevisto: new Date(2026, 11, 14, 12) });
+    const fin = container.querySelector('tfoot [data-fin-previsto]') as HTMLElement;
+    expect(fin.textContent).toBe('14 dic');
+    expect(fin.getAttribute('title')).toMatch(/Fin previsto: 14 dic[\s\S]*plan vigente termina el/);
+  });
+  it('sin fin previsto, el del plan, como antes', () => {
+    const { container } = montar();
+    expect((container.querySelector('tfoot [data-fin-previsto]') as HTMLElement).getAttribute('title')).toBeNull();
   });
 });
 

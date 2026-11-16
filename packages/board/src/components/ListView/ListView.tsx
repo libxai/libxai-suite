@@ -2136,7 +2136,7 @@ export function ListView({
         seleccionada={config.seleccionadaV6 ?? null} claveColumnas={config.claveColumnasV6} pie={config.pieV6}
         avanceTotal={config.avanceTotalV6} vista={config.vistaV6} onVista={config.onVistaV6}
         peticionColumnas={config.peticionColumnasV6} nombreProyecto={config.nombreProyectoV6}
-        tarifaDePersona={rateMap ? (id) => rateMap[id] : undefined} costoAlTerminar={config.costoAlTerminarV6}
+        tarifaDePersona={rateMap ? (id) => rateMap[id] : undefined} costoAlTerminar={config.costoAlTerminarV6} finPrevisto={config.finPrevistoV6}
         onVerRecursos={config.onVerRecursosV6} onVerRiesgo={config.onVerRiesgoV6}
         salud={config.saludV4} panel={config.panelV4} onGuardarEstado={config.onGuardarEstadoV4}
         filtros={config.filtrosV4} onFiltros={config.onFiltrosV4}

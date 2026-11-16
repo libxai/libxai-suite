@@ -488,6 +488,8 @@ export interface ListViewConfig {
   nombreProyectoV6?: string;
   /** v6 · «Recursos e impacto de flujo de caja»: costo al terminar (EAC) y el enlace a Recursos */
   costoAlTerminarV6?: number | null;
+  /** v4 · «una sola verdad»: el fin previsto de la cabecera; el total de la Lista dice esa fecha (y el plan, en su globo) */
+  finPrevistoV6?: Date | null;
   onVerRecursosV6?: () => void;
   /** v6 · R6: abrir un riesgo desde el panel de la tarea */
   onVerRiesgoV6?: (id: string) => void;
