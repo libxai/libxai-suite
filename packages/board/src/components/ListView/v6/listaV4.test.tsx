@@ -161,6 +161,45 @@ describe('Lista v4 · el panel y los enlaces', () => {
     await waitFor(() => expect(onGuardarEstado).toHaveBeenCalledWith(expect.objectContaining({ id: 'a' }), 'in-progress', 55));
   });
 
+  it('cambiar la tarea padre desde el panel (como el Tablero): al final del nuevo padre, con su número y «Deshacer»', async () => {
+    const onCambiarPadre = vi.fn(() => true);
+    const { container } = montar({ onCambiarPadre });
+    fireEvent.click(fila(container, 'Integración'));
+    const panel = container.querySelector('.dp4') as HTMLElement;
+    fireEvent.click(within(panel).getByRole('button', { name: /^Tarea padre: Directa de la fase/ }));
+    fireEvent.click(within(panel).getByRole('menuitemradio', { name: /Pagos/ }));
+    await waitFor(() => expect(onCambiarPadre).toHaveBeenCalledWith(expect.objectContaining({ id: 'a' }), 'p', 2));
+    const aviso = await waitFor(() => { const a = container.querySelector('[data-aviso-padre]') as HTMLElement; expect(a).toBeTruthy(); return a; });
+    expect(aviso.textContent).toContain('«Integración» ahora es 1.2.3, dentro de Pagos.');
+    fireEvent.click(within(aviso).getByRole('button', { name: 'Deshacer' }));
+    /* vuelve a su padre (la fase) y a su sitio (la primera) */
+    await waitFor(() => expect(onCambiarPadre).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'a' }), 'f1', 0));
+    await waitFor(() => expect(container.querySelector('[data-aviso-padre]')?.textContent).toContain('Cambio deshecho'));
+  });
+
+  it('una tarea que quien mira no puede cambiar: sin estado, avance ni padre; las horas, sí', () => {
+    const { container } = montar({
+      onCambiarPadre: vi.fn(), onGuardarEstado: vi.fn(),
+      panel: { puedeEditarTarea: (t) => t.id !== 'a', onRegistrarHoras: vi.fn() },
+    });
+    fireEvent.click(fila(container, 'Integración'));
+    const panel = container.querySelector('.dp4') as HTMLElement;
+    expect(within(panel).queryByRole('button', { name: /^Estado:/ })).toBeNull();
+    expect(within(panel).queryByRole('button', { name: /^Tarea padre:/ })).toBeNull();
+    expect(within(panel).queryByLabelText('Avance en porcentaje')).toBeNull();
+    expect(within(panel).getByRole('button', { name: /Registrar/ })).toBeTruthy();
+    fireEvent.click(fila(container, 'Recibo'));
+    expect(within(container.querySelector('.dp4') as HTMLElement).getByRole('button', { name: /^Estado:/ })).toBeTruthy();
+  });
+
+  it('sin onCambiarPadre, el panel dice la tarea padre sin poder cambiarla', () => {
+    const { container } = montar();
+    fireEvent.click(fila(container, 'Integración'));
+    const panel = container.querySelector('.dp4') as HTMLElement;
+    expect(within(panel).queryByRole('button', { name: /^Tarea padre:/ })).toBeNull();
+    expect(panel.textContent).toContain('Directa de la fase');
+  });
+
   it('#t=1.2.1 abre el panel de esa tarea y #vencidas filtra las vencidas', () => {
     window.location.hash = '#t=1.2.1';
     const a = montar();

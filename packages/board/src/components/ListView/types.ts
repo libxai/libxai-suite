@@ -499,6 +499,8 @@ export interface ListViewConfig {
   panelV4?: import('./v6/PanelDeTareaV4').AccionesDelPanelV4;
   /** guía v4 · guardar el estado y el avance de una hoja desde el panel */
   onGuardarEstadoV4?: (t: import('../Gantt/types').Task, status: string, progreso: number) => boolean | void | Promise<boolean | void>;
+  /** v4 · cambiar la tarea padre desde el panel de la Lista (padre null = raíz; posición entre sus hijas); `false` si no se pudo */
+  onCambiarPadreV4?: (t: import('../Gantt/types').Task, padre: string | null, posicion: number) => boolean | void | Promise<boolean | void>;
   /** guía v4 · los filtros de la barra de la Lista */
   filtrosV4?: import('./v6/ListaV6').FiltrosDeLaListaV4;
   onFiltrosV4?: (f: import('./v6/ListaV6').FiltrosDeLaListaV4) => void;

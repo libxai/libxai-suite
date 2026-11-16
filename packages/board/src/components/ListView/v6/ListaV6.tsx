@@ -91,6 +91,9 @@ export interface ListaV6Props {
   /** guía v4 · los filtros de la barra («Filtros»); sin ellos, solo el «Ver» de las vencidas */
   filtros?: FiltrosDeLaListaV4;
   onFiltros?: (f: FiltrosDeLaListaV4) => void;
+  /** v4 · pasada común del bloque 7 · cambiar la tarea padre desde el panel (como el Tablero): el padre (null = raíz) y la
+   *  posición entre sus hijas; `false` si no se pudo. Con él, el panel ofrece «Cambiar tarea padre…» y avisa con «Deshacer». */
+  onCambiarPadre?: (t: Task, padre: string | null, posicion: number) => boolean | void | Promise<boolean | void>;
 }
 
 interface Fila {
@@ -135,6 +138,9 @@ const TXT = {
     porDia: (n: number) => `Son más de 24 h por día hábil desde el inicio (${n} ${n === 1 ? 'día hábil' : 'días hábiles'}).`,
     otraVez: 'Pulse Enter otra vez para guardar o Esc para cancelar.',
     guardadas: (w: string, a: string, b: string) => `Horas de ${w} guardadas: ${a} h (antes ${b} h).`, deshacer: 'Deshacer',
+    ahoraDentro: (n: string, w: string, p: string) => `«${n}» ahora es ${w}, dentro de ${p}.`,
+    ahoraDirecta: (n: string, w: string, f: string) => `«${n}» ahora es ${w}, tarea directa de la ${f}.`,
+    devuelta: (n: string) => `Cambio deshecho: «${n}» vuelve a su tarea padre.`,
     leyenda: 'Leyenda', lVenc: 'Vencida', lDur: 'Duración en días hábiles',
   },
   en: {
@@ -169,6 +175,9 @@ const TXT = {
     porDia: (n: number) => `More than 24 h per working day since the start (${n} working ${n === 1 ? 'day' : 'days'}).`,
     otraVez: 'Press Enter again to save or Esc to cancel.',
     guardadas: (w: string, a: string, b: string) => `Hours of ${w} saved: ${a} h (was ${b} h).`, deshacer: 'Undo',
+    ahoraDentro: (n: string, w: string, p: string) => `“${n}” is now ${w}, inside ${p}.`,
+    ahoraDirecta: (n: string, w: string, f: string) => `“${n}” is now ${w}, a direct task of ${f}.`,
+    devuelta: (n: string) => `Change undone: “${n}” is back under its parent task.`,
     leyenda: 'Legend', lVenc: 'Overdue', lDur: 'Duration in working days',
   },
 };
@@ -199,7 +208,7 @@ const iniciales = (n?: string) => (n ?? '').trim().split(/\s+/).slice(0, 2).map(
 export function ListaV6({
   tasks: tasksProp, es, cal, tarifaDe, monedaCodigo, conCosto: conCostoProp = true, onAbrir, seleccionada = null, claveColumnas, pie, hoy: hoyProp,
   avanceTotal, vista: vistaProp, onVista, onRegistrarHoras, peticionColumnas, nombreProyecto,
-  tarifaDePersona, onVerRecursos, onVerRiesgo, salud, panel, onGuardarEstado, filtros: filtrosProp, onFiltros, finPrevisto,
+  tarifaDePersona, onVerRecursos, onVerRiesgo, salud, panel, onGuardarEstado, filtros: filtrosProp, onFiltros, finPrevisto, onCambiarPadre,
 }: ListaV6Props) {
   const x = es ? TXT.es : TXT.en;
   const idioma = es ? 'es' : 'en';
@@ -230,6 +239,13 @@ export function ListaV6({
   }, [tasksProp, horasLocales]);
   const [editando, setEditando] = useState<string | null>(null);
   const [pendiente, setPendiente] = useState<HorasPendientes | null>(null);
+  /* el aviso de un cambio de tarea padre, con «Deshacer»; se va solo a los 8 s */
+  const [avisoPadre, setAvisoPadre] = useState<{ texto: string; deshacer?: () => void } | null>(null);
+  useEffect(() => {
+    if (!avisoPadre) return;
+    const id = setTimeout(() => setAvisoPadre(null), 8000);
+    return () => clearTimeout(id);
+  }, [avisoPadre]);
   const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
   const registrarRef = useRef(onRegistrarHoras);
   registrarRef.current = onRegistrarHoras;
@@ -513,6 +529,30 @@ export function ListaV6({
     enfocar(p.id);
   };
 
+  /* v4 · cambiar la tarea padre desde el panel (el Tablero hace lo mismo): al final de las hijas del nuevo padre, con su
+     número nuevo en el aviso y «Deshacer», que la devuelve a su padre y a su sitio */
+  const cambiarPadre = async (h: Task, padreId: string) => {
+    if (!onCambiarPadre) return;
+    const f = porId.get(h.id);
+    const destino = porId.get(padreId);
+    if (!f || !destino || f.padre === padreId) return;
+    const viejo = f.padre;
+    const hermanos = viejo ? porId.get(viejo)?.t.subtasks ?? [] : tasks;
+    const posVieja = Math.max(0, hermanos.findIndex((s) => s.id === h.id));
+    const hijos = destino.t.subtasks ?? [];
+    const numero = Math.max(0, ...hijos.map((s) => Number((porId.get(s.id)?.wbs ?? '').split('.').pop()) || 0)) + 1;
+    const wbsNuevo = `${destino.wbs}.${numero}`;
+    const bien = await onCambiarPadre(h, destino.t.id, hijos.length);
+    if (bien === false) return;
+    setAvisoPadre({
+      texto: destino.nivel === 0 ? x.ahoraDirecta(h.name, wbsNuevo, destino.t.name) : x.ahoraDentro(h.name, wbsNuevo, destino.t.name),
+      deshacer: () => {
+        setAvisoPadre(null);
+        void Promise.resolve(onCambiarPadre(h, viejo, posVieja)).then((ok) => { if (ok !== false) setAvisoPadre({ texto: x.devuelta(h.name) }); });
+      },
+    });
+  };
+
   const ordenarPor = (k: Orden['k']) => setOrden((o) => (o.k === k ? { k, desc: !o.desc } : { k, desc: false }));
   const ariaSort = (k: Orden['k']) => (orden.k === k ? (orden.desc ? 'descending' : 'ascending') : 'none') as 'ascending' | 'descending' | 'none';
   const Th = ({ k, children, num, dur, ayuda }: { k?: Orden['k']; children: ReactNode; num?: boolean; dur?: boolean; ayuda?: string }) => (
@@ -768,6 +808,7 @@ export function ListaV6({
           onEstado={onGuardarEstado ? (t, e) => void guardarEstado(t, e) : undefined}
           onAvance={onGuardarEstado ? (t, texto) => void guardarAvance(t, texto) : undefined}
           porConfirmar={porConfirmar.has(filaDelPanel.t.id)} errorAvance={errorAvance}
+          onCambiarPadre={onCambiarPadre ? (t, padreId) => void cambiarPadre(t, padreId) : undefined}
           acciones={panel ? { ...panel, onAbrirEnLista: undefined } : undefined}
           onCerrar={() => { const id = filaDelPanel.t.id; setEnPanel(null); if (visibles.some((f) => f.t.id === id)) enfocar(id); }}
           onAbrirFicha={onAbrir} onIrA={irA} onVerRiesgo={onVerRiesgo} />
@@ -784,6 +825,12 @@ export function ListaV6({
           <div className="toast">
             <span>{x.guardadas(pendiente.wbs, horasCortas(pendiente.ahora, es), horasCortas(pendiente.antes, es))}</span>
             <button type="button" onClick={deshacer}>{x.deshacer}</button>
+          </div>
+        )}
+        {avisoPadre && !pendiente && (
+          <div className="toast" data-aviso-padre>
+            <span>{avisoPadre.texto}</span>
+            {avisoPadre.deshacer && <button type="button" onClick={avisoPadre.deshacer}>{x.deshacer}</button>}
           </div>
         )}
       </div>

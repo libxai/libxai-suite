@@ -26,6 +26,9 @@ export interface EntradaDelHistorialV4 { id: string; cuando: Date; quien?: strin
 export interface AccionesDelPanelV4 {
   /** sin permiso de escritura: el panel es de solo lectura */
   puedeEditar?: boolean;
+  /** v4 · si quien mira puede cambiar ESTA tarea (un ejecutor, solo las suyas): sin él, todas. Las horas (cronómetro y
+   *  «Registrar») van a la hoja de quien mira y siguen solo con `puedeEditar`. */
+  puedeEditarTarea?: (t: Task) => boolean;
   /** guardar campos de la tarea (restricción, lista de dependencias); `false` si no se pudo (y la app ya avisó) */
   onActualizar?: (t: Task, cambios: Partial<Task>) => boolean | void | Promise<boolean | void>;
   /** el tipo y el desfase de un enlace que ya existe */
@@ -269,6 +272,8 @@ export function PanelDeTareaV4({
   const e = estados.get(t.id) ?? (esNodo ? 'todo' : estadoDeHoja(t));
   const hecha = e === 'done';
   const puede = acciones.puedeEditar !== false;
+  /* lo que cambia la tarea (estado, avance, restricción, padre, «Bloqueada por», enlaces) mira el permiso de esta tarea */
+  const puedeTarea = puede && (acciones.puedeEditarTarea ? acciones.puedeEditarTarea(t) : true);
   const caja = useRef<HTMLElement>(null);
   const [menuMas, setMenuMas] = useState(false);
   const [abrirPadre, setAbrirPadre] = useState(0);
@@ -396,7 +401,7 @@ export function PanelDeTareaV4({
             ls[(i + (ev.key === 'ArrowDown' ? 1 : ls.length - 1)) % ls.length]?.focus();
           }}>
           <h6 role="presentation">{x.acciones}</h6>
-          {!esNodo && onCambiarPadre && puede && opcionesDePadre.length > 1 && (
+          {!esNodo && onCambiarPadre && puedeTarea && opcionesDePadre.length > 1 && (
             <button type="button" role="menuitem" tabIndex={-1} onClick={() => { setMenuMas(false); setAbrirPadre((n) => n + 1); }}><Enlace />{x.cambiarPadre}</button>
           )}
           {acciones.cargarHistorial && (
@@ -481,7 +486,7 @@ export function PanelDeTareaV4({
             <h2 className="dp-title" id={`${uid}-t`} tabIndex={-1}>{t.name}</h2>
           </div>
           <div className="dp-state">
-            {onEstado && puede ? (
+            {onEstado && puedeTarea ? (
               <Selector etiqueta={`${x.estado}: ${nombreEstado[e]}. ${x.cambiar}`} titulo={x.estado} clase="dp-stbtn"
                 contenido={<span className={`schip ${e}`}><i aria-hidden="true" />{nombreEstado[e]}</span>}
                 opciones={ORDEN.map((s) => ({ v: s, etiqueta: nombreEstado[s], actual: s === e, pre: <span className={`schip ${s}`}><i aria-hidden="true" /></span> }))}
@@ -495,7 +500,7 @@ export function PanelDeTareaV4({
             <div className="dp-pgw">
               <div className="dp-prog">
                 <span className="pbar" aria-hidden="true"><b style={{ width: `${hecha ? 100 : Math.min(100, Math.max(0, pct))}%` }} /></span>
-                {hecha || !onAvance || !puede ? <span className={`pct${(hecha || pct) ? ' on' : ' zero'}`}>{hecha ? 100 : pct}%</span> : (
+                {hecha || !onAvance || !puedeTarea ? <span className={`pct${(hecha || pct) ? ' on' : ' zero'}`}>{hecha ? 100 : pct}%</span> : (
                   <label className="dp-pin">
                     <span className="sr">{x.avanceSr}</span>
                     <input key={`${t.id}-${pct}`} inputMode="numeric" maxLength={3} defaultValue={pct} aria-label={x.avanceSr} aria-invalid={!!errorAvance || undefined}
@@ -522,7 +527,7 @@ export function PanelDeTareaV4({
             <dd><span className="num">{t.isMilestone ? x.hito : dur == null ? '—' : x.dias(dur)}</span></dd>
             <dt>{x.restriccion}</dt>
             <dd>
-              {acciones.onActualizar && puede ? (
+              {acciones.onActualizar && puedeTarea ? (
                 <Selector etiqueta={`${x.restriccionDeFecha}: ${textoDeRestriccion(t, x, (d) => f(d))}. ${x.cambiar}`} titulo={x.restriccionDeFecha}
                   clase={t.fijada || t.noAntesDe || t.terminarEl ? '' : 'mut'}
                   contenido={<span className="pk-l">{textoDeRestriccion(t, x, (d) => f(d))}</span>}
@@ -575,7 +580,7 @@ export function PanelDeTareaV4({
             <dd>{prioridad}</dd>
             <dt>{x.padre}</dt>
             <dd>
-              {onCambiarPadre && puede && opcionesDePadre.length > 1 ? (
+              {onCambiarPadre && puedeTarea && opcionesDePadre.length > 1 ? (
                 <Selector etiqueta={`${x.padre}: ${padreActual === fase ? x.directa : porId.get(padreActual!)?.t.name ?? ''}. ${x.cambiar}`} titulo={x.padre}
                   abrirAhora={abrirPadre}
                   contenido={padreActual === fase ? <span className="pk-l">{x.directa}</span>
@@ -587,7 +592,7 @@ export function PanelDeTareaV4({
               <>
                 <dt>{x.bloqueadaPor}</dt>
                 <dd>
-                  {acciones.onActualizar && puede ? (
+                  {acciones.onActualizar && puedeTarea ? (
                     <Selector etiqueta={`${x.bloqueadaPor}: ${espera ? `${espera.wbs} ${espera.t.name}` : x.sinIndicar}. ${x.cambiar}`} titulo={x.bloqueadaPor}
                       clase={espera ? '' : 'mut'}
                       contenido={espera ? <><span className="code">{espera.wbs}</span><span className="pk-l">{espera.t.name}</span></> : <span className="pk-l">{x.sinIndicar}</span>}
@@ -606,7 +611,7 @@ export function PanelDeTareaV4({
                 const k = tipoDe(d.t.id);
                 const ed = estados.get(d.t.id) ?? 'todo';
                 const cruza = !hecha && ed !== 'done' && finDe(d) >= inicio;
-                const editable = !!acciones.onTipoDeEnlace && puede;
+                const editable = !!acciones.onTipoDeEnlace && puedeTarea;
                 return (
                   <div key={d.t.id} className="dp-dep">
                     <div className="l1"><span className="code">{d.wbs}</span><span>{d.t.name} <span className="st">· {nombreEstado[ed]}</span></span></div>
