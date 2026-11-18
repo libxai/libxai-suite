@@ -30,6 +30,7 @@ import { CSS_PANEL_V4, PanelDeTareaV4, type AccionesDelPanelV4 } from '../../Lis
 import { EscudoDeRiesgo } from '../../ListView/v6/PuntoDeRiesgo';
 import { CSS_RECURSOS_V6 } from '../../ListView/v6/RecursosDeLaListaV6';
 import { CSS_COSTOS_V4, CostosDelProyectoV4, type SaludDelPieV4 } from '../../ListView/v6/CostosDelProyectoV4';
+import { collectLeaves, computeWeightedProgress } from '../../../utils/avanceFisico';
 
 export type AgruparTableroV6 = 'fase' | 'padre' | 'todo';
 /** Subtareas: separadas (cada hoja, su tarjeta), bajo su padre (la tarjeta del padre las lista) u ocultas (sólo el padre). */
@@ -219,12 +220,8 @@ interface Cambio { status: string; progress: number }
 interface Aviso { texto: string; deshacer?: () => void; accion?: { etiqueta: string; fn: () => void } }
 type Item = { tipo: 'hoja'; t: Task } | { tipo: 'padre'; n: Nodo };
 
-const pesoDe = (t: Task) => Math.max(1, ((t as { effortMinutes?: number }).effortMinutes ?? 0) / 60);
-const avanceDe = (hs: Task[]) => {
-  let w = 0; let s = 0;
-  for (const h of hs) { const p = pesoDe(h); w += p; s += p * (estadoDeHoja(h) === 'done' ? 100 : h.progress ?? 0); }
-  return w ? Math.round(s / w) : 0;
-};
+/* regla v4 única (utils/avanceFisico): las hojas del carril, 1 h sin estimar, completada = 100 */
+const avanceDe = (hs: Task[]) => computeWeightedProgress(collectLeaves(hs));
 const contar = (hs: Task[], hoy: Date) => {
   const c: Record<EstadoV6, number> & { vencidas: number } = { todo: 0, prog: 0, blocked: 0, done: 0, vencidas: 0 };
   for (const h of hs) { c[estadoDeHoja(h)] += 1; if (estaVencida(h, hoy)) c.vencidas += 1; }

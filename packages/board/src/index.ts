@@ -195,6 +195,9 @@ export type { ListViewThemeName } from './components/ListView'
 // Maquetas v3 (Yesid) · las reglas de las vistas v6, también para Riesgos y Reportes (estado, vencidas, días hábiles)
 export { estadoDe, estadoDeHoja, estaVencida, diasDeRetraso, hojasDe, tieneHijas } from './components/ListView/v6/reglasDeLaLista'
 export type { EstadoV6 } from './components/ListView/v6/reglasDeLaLista'
+// 18-nov · la regla única del avance (v4: horas estimadas, 1 h sin estimar, completada = 100): la usan la app, el Gantt, la Lista y el Tablero
+export { computeWeightedProgress, collectLeaves, minutosQuePesa, avanceDeTarea } from './utils/avanceFisico'
+export type { HojaConAvance } from './utils/avanceFisico'
 export { fechaCorta } from './components/Gantt/fechaCorta'
 export type { RiesgoDeLaTarea } from './components/Gantt/types'
 // Maquetas v3 (Yesid) · el Calendario v6 (Asakaa)

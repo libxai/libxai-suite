@@ -17,6 +17,7 @@ import type { Calendario } from '../../Gantt/motorDeProgramacion';
 import { fechaCorta } from '../../Gantt/fechaCorta';
 import { EscudoDeRiesgo, nombreDeNivel } from './PuntoDeRiesgo';
 import { diasDeRetraso, duracionHabil, estaVencida, estadoDeHoja, hojasDe, horasCortas, millones, tieneHijas, type CifrasDeFila, type EstadoV6 } from './reglasDeLaLista';
+import { avanceDeTarea } from '../../../utils/avanceFisico';
 
 export type TipoDeEnlaceV4 = 'FS' | 'SS' | 'FF' | 'SF';
 export type OrigenDelCambio = 'app' | 'mcp' | 'odoo' | 'importacion' | 'sistema';
@@ -325,7 +326,7 @@ export function PanelDeTareaV4({
   const abiertas = deps.filter((d) => estados.get(d.t.id) !== 'done');
   const espera = e === 'blocked' ? abiertas[0] : undefined;
   const choque = e !== 'blocked' && !hecha ? abiertas.find((d) => finDe(d) >= inicio) : undefined;
-  const pct = Math.round(t.progress ?? 0);
+  const pct = avanceDeTarea(t);
   const dur = duracionHabil(t, cal);
   const planeado = hojasDe(t).reduce((a, h) => a + (((h as { effortMinutes?: number }).effortMinutes ?? 0) / 60) * (tarifaDe(h) || 0), 0);
   const persona = (t.assignees ?? [])[0];
@@ -462,7 +463,7 @@ export function PanelDeTareaV4({
           <div>
             <h3 className="dp-h">{x.hijas}</h3>
             {(t.subtasks ?? []).map((s) => porId.get(s.id)).filter((h): h is FilaDelPanelV4 => !!h).map((h) => {
-              const ph = Math.round(h.t.progress ?? 0);
+              const ph = avanceDeTarea(h.t);
               const eh = estados.get(h.t.id) ?? 'todo';
               return (
                 <button key={h.t.id} type="button" className="dp-link" onClick={() => onIrA(h.t.id)}>

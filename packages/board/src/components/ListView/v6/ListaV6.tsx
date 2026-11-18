@@ -23,6 +23,7 @@ import { CSS_PANEL_V4, PanelDeTareaV4, type AccionesDelPanelV4 } from './PanelDe
 import { EscudoDeRiesgo } from './PuntoDeRiesgo';
 import { CSS_RECURSOS_V6 } from './RecursosDeLaListaV6';
 import { CSS_COSTOS_V4, CostosDelProyectoV4, type SaludDelPieV4 } from './CostosDelProyectoV4';
+import { avanceDeTarea, collectLeaves, computeWeightedProgress } from '../../../utils/avanceFisico';
 
 type Columna = 'who' | 'st' | 's' | 'e' | 'dur' | 'pct' | 'hrs' | 'cost';
 const COLUMNAS: Columna[] = ['who', 'st', 's', 'e', 'dur', 'pct', 'hrs', 'cost'];
@@ -344,7 +345,7 @@ export function ListaV6({
         case 's': return f.t.startDate ? new Date(f.t.startDate).getTime() : Infinity;
         case 'e': return f.t.endDate ? new Date(f.t.endDate).getTime() : Infinity;
         case 'dur': return duracionHabil(f.t, cal) ?? -1;
-        case 'pct': return f.t.progress ?? 0;
+        case 'pct': return avanceDeTarea(f.t);
         case 'cost': return c.costo;
         default: return 0;
       }
@@ -502,11 +503,8 @@ export function ListaV6({
     }
     return { ini: ini != null ? new Date(ini) : null, fin: fin != null ? new Date(fin) : null };
   }, [hojas]);
-  const pctTotal = useMemo(() => {
-    let peso = 0; let suma = 0;
-    for (const t of tasks) { const w = Math.max(1, cifrasDe(t, tarifaDe, hoy).est); peso += w; suma += w * (t.progress ?? 0); }
-    return peso ? Math.round(suma / peso) : 0;
-  }, [tasks, tarifaDe, hoy]);
+  /* regla v4 única (utils/avanceFisico): todas las hojas del proyecto, 1 h sin estimar, completada = 100 */
+  const pctTotal = useMemo(() => computeWeightedProgress(collectLeaves(tasks)), [tasks]);
 
   /* F2 · guardar: se ve ya, se registra a los 5 s (la anterior en espera, si la hay, se registra antes) */
   const guardarHoras = (t: Task, wbs: string, antes: number, ahora: number) => {
@@ -595,7 +593,7 @@ export function ListaV6({
         return <td key={c} className="num dt">{txt}</td>;
       }
       case 'dur': { const d = duracionHabil(t, cal); return <td key={c} className="num col-dur">{d == null ? '—' : `${d} d`}</td>; }
-      case 'pct': { const p = Math.round(t.progress ?? 0); return <td key={c} className="num"><span className={`pct${p === 0 ? ' zero' : ''}`}>{p}%</span></td>; }
+      case 'pct': { const p = avanceDeTarea(t); return <td key={c} className="num"><span className={`pct${p === 0 ? ' zero' : ''}`}>{p}%</span></td>; }
       case 'hrs': {
         if (editando === t.id) return (
           <td key={c} className="num" onClick={(e) => e.stopPropagation()}>
