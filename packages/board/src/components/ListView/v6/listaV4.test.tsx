@@ -64,7 +64,13 @@ describe('Lista v4 · la tabla', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Cómo leer la lista y atajos de teclado' }));
     const a = container.querySelector('.lv-ayuda') as HTMLElement;
     expect(a.textContent).toContain('Fecha de fin vencida');
-    expect(a.textContent).toContain('Editar las horas registradas');
+    /* E10 (Yesid, 17-nov): sin quien registre las horas desde la tabla, la ayuda no ofrece F2 */
+    expect(a.textContent).not.toContain('Editar las horas registradas');
+  });
+  it('E10 · sin onRegistrarHoras las horas no se editan en la tabla: ni F2 ni clic', () => {
+    const { container } = montar();
+    expect(container.querySelector('button.hrs.ed')).toBeNull();
+    expect(container.querySelector('span.hrs')).not.toBeNull();
   });
 });
 

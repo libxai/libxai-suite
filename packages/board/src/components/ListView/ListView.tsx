@@ -2140,7 +2140,9 @@ export function ListView({
         onVerRecursos={config.onVerRecursosV6} onVerRiesgo={config.onVerRiesgoV6}
         salud={config.saludV4} panel={config.panelV4} onGuardarEstado={config.onGuardarEstadoV4} onCambiarPadre={config.onCambiarPadreV4}
         filtros={config.filtrosV4} onFiltros={config.onFiltrosV4}
-        onRegistrarHoras={callbacks.onLogTime ? (t, minutos) => callbacks.onLogTime?.(t, minutos) : undefined} />
+        /* E10 (Yesid, 17-nov): la Lista ya no edita las horas registradas con F2. Las horas entran por la Hoja de horas o por
+           «Log» del panel, para que cuenten en la aprobación y el cierre de la semana. */
+        />
     );
   }
 

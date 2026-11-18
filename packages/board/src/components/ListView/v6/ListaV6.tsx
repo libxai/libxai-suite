@@ -127,7 +127,7 @@ const TXT = {
     lGuia: 'Cada nivel de la jerarquía sangra 20 px; la guía une a las hijas con su padre',
     kFilas: 'Cambiar de fila', kAbrir: 'Desplegar o plegar', kDetalle: 'Abrir el detalle', kHoras: 'Editar las horas registradas', kCerrar: 'Cerrar el panel',
     numeroAvance: 'Escriba un número entero entre 0 y 100.', fEstado: 'Estado', fRiesgo: 'Con riesgo abierto', quitarFiltro: 'Quitar el filtro',
-    todas: 'Mostrar todas', ayuda: 'Flechas arriba y abajo: cambiar de fila. Flecha derecha: desplegar; flecha izquierda: plegar o ir a la fila padre. Enter: abrir el detalle. F2: editar las horas.',
+    todas: 'Mostrar todas', ayuda: 'Flechas arriba y abajo: cambiar de fila. Flecha derecha: desplegar; flecha izquierda: plegar o ir a la fila padre. Enter: abrir el detalle.',
     st: { done: 'Completada', prog: 'En progreso', blocked: 'Bloqueada', todo: 'Por hacer' } as Record<EstadoV6, string>,
     venceHace: (n: number) => (n === 1 ? 'Vencida hace 1 día hábil' : `Vencida hace ${n} días hábiles`),
     sinResp: 'Sin responsable', hechas: (a: number, b: number) => `${a} de ${b} tareas completadas`,
@@ -164,7 +164,7 @@ const TXT = {
     lGuia: 'Each hierarchy level is indented 20 px; the guide joins the subtasks with their parent',
     kFilas: 'Change row', kAbrir: 'Expand or collapse', kDetalle: 'Open the details', kHoras: 'Edit the logged hours', kCerrar: 'Close the panel',
     numeroAvance: 'Type a whole number between 0 and 100.', fEstado: 'Status', fRiesgo: 'With an open risk', quitarFiltro: 'Remove the filter',
-    todas: 'Show all', ayuda: 'Up and down arrows: change row. Right arrow: expand; left arrow: collapse or go to the parent row. Enter: open the details. F2: edit the hours.',
+    todas: 'Show all', ayuda: 'Up and down arrows: change row. Right arrow: expand; left arrow: collapse or go to the parent row. Enter: open the details.',
     st: { done: 'Completed', prog: 'In progress', blocked: 'Blocked', todo: 'To do' } as Record<EstadoV6, string>,
     venceHace: (n: number) => (n === 1 ? 'Overdue by 1 working day' : `Overdue by ${n} working days`),
     sinResp: 'No owner', hechas: (a: number, b: number) => `${a} of ${b} tasks completed`,
@@ -675,7 +675,7 @@ export function ListaV6({
                 <span><span className="lg-keys"><kbd>↑</kbd><kbd>↓</kbd></span>{x.kFilas}</span>
                 <span><span className="lg-keys"><kbd>←</kbd><kbd>→</kbd></span>{x.kAbrir}</span>
                 <span><span className="lg-keys"><kbd>Enter</kbd></span>{x.kDetalle}</span>
-                <span><span className="lg-keys"><kbd>F2</kbd></span>{x.kHoras}</span>
+                {onRegistrarHoras && <span><span className="lg-keys"><kbd>F2</kbd></span>{x.kHoras}</span>}
                 <span><span className="lg-keys"><kbd>Esc</kbd></span>{x.kCerrar}</span>
               </div>
             </div>
