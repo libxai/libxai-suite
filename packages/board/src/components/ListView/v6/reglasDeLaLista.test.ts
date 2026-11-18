@@ -40,6 +40,16 @@ describe('maquetas v3 · las reglas de la Lista', () => {
     expect(c.costo).toBe(100 * 95000);
     expect(millones(c.costo, true)).toBe('$9,5 M');
   });
+
+  /* Yesid, 17-nov (punto 4): una tarea de 1 h salía «$0.1M» y una de media hora «$0.0M» */
+  it('bajo un millón, la cifra entera; desde un millón, en millones con un decimal', () => {
+    expect(millones(42000, true)).toBe('$42.000');
+    expect(millones(21000, false)).toBe('$21,000');
+    expect(millones(999999.6, true)).toBe('$1.000.000');
+    expect(millones(-42000, true)).toBe('-$42.000');
+    expect(millones(16024500, true)).toBe('$16,0 M');
+    expect(millones(0, true)).toBe('—');
+  });
 });
 
 describe('F2 · juzgarHoras', () => {

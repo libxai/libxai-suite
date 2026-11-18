@@ -9,6 +9,7 @@
  */
 import type { Task } from '../../Gantt/types';
 import { habilesEntre, type Calendario } from '../../Gantt/motorDeProgramacion';
+import { numero } from '../../../utils/formato';
 
 export type EstadoV6 = 'done' | 'prog' | 'blocked' | 'todo';
 
@@ -98,9 +99,14 @@ export function cifrasDe(t: Task, tarifaDe: (hoja: Task) => number, hoy: Date): 
   return c;
 }
 
-/** «$3,4 M» (como la maqueta: la columna dice la moneda; la celda, la cifra en millones con un decimal). */
+/**
+ * El dinero de una celda (la columna dice la moneda). Desde un millón, en millones con un decimal, como la maqueta:
+ * «$3,4 M». Por debajo, la cifra ENTERA con los separadores del país: «$42.000».
+ * Yesid, 17-nov (punto 4): en millones con un decimal, una tarea de 1 h salía «$0.1M» y una de media hora «$0.0M».
+ */
 export function millones(v: number, es: boolean): string {
   if (!v) return '—';
+  if (Math.abs(v) < 1e6) return `${v < 0 ? '-' : ''}$${numero(Math.round(Math.abs(v)), es ? 'es' : 'en')}`;
   const n = (v / 1e6).toFixed(1);
   return es ? `$${n.replace('.', ',')} M` : `$${n}M`;
 }
