@@ -1,4 +1,5 @@
 import { Task } from './types';
+import { hermanaDeArriba } from './menuDeLaTarea';
 import { computeWeightedProgress, collectLeaves } from '../../utils/avanceFisico';
 
 /**
@@ -69,14 +70,11 @@ export function findParentTask(tasks: Task[], childId: string): Task | null {
 export function indentTasks(tasks: Task[], taskIds: string[]): Task[] {
   if (taskIds.length === 0) return tasks;
 
-  // Get flat list to find positions
-  const flatTasks = flattenTasks(tasks);
-  const firstTaskId = taskIds[0];
-  const taskIndex = flatTasks.findIndex((t) => t.id === firstTaskId);
-
-  if (taskIndex <= 0) return tasks; // Can't indent first task
-
-  const targetParent = flatTasks[taskIndex - 1]; // Previous sibling becomes parent
+  // QA Asakaa E14: la hermana de ARRIBA (mismo nivel) pasa a ser su padre, como lo guarda la app. Antes se tomaba la
+  // fila de arriba en la lista aplanada: si esa hermana estaba desplegada, era su última hija, y la pantalla no
+  // coincidía con lo guardado hasta recargar.
+  const targetParent = hermanaDeArriba(tasks, taskIds[0]!);
+  if (!targetParent) return tasks; // la primera de su nivel no tiene a quién colgarse
 
   // Helper to remove tasks from array
   const removeTasks = (tasks: Task[], ids: Set<string>): { tasks: Task[]; removed: Task[] } => {

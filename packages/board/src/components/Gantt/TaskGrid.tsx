@@ -16,6 +16,7 @@ import { ContextMenu, ContextMenuItem, MenuIcons } from './ContextMenu';
 import { useGanttKeyboard } from './useGanttKeyboard';
 import { useGanttSelection } from './useGanttSelection';
 import { flattenTasks as flattenTasksUtil, findTask as findTaskInTree } from './hierarchyUtils';
+import { armarMenuDeLaTarea, hermanaDeArriba, tienePadre } from './menuDeLaTarea';
 import { UserAssignmentSelector } from '../Card/UserAssignmentSelector';
 import { StatusSelector } from '../Card/StatusSelector';
 import { PrioritySelector } from '../Card/PrioritySelector'; // v0.17.29
@@ -1603,135 +1604,52 @@ export function TaskGrid({
       }
     };
 
-    // v0.17.46: Parent tasks can only add subtasks, duplicate and delete - status/progress is auto-calculated
-    if (isParentTask) {
-      return [
-        // Add Subtask - main action for parent tasks
-        {
-          id: 'addSubtask',
-          label: translations?.contextMenu?.addSubtask || 'Add Subtask',
-          icon: MenuIcons.Add,
-          onClick: () => {
-            onCreateSubtask?.(task.id);
-          },
-        },
-        // Duplicate Task (with subtasks) — bulk-aware
-        {
-          id: 'duplicate',
-          label: (translations?.contextMenu?.duplicateTask || 'Duplicate Task') + sfx,
-          icon: MenuIcons.Duplicate,
-          onClick: () => {
-            onTaskDuplicate?.(bulkIds);
-          },
-        },
-        // Separator before delete
-        { id: 'sep1', label: '', onClick: () => {}, separator: true },
-        // Delete Task — bulk-aware
-        {
-          id: 'delete',
-          label: (translations?.contextMenu?.deleteTask || 'Delete Task') + sfx,
-          icon: MenuIcons.Delete,
-          onClick: requestDelete,
-        },
-      ];
-    }
-
-    // Regular tasks (no subtasks) - full menu
-    return [
-      // Edit Task - opens edit modal via double-click handler
-      {
-        id: 'edit',
-        label: translations?.contextMenu?.editTask || 'Edit Task',
-        icon: MenuIcons.Pencil,
-        onClick: () => {
-          onTaskDblClick?.(task);
-        },
-      },
-      // Add Subtask
-      {
-        id: 'addSubtask',
-        label: translations?.contextMenu?.addSubtask || 'Add Subtask',
-        icon: MenuIcons.Add,
-        onClick: () => {
-          onCreateSubtask?.(task.id);
-        },
-      },
+    // QA Asakaa E14: el mismo menú, en el mismo orden, en todas las filas; lo que no aplica a una fase sale apagado.
+    // (Antes una fase tenía 3 opciones y «Duplicar» caía donde las demás filas tienen «Agregar subtarea».)
+    const cm = translations?.contextMenu;
+    return armarMenuDeLaTarea({
+      edit: { label: cm?.editTask || 'Edit Task', icon: MenuIcons.Pencil, onClick: () => onTaskDblClick?.(task), disabled: !!isParentTask },
+      addSubtask: { label: cm?.addSubtask || 'Add Subtask', icon: MenuIcons.Add, onClick: () => onCreateSubtask?.(task.id) },
+      ...(onTaskIndent ? {
+        indent: { label: cm?.indent || 'Indent', icon: MenuIcons.Indent, onClick: () => onTaskIndent([task.id]), disabled: isBulk || !hermanaDeArriba(tasks, task.id) },
+      } : {}),
+      ...(onTaskOutdent ? {
+        outdent: { label: cm?.outdent || 'Outdent', icon: MenuIcons.Outdent, onClick: () => onTaskOutdent([task.id]), disabled: isBulk || !tienePadre(tasks, task.id) },
+      } : {}),
       // QA Asakaa E14: las dependencias también se editan después de crear la tarea.
-      ...(onTaskDependencies ? [{
-        id: 'dependencies',
-        label: translations?.contextMenu?.dependencies || 'Dependencies…',
-        icon: MenuIcons.Link,
-        onClick: () => onTaskDependencies(task),
-      }] : []),
+      ...(onTaskDependencies ? {
+        dependencies: { label: cm?.dependencies || 'Dependencies…', icon: MenuIcons.Link, onClick: () => onTaskDependencies(task), disabled: !!isParentTask },
+      } : {}),
       // QA Asakaa 2.3.5: «añadir "Convertir en hito" al menú contextual». Solo en tareas sin hijas.
-      ...(onTaskUpdate && !(task.subtasks && task.subtasks.length > 0) ? [{
-        id: 'milestone',
-        label: task.isMilestone ? (esGrid ? 'Quitar hito' : 'Remove milestone') : (esGrid ? 'Convertir en hito' : 'Convert to milestone'),
-        icon: MenuIcons.Milestone,
-        onClick: () => onTaskUpdate(task.id, { isMilestone: !task.isMilestone }),
-      }] : []),
-      // Separator before status changes
-      { id: 'sep1', label: '', onClick: () => {}, separator: true },
-      // Mark Incomplete (status: 'todo', progress: 0) — bulk-aware
-      {
-        id: 'markIncomplete',
-        label: (translations?.contextMenu?.markIncomplete || 'Mark Incomplete') + sfx,
-        icon: MenuIcons.MarkIncomplete,
-        onClick: () => {
-          statusTargets.forEach((t) => onTaskUpdate?.(t.id, { status: 'todo', progress: 0 }));
+      ...(onTaskUpdate ? {
+        milestone: {
+          label: task.isMilestone ? (esGrid ? 'Quitar hito' : 'Remove milestone') : (esGrid ? 'Convertir en hito' : 'Convert to milestone'),
+          icon: MenuIcons.Milestone, onClick: () => onTaskUpdate(task.id, { isMilestone: !task.isMilestone }), disabled: !!isParentTask,
         },
+      } : {}),
+      // Cambios de estado — bulk-aware; los padres los calculan de sus hijas
+      markIncomplete: {
+        label: (cm?.markIncomplete || 'Mark Incomplete') + sfx, icon: MenuIcons.MarkIncomplete,
+        onClick: () => statusTargets.forEach((t) => onTaskUpdate?.(t.id, { status: 'todo', progress: 0 })),
         disabled: statusTargets.length === 0 || statusTargets.every((t) => t.status === 'todo'),
       },
-      // Set In Progress (status: 'in-progress') — bulk-aware
-      {
-        id: 'setInProgress',
-        label: (translations?.contextMenu?.setInProgress || 'Set In Progress') + sfx,
-        icon: MenuIcons.SetInProgress,
-        onClick: () => {
-          statusTargets.forEach((t) => onTaskUpdate?.(t.id, { status: 'in-progress' }));
-        },
+      setInProgress: {
+        label: (cm?.setInProgress || 'Set In Progress') + sfx, icon: MenuIcons.SetInProgress,
+        onClick: () => statusTargets.forEach((t) => onTaskUpdate?.(t.id, { status: 'in-progress' })),
         disabled: statusTargets.length === 0 || statusTargets.every((t) => t.status === 'in-progress'),
       },
-      // Mark Complete (status: 'completed', progress: 100) — bulk-aware
-      {
-        id: 'markComplete',
-        label: (translations?.contextMenu?.markComplete || 'Mark Complete') + sfx,
-        icon: MenuIcons.MarkComplete,
-        onClick: () => {
-          statusTargets.forEach((t) => onTaskUpdate?.(t.id, { status: 'completed', progress: 100 }));
-        },
+      markComplete: {
+        label: (cm?.markComplete || 'Mark Complete') + sfx, icon: MenuIcons.MarkComplete,
+        onClick: () => statusTargets.forEach((t) => onTaskUpdate?.(t.id, { status: 'completed', progress: 100 })),
         disabled: statusTargets.length === 0 || statusTargets.every((t) => t.status === 'completed'),
       },
-      // Separator before advanced options
-      { id: 'sep2', label: '', onClick: () => {}, separator: true },
       // v1.4.3: Duplicate Task — bulk-aware
-      {
-        id: 'duplicate',
-        label: (translations?.contextMenu?.duplicateTask || 'Duplicate Task') + sfx,
-        icon: MenuIcons.Duplicate,
-        onClick: () => {
-          onTaskDuplicate?.(bulkIds);
-        },
-      },
-      // Split Task
-      {
-        id: 'split',
-        label: translations?.contextMenu?.splitTask || 'Split Task',
-        icon: MenuIcons.Split,
-        onClick: () => {},
-        // Split task is only available via Timeline context menu (right-click on task bar)
-        disabled: true,
-      },
-      // Separator before delete
-      { id: 'sep3', label: '', onClick: () => {}, separator: true },
+      duplicate: { label: (cm?.duplicateTask || 'Duplicate Task') + sfx, icon: MenuIcons.Duplicate, onClick: () => onTaskDuplicate?.(bulkIds) },
+      // Split Task: solo desde el menú de la barra (clic derecho en el diagrama)
+      split: { label: cm?.splitTask || 'Split Task', icon: MenuIcons.Split, onClick: () => {}, disabled: true },
       // Delete Task - v0.17.34: Use confirmation modal if available — bulk-aware
-      {
-        id: 'delete',
-        label: (translations?.contextMenu?.deleteTask || 'Delete Task') + sfx,
-        icon: MenuIcons.Delete,
-        onClick: requestDelete,
-      },
-    ];
+      delete: { label: (cm?.deleteTask || 'Delete Task') + sfx, icon: MenuIcons.Delete, onClick: requestDelete },
+    });
   };
 
   const visibleColumns = columns.filter(col => col.visible);

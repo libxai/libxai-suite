@@ -94,6 +94,9 @@ export interface GanttTranslations {
     deleteTask: string;
     /** 1.9.47 · QA Asakaa E14 */
     dependencies?: string;
+    /** QA Asakaa E14 (17-nov): sangría desde el menú */
+    indent?: string;
+    outdent?: string;
   };
 
   // Task actions (context menu)
@@ -271,6 +274,8 @@ export const en: GanttTranslations = {
     splitTask: 'Split Task',
     deleteTask: 'Delete Task',
     dependencies: 'Dependencies…',
+    indent: 'Indent',
+    outdent: 'Outdent',
   },
 
   actions: {
@@ -442,6 +447,8 @@ export const es: GanttTranslations = {
     splitTask: 'Dividir Tarea',
     deleteTask: 'Eliminar Tarea',
     dependencies: 'Dependencias…',
+    indent: 'Aplicar sangría',
+    outdent: 'Quitar sangría',
   },
 
   actions: {

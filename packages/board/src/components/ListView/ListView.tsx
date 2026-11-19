@@ -2139,6 +2139,8 @@ export function ListView({
         tarifaDePersona={rateMap ? (id) => rateMap[id] : undefined} costoAlTerminar={config.costoAlTerminarV6} finPrevisto={config.finPrevistoV6}
         onVerRecursos={config.onVerRecursosV6} onVerRiesgo={config.onVerRiesgoV6}
         salud={config.saludV4} panel={config.panelV4} onGuardarEstado={config.onGuardarEstadoV4} onCambiarPadre={config.onCambiarPadreV4}
+        onCrearTarea={config.onCrearTareaV4} onDuplicar={callbacks.onTaskDuplicate}
+        onEliminar={callbacks.onTaskDelete ? (t) => callbacks.onTaskDelete!(t.id) : undefined}
         filtros={config.filtrosV4} onFiltros={config.onFiltrosV4}
         /* E10 (Yesid, 17-nov): la Lista ya no edita las horas registradas con F2. Las horas entran por la Hoja de horas o por
            «Log» del panel, para que cuenten en la aprobación y el cierre de la semana. */

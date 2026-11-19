@@ -217,3 +217,79 @@ describe('Lista v4 · el panel y los enlaces', () => {
     expect(nombres).toEqual(['Desarrollo', 'Pagos', 'Botón de pago']);
   });
 });
+
+describe('E15 (Yesid, 17-nov) · menú contextual y «Añadir tarea» en la tabla', () => {
+  /* jsdom no trae CSS.escape (el navegador sí): devolver el foco a la fila lo usa */
+  if (!(globalThis as { CSS?: { escape?: unknown } }).CSS?.escape) vi.stubGlobal('CSS', { escape: (s: string) => s });
+  const opciones = (c: HTMLElement) => [...c.querySelectorAll<HTMLButtonElement>('.lv-menu [role="menuitem"]')];
+
+  it('clic derecho abre el menú con el mismo orden que el Gantt, en una fase y en una tarea', () => {
+    const acciones = { onCambiarPadre: vi.fn(), onCrearTarea: vi.fn(), onDuplicar: vi.fn(), onEliminar: vi.fn(), onGuardarEstado: vi.fn() };
+    const { container } = montar(acciones);
+    fireEvent.contextMenu(fila(container, 'Pagos'));
+    const deLaFase = opciones(container).map((b) => b.dataset.op);
+    fireEvent.keyDown(document, { key: 'Escape' });
+    fireEvent.contextMenu(fila(container, 'Recibo'));
+    const deLaTarea = opciones(container).map((b) => b.dataset.op);
+    expect(deLaTarea).toEqual(deLaFase);
+    expect(deLaTarea.slice(0, 4)).toEqual(['edit', 'addSubtask', 'indent', 'outdent']);
+    expect(deLaTarea.at(-1)).toBe('delete');
+  });
+
+  it('«Aplicar sangría» cuelga la tarea de su hermana de arriba; «Quitar sangría» la saca detrás de su padre', async () => {
+    const onCambiarPadre = vi.fn(() => true);
+    const { container } = montar({ onCambiarPadre });
+    fireEvent.contextMenu(fila(container, 'Recibo'));
+    fireEvent.click(container.querySelector('.lv-menu [data-op="indent"]')!);
+    await waitFor(() => expect(onCambiarPadre).toHaveBeenCalledWith(expect.objectContaining({ id: 'c' }), 'b', 0));
+    fireEvent.contextMenu(fila(container, 'Recibo'));
+    fireEvent.click(container.querySelector('.lv-menu [data-op="outdent"]')!);
+    // Pagos es la 2.ª hija de Desarrollo: Recibo queda la 3.ª (posición 2)
+    await waitFor(() => expect(onCambiarPadre).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'c' }), 'f1', 2));
+  });
+
+  it('la primera de su nivel no puede aplicar sangría (sale apagada, no desaparece)', () => {
+    const { container } = montar({ onCambiarPadre: vi.fn() });
+    fireEvent.contextMenu(fila(container, 'Botón de pago'));
+    expect(container.querySelector<HTMLButtonElement>('.lv-menu [data-op="indent"]')!.disabled).toBe(true);
+  });
+
+  it('«+ Añadir tarea» al final: se escribe el nombre y Enter la crea en la raíz; queda lista para otra', async () => {
+    const onCrearTarea = vi.fn(async () => true);
+    const { container } = montar({ onCrearTarea });
+    fireEvent.click(screen.getByRole('button', { name: /Añadir tarea/ }));
+    const caja = screen.getByRole('textbox', { name: 'Añadir tarea' });
+    fireEvent.change(caja, { target: { value: '  Pruebas de carga ' } });
+    fireEvent.keyDown(caja, { key: 'Enter' });
+    await waitFor(() => expect(onCrearTarea).toHaveBeenCalledWith('Pruebas de carga', null));
+    await waitFor(() => expect((screen.getByRole('textbox', { name: 'Añadir tarea' }) as HTMLInputElement).value).toBe(''));
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'Añadir tarea' }), { key: 'Escape' });
+    expect(container.querySelector('.add-row.nueva')).toBeNull();
+  });
+
+  it('«Agregar subtarea» abre la fila de escritura dentro de su padre, detrás de su última hija visible', async () => {
+    const onCrearTarea = vi.fn(async () => true);
+    const { container } = montar({ onCrearTarea });
+    fireEvent.contextMenu(fila(container, 'Pagos'));
+    fireEvent.click(container.querySelector('.lv-menu [data-op="addSubtask"]')!);
+    const filas = [...container.querySelectorAll('tbody tr')];
+    const i = filas.findIndex((r) => r.classList.contains('nueva'));
+    expect(filas[i - 1]!.querySelector('.nm')?.textContent).toBe('Recibo');
+    const caja = screen.getByRole('textbox', { name: 'Añadir subtarea en «Pagos»' });
+    fireEvent.change(caja, { target: { value: 'Conciliación' } });
+    fireEvent.keyDown(caja, { key: 'Enter' });
+    await waitFor(() => expect(onCrearTarea).toHaveBeenCalledWith('Conciliación', 'p'));
+  });
+
+  it('sin onCrearTarea no hay fila de alta; duplicar y eliminar llegan a la app', () => {
+    const onDuplicar = vi.fn(); const onEliminar = vi.fn();
+    const { container } = montar({ onDuplicar, onEliminar });
+    expect(container.querySelector('.add-row')).toBeNull();
+    fireEvent.contextMenu(fila(container, 'Recibo'));
+    fireEvent.click(container.querySelector('.lv-menu [data-op="duplicate"]')!);
+    expect(onDuplicar).toHaveBeenCalledWith(expect.objectContaining({ id: 'c' }));
+    fireEvent.contextMenu(fila(container, 'Recibo'));
+    fireEvent.click(container.querySelector('.lv-menu [data-op="delete"]')!);
+    expect(onEliminar).toHaveBeenCalledWith(expect.objectContaining({ id: 'c' }));
+  });
+});

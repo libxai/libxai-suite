@@ -24,6 +24,8 @@ import { EscudoDeRiesgo } from './PuntoDeRiesgo';
 import { CSS_RECURSOS_V6 } from './RecursosDeLaListaV6';
 import { CSS_COSTOS_V4, CostosDelProyectoV4, type SaludDelPieV4 } from './CostosDelProyectoV4';
 import { avanceDeTarea, collectLeaves, computeWeightedProgress } from '../../../utils/avanceFisico';
+import { MenuIcons } from '../../Gantt/ContextMenu';
+import { armarMenuDeLaTarea } from '../../Gantt/menuDeLaTarea';
 
 type Columna = 'who' | 'st' | 's' | 'e' | 'dur' | 'pct' | 'hrs' | 'cost';
 const COLUMNAS: Columna[] = ['who', 'st', 's', 'e', 'dur', 'pct', 'hrs', 'cost'];
@@ -95,6 +97,12 @@ export interface ListaV6Props {
   /** v4 · pasada común del bloque 7 · cambiar la tarea padre desde el panel (como el Tablero): el padre (null = raíz) y la
    *  posición entre sus hijas; `false` si no se pudo. Con él, el panel ofrece «Cambiar tarea padre…» y avisa con «Deshacer». */
   onCambiarPadre?: (t: Task, padre: string | null, posicion: number) => boolean | void | Promise<boolean | void>;
+  /** E15 (Yesid, 17-nov) · «+ Añadir tarea» en la tabla y «Agregar subtarea» del menú: crea una tarea con ese nombre al final
+   *  de su padre (null = raíz); `false` si no se pudo. Sin él, la tabla no ofrece crear. */
+  onCrearTarea?: (nombre: string, padre: string | null) => boolean | void | Promise<boolean | void>;
+  /** E15 · «Duplicar» y «Eliminar» del menú contextual (la app confirma el borrado) */
+  onDuplicar?: (t: Task) => void;
+  onEliminar?: (t: Task) => void;
 }
 
 interface Fila {
@@ -143,6 +151,13 @@ const TXT = {
     ahoraDirecta: (n: string, w: string, f: string) => `«${n}» ahora es ${w}, tarea directa de la ${f}.`,
     devuelta: (n: string) => `Cambio deshecho: «${n}» vuelve a su tarea padre.`,
     leyenda: 'Leyenda', lVenc: 'Vencida', lDur: 'Duración en días hábiles',
+    m: { edit: 'Abrir el detalle', addSubtask: 'Agregar subtarea', indent: 'Aplicar sangría', outdent: 'Quitar sangría', dependencies: 'Dependencias…',
+      hito: 'Convertir en hito', quitarHito: 'Quitar hito', markIncomplete: 'Marcar por hacer', setInProgress: 'Marcar en progreso',
+      markComplete: 'Marcar completada', duplicate: 'Duplicar tarea', split: 'Dividir tarea', delete: 'Eliminar tarea' },
+    menuDe: (n: string) => `Acciones de «${n}»`,
+    anadir: 'Añadir tarea', anadirEn: (n: string) => `Añadir subtarea en «${n}»`, nombreNueva: 'Nombre de la tarea nueva',
+    ayudaNueva: 'Enter crea la tarea (y deja escribir otra); Esc cancela.',
+    fuera: (n: string, p: string) => `«${n}» sale de «${p}».`,
   },
   en: {
     tareas: 'tasks', tarea: 'task', ocultas: 'completed hidden', aLaVista: 'completed shown', mostrar: 'Show', ocultar: 'Hide',
@@ -180,6 +195,13 @@ const TXT = {
     ahoraDirecta: (n: string, w: string, f: string) => `“${n}” is now ${w}, a direct task of ${f}.`,
     devuelta: (n: string) => `Change undone: “${n}” is back under its parent task.`,
     leyenda: 'Legend', lVenc: 'Overdue', lDur: 'Duration in working days',
+    m: { edit: 'Open the details', addSubtask: 'Add subtask', indent: 'Indent', outdent: 'Outdent', dependencies: 'Dependencies…',
+      hito: 'Convert to milestone', quitarHito: 'Remove milestone', markIncomplete: 'Mark as to do', setInProgress: 'Set in progress',
+      markComplete: 'Mark complete', duplicate: 'Duplicate task', split: 'Split task', delete: 'Delete task' },
+    menuDe: (n: string) => `Actions for “${n}”`,
+    anadir: 'Add task', anadirEn: (n: string) => `Add subtask in “${n}”`, nombreNueva: 'Name of the new task',
+    ayudaNueva: 'Enter creates the task (and lets you type another); Esc cancels.',
+    fuera: (n: string, p: string) => `“${n}” is out of “${p}”.`,
   },
 };
 
@@ -210,6 +232,7 @@ export function ListaV6({
   tasks: tasksProp, es, cal, tarifaDe, monedaCodigo, conCosto: conCostoProp = true, onAbrir, seleccionada = null, claveColumnas, pie, hoy: hoyProp,
   avanceTotal, vista: vistaProp, onVista, onRegistrarHoras, peticionColumnas, nombreProyecto,
   tarifaDePersona, onVerRecursos, onVerRiesgo, salud, panel, onGuardarEstado, filtros: filtrosProp, onFiltros, finPrevisto, onCambiarPadre,
+  onCrearTarea, onDuplicar, onEliminar,
 }: ListaV6Props) {
   const x = es ? TXT.es : TXT.en;
   const idioma = es ? 'es' : 'en';
@@ -551,6 +574,108 @@ export function ListaV6({
     });
   };
 
+  /* E15 (Yesid, 17-nov) · quitar la sangría: la tarea sale de su padre y queda justo después de él */
+  const quitarSangria = async (h: Task) => {
+    const f = porId.get(h.id);
+    if (!onCambiarPadre || !f?.padre) return;
+    const padreF = porId.get(f.padre);
+    if (!padreF) return;
+    const abuelo = padreF.padre;
+    const tios = abuelo ? porId.get(abuelo)?.t.subtasks ?? [] : tasks;
+    const pos = Math.max(0, tios.findIndex((s) => s.id === padreF.t.id)) + 1;
+    const posVieja = Math.max(0, (padreF.t.subtasks ?? []).findIndex((s) => s.id === h.id));
+    const bien = await onCambiarPadre(h, abuelo, pos);
+    if (bien === false) return;
+    setAvisoPadre({
+      texto: x.fuera(h.name, padreF.t.name),
+      deshacer: () => {
+        setAvisoPadre(null);
+        void Promise.resolve(onCambiarPadre(h, padreF.t.id, posVieja)).then((ok) => { if (ok !== false) setAvisoPadre({ texto: x.devuelta(h.name) }); });
+      },
+    });
+  };
+
+  /* E15 · la fila para escribir una tarea nueva: al final de su padre (null = al final de la lista) */
+  const [nueva, setNueva] = useState<{ padre: string | null } | null>(null);
+  const [textoNueva, setTextoNueva] = useState('');
+  const [creando, setCreando] = useState(false);
+  const abrirNueva = (padre: string | null) => {
+    if (padre) {
+      const f = porId.get(padre);
+      setPlegadas((p) => { const n = new Set(p); n.delete(padre); f?.ancestros.forEach((a) => n.delete(a)); return n; });
+    }
+    setTextoNueva('');
+    setNueva({ padre });
+  };
+  const crearNueva = async () => {
+    const nombre = textoNueva.trim();
+    if (!nombre || !nueva || !onCrearTarea || creando) return;
+    setCreando(true);
+    try {
+      const bien = await onCrearTarea(nombre, nueva.padre);
+      if (bien !== false) setTextoNueva('');
+    } finally { setCreando(false); }
+  };
+  /* la fila de escritura va detrás de la última fila visible de su padre */
+  const trasDe = useMemo(() => {
+    if (!nueva?.padre) return null;
+    let ultima: string | null = null;
+    for (const f of visibles) if (f.t.id === nueva.padre || f.ancestros.includes(nueva.padre)) ultima = f.t.id;
+    return ultima;
+  }, [nueva, visibles]);
+
+  /* E15 · el menú contextual de la fila: el mismo orden que el del Gantt (armarMenuDeLaTarea) */
+  const [menu, setMenu] = useState<{ x: number; y: number; id: string } | null>(null);
+  const cajaMenu = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!menu) return;
+    const fuera = (e: MouseEvent) => { if (!cajaMenu.current?.contains(e.target as Node)) setMenu(null); };
+    const esc = (e: globalThis.KeyboardEvent) => { if (e.key === 'Escape') { setMenu(null); enfocar(menu.id); } };
+    const cerrar = () => setMenu(null);
+    document.addEventListener('mousedown', fuera);
+    document.addEventListener('keydown', esc);
+    window.addEventListener('scroll', cerrar, true);
+    window.addEventListener('resize', cerrar);
+    cajaMenu.current?.querySelector<HTMLButtonElement>('button:not([disabled])')?.focus();
+    return () => {
+      document.removeEventListener('mousedown', fuera); document.removeEventListener('keydown', esc);
+      window.removeEventListener('scroll', cerrar, true); window.removeEventListener('resize', cerrar);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [menu]);
+  const opcionesDelMenu = (f: Fila) => {
+    const t = f.t;
+    const esPadre = tieneHijas(t);
+    const hermanos = f.padre ? porId.get(f.padre)?.t.subtasks ?? [] : tasks;
+    const i = hermanos.findIndex((s) => s.id === t.id);
+    const hermana = i > 0 ? hermanos[i - 1]! : null;
+    const puede = panel?.puedeEditarTarea ? panel.puedeEditarTarea(t) : panel?.puedeEditar !== false;
+    const e = estadoDeHoja(t);
+    return armarMenuDeLaTarea({
+      edit: { label: x.m.edit, icon: MenuIcons.Pencil, onClick: () => setEnPanel(t.id) },
+      addSubtask: { label: x.m.addSubtask, icon: MenuIcons.Add, disabled: !onCrearTarea, onClick: () => abrirNueva(t.id) },
+      ...(onCambiarPadre ? {
+        indent: { label: x.m.indent, icon: MenuIcons.Indent, disabled: !hermana, onClick: () => { if (hermana) void cambiarPadre(t, hermana.id); } },
+        outdent: { label: x.m.outdent, icon: MenuIcons.Outdent, disabled: !f.padre, onClick: () => void quitarSangria(t) },
+      } : {}),
+      ...(panel ? { dependencies: { label: x.m.dependencies, icon: MenuIcons.Link, disabled: esPadre, onClick: () => setEnPanel(t.id) } } : {}),
+      ...(panel?.onActualizar ? {
+        milestone: {
+          label: t.isMilestone ? x.m.quitarHito : x.m.hito, icon: MenuIcons.Milestone, disabled: esPadre || !puede,
+          onClick: () => void panel.onActualizar!(t, { isMilestone: !t.isMilestone }),
+        },
+      } : {}),
+      ...(onGuardarEstado ? {
+        markIncomplete: { label: x.m.markIncomplete, icon: MenuIcons.MarkIncomplete, disabled: esPadre || e === 'todo', onClick: () => void guardarEstado(t, 'todo') },
+        setInProgress: { label: x.m.setInProgress, icon: MenuIcons.SetInProgress, disabled: esPadre || e === 'prog', onClick: () => void guardarEstado(t, 'prog') },
+        markComplete: { label: x.m.markComplete, icon: MenuIcons.MarkComplete, disabled: esPadre || e === 'done', onClick: () => void guardarEstado(t, 'done') },
+      } : {}),
+      ...(onDuplicar ? { duplicate: { label: x.m.duplicate, icon: MenuIcons.Duplicate, onClick: () => onDuplicar(t) } } : {}),
+      ...(onEliminar ? { delete: { label: x.m.delete, icon: MenuIcons.Delete, onClick: () => onEliminar(t) } } : {}),
+    });
+  };
+  const filaDelMenu = menu ? porId.get(menu.id) ?? null : null;
+
   const ordenarPor = (k: Orden['k']) => setOrden((o) => (o.k === k ? { k, desc: !o.desc } : { k, desc: false }));
   const ariaSort = (k: Orden['k']) => (orden.k === k ? (orden.desc ? 'descending' : 'ascending') : 'none') as 'ascending' | 'descending' | 'none';
   const Th = ({ k, children, num, dur, ayuda }: { k?: Orden['k']; children: ReactNode; num?: boolean; dur?: boolean; ayuda?: string }) => (
@@ -617,6 +742,32 @@ export function ListaV6({
       }
       case 'cost': return <td key={c} className="num">{millones(ci.costo, es)}</td>;
     }
+  };
+
+  /* E15 · la fila donde se escribe la tarea nueva (Enter crea y deja escribir otra; Esc cancela) */
+  const filaNueva = (padreF: Fila | undefined) => {
+    const nivel = padreF ? padreF.nivel + 1 : 0;
+    const etiqueta = padreF ? x.anadirEn(padreF.t.name) : x.anadir;
+    return (
+      <tr key={`nueva-${padreF?.t.id ?? 'raiz'}`} className="add-row nueva">
+        <td colSpan={columnas.length + 2}>
+          <div className="cell">
+            {nivel > 0 && <span className="gd" style={{ ['--n' as string]: nivel }} aria-hidden="true" />}
+            <span className="ind" />
+            <input autoFocus type="text" value={textoNueva} disabled={creando} aria-label={etiqueta} placeholder={x.nombreNueva}
+              title={x.ayudaNueva} maxLength={500}
+              onChange={(e) => setTextoNueva(e.target.value)}
+              onKeyDown={(e) => {
+                e.stopPropagation();
+                if (e.key === 'Enter') { e.preventDefault(); void crearNueva(); }
+                if (e.key === 'Escape') { e.preventDefault(); setNueva(null); if (padreF) enfocar(padreF.t.id); }
+              }}
+              onBlur={() => { if (!textoNueva.trim() && !creando) setNueva(null); }} />
+            <span className="add-tip">{x.ayudaNueva}</span>
+          </div>
+        </td>
+      </tr>
+    );
   };
 
   return (
@@ -744,13 +895,23 @@ export function ListaV6({
               const tabActiva = (activa ?? visibles[0]?.t.id) === t.id;
               const ruta = [...f.ancestros.map((a) => porId.get(a)?.t.name ?? ''), t.name].join(' › ');
               const nivel = agrupar ? f.nivel : f.nivel - (f.ancestros.length - ancestrosVisibles(f).length);
-              return (
+              const fila = (
                 <tr key={t.id} data-id={t.id} className={`${f.esFase ? 'grp' : padre ? 'par' : 'task'}${(enPanel ?? seleccionada) === t.id ? ' sel' : ''}`}
                   tabIndex={tabActiva ? 0 : -1} aria-level={nivel + 1} aria-expanded={padre ? abierta : undefined}
                   aria-selected={(enPanel ?? seleccionada) === t.id}
                   onClick={() => { setActiva(t.id); if (f.esFase && agrupar) alternar(f); else setEnPanel(t.id); }}
                   onFocus={() => setActiva(t.id)}
-                  onKeyDown={(e) => alTeclear(e, f, i)}>
+                  onContextMenu={(e) => { e.preventDefault(); setActiva(t.id); setMenu({ x: e.clientX, y: e.clientY, id: t.id }); }}
+                  onKeyDown={(e) => {
+                    /* E15 · el menú también con el teclado (Mayús+F10 o la tecla de menú) */
+                    if ((e.key === 'F10' && e.shiftKey) || e.key === 'ContextMenu') {
+                      e.preventDefault();
+                      const r = e.currentTarget.getBoundingClientRect();
+                      setMenu({ x: r.left + 40, y: r.bottom, id: t.id });
+                      return;
+                    }
+                    alTeclear(e, f, i);
+                  }}>
                   <td className="c1">
                     <div className="cell">
                       {nivel > 0 && <span className="gd" style={{ ['--n' as string]: nivel }} aria-hidden="true" />}
@@ -765,13 +926,27 @@ export function ListaV6({
                       <EscudoDeRiesgo riesgos={t.riesgos} es={es} className="rk" />
                       {padre && <span className="cnt" title={x.hechas(ci.hechas, ci.hojas)}>{ci.hechas}/{ci.hojas}</span>}
                       {padre && ci.vencidas > 0 && <span className="od">{ci.vencidas} {ci.vencidas === 1 ? x.vencida : x.vencidas}</span>}
+                      {padre && onCrearTarea && (
+                        <button type="button" className="add-sub" tabIndex={-1} aria-label={x.anadirEn(t.name)} title={x.anadirEn(t.name)}
+                          onClick={(e) => { e.stopPropagation(); abrirNueva(t.id); }}>+</button>
+                      )}
                     </div>
                   </td>
                   {columnas.map((c) => <Fragment key={c}>{celda(c, f)}</Fragment>)}
                   <td className="col-plus" />
                 </tr>
               );
+              return trasDe === t.id && nueva?.padre ? <Fragment key={t.id}>{fila}{filaNueva(porId.get(nueva.padre))}</Fragment> : fila;
             })}
+            {onCrearTarea && (nueva && nueva.padre === null ? filaNueva(undefined) : (
+              <tr className="add-row">
+                <td colSpan={columnas.length + 2}>
+                  <button type="button" className="add-btn" onClick={() => abrirNueva(null)}>
+                    <span aria-hidden="true">+</span> {x.anadir}
+                  </button>
+                </td>
+              </tr>
+            ))}
           </tbody>
           <tfoot>
             <tr>
@@ -818,6 +993,27 @@ export function ListaV6({
         <CostosDelProyectoV4 tasks={tasks} es={es} tarifaDe={tarifaDe} tarifaDePersona={tarifaDePersona} monedaCodigo={monedaCodigo}
           salud={salud} conCosto={conCosto} onVerRecursos={onVerRecursos} />
       </div>
+      {menu && filaDelMenu && (
+        <div ref={cajaMenu} className="lv-menu" role="menu" aria-label={x.menuDe(filaDelMenu.t.name)}
+          style={{ left: Math.max(8, Math.min(menu.x, (typeof window !== 'undefined' ? window.innerWidth : 1200) - 248)),
+            top: Math.max(8, Math.min(menu.y, (typeof window !== 'undefined' ? window.innerHeight : 800) - 420)) }}
+          onKeyDown={(e) => {
+            if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+            e.preventDefault();
+            const bs = [...(cajaMenu.current?.querySelectorAll<HTMLButtonElement>('button:not([disabled])') ?? [])];
+            const i = bs.indexOf(document.activeElement as HTMLButtonElement);
+            bs[(i + (e.key === 'ArrowDown' ? 1 : bs.length - 1)) % bs.length]?.focus();
+          }}>
+          {opcionesDelMenu(filaDelMenu).map((it) => (it.separator
+            ? <div key={it.id} className="lv-menu-sep" role="separator" />
+            : (
+              <button key={it.id} type="button" role="menuitem" data-op={it.id} disabled={it.disabled}
+                onClick={() => { const id = menu.id; setMenu(null); it.onClick(); if (it.id !== 'edit' && it.id !== 'dependencies' && it.id !== 'addSubtask') enfocar(id); }}>
+                <span className="ic" aria-hidden="true">{it.icon}</span>{it.label}
+              </button>
+            )))}
+        </div>
+      )}
       <div className="toast-zona" aria-live="polite">
         {pendiente && (
           <div className="toast">
@@ -1063,6 +1259,21 @@ export const CSS_LISTA_V4 = `
 .lista-v6.lista-v4 .cols-menu{font-size:13px}
 .lista-v6.lista-v4 .fchip{font-size:12px}
 /* el panel: por debajo de 1200 px de contenido es una capa sobre la tabla; en el teléfono, toda la pantalla */
+.lista-v6.lista-v4 .lv-menu{position:fixed;z-index:60;min-width:220px;padding:4px 0;background:var(--lv-card);border:1px solid var(--lv-border);border-radius:8px;box-shadow:var(--lv-pop);font:400 13px var(--v4-ff-sans,inherit)}
+.lista-v6.lista-v4 .lv-menu button{display:flex;align-items:center;gap:8px;width:100%;padding:7px 12px;border:0;background:none;color:var(--lv-text);text-align:left;font:inherit;cursor:pointer}
+.lista-v6.lista-v4 .lv-menu button:hover:not([disabled]),.lista-v6.lista-v4 .lv-menu button:focus-visible{background:var(--lv-hover);outline:none}
+.lista-v6.lista-v4 .lv-menu button[disabled]{color:var(--lv-text3);cursor:default}
+.lista-v6.lista-v4 .lv-menu .ic{display:inline-flex;color:var(--lv-text2)}
+.lista-v6.lista-v4 .lv-menu button[disabled] .ic{opacity:.5}
+.lista-v6.lista-v4 .lv-menu-sep{height:1px;margin:4px 0;background:var(--lv-soft)}
+.lista-v6.lista-v4 .add-row td{border-bottom:0}
+.lista-v6.lista-v4 .add-btn{display:inline-flex;align-items:center;gap:6px;margin-left:28px;padding:4px 8px;border:0;border-radius:6px;background:none;color:var(--lv-text2);font:500 13px var(--v4-ff-sans,inherit);cursor:pointer}
+.lista-v6.lista-v4 .add-btn:hover,.lista-v6.lista-v4 .add-btn:focus-visible{background:var(--lv-hover);color:var(--lv-acc)}
+.lista-v6.lista-v4 .add-row.nueva input{flex:0 1 360px;min-width:0;padding:4px 8px;border:1px solid var(--lv-brand);border-radius:6px;background:var(--lv-card);color:var(--lv-text);font:400 13px var(--v4-ff-sans,inherit)}
+.lista-v6.lista-v4 .add-tip{margin-left:10px;color:var(--lv-text3);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lista-v6.lista-v4 .add-sub{margin-left:auto;width:22px;height:22px;border:0;border-radius:6px;background:none;color:var(--lv-text2);font:500 15px/1 var(--v4-ff-sans,inherit);cursor:pointer;opacity:0}
+.lista-v6.lista-v4 tr:hover .add-sub,.lista-v6.lista-v4 tr:focus-within .add-sub,.lista-v6.lista-v4 .add-sub:focus-visible{opacity:1}
+.lista-v6.lista-v4 .add-sub:hover{background:var(--lv-hover);color:var(--lv-acc)}
 @container lista-v6 (max-width:1199px){
   .lista-v6.lista-v4 .dp4{position:absolute;right:0;top:0;bottom:0;z-index:20;max-height:none;box-shadow:var(--lv-pop)}
 }

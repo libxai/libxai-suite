@@ -14,6 +14,7 @@ import { COLUMNAS_OPCIONALES, type ContextoDeColumnas } from './columnasDelGantt
 import { aPdf, aPng, type DatosDelDocumento, type OpcionesDeExportacion } from './exportarDocumento';
 import { fechaCorta } from './fechaCorta';
 import { ContextMenu, MenuIcons } from './ContextMenu'; // v0.8.0: Split task context menu
+import { armarMenuDeLaTarea, hermanaDeArriba, tienePadre } from './menuDeLaTarea';
 import { TaskDetailModal } from '../TaskDetailModal'; // v0.17.244: Unified task detail modal (replaces TaskFormModal)
 import { GanttAIAssistant } from './GanttAIAssistant'; // v0.14.0: AI Assistant
 import { motion, AnimatePresence } from 'framer-motion'; // v0.17.33: For delete confirmation modal
@@ -2905,265 +2906,93 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
 
             // v0.17.162: Look up current task from localTasks to get latest data (e.g., after inline rename)
             const task = ganttUtils.findTaskById(localTasks, staleTask.id) || staleTask;
-            const isParentTask = task.subtasks && task.subtasks.length > 0;
+            const isParentTask = !!(task.subtasks && task.subtasks.length > 0);
 
-            // v1.4.10: Check if user can create tasks (affects Add Subtask option)
+            // v1.4.10: permisos. QA Asakaa E14: lo que no se puede o no aplica sale APAGADO, no desaparece: el menú
+            // tiene siempre las mismas opciones en el mismo orden (antes, en una fase, «Duplicar» caía donde las demás
+            // filas tienen «Agregar subtarea»).
             const canCreateTask = permissions?.canCreateTask !== false;
             const canDeleteTask = permissions?.canDeleteTask !== false;
-
-            // v0.17.46: Parent tasks - limited menu (status/progress is auto-calculated from subtasks)
-            // v1.4.14: Added duplicate option for parent tasks
-            if (isParentTask) {
-              const items = [];
-              const canDuplicateTask = permissions?.canDuplicateTask !== false;
-
-              // Add Subtask - main action for parent tasks (only if canCreateTask)
-              if (canCreateTask) {
-                items.push({
-                  id: 'addSubtask',
-                  label: translations.contextMenu?.addSubtask || 'Add Subtask',
-                  icon: MenuIcons.Add,
-                  onClick: () => {
-                    if (onTaskAddSubtask) {
-                      onTaskAddSubtask(task);
-                    } else {
-                      handleCreateSubtask(task.id);
-                    }
-                  },
-                });
-              }
-
-              // v1.4.14: Duplicate Task with subtasks (only if canDuplicateTask)
-              if (canDuplicateTask) {
-                items.push({
-                  id: 'duplicate',
-                  label: translations.contextMenu?.duplicateTask || 'Duplicate Task',
-                  icon: MenuIcons.Duplicate,
-                  onClick: () => {
-                    // v1.4.14: If callback exists, delegate to consumer (SaaS handles DB persistence)
-                    // Consumer will reload tasks after creating, so don't update local state
-                    if (config.onTaskDuplicate) {
-                      config.onTaskDuplicate(task);
-                    } else {
-                      // No callback - duplicate in memory only (standalone mode)
-                      setLocalTasks((prev) => duplicateTasks(prev, [task.id]).tasks);
-                    }
-                    setContextMenu({ isOpen: false, x: 0, y: 0, task: null });
-                  },
-                });
-              }
-
-              // Delete Task (only if canDeleteTask)
-              if (canDeleteTask) {
-                // Separator before delete (only if there are items before)
-                if (items.length > 0) {
-                  items.push({
-                    id: 'separator-delete',
-                    label: '',
-                    separator: true,
-                    onClick: () => {},
-                  });
-                }
-                items.push({
-                  id: 'delete',
-                  label: translations.contextMenu?.deleteTask || 'Delete Task',
-                  icon: MenuIcons.Delete,
-                  onClick: () => {
-                    setDeleteConfirmation({
-                      taskIds: [task.id],
-                      taskName: task.name,
-                    });
-                  },
-                });
-              }
-
-              return items;
-            }
-
-            // Regular tasks (no subtasks) - full menu
-            // v1.4.10: Additional permission checks
             const canUpdateTask = permissions?.canUpdateTask !== false;
             const canDuplicateTask = permissions?.canDuplicateTask !== false;
+            const canReorderTasks = permissions?.canReorderTasks !== false;
+            const cerrar = () => setContextMenu({ isOpen: false, x: 0, y: 0, task: null });
+            const cm = translations.contextMenu;
 
-            const items = [];
-
-            // v0.16.0: Edit Task - opens edit modal or calls custom handler
-            if (canUpdateTask) {
-              items.push({
-                id: 'edit',
-                label: translations.contextMenu?.editTask || 'Edit Task',
-                icon: MenuIcons.Pencil,
-                onClick: () => {
-                  if (onTaskEdit) {
-                    onTaskEdit(task);
-                  } else {
-                    setEditingTask(task);
-                  }
+            return armarMenuDeLaTarea({
+              // v0.16.0: Edit Task - opens edit modal or calls custom handler
+              edit: {
+                label: cm?.editTask || 'Edit Task', icon: MenuIcons.Pencil, disabled: !canUpdateTask || isParentTask,
+                onClick: () => { if (onTaskEdit) onTaskEdit(task); else setEditingTask(task); },
+              },
+              addSubtask: {
+                label: cm?.addSubtask || 'Add Subtask', icon: MenuIcons.Add, disabled: !canCreateTask,
+                onClick: () => { if (onTaskAddSubtask) onTaskAddSubtask(task); else handleCreateSubtask(task.id); },
+              },
+              indent: {
+                label: cm?.indent || 'Indent', icon: MenuIcons.Indent,
+                disabled: !canReorderTasks || !hermanaDeArriba(localTasks, task.id),
+                onClick: () => handleTaskIndent([task.id]),
+              },
+              outdent: {
+                label: cm?.outdent || 'Outdent', icon: MenuIcons.Outdent,
+                disabled: !canReorderTasks || !tienePadre(localTasks, task.id),
+                onClick: () => handleTaskOutdent([task.id]),
+              },
+              // QA Asakaa E14: las dependencias también se editan después de crear la tarea.
+              ...(config.onTaskDependencies || onTaskEdit ? {
+                dependencies: {
+                  label: cm?.dependencies || 'Dependencies…', icon: MenuIcons.Link, disabled: !canUpdateTask || isParentTask,
+                  onClick: () => { if (config.onTaskDependencies) config.onTaskDependencies(task); else onTaskEdit?.(task); cerrar(); },
                 },
-              });
-            }
-
-            // v0.16.0: Add Subtask (only if canCreateTask)
-            if (canCreateTask) {
-              items.push({
-                id: 'addSubtask',
-                label: translations.contextMenu?.addSubtask || 'Add Subtask',
-                icon: MenuIcons.Add,
+              } : {}),
+              // QA Asakaa 2.3.5: «Convertir en hito», como en la tabla. Solo en tareas sin hijas.
+              milestone: {
+                label: task.isMilestone ? (locale === 'es' ? 'Quitar hito' : 'Remove milestone') : (locale === 'es' ? 'Convertir en hito' : 'Convert to milestone'),
+                icon: MenuIcons.Milestone, disabled: !canUpdateTask || isParentTask,
+                onClick: () => handleTaskUpdate(task.id, { isMilestone: !task.isMilestone }),
+              },
+              // v0.16.0: estados (los padres los calculan de sus hijas)
+              markIncomplete: {
+                label: cm?.markIncomplete || 'Mark Incomplete', icon: MenuIcons.MarkIncomplete,
+                disabled: !canUpdateTask || isParentTask || task.status === 'todo',
+                onClick: () => { if (onTaskMarkIncomplete) onTaskMarkIncomplete(task); else handleTaskUpdate(task.id, { status: 'todo', progress: 0 }); },
+              },
+              setInProgress: {
+                label: cm?.setInProgress || 'Set In Progress', icon: MenuIcons.SetInProgress,
+                disabled: !canUpdateTask || isParentTask || task.status === 'in-progress',
+                onClick: () => { if (onTaskSetInProgress) onTaskSetInProgress(task); else handleTaskUpdate(task.id, { status: 'in-progress' }); },
+              },
+              markComplete: {
+                label: cm?.markComplete || 'Mark Complete', icon: MenuIcons.MarkComplete,
+                disabled: !canUpdateTask || isParentTask || task.status === 'completed',
+                onClick: () => handleTaskUpdate(task.id, { status: 'completed', progress: 100 }),
+              },
+              // v1.4.3 / v1.4.14: Duplicate (con sus hijas). Con callback, la app guarda y recarga.
+              duplicate: {
+                label: cm?.duplicateTask || 'Duplicate Task', icon: MenuIcons.Duplicate, disabled: !canDuplicateTask,
                 onClick: () => {
-                  if (onTaskAddSubtask) {
-                    onTaskAddSubtask(task);
-                  } else {
-                    handleCreateSubtask(task.id);
-                  }
+                  if (config.onTaskDuplicate) config.onTaskDuplicate(task);
+                  else setLocalTasks((prev) => duplicateTasks(prev, [task.id]).tasks);
+                  cerrar();
                 },
-              });
-            }
-
-            // QA Asakaa E14: las dependencias también se editan después de crear la tarea.
-            if (canUpdateTask && (config.onTaskDependencies || onTaskEdit)) {
-              items.push({
-                id: 'dependencies',
-                label: translations.contextMenu?.dependencies || 'Dependencies…',
-                icon: MenuIcons.Link,
+              },
+              // v0.8.0: Split Task, por la mitad
+              split: {
+                label: cm?.splitTask || 'Split Task', icon: MenuIcons.Split,
+                disabled: !canUpdateTask || isParentTask || !task.startDate || !task.endDate,
                 onClick: () => {
-                  if (config.onTaskDependencies) config.onTaskDependencies(task);
-                  else onTaskEdit?.(task);
-                  setContextMenu({ isOpen: false, x: 0, y: 0, task: null });
-                },
-              });
-            }
-
-            // Separator before status changes (only if there are items before and we can update)
-            if (items.length > 0 && canUpdateTask) {
-              items.push({
-                id: 'separator-status',
-                label: '',
-                separator: true,
-                onClick: () => {},
-              });
-            }
-
-            // Status change options (only if canUpdateTask)
-            if (canUpdateTask) {
-              // v0.16.0: Mark Incomplete (status: 'todo', progress: 0)
-              items.push({
-                id: 'markIncomplete',
-                label: translations.contextMenu?.markIncomplete || 'Mark Incomplete',
-                icon: MenuIcons.MarkIncomplete,
-                onClick: () => {
-                  if (onTaskMarkIncomplete) {
-                    onTaskMarkIncomplete(task);
-                  } else {
-                    handleTaskUpdate(task.id, { status: 'todo', progress: 0 });
-                  }
-                },
-                disabled: task.status === 'todo',
-              });
-
-              // v0.16.0: Set In Progress (status: 'in-progress')
-              items.push({
-                id: 'setInProgress',
-                label: translations.contextMenu?.setInProgress || 'Set In Progress',
-                icon: MenuIcons.SetInProgress,
-                onClick: () => {
-                  if (onTaskSetInProgress) {
-                    onTaskSetInProgress(task);
-                  } else {
-                    handleTaskUpdate(task.id, { status: 'in-progress' });
-                  }
-                },
-                disabled: task.status === 'in-progress',
-              });
-
-              // v0.16.0: Mark Complete (status: 'completed', progress: 100)
-              items.push({
-                id: 'markComplete',
-                label: translations.contextMenu?.markComplete || 'Mark Complete',
-                icon: MenuIcons.MarkComplete,
-                onClick: () => {
-                  handleTaskUpdate(task.id, { status: 'completed', progress: 100 });
-                },
-                disabled: task.status === 'completed',
-              });
-            }
-
-            // Advanced options section
-            const hasAdvancedOptions = canDuplicateTask || (canUpdateTask && task.startDate && task.endDate);
-            if (hasAdvancedOptions && items.length > 0) {
-              items.push({
-                id: 'separator-advanced',
-                label: '',
-                separator: true,
-                onClick: () => {},
-              });
-            }
-
-            // v1.4.3: Duplicate Task (only if canDuplicateTask)
-            if (canDuplicateTask) {
-              items.push({
-                id: 'duplicate',
-                label: translations.contextMenu?.duplicateTask || 'Duplicate Task',
-                icon: MenuIcons.Duplicate,
-                onClick: () => {
-                  // v1.4.14: If callback exists, delegate to consumer (SaaS handles DB persistence)
-                  // Consumer will reload tasks after creating, so don't update local state
-                  if (config.onTaskDuplicate) {
-                    config.onTaskDuplicate(task);
-                  } else {
-                    // No callback - duplicate in memory only (standalone mode)
-                    setLocalTasks((prev) => duplicateTasks(prev, [task.id]).tasks);
-                  }
-                  setContextMenu({ isOpen: false, x: 0, y: 0, task: null });
-                },
-              });
-            }
-
-            // Split Task (existing feature from v0.8.0) - requires canUpdateTask
-            if (canUpdateTask && task.startDate && task.endDate) {
-              items.push({
-                id: 'split',
-                label: translations.contextMenu?.splitTask || 'Split Task',
-                icon: MenuIcons.Split,
-                onClick: () => {
-                  // Calculate midpoint date for split
                   const startTime = task.startDate!.getTime();
                   const endTime = task.endDate!.getTime();
-                  const midTime = startTime + (endTime - startTime) / 2;
-                  const splitDate = new Date(midTime);
-
-                  // Call split handler
-                  handleSplitTask(task, splitDate);
+                  handleSplitTask(task, new Date(startTime + (endTime - startTime) / 2));
                 },
-              });
-            }
-
-            // Delete section
-            if (canDeleteTask) {
-              // Separator before delete (only if there are items before)
-              if (items.length > 0) {
-                items.push({
-                  id: 'separator-delete',
-                  label: '',
-                  separator: true,
-                  onClick: () => {},
-                });
-              }
-
-              // Delete Task - v0.17.33: Now shows confirmation modal
-              items.push({
-                id: 'delete',
-                label: translations.contextMenu?.deleteTask || 'Delete Task',
-                icon: MenuIcons.Delete,
-                onClick: () => {
-                  setDeleteConfirmation({
-                    taskIds: [task.id],
-                    taskName: task.name,
-                  });
-                },
-              });
-            }
-
-            return items;
+              },
+              // v0.17.33: con confirmación
+              delete: {
+                label: cm?.deleteTask || 'Delete Task', icon: MenuIcons.Delete, disabled: !canDeleteTask,
+                onClick: () => setDeleteConfirmation({ taskIds: [task.id], taskName: task.name }),
+              },
+            });
           })()}
         />
       )}

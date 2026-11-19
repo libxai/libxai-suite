@@ -501,6 +501,8 @@ export interface ListViewConfig {
   onGuardarEstadoV4?: (t: import('../Gantt/types').Task, status: string, progreso: number) => boolean | void | Promise<boolean | void>;
   /** v4 · cambiar la tarea padre desde el panel de la Lista (padre null = raíz; posición entre sus hijas); `false` si no se pudo */
   onCambiarPadreV4?: (t: import('../Gantt/types').Task, padre: string | null, posicion: number) => boolean | void | Promise<boolean | void>;
+  /** E15 (Yesid, 17-nov) · «+ Añadir tarea» en la tabla v4 y «Agregar subtarea» del menú: crea la tarea con ese nombre al final de su padre (null = raíz). Duplicar y eliminar salen de callbacks.onTaskDuplicate / onTaskDelete. */
+  onCrearTareaV4?: (nombre: string, padre: string | null) => boolean | void | Promise<boolean | void>;
   /** guía v4 · los filtros de la barra de la Lista */
   filtrosV4?: import('./v6/ListaV6').FiltrosDeLaListaV4;
   onFiltrosV4?: (f: import('./v6/ListaV6').FiltrosDeLaListaV4) => void;

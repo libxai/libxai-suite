@@ -20,6 +20,8 @@ import { Diamond,
   CheckCircle2, // v0.16.0: For Mark Complete
   Pencil, // v0.16.0: Alias for Edit
   Copy, // v1.4.3: For Duplicate task
+  IndentIncrease, // QA Asakaa E14
+  IndentDecrease, // QA Asakaa E14
 } from 'lucide-react';
 
 export interface ContextMenuItem {
@@ -52,7 +54,7 @@ export function ContextMenu({ isOpen, x, y, items, onClose, theme }: ContextMenu
 
     // Menu dimensions (approximate - will be refined after render)
     const menuWidth = 200; // min-w-[200px]
-    const menuHeight = items.length * 36 + 8; // ~36px per item + padding
+    const menuHeight = items.filter((i) => !i.separator).length * 36 + items.filter((i) => i.separator).length * 9 + 8; // ~36px por opción, 9 por raya
     const padding = 8; // Distance from edge
 
     // Get viewport dimensions
@@ -151,6 +153,8 @@ export function ContextMenu({ isOpen, x, y, items, onClose, theme }: ContextMenu
                   style={{ backgroundColor: theme.borderLight }}
                 />
               )}
+              {/* QA Asakaa E14: una raya sola (sin texto) es solo la raya; antes dejaba debajo un botón vacío */}
+              {!(item.separator && !item.label) && (
               <button
                 onClick={() => {
                   if (!item.disabled) {
@@ -186,6 +190,7 @@ export function ContextMenu({ isOpen, x, y, items, onClose, theme }: ContextMenu
                   <ChevronRight className="w-3.5 h-3.5" style={{ color: theme.textTertiary }} />
                 )}
               </button>
+              )}
             </div>
           ))}
         </div>
@@ -213,6 +218,8 @@ export const MenuIcons = {
   Split: <Scissors className="w-4 h-4" />, // v0.8.0: Split task
   Duplicate: <Copy className="w-4 h-4" />, // v1.4.3: Duplicate task
   Milestone: <Diamond className="w-4 h-4" />, // 1.9.47 · QA Asakaa 2.3.5
+  Indent: <IndentIncrease className="w-4 h-4" />, // QA Asakaa E14
+  Outdent: <IndentDecrease className="w-4 h-4" />, // QA Asakaa E14
   // v0.16.0: Task status icons
   MarkIncomplete: <Circle className="w-4 h-4" />,
   SetInProgress: <PlayCircle className="w-4 h-4" />,
