@@ -29,7 +29,8 @@ import {
 } from 'lucide-react'
 import { Task, Theme, TaskTag } from './types'
 import { themes } from './themes'
-import { TASK_COLORS } from './ColorPicker'
+import { TASK_COLORS, nombreDelColorDeTarea } from './ColorPicker'
+import { fechaCorta } from './fechaCorta'
 import { Portal } from '../Portal'
 import { TagPicker } from './TagPicker'
 import { AttachmentUploader } from '../Attachments'
@@ -151,10 +152,10 @@ export interface TaskFormModalProps {
 
 // Priority configuration
 const PRIORITIES = [
-  { id: 'low', label: 'Baja', color: '#10B981', icon: '🟢' },
-  { id: 'medium', label: 'Media', color: '#F59E0B', icon: '🟡' },
-  { id: 'high', label: 'Alta', color: '#F97316', icon: '🟠' },
-  { id: 'urgent', label: 'Urgente', color: '#EF4444', icon: '🔴' },
+  { id: 'low', label: 'Baja', labelEn: 'Low', color: '#10B981', icon: '🟢' },
+  { id: 'medium', label: 'Media', labelEn: 'Medium', color: '#F59E0B', icon: '🟡' },
+  { id: 'high', label: 'Alta', labelEn: 'High', color: '#F97316', icon: '🟠' },
+  { id: 'urgent', label: 'Urgente', labelEn: 'Urgent', color: '#EF4444', icon: '🔴' },
 ]
 
 export function TaskFormModal({
@@ -313,9 +314,9 @@ export function TaskFormModal({
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {}
-    if (!formData.name.trim()) newErrors.name = 'El nombre es requerido'
+    if (!formData.name.trim()) newErrors.name = esForm ? 'Escriba el nombre de la tarea.' : 'Type the task name.'
     if (formData.startDate && formData.endDate && formData.startDate > formData.endDate) {
-      newErrors.endDate = 'La fecha de fin debe ser posterior a la de inicio'
+      newErrors.endDate = esForm ? 'La fecha de fin debe ser posterior a la de inicio.' : 'The end date must be after the start date.'
     }
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -436,7 +437,7 @@ export function TaskFormModal({
                       fontWeight: 700,
                       fontFamily: "'Inter', system-ui, sans-serif",
                     }}
-                    placeholder="Nombre de la tarea"
+                    placeholder={esForm ? 'Nombre de la tarea' : 'Task name'}
                     disabled={isLoading}
                     autoFocus
                   />
@@ -456,7 +457,7 @@ export function TaskFormModal({
                       fontFamily: "'Inter', system-ui, sans-serif",
                       ['--placeholder-color' as any]: themeColors.textTertiary,
                     }}
-                    placeholder="Agregar descripción..."
+                    placeholder={esForm ? 'Agregar descripción...' : 'Add a description...'}
                     rows={2}
                     disabled={isLoading}
                   />
@@ -529,7 +530,7 @@ export function TaskFormModal({
                         disabled={isLoading}
                       >
                         <Flag className="w-3.5 h-3.5" style={{ color: currentPriority.color }} />
-                        <span>{currentPriority.label}</span>
+                        <span>{esForm ? currentPriority.label : currentPriority.labelEn}</span>
                         <ChevronDown className="w-3 h-3" style={{ color: themeColors.textTertiary }} />
                       </button>
 
@@ -558,7 +559,7 @@ export function TaskFormModal({
                                 onClick={() => { handleChange('priority', priority.id as TaskPriority); setShowPriorityDropdown(false) }}
                               >
                                 <span>{priority.icon}</span>
-                                {priority.label}
+                                {esForm ? priority.label : priority.labelEn}
                                 {formData.priority === priority.id && <Check className="w-3.5 h-3.5 ml-auto" style={{ color: themeColors.accent }} />}
                               </button>
                             ))}
@@ -597,7 +598,7 @@ export function TaskFormModal({
                           ) : (
                             <>
                               <Users className="w-3.5 h-3.5" style={{ color: themeColors.textTertiary }} />
-                              <span style={{ color: themeColors.textTertiary }}>Asignar</span>
+                              <span style={{ color: themeColors.textTertiary }}>{esForm ? 'Asignar' : 'Assign'}</span>
                             </>
                           )}
                           <ChevronDown className="w-3 h-3" style={{ color: themeColors.textTertiary }} />
@@ -686,7 +687,7 @@ export function TaskFormModal({
                         disabled={isLoading}
                       >
                         <div className="w-3.5 h-3.5 rounded-full" style={{ backgroundColor: formData.color }} />
-                        <span>{currentColor.name}</span>
+                        <span>{nombreDelColorDeTarea(currentColor, esForm)}</span>
                         <ChevronDown className="w-3 h-3" style={{ color: themeColors.textTertiary }} />
                       </button>
 
@@ -740,7 +741,7 @@ export function TaskFormModal({
                                           justifyContent: 'center',
                                           padding: 0,
                                         }}
-                                        title={color.name}
+                                        title={nombreDelColorDeTarea(color, esForm)}
                                       >
                                         <span
                                           style={{
@@ -782,7 +783,7 @@ export function TaskFormModal({
                   <section className="grid grid-cols-1 md:grid-cols-2 gap-8 items-end">
                   <div className="space-y-3">
                     <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: themeColors.textTertiary, display: 'block' }}>
-                      Rango de Fechas
+                      {esForm ? 'Rango de fechas' : 'Date range'}
                     </label>
                   <div className="flex items-center gap-3" style={{ backgroundColor: isDarkTheme ? '#191b22' : themeColors.bgSecondary, borderRadius: 8, border: `1px solid ${isDarkTheme ? 'rgba(65,71,84,0.05)' : themeColors.borderLight}`, padding: '10px 16px' }}>
                     <Calendar className="w-5 h-5" style={{ color: '#00E5CC' }} />
@@ -812,7 +813,7 @@ export function TaskFormModal({
                         }}
                         disabled={isLoading || formData.isMilestone}
                       >
-                        {formData.startDate ? formData.startDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) : 'Inicio'}
+                        {formData.startDate ? fechaCorta(formData.startDate, esForm ? 'es' : 'en', new Date()) : (esForm ? 'Inicio' : 'Start')}
                       </button>
                       <span style={{ color: themeColors.textTertiary }}>→</span>
                       <button
@@ -840,7 +841,7 @@ export function TaskFormModal({
                         }}
                         disabled={isLoading || formData.isMilestone}
                       >
-                        {formData.endDate ? formData.endDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) : 'Fin'}
+                        {formData.endDate ? fechaCorta(formData.endDate, esForm ? 'es' : 'en', new Date()) : (esForm ? 'Fin' : 'End')}
                       </button>
 
                       {/* Date Picker Popover - Using Portal to escape overflow:hidden */}
@@ -873,10 +874,10 @@ export function TaskFormModal({
                                   const twoWeeks = new Date(today); twoWeeks.setDate(today.getDate() + 14)
 
                                   const options = [
-                                    { label: 'Hoy', date: today },
-                                    { label: 'Mañana', date: tomorrow },
-                                    { label: 'Próxima semana', date: nextWeek },
-                                    { label: '2 semanas', date: twoWeeks },
+                                    { label: esForm ? 'Hoy' : 'Today', date: today },
+                                    { label: esForm ? 'Mañana' : 'Tomorrow', date: tomorrow },
+                                    { label: esForm ? 'Próxima semana' : 'Next week', date: nextWeek },
+                                    { label: esForm ? '2 semanas' : '2 weeks', date: twoWeeks },
                                   ]
 
                                   return options.map((opt, i) => (
@@ -912,7 +913,7 @@ export function TaskFormModal({
                                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                                   onClick={() => { handleChange('startDate', undefined); handleChange('endDate', undefined); setShowDatePicker(null) }}
                                 >
-                                  Borrar fechas
+                                  {esForm ? 'Borrar fechas' : 'Clear dates'}
                                 </button>
                               </div>
 
@@ -928,7 +929,7 @@ export function TaskFormModal({
                                   >
                                     <ChevronLeft className="w-4 h-4" style={{ color: themeColors.textSecondary }} />
                                   </button>
-                                  <span className="text-sm font-medium" style={{ color: themeColors.textPrimary, fontFamily: 'JetBrains Mono, monospace' }}>{datePickerMonth.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}</span>
+                                  <span className="text-sm font-medium" style={{ color: themeColors.textPrimary, fontFamily: 'JetBrains Mono, monospace' }}>{datePickerMonth.toLocaleDateString(esForm ? 'es-ES' : 'en-US', { month: 'long', year: 'numeric' })}</span>
                                   <button
                                     type="button"
                                     onClick={() => setDatePickerMonth(new Date(datePickerMonth.getFullYear(), datePickerMonth.getMonth() + 1))}
@@ -940,7 +941,7 @@ export function TaskFormModal({
                                   </button>
                                 </div>
                                 <div className="grid grid-cols-7 gap-1 mb-1">
-                                  {/* QA Asakaa 2.4.5: semana en LUNES */}{['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((d, i) => (
+                                  {/* QA Asakaa 2.4.5: semana en LUNES */}{(esForm ? ['L', 'M', 'X', 'J', 'V', 'S', 'D'] : ['M', 'T', 'W', 'T', 'F', 'S', 'S']).map((d, i) => (
                                     <div key={i} className="w-7 h-7 flex items-center justify-center text-xs" style={{ color: themeColors.textTertiary }}>{d}</div>
                                   ))}
                                 </div>
@@ -1004,7 +1005,7 @@ export function TaskFormModal({
                   <div className="space-y-3">
                     <div className="flex justify-between items-center">
                       <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: themeColors.textTertiary }}>
-                        Progreso Inicial
+                        {esForm ? 'Progreso inicial' : 'Initial progress'}
                       </label>
                       <span style={{ fontSize: 10, fontWeight: 700, color: '#00E5CC' }}>
                         {formData.progress}%
@@ -1037,7 +1038,7 @@ export function TaskFormModal({
                       style={{ color: themeColors.textPrimary }}
                     >
                       <ChevronDown className={`w-4 h-4 transition-transform ${showAdvanced ? '' : '-rotate-90'}`} style={{ color: themeColors.textTertiary }} />
-                      <span style={{ fontSize: 16, fontWeight: 700, fontFamily: "'Inter', system-ui, sans-serif" }}>Opciones Avanzadas</span>
+                      <span style={{ fontSize: 16, fontWeight: 700, fontFamily: "'Inter', system-ui, sans-serif" }}>{esForm ? 'Opciones avanzadas' : 'Advanced options'}</span>
                     </button>
 
                     <AnimatePresence>
@@ -1065,12 +1066,12 @@ export function TaskFormModal({
                                   <circle cx="12" cy="12" r="10" />
                                 </svg>
                                 <span className="text-xs" style={{ color: themeColors.textTertiary }}>
-                                  Horas Estimadas
+                                  {esForm ? 'Horas estimadas' : 'Estimated hours'}
                                 </span>
                               </div>
                               <input
                                 type="text"
-                                placeholder="Ej: 8 (=8h), 2h 30m, 45m, 1d (1 día = 8h)"
+                                placeholder={esForm ? 'Ej.: 8 (=8 h), 2h 30m, 45m, 1d (1 día = 8 h)' : 'E.g. 8 (=8 h), 2h 30m, 45m, 1d (1 day = 8 h)'}
                                 value={formData.effortMinutes ? formatMinutesToDisplay(formData.effortMinutes) : ''}
                                 onChange={(e) => {
                                   const minutes = parseTimeInput(e.target.value);
@@ -1093,7 +1094,7 @@ export function TaskFormModal({
                                     <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>
                                   </svg>
                                   <span className="text-xs" style={{ color: themeColors.textTertiary }}>
-                                    Fase Padre
+                                    {esForm ? 'Fase padre' : 'Parent phase'}
                                   </span>
                                 </div>
                                 <select
@@ -1107,7 +1108,7 @@ export function TaskFormModal({
                                   }}
                                   disabled={isLoading}
                                 >
-                                  <option value="">— Sin fase padre (raíz) —</option>
+                                  <option value="">{esForm ? '— Sin fase padre (raíz) —' : '— No parent phase (top level) —'}</option>
                                   {availableTasks
                                     .filter(t => t.id !== task?.id)
                                     .map(t => (
@@ -1123,12 +1124,12 @@ export function TaskFormModal({
                                 <div className="flex items-center gap-2 mb-2">
                                   <span style={{ fontSize: 14 }}>📍</span>
                                   <span className="text-xs" style={{ color: themeColors.textTertiary }}>
-                                    Ubicación
+                                    {esForm ? 'Ubicación' : 'Location'}
                                   </span>
                                 </div>
                                 <input
                                   type="text"
-                                  placeholder="Ej: Zona Norte, Piso 3"
+                                  placeholder={esForm ? 'Ej.: Zona Norte, Piso 3' : 'E.g. North area, 3rd floor'}
                                   value={formData.location || ''}
                                   onChange={(e) => handleChange('location', e.target.value)}
                                   className="w-full px-3 py-2 rounded-lg text-sm transition-colors"
@@ -1144,12 +1145,12 @@ export function TaskFormModal({
                                 <div className="flex items-center gap-2 mb-2">
                                   <span style={{ fontSize: 14 }}>🔧</span>
                                   <span className="text-xs" style={{ color: themeColors.textTertiary }}>
-                                    Activo / Equipo
+                                    {esForm ? 'Activo / equipo' : 'Asset / equipment'}
                                   </span>
                                 </div>
                                 <input
                                   type="text"
-                                  placeholder="Ej: CMC-256"
+                                  placeholder={esForm ? 'Ej.: CMC-256' : 'E.g. CMC-256'}
                                   value={formData.equipment || ''}
                                   onChange={(e) => handleChange('equipment', e.target.value)}
                                   className="w-full px-3 py-2 rounded-lg text-sm transition-colors"
@@ -1240,7 +1241,7 @@ export function TaskFormModal({
                                 disabled={isLoading}
                               />
                               <MilestoneIcon className="w-4 h-4 text-yellow-500" />
-                              <span className="text-sm" style={{ color: themeColors.textPrimary }}>Marcar como hito</span>
+                              <span className="text-sm" style={{ color: themeColors.textPrimary }}>{esForm ? 'Marcar como hito' : 'Mark as milestone'}</span>
                             </label>
 
                             {/* Dependencies - v0.18.0: Same UI as TaskDetailModal */}
@@ -1248,7 +1249,7 @@ export function TaskFormModal({
                               <div className="relative">
                                 <label className="flex items-center gap-2 text-xs mb-2" style={{ color: themeColors.textTertiary }}>
                                   <Link2 className="w-3.5 h-3.5" />
-                                  Dependencias
+                                  {esForm ? 'Dependencias' : 'Dependencies'}
                                 </label>
 
                                 {/* Selected dependencies as chips */}
@@ -1299,7 +1300,7 @@ export function TaskFormModal({
                                   disabled={isLoading}
                                 >
                                   <Plus className="w-3.5 h-3.5" />
-                                  <span>Agregar dependencia</span>
+                                  <span>{esForm ? 'Agregar dependencia' : 'Add dependency'}</span>
                                 </button>
 
                                 {/* Dependencies Dropdown */}
@@ -1328,7 +1329,7 @@ export function TaskFormModal({
                                             type="text"
                                             value={dependencySearch}
                                             onChange={(e) => setDependencySearch(e.target.value)}
-                                            placeholder="Buscar tarea..."
+                                            placeholder={esForm ? 'Buscar tarea...' : 'Search task...'}
                                             className="w-full px-3 py-2 rounded-md text-xs outline-none"
                                             style={{
                                               backgroundColor: themeColors.bgSecondary,
@@ -1405,7 +1406,7 @@ export function TaskFormModal({
                                               className="px-3 py-4 text-xs text-center"
                                               style={{ color: themeColors.textTertiary }}
                                             >
-                                              No hay tareas disponibles
+                                              {esForm ? 'No hay tareas disponibles' : 'No tasks available'}
                                             </div>
                                           )}
                                         </div>
@@ -1435,7 +1436,7 @@ export function TaskFormModal({
                     onMouseLeave={(e) => (e.currentTarget.style.color = themeColors.textTertiary)}
                     disabled={isLoading}
                   >
-                    Cancelar
+                    {esForm ? 'Cancelar' : 'Cancel'}
                   </button>
                   <button
                     type="submit"
@@ -1454,7 +1455,7 @@ export function TaskFormModal({
                     {isLoading ? (
                       <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Guardando...</>
                     ) : (
-                      <>{mode === 'create' ? 'Crear Tarea' : 'Guardar'}</>
+                      <>{mode === 'create' ? (esForm ? 'Crear tarea' : 'Create task') : (esForm ? 'Guardar' : 'Save')}</>
                     )}
                   </button>
                 </div>

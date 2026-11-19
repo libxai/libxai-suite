@@ -10,6 +10,7 @@
  */
 
 import { useState, useRef, useEffect } from 'react';
+import { useGanttEnEspanol } from './GanttI18nContext';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Tag, Plus, X, Check, ChevronDown } from 'lucide-react';
@@ -61,6 +62,7 @@ export function TagPicker({
   disabled = false,
   compact: _compact = true,
 }: TagPickerProps) {
+  const esTag = useGanttEnEspanol(); // QA Asakaa E19
   void _compact; // Suppress unused variable warning
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -187,7 +189,7 @@ export function TagPicker({
             )}
           </div>
         ) : (
-          <span>Agregar</span>
+          <span>{esTag ? 'Agregar' : 'Add'}</span>
         )}
         <ChevronDown className="w-3 h-3" style={{ color: theme.textTertiary }} />
       </button>
@@ -220,7 +222,7 @@ export function TagPicker({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Buscar o crear etiqueta..."
+                placeholder={esTag ? 'Buscar o crear etiqueta...' : 'Search or create a tag...'}
                 className="w-full px-3 py-1.5 text-sm rounded-md outline-none"
                 style={{
                   backgroundColor: theme.bgSecondary,
