@@ -423,10 +423,10 @@ export function BarraV6(p: BarraV6Props) {
         ancho={264}
         boton={(abrir, abierto, ref) => (
           <button ref={ref} type="button" aria-haspopup="menu" aria-expanded={abierto} onClick={abrir} data-menu-vista-v6
-            aria-label={`${tx('Vista', 'View')}: ${densidad.etiqueta}`}
+            aria-label={`${tx('Opciones', 'Options')}: ${densidad.etiqueta}`}
             style={{ ...BOTON_BASE, padding: '0 8px 0 10px', border: 0, background: 'transparent', color: V.texto }}>
             <Rows3 className="w-[15px] h-[15px]" style={{ color: V.texto2 }} aria-hidden />
-            {tx('Vista', 'View')}
+            {tx('Opciones', 'Options')}
             <ChevronDown className="w-3.5 h-3.5" style={{ color: V.tenue }} aria-hidden />
           </button>
         )}

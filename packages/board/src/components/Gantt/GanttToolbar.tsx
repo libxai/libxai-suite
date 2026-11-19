@@ -1545,7 +1545,7 @@ function ViewOptionsDropdown({
         aria-expanded={isOpen}
       >
         <Eye className="w-4 h-4" />
-        <span>{isSpanish ? 'Vista' : 'View'}</span>
+        <span>{isSpanish ? 'Opciones' : 'Options'}</span>
         <ChevronDown className="w-3 h-3" />
       </motion.button>
 
