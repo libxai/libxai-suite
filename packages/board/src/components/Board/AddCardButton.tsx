@@ -68,7 +68,7 @@ export function AddCardButton({
   const isEs = locale === 'es'
 
   const t = {
-    buttonLabel: buttonLabel || (isEs ? 'Agregar Tarea' : 'Add Task'),
+    buttonLabel: buttonLabel || (isEs ? 'Agregar tarea' : 'Add task'), /* QA Latty BUG-26 · mayúscula sólo al principio, como el resto */
   }
 
   // Position the popover: below button if space, above if not

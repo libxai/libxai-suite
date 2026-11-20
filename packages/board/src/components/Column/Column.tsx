@@ -208,7 +208,7 @@ export const Column = memo<ColumnProps>(
               {(onColumnRename || onColumnDelete) && (
                 <ColumnMenu
                   columnTitle={column.title}
-                  onRename={(newTitle) => onColumnRename?.(column.id, newTitle)}
+                  onRename={onColumnRename ? (newTitle) => onColumnRename(column.id, newTitle) : undefined}
                   onDelete={onColumnDelete ? () => onColumnDelete(column.id) : undefined}
                   isDeletable={isDeletable}
                   locale={locale}
@@ -249,7 +249,7 @@ export const Column = memo<ColumnProps>(
                   renderEmptyState(column)
                 ) : (
                   <div className="asakaa-drop-zone asakaa-empty">
-                    <p>Drop cards here</p>
+                    <p>{locale === 'es' ? 'Suelta aquí las tarjetas' : 'Drop cards here' /* QA Latty BUG-26 */}</p>
                   </div>
                 )
               ) : useVirtualization ? (

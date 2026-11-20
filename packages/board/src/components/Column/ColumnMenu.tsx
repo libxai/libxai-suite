@@ -28,7 +28,8 @@ export interface ColumnMenuProps {
   /** Current column title */
   columnTitle: string
   /** Rename handler */
-  onRename: (newTitle: string) => void
+  /** QA Latty BUG-38 · sin él, «Renombrar» no se ofrece (antes salía y no guardaba nada) */
+  onRename?: (newTitle: string) => void
   /** v0.17.55: Delete handler - if provided, shows delete option */
   onDelete?: () => void
   /** v0.17.55: Whether column can be deleted (default columns cannot) */
@@ -120,7 +121,7 @@ export function ColumnMenu({
   const handleRenameSubmit = () => {
     const trimmedTitle = newTitle.trim()
     if (trimmedTitle && trimmedTitle !== columnTitle) {
-      onRename(trimmedTitle)
+      onRename?.(trimmedTitle)
     }
     setIsRenaming(false)
     setIsOpen(false)
@@ -197,6 +198,7 @@ export function ColumnMenu({
             ) : (
               // Menu options
               <div className="py-1">
+                {onRename && (
                 <button
                   onClick={handleRenameClick}
                   className="w-full px-4 py-2.5 flex items-center gap-3 text-sm hover:bg-[var(--pj-hover,rgba(255,255,255,0.1))] transition-all"
@@ -218,6 +220,7 @@ export function ColumnMenu({
                   </svg>
                   <span className="font-medium">{t.rename}</span>
                 </button>
+                )}
 
                 {/* v0.17.55: Delete option - only for custom columns */}
                 {isDeletable && onDelete && (
