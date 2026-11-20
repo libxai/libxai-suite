@@ -60,6 +60,8 @@ interface TaskGridProps {
   onTaskRename?: (taskId: string, newName: string) => void;
   /** La tarea recién insertada: su nombre se abre solo y, si se deja vacío, `onTareaNombrada(id, null)` la quita. */
   tareaPorNombrar?: string | null;
+  /** { 'AAAA-MM-DD': 'Nombre' }: los festivos del espacio, marcados en el calendario de Inicio/Fin. */
+  festivos?: Readonly<Record<string, string>>;
   onTareaNombrada?: (taskId: string, nombre: string | null) => void;
   /** 1.9.45 · fila «+ Add task» al final de la rejilla (la app decide qué hace). */
   addTaskRow?: { label: string; onClick: () => void };
@@ -167,6 +169,7 @@ export function TaskGrid({
   onTaskRename,
   tareaPorNombrar,
   onTareaNombrada,
+  festivos,
   addTaskRow,
   onCreateSubtask,
   onTaskDependencies,
@@ -1305,6 +1308,7 @@ export function TaskGrid({
                   <CalendarioDeFechaV4
                     valor={dateValue ? (typeof dateValue === 'string' ? new Date(dateValue) : dateValue) : null}
                     es={esGrid}
+                    festivos={festivos}
                     alElegir={(d) => {
                       onTaskUpdate?.(task.id, { [dateField]: d });
                       setDatePickerState(null);

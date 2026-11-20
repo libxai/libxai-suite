@@ -48,6 +48,15 @@ describe('el calendario de fecha del Gantt (v4)', () => {
     expect(document.querySelector('[data-iso="2026-12-07"]')?.getAttribute('tabindex')).toBe('0');
   });
 
+  it('los festivos del espacio salen rayados, con su nombre y la leyenda (Yesid 20-nov: el 16 de noviembre)', () => {
+    render(<CalendarioDeFechaV4 valor={new Date(2026, 10, 10)} es={false} hoy="2026-11-12" festivos={{ '2026-11-16': 'Independencia de Cartagena' }} alElegir={() => {}} alCerrar={() => {}} />);
+    const dia = document.querySelector('[data-iso="2026-11-16"]')!;
+    expect(dia.hasAttribute('data-festivo')).toBe(true);
+    expect(dia.getAttribute('aria-label')).toMatch(/holiday: Independencia de Cartagena$/);
+    expect(document.querySelector('[data-iso="2026-11-17"]')!.hasAttribute('data-festivo')).toBe(false);
+    expect(document.querySelector('[data-leyenda-festivos]')?.textContent).toMatch(/Holiday in the workspace calendar/);
+  });
+
   it('sin fecha, no ofrece «Quitar la fecha»', () => {
     render(<CalendarioDeFechaV4 valor={null} es alElegir={() => {}} alCerrar={() => {}} />);
     expect(screen.queryByRole('button', { name: 'Quitar la fecha' })).toBeNull();

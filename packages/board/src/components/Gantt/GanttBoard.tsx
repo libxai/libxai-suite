@@ -1627,6 +1627,15 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
      entra con su nombre abierto. Quien monta el Gantt la ve en onTasksChange sin nombre y no la guarda; al escribirlo
      se renombra y entonces sí. Si se deja vacía (Escape, Enter o salir del campo), se quita sin haberse guardado. */
   const [tareaPorNombrar, setTareaPorNombrar] = useState<string | null>(null);
+  /* Yesid (20-nov): «el festivo del 16 de noviembre no sale marcado» en el calendario de Inicio/Fin. Los mismos
+     festivos con los que el Gantt cuenta los días hábiles (workingDaysConfig). */
+  const festivosDelCalendario = useMemo<Record<string, string>>(() => {
+    const w = config?.workingDaysConfig;
+    const r: Record<string, string> = {};
+    for (const iso of w?.holidayDates ?? []) r[iso] = esVacio ? 'Festivo' : 'Holiday';
+    Object.assign(r, w?.holidayNames ?? {});
+    return r;
+  }, [config?.workingDaysConfig, esVacio]);
   /* Mientras se escribe su nombre, la fila no está en lo que manda la app (no la guarda): cuando la app vuelve a pasar
      sus tareas, se vuelve a poner en su sitio para no perderla a medio escribir. */
   const porNombrarRef = useRef<{ tarea: Task; junto: string; direccion: 'above' | 'below' } | null>(null);
@@ -2790,6 +2799,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         >
           <TaskGrid
             v6={!!disenoV6}
+            festivos={festivosDelCalendario}
             resumenV6={resumenV6}
             onMostrarOcultas={disenoV6 && completadasOcultas > 0 ? () => setHideCompleted(false) : undefined}
             onOcultarCompletadas={disenoV6 && !hideCompleted ? () => setHideCompleted(true) : undefined}

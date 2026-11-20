@@ -36,9 +36,11 @@ export interface CalendarioDeFechaV4Props {
   es: boolean;
   /** Para pruebas: el día de hoy («AAAA-MM-DD»). */
   hoy?: string;
+  /** { 'AAAA-MM-DD': 'Nombre' }: los festivos del espacio, rayados y con su nombre (Yesid 20-nov). */
+  festivos?: Readonly<Record<string, string>>;
 }
 
-export function CalendarioDeFechaV4({ valor, alElegir, alBorrar, alCerrar, es, hoy }: CalendarioDeFechaV4Props) {
+export function CalendarioDeFechaV4({ valor, alElegir, alBorrar, alCerrar, es, hoy, festivos = {} }: CalendarioDeFechaV4Props) {
   const hoyIso = hoy ?? isoLocal(new Date());
   const valorIso = valor && !isNaN(valor.getTime()) ? isoLocal(valor) : null;
   const [foco, setFoco] = useState<string>(valorIso ?? hoyIso);
@@ -88,7 +90,9 @@ export function CalendarioDeFechaV4({ valor, alElegir, alBorrar, alCerrar, es, h
               aria-pressed={iso === valorIso}
               aria-current={iso === hoyIso ? 'date' : undefined}
               data-finde={[0, 6].includes(deIso(iso).getDay()) ? '' : undefined}
-              aria-label={etiqueta(iso)}
+              data-festivo={festivos[iso] ? '' : undefined}
+              title={festivos[iso] || undefined}
+              aria-label={festivos[iso] ? `${etiqueta(iso)}, ${es ? 'festivo' : 'holiday'}: ${festivos[iso]}` : etiqueta(iso)}
               onClick={() => alElegir(deIso(iso))}
               onFocus={() => setFoco(iso)}
             >
@@ -96,11 +100,18 @@ export function CalendarioDeFechaV4({ valor, alElegir, alBorrar, alCerrar, es, h
             </button>
           ))}
       </div>
-      {alBorrar && (
+      {(alBorrar || Object.keys(festivos).length > 0) && (
         <div className="v4-fecha-pie">
-          <button type="button" className="v4-fecha-borrar" data-quitar-fecha="" onClick={alBorrar}>
-            {es ? 'Quitar la fecha' : 'Clear the date'}
-          </button>
+          {Object.keys(festivos).length > 0 && (
+            <span data-leyenda-festivos="" style={{ display: 'contents' }}>
+              <span className="v4-fecha-muestra" aria-hidden /> {es ? 'Festivo del calendario del espacio' : 'Holiday in the workspace calendar'}
+            </span>
+          )}
+          {alBorrar && (
+            <button type="button" className="v4-fecha-borrar" data-quitar-fecha="" onClick={alBorrar}>
+              {es ? 'Quitar la fecha' : 'Clear the date'}
+            </button>
+          )}
         </div>
       )}
     </div>
