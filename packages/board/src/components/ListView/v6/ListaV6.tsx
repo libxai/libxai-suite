@@ -116,7 +116,7 @@ interface Fila {
 
 const TXT = {
   es: {
-    tareas: 'tareas', tarea: 'tarea', ocultas: 'completadas ocultas', aLaVista: 'completadas a la vista', mostrar: 'Mostrar', ocultar: 'Ocultar',
+    tareas: 'tareas', tarea: 'tarea', ocultas: 'completadas ocultas', aLaVista: 'completadas a la vista', oculta1: 'completada oculta', aLaVista1: 'completada a la vista', mostrar: 'Mostrar', ocultar: 'Ocultar',
     vencidas: 'vencidas', vencida: 'vencida', ver: 'Ver', filtrando: 'Filtrando: vencidas', quitar: 'Quitar el filtro de vencidas',
     plegar: 'Plegar todo', desplegar: 'Desplegar todo', wbs: 'Tarea', resp: 'Responsable', estado: 'Estado', inicio: 'Inicio', fin: 'Fin',
     dur: 'Duración', avance: 'Avance', horas: 'Horas', costo: 'Costo', total: 'Total del proyecto', columnas: 'Ver u ocultar columnas',
@@ -161,7 +161,7 @@ const TXT = {
     fuera: (n: string, p: string) => `«${n}» sale de «${p}».`,
   },
   en: {
-    tareas: 'tasks', tarea: 'task', ocultas: 'completed hidden', aLaVista: 'completed shown', mostrar: 'Show', ocultar: 'Hide',
+    tareas: 'tasks', tarea: 'task', ocultas: 'completed hidden', aLaVista: 'completed shown', oculta1: 'completed hidden', aLaVista1: 'completed shown', mostrar: 'Show', ocultar: 'Hide',
     vencidas: 'overdue', vencida: 'overdue', ver: 'View', filtrando: 'Filtering: overdue', quitar: 'Clear the overdue filter',
     plegar: 'Collapse all', desplegar: 'Expand all', wbs: 'Task', resp: 'Owner', estado: 'Status', inicio: 'Start', fin: 'End',
     dur: 'Duration', avance: 'Progress', horas: 'Hours', costo: 'Cost', total: 'Project total', columnas: 'Show or hide columns',
@@ -802,7 +802,7 @@ export function ListaV6({
           {nHechas > 0 && (
             <>
               <span className="sep" aria-hidden="true">·</span>
-              <span className="mono">{nHechas}</span> {mostrarHechas ? x.aLaVista : x.ocultas}{' '}
+              <span className="mono">{nHechas}</span> {/* N14: «1 completada oculta», en singular */ nHechas === 1 ? (mostrarHechas ? x.aLaVista1 : x.oculta1) : (mostrarHechas ? x.aLaVista : x.ocultas)}{' '}
               <a href="#" onClick={(e) => { e.preventDefault(); cambiarVista({ ...vista, mostrarHechas: !mostrarHechas }); }}>{mostrarHechas ? x.ocultar : x.mostrar}</a>
             </>
           )}
