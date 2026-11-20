@@ -1568,7 +1568,9 @@ export function TaskBar({
       {/* Progress Percentage — Chronos V2: outside bar to the right (hidden for summary tasks) */}
       {!v6 && !isDragging && !task.segments && !isSummaryTask && task.progress > 0 && task.progress < 100 && (
         isChronos ? (
+          /* QA Latty BUG-18 · data-parte: la app lo corre cuando enciende el icono de vencida, que cae en el mismo sitio */
           <text
+            data-parte="porcentaje"
             x={displayX + displayWidth + 6}
             y={y + height / 2}
             dominantBaseline="middle"
