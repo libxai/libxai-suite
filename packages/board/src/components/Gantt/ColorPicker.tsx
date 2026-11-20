@@ -20,7 +20,8 @@ export const nombreDelColorDeTarea = (c: TaskColor, es: boolean): string => (es 
 
 // v0.17.112: Professional vibrant color palette - all colors are eye-catching
 export const TASK_COLORS: TaskColor[] = [
-  { name: 'Azul', nameEn: 'Blue', value: '#00E5CC', light: '#5AADFF' },
+  /* N30 (2ª revisión de Yesid): «el color Blue se ve turquesa». Es turquesa: se llama así. */
+  { name: 'Turquesa', nameEn: 'Turquoise', value: '#00E5CC', light: '#5AADFF' },
   { name: 'Púrpura', nameEn: 'Purple', value: '#A855F7', light: '#C084FC' },
   { name: 'Rosa', nameEn: 'Pink', value: '#EC4899', light: '#F472B6' },
   { name: 'Rojo', nameEn: 'Red', value: '#EF4444', light: '#F87171' },

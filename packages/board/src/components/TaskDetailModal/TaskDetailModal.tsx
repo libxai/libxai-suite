@@ -1839,7 +1839,7 @@ export function TaskDetailModal({
                         style={{ backgroundColor: selectedTask.color || '#6366F1' }}
                       />
                       <span className={cn("text-sm", isDark ? "text-white" : "text-gray-900")}>
-                        {TASK_COLORS.find(c => c.value === selectedTask.color)?.name || (locale === 'es' ? 'Azul' : 'Blue')}
+                        {TASK_COLORS.find(c => c.value === selectedTask.color)?.name || (locale === 'es' ? 'Turquesa' : 'Turquoise')}
                       </span>
                       <ChevronDown className={cn("w-3 h-3", isDark ? "text-[#6B7280]" : "text-gray-400")} />
                     </button>

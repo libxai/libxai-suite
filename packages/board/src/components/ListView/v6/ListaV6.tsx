@@ -132,7 +132,8 @@ const TXT = {
     vencidaEl: (f: string, n: number) => `${f}, vencida hace ${n} ${n === 1 ? 'día hábil' : 'días hábiles'}`,
     ayudaTit: 'Cómo leer la lista y atajos de teclado', comoLeer: 'Cómo leer la lista', teclado: 'Teclado',
     lVencida: 'Fecha de fin vencida', lRiesgo: 'Riesgo abierto; el color es su nivel', lSinEst: 'Tarea sin horas estimadas',
-    lGuia: 'Cada nivel de la jerarquía sangra 20 px; la guía une a las hijas con su padre',
+    /* N30: sin «20 px», un dato técnico que no le sirve a quien usa la Lista */
+    lGuia: 'Cada nivel de la jerarquía va un poco más adentro; la guía une a las hijas con su padre',
     kFilas: 'Cambiar de fila', kAbrir: 'Desplegar o plegar', kDetalle: 'Abrir el detalle', kHoras: 'Editar las horas registradas', kCerrar: 'Cerrar el panel',
     numeroAvance: 'Escriba un número entero entre 0 y 100.', fEstado: 'Estado', fRiesgo: 'Con riesgo abierto', quitarFiltro: 'Quitar el filtro',
     todas: 'Mostrar todas', ayuda: 'Flechas arriba y abajo: cambiar de fila. Flecha derecha: desplegar; flecha izquierda: plegar o ir a la fila padre. Enter: abrir el detalle.',
@@ -176,7 +177,7 @@ const TXT = {
     vencidaEl: (f: string, n: number) => `${f}, overdue by ${n} working ${n === 1 ? 'day' : 'days'}`,
     ayudaTit: 'How to read the list and keyboard shortcuts', comoLeer: 'How to read the list', teclado: 'Keyboard',
     lVencida: 'Overdue end date', lRiesgo: 'Open risk; the colour is its level', lSinEst: 'Task without estimated hours',
-    lGuia: 'Each hierarchy level is indented 20 px; the guide joins the subtasks with their parent',
+    lGuia: 'Each hierarchy level sits a little further in; the guide joins the subtasks with their parent',
     kFilas: 'Change row', kAbrir: 'Expand or collapse', kDetalle: 'Open the details', kHoras: 'Edit the logged hours', kCerrar: 'Close the panel',
     numeroAvance: 'Type a whole number between 0 and 100.', fEstado: 'Status', fRiesgo: 'With an open risk', quitarFiltro: 'Remove the filter',
     todas: 'Show all', ayuda: 'Up and down arrows: change row. Right arrow: expand; left arrow: collapse or go to the parent row. Enter: open the details.',
