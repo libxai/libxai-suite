@@ -127,6 +127,11 @@ export interface TaskFormModalProps {
   attachments?: Attachment[]
   onUploadAttachments?: (taskId: string, files: File[]) => Promise<void> | void
   onDeleteAttachment?: (attachmentId: string) => void
+  /**
+   * QA Latty BUG-33 · «Ubicación» y «Activo / equipo» se pedían siempre y ninguna app los guardaba: lo escrito se
+   * perdía. Sólo salen si quien usa el modal los guarda.
+   */
+  mostrarUbicacionYActivo?: boolean
   /** v2.2.0: Pre-select status when creating from a specific column */
   defaultStatus?: string
 }
@@ -154,6 +159,7 @@ export function TaskFormModal({
   onCreateTag,
   attachments = [],
   onUploadAttachments,
+  mostrarUbicacionYActivo = false,
   onDeleteAttachment,
   defaultStatus,
 }: TaskFormModalProps) {
@@ -1123,7 +1129,8 @@ export function TaskFormModal({
                               </div>
                             )}
 
-                            {/* v2.3.0: Location & Equipment fields */}
+                            {/* v2.3.0: Location & Equipment fields · QA Latty BUG-33: sólo si se guardan */}
+                            {mostrarUbicacionYActivo && (
                             <div className="grid grid-cols-2 gap-3">
                               <div>
                                 <div className="flex items-center gap-2 mb-2">
@@ -1168,6 +1175,7 @@ export function TaskFormModal({
                                 />
                               </div>
                             </div>
+                            )}
 
                             {/* v0.17.227: Attachments Section - moved here for cleaner form */}
                             {(onUploadAttachments || attachments.length > 0 || mode === 'create') && (
