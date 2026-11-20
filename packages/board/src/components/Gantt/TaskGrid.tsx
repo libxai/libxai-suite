@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useContext, useMemo } from 'react';
 import { useGanttEnEspanol } from './GanttI18nContext';
 import { createPortal } from 'react-dom';
-import { ChevronDown, ChevronRight, ChevronLeft, Plus, Edit3, GripVertical, Calendar, Keyboard, ChevronsDownUp, User as IconoPersona } from 'lucide-react';
+import { CalendarioDeFechaV4 } from './CalendarioDeFechaV4';
+import { ChevronDown, ChevronRight, Plus, Edit3, GripVertical, Calendar, Keyboard, ChevronsDownUp, User as IconoPersona } from 'lucide-react';
 import { Lock } from 'lucide-react';
 import { MIN_COMIENZO, partirNombre, prefijosConHermanas, rutaDelNombre } from './nombreLargo';
 import { PuntoDeRiesgo } from '../ListView/v6/PuntoDeRiesgo';
@@ -1251,140 +1252,39 @@ export function TaskGrid({
               {isParentTask && !v6 && <span style={{ fontSize: '9px', color: theme.textTertiary, marginLeft: '2px' }}>▼</span>}
             </button>
 
-            {/* Date Picker Popover - Using Portal to render outside overflow:hidden containers */}
+            {/* Yesid (19-nov), «la v4 pide uno solo»: el calendario de la v4 (CalendarioDeFechaV4, mismas clases que el de la app).
+                En un portal: fuera de los contenedores con overflow:hidden. */}
             {isDatePickerOpen && typeof document !== 'undefined' && createPortal(
               <>
                 <div className="fixed inset-0 z-[9998]" onClick={() => setDatePickerState(null)} />
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="fixed z-[9999] rounded-xl shadow-2xl overflow-visible flex"
+                <div
+                  className="v4-pop v4-scope"
+                  role="dialog"
+                  aria-label={`${isStartDate ? (esGrid ? 'Inicio' : 'Start') : (esGrid ? 'Fin' : 'End')} · ${task.name}`}
+                  data-calendario-del-gantt={dateField}
                   style={{
-                    backgroundColor: theme.bgPrimary,
-                    border: `1px solid ${theme.border}`,
-                    top: datePickerState?.position.top,
-                    left: datePickerState?.position.left,
+                    position: 'fixed',
+                    zIndex: 9999,
+                    padding: 0,
+                    top: Math.min(datePickerState?.position.top ?? 0, window.innerHeight - 320),
+                    left: Math.max(8, Math.min(datePickerState?.position.left ?? 0, window.innerWidth - 268)),
                   }}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  {/* Quick Options */}
-                  <div className="w-36 py-2" style={{ borderRight: `1px solid ${theme.border}` }}>
-                    {(() => {
-                      const today = new Date();
-                      const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
-                      const nextWeek = new Date(today); nextWeek.setDate(today.getDate() + 7);
-                      const twoWeeks = new Date(today); twoWeeks.setDate(today.getDate() + 14);
-
-                      /* E19 (Yesid, 19-nov): el selector de «Start»/«End» salía en español con la app en inglés */
-                      const options = [
-                        { label: esGrid ? 'Hoy' : 'Today', date: today },
-                        { label: esGrid ? 'Mañana' : 'Tomorrow', date: tomorrow },
-                        { label: esGrid ? 'Próxima semana' : 'Next week', date: nextWeek },
-                        { label: esGrid ? '2 semanas' : 'In 2 weeks', date: twoWeeks },
-                      ];
-
-                      return options.map((opt, i) => (
-                        <button
-                          key={i}
-                          type="button"
-                          className="w-full px-3 py-1.5 text-xs text-left transition-colors"
-                          style={{ color: theme.textPrimary }}
-                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = theme.hoverBg || 'rgba(255,255,255,0.05)')}
-                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                          onClick={() => {
-                            onTaskUpdate?.(task.id, { [dateField]: opt.date });
-                            setDatePickerState(null);
-                          }}
-                        >
-                          {opt.label}
-                        </button>
-                      ));
-                    })()}
-                    <div style={{ borderTop: `1px solid ${theme.border}`, margin: '0.25rem 0' }} />
-                    <button
-                      type="button"
-                      className="w-full px-3 py-1.5 text-xs text-left transition-colors"
-                      style={{ color: '#EF4444' }}
-                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = theme.hoverBg || 'rgba(255,255,255,0.05)')}
-                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                      onClick={() => {
-                        onTaskUpdate?.(task.id, { [dateField]: undefined });
-                        setDatePickerState(null);
-                      }}
-                    >
-                      {esGrid ? 'Borrar' : 'Clear'}
-                    </button>
-                  </div>
-
-                  {/* Calendar */}
-                  <div className="p-2">
-                    <div className="flex items-center justify-between mb-2">
-                      <button
-                        type="button"
-                        onClick={() => setDatePickerState(prev => prev ? { ...prev, month: new Date(prev.month.getFullYear(), prev.month.getMonth() - 1) } : null)}
-                        className="p-1 rounded hover:bg-white/10"
-                      >
-                        <ChevronLeft className="w-3.5 h-3.5" style={{ color: theme.textSecondary }} />
-                      </button>
-                      <span className="text-xs font-medium" style={{ color: theme.textPrimary }}>
-                        {datePickerState?.month.toLocaleDateString(esGrid ? 'es-ES' : 'en-US', { month: 'long', year: 'numeric' })}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setDatePickerState(prev => prev ? { ...prev, month: new Date(prev.month.getFullYear(), prev.month.getMonth() + 1) } : null)}
-                        className="p-1 rounded hover:bg-white/10"
-                      >
-                        <ChevronRight className="w-3.5 h-3.5" style={{ color: theme.textSecondary }} />
-                      </button>
-                    </div>
-                    <div className="grid grid-cols-7 gap-0.5 mb-1">
-                      {/* QA Asakaa 2.4.5: semana en LUNES */}{(esGrid ? ['L', 'M', 'X', 'J', 'V', 'S', 'D'] : ['M', 'T', 'W', 'T', 'F', 'S', 'S']).map((d, i) => (
-                        <div key={i} className="w-6 h-6 flex items-center justify-center text-[10px]" style={{ color: theme.textTertiary }}>{d}</div>
-                      ))}
-                    </div>
-                    <div className="grid grid-cols-7 gap-0.5">
-                      {(() => {
-                        const month = datePickerState?.month || new Date();
-                        const year = month.getFullYear(), m = month.getMonth();
-                        const firstDay = (new Date(year, m, 1).getDay() + 6) % 7; // lunes = 0
-                        const daysInMonth = new Date(year, m + 1, 0).getDate();
-                        const today = new Date();
-                        const days: { day: number; date: Date; isCurrentMonth: boolean }[] = [];
-
-                        for (let i = firstDay - 1; i >= 0; i--) days.push({ day: new Date(year, m, -i).getDate(), date: new Date(year, m - 1, new Date(year, m, -i).getDate()), isCurrentMonth: false });
-                        for (let i = 1; i <= daysInMonth; i++) days.push({ day: i, date: new Date(year, m, i), isCurrentMonth: true });
-                        const remaining = 42 - days.length;
-                        for (let i = 1; i <= remaining; i++) days.push({ day: i, date: new Date(year, m + 1, i), isCurrentMonth: false });
-
-                        return days.map((d, i) => {
-                          const isToday = d.date.toDateString() === today.toDateString();
-                          const currentDateValue = dateValue ? (typeof dateValue === 'string' ? new Date(dateValue) : dateValue) : null;
-                          const isSelected = currentDateValue?.toDateString() === d.date.toDateString();
-
-                          return (
-                            <button
-                              key={i}
-                              type="button"
-                              className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] transition-colors"
-                              style={{
-                                color: !d.isCurrentMonth ? theme.textTertiary : isSelected ? '#FFF' : theme.textPrimary,
-                                backgroundColor: isSelected ? '#00E5CC' : 'transparent',
-                                boxShadow: isToday && !isSelected ? 'inset 0 0 0 1px #00E5CC' : 'none',
-                              }}
-                              onClick={() => {
-                                onTaskUpdate?.(task.id, { [dateField]: d.date });
-                                setDatePickerState(null);
-                              }}
-                            >
-                              {d.day}
-                            </button>
-                          );
-                        });
-                      })()}
-                    </div>
-                  </div>
-                </motion.div>
+                  <CalendarioDeFechaV4
+                    valor={dateValue ? (typeof dateValue === 'string' ? new Date(dateValue) : dateValue) : null}
+                    es={esGrid}
+                    alElegir={(d) => {
+                      onTaskUpdate?.(task.id, { [dateField]: d });
+                      setDatePickerState(null);
+                    }}
+                    alBorrar={dateValue ? () => {
+                      onTaskUpdate?.(task.id, { [dateField]: undefined });
+                      setDatePickerState(null);
+                    } : undefined}
+                    alCerrar={() => setDatePickerState(null)}
+                  />
+                </div>
               </>,
               document.body
             )}
