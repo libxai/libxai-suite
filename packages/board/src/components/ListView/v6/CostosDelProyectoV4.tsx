@@ -65,7 +65,7 @@ const TXT = {
     titulo: 'Project costs', salud: 'Financial health', porPersona: 'Cost per person', horasPorPersona: 'Hours per person', en: 'in',
     real: 'actual', de: 'of', planeado: 'planned', margenPrevisto: 'forecast margin',
     personas: (n: number) => `${n} ${n === 1 ? 'person' : 'people'} with open tasks`,
-    bloqueado: 'Visible to the manager and Finance', ne: 'Not evaluable', porEscalas: 'because rates are on different scales',
+    bloqueado: 'Visible to the manager and Finance', ne: 'Not assessable', /* N14: la misma palabra que la cabecera */ porEscalas: 'because rates are on different scales',
     ofertado: 'Offered value', costoPlaneado: 'Planned cost', costoReal: 'Actual cost', delPlaneado: (p: number) => `${p}% of planned`,
     margenPlaneado: 'Planned margin', margenPrev: 'Forecast margin', desviacion: 'Hours variance',
     masHoras: 'more hours than earned', menosHoras: 'fewer hours than earned',
