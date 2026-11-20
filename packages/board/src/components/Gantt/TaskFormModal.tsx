@@ -49,44 +49,25 @@ function formatMinutesToDisplay(minutes: number): string {
   return `${hours}h ${remainingMinutes}m`;
 }
 
-function parseTimeInput(input: string): number | null {
+/*
+ * QA Latty BUG-33 · «2h 30m», «45m», «2.5» y «2,5» tienen que entrar. El lector era SIN anclas y sin decimales: «2.5» se
+ * leía como 2 h y «abc 2h» como 2 h. Ahora la cadena entera tiene que ser una de estas formas (un número solo = horas,
+ * 1 d = 8 h); si no, null y el campo lo dice.
+ */
+export function parseTimeInput(input: string): number | null {
   if (!input || input.trim() === '') return null;
-
-  const normalized = input.trim().toLowerCase();
-
-  // Pattern: "2h 30m" or "2h30m"
-  const hoursMinutesMatch = normalized.match(/(\d+)h\s*(\d+)m/);
-  if (hoursMinutesMatch && hoursMinutesMatch[1] && hoursMinutesMatch[2]) {
-    const hours = parseInt(hoursMinutesMatch[1], 10);
-    const minutes = parseInt(hoursMinutesMatch[2], 10);
-    return hours * 60 + minutes;
-  }
-
-  // Pattern: "2h"
-  const hoursMatch = normalized.match(/(\d+)h/);
-  if (hoursMatch && hoursMatch[1]) {
-    return parseInt(hoursMatch[1], 10) * 60;
-  }
-
-  // Pattern: "30m"
-  const minutesMatch = normalized.match(/(\d+)m/);
-  if (minutesMatch && minutesMatch[1]) {
-    return parseInt(minutesMatch[1], 10);
-  }
-
-  // Pattern: "1d" (1 day = 8 hours = 480 minutes)
-  const daysMatch = normalized.match(/(\d+)d/);
-  if (daysMatch && daysMatch[1]) {
-    return parseInt(daysMatch[1], 10) * 480;
-  }
-
-  // Pattern: just a number (assume HOURS, not minutes)
-  // e.g., "100" = 100 hours = 6000 minutes
-  const numberMatch = normalized.match(/^(\d+)$/);
-  if (numberMatch && numberMatch[1]) {
-    return parseInt(numberMatch[1], 10) * 60;
-  }
-
+  const t = input.trim().toLowerCase().replace(/,/g, '.');
+  const NUM = '(\\d+(?:\\.\\d+)?)';
+  let m = t.match(new RegExp('^' + NUM + '\\s*h\\s*(\\d+)\\s*(?:m|min)?$'));
+  if (m) return Math.round(parseFloat(m[1]!) * 60) + parseInt(m[2]!, 10);
+  m = t.match(new RegExp('^' + NUM + '\\s*h$'));
+  if (m) return Math.round(parseFloat(m[1]!) * 60);
+  m = t.match(/^(\d+)\s*(?:m|min)$/);
+  if (m) return parseInt(m[1]!, 10);
+  m = t.match(new RegExp('^' + NUM + '\\s*d$'));
+  if (m) return Math.round(parseFloat(m[1]!) * 480);
+  m = t.match(new RegExp('^' + NUM + '$'));
+  if (m) return Math.round(parseFloat(m[1]!) * 60);
   return null;
 }
 
@@ -237,6 +218,12 @@ export function TaskFormModal({
   const colorRef = useRef<HTMLDivElement>(null)
   const dateRowRef = useRef<HTMLDivElement>(null)
 
+  /* QA Latty BUG-33 · el texto de «Horas estimadas» mientras se escribe, y si no se entiende */
+
+  const [textoHoras, setTextoHoras] = useState<string | null>(null)
+
+  const [horasIlegibles, setHorasIlegibles] = useState(false)
+
   const [formData, setFormData] = useState<TaskFormData>({
     name: '',
     description: '',
@@ -257,6 +244,7 @@ export function TaskFormModal({
 
   // Initialize form with task data
   useEffect(() => {
+    setTextoHoras(null); setHorasIlegibles(false) // QA Latty BUG-33 · otra tarea, otro texto
     if (task) {
       setFormData({
         name: task.name,
@@ -1069,13 +1057,25 @@ export function TaskFormModal({
                                   {esForm ? 'Horas estimadas' : 'Estimated hours'}
                                 </span>
                               </div>
+                              {/* QA Latty BUG-33 · reformateaba en cada tecla («4» → «4h») y no dejaba escribir «2h 30m»: el
+                                  texto es libre mientras se escribe, se formatea al salir, y lo que no se entiende se dice. */}
                               <input
                                 type="text"
-                                placeholder={esForm ? 'Ej.: 8 (=8 h), 2h 30m, 45m, 1d (1 día = 8 h)' : 'E.g. 8 (=8 h), 2h 30m, 45m, 1d (1 day = 8 h)'}
-                                value={formData.effortMinutes ? formatMinutesToDisplay(formData.effortMinutes) : ''}
+                                placeholder={esForm ? 'Ej.: 8 (=8 h), 2h 30m, 45m, 2,5, 1d (1 día = 8 h)' : 'E.g. 8 (=8 h), 2h 30m, 45m, 2.5, 1d (1 day = 8 h)'}
+                                value={textoHoras ?? (formData.effortMinutes ? formatMinutesToDisplay(formData.effortMinutes) : '')}
+                                aria-invalid={horasIlegibles || undefined}
                                 onChange={(e) => {
-                                  const minutes = parseTimeInput(e.target.value);
-                                  handleChange('effortMinutes', minutes);
+                                  const texto = e.target.value;
+                                  setTextoHoras(texto);
+                                  const minutes = parseTimeInput(texto);
+                                  if (minutes != null || texto.trim() === '') { handleChange('effortMinutes', minutes); setHorasIlegibles(false); }
+                                }}
+                                onBlur={() => {
+                                  if (textoHoras == null) return;
+                                  const minutes = parseTimeInput(textoHoras);
+                                  if (minutes == null && textoHoras.trim() !== '') { setHorasIlegibles(true); return; }
+                                  setHorasIlegibles(false);
+                                  setTextoHoras(null);
                                 }}
                                 className="w-full px-3 py-2 rounded-lg text-sm transition-colors"
                                 style={{
@@ -1084,6 +1084,11 @@ export function TaskFormModal({
                                   border: `1px solid ${themeColors.borderLight}`,
                                 }}
                               />
+                              {horasIlegibles && (
+                                <p role="alert" className="text-xs mt-1" style={{ color: '#DC2626' }}>
+                                  {esForm ? 'No se entiende: escribe 8, 2h 30m, 45m, 2,5 o 1d' : 'Not understood: type 8, 2h 30m, 45m, 2.5 or 1d'}
+                                </p>
+                              )}
                             </div>
 
                             {/* v2.3.0: Parent Phase dropdown */}
