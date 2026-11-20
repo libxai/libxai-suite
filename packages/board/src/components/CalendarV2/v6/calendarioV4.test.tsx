@@ -203,7 +203,7 @@ describe('Calendario v4 · la ficha y el pie', () => {
     const onVerRecursos = vi.fn();
     const { container } = montar({ onVerRecursos });
     const pie = container.querySelector('details.res') as HTMLElement;
-    expect(pie.querySelector('summary')!.textContent).toMatch(/^Horas y costo planeados por persona· 3 personas este mes · [\d,]+ h$/);
+    expect(pie.querySelector('summary')!.textContent).toMatch(/^Horas y costo planeados por persona· 2 personas este mes · [\d,]+ h$/); // N14 · «Sin responsable» ya no cuenta como persona
     expect([...pie.querySelectorAll('thead th')].map((t) => t.textContent)).toEqual(['Persona', 'Tareas', 'Horas planeadas', 'Costo planeado']);
     expect(pie.querySelector('tbody tr:last-child td')!.textContent).toBe('+Sin responsable');
     fireEvent.click(within(pie).getByRole('link', { name: 'Ver la carga de cada persona en Recursos' }));
