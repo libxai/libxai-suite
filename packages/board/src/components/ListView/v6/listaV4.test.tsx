@@ -263,6 +263,8 @@ describe('E15 (Yesid, 17-nov) · menú contextual y «Añadir tarea» en la tabl
     fireEvent.keyDown(caja, { key: 'Enter' });
     await waitFor(() => expect(onCrearTarea).toHaveBeenCalledWith('Pruebas de carga', null));
     await waitFor(() => expect((screen.getByRole('textbox', { name: 'Añadir tarea' }) as HTMLInputElement).value).toBe(''));
+    /* N26 (2ª revisión de Yesid): tras Enter el cursor sigue en el campo, listo para la siguiente */
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('textbox', { name: 'Añadir tarea' })));
     fireEvent.keyDown(screen.getByRole('textbox', { name: 'Añadir tarea' }), { key: 'Escape' });
     expect(container.querySelector('.add-row.nueva')).toBeNull();
   });

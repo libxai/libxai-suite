@@ -607,6 +607,10 @@ export function ListaV6({
     setTextoNueva('');
     setNueva({ padre });
   };
+  /* N26 (2ª revisión de Yesid): «después de Enter el campo pierde el cursor, aunque el texto dice "deja escribir otra", y
+     Esc no lo cierra». El campo ya no se apaga mientras se crea (readOnly en vez de disabled: no suelta el foco) y vuelve a
+     tener el cursor al terminar; así Esc también le llega. */
+  const campoNueva = useRef<HTMLInputElement | null>(null);
   const crearNueva = async () => {
     const nombre = textoNueva.trim();
     if (!nombre || !nueva || !onCrearTarea || creando) return;
@@ -614,7 +618,10 @@ export function ListaV6({
     try {
       const bien = await onCrearTarea(nombre, nueva.padre);
       if (bien !== false) setTextoNueva('');
-    } finally { setCreando(false); }
+    } finally {
+      setCreando(false);
+      requestAnimationFrame(() => campoNueva.current?.focus());
+    }
   };
   /* la fila de escritura va detrás de la última fila visible de su padre */
   const trasDe = useMemo(() => {
@@ -754,7 +761,7 @@ export function ListaV6({
           <div className="cell">
             {nivel > 0 && <span className="gd" style={{ ['--n' as string]: nivel }} aria-hidden="true" />}
             <span className="ind" />
-            <input autoFocus type="text" value={textoNueva} disabled={creando} aria-label={etiqueta} placeholder={x.nombreNueva}
+            <input ref={campoNueva} autoFocus type="text" value={textoNueva} readOnly={creando} aria-busy={creando || undefined} aria-label={etiqueta} placeholder={x.nombreNueva}
               title={x.ayudaNueva} maxLength={500}
               onChange={(e) => setTextoNueva(e.target.value)}
               onKeyDown={(e) => {
