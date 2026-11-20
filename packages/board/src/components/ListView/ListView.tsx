@@ -2826,8 +2826,11 @@ export function ListView({
                                 Parent (phase/folder) rows: 14px / 700 / #FFFFFF (dark) or #111827 (light)
                                 Child (task) rows: 13px / 400 / #D1D5DB (dark) or #4B5563 (light)
                                 This lets the eye group phases vs tasks at a glance. */}
+                            {/* QA Latty BUG-40 · en la fila compacta el nombre cedía hasta 0 px y la etiqueta (que no cedía) parecía
+                                ocupar su sitio: el nombre conserva un mínimo y es la etiqueta la que se recorta. */}
                             <span className={cn(
                               "truncate",
+                              compacta && "min-w-[5rem] flex-1",
                               task.hasChildren ? "text-[14px] font-bold" : "text-[13px] font-normal",
                               task.progress === 100
                                 ? (config.completedStyle === 'dim'
@@ -2845,7 +2848,7 @@ export function ListView({
                             {/* Line 3: First tag badge */}
                             {task.tags?.[0] && (
                               <span
-                                className={cn("text-[9px] font-mono uppercase tracking-wide px-1.5 py-0.5 rounded w-fit", compacta && "flex-shrink-0")}
+                                className={cn("text-[9px] font-mono uppercase tracking-wide px-1.5 py-0.5 rounded w-fit", compacta && "min-w-0 max-w-[40%] truncate")}
                                 style={{
                                   backgroundColor: `${task.tags[0].color}20`,
                                   color: task.tags[0].color,
