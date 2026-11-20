@@ -1207,7 +1207,7 @@ export function TaskGrid({
           if (!date) return v6 ? '—' : '-';
           const d = typeof date === 'string' ? new Date(date) : date;
           if (v6) return fechaCorta(d, esGrid ? 'es' : 'en'); /* R6: con su año si no es el actual */
-          return d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+          return d.toLocaleDateString(esGrid ? 'es-ES' : 'en-US', { day: '2-digit', month: '2-digit', year: 'numeric' });
         };
 
         return (
@@ -1230,7 +1230,7 @@ export function TaskGrid({
                 opacity: isParentTask ? 0.5 : 1,
                 cursor: isParentTask ? 'default' : 'pointer',
               }}
-              title={isParentTask ? 'Auto-calculated from subtasks' : undefined}
+              title={isParentTask ? (esGrid ? 'Se calcula con sus subtareas' : 'Auto-calculated from subtasks') : undefined}
               onClick={(e) => {
                 if (isParentTask) return; // Parent dates are read-only (roll-up)
                 if (isDatePickerOpen) {
@@ -1276,11 +1276,12 @@ export function TaskGrid({
                       const nextWeek = new Date(today); nextWeek.setDate(today.getDate() + 7);
                       const twoWeeks = new Date(today); twoWeeks.setDate(today.getDate() + 14);
 
+                      /* E19 (Yesid, 19-nov): el selector de «Start»/«End» salía en español con la app en inglés */
                       const options = [
-                        { label: 'Hoy', date: today },
-                        { label: 'Mañana', date: tomorrow },
-                        { label: 'Próxima semana', date: nextWeek },
-                        { label: '2 semanas', date: twoWeeks },
+                        { label: esGrid ? 'Hoy' : 'Today', date: today },
+                        { label: esGrid ? 'Mañana' : 'Tomorrow', date: tomorrow },
+                        { label: esGrid ? 'Próxima semana' : 'Next week', date: nextWeek },
+                        { label: esGrid ? '2 semanas' : 'In 2 weeks', date: twoWeeks },
                       ];
 
                       return options.map((opt, i) => (
@@ -1312,7 +1313,7 @@ export function TaskGrid({
                         setDatePickerState(null);
                       }}
                     >
-                      Borrar
+                      {esGrid ? 'Borrar' : 'Clear'}
                     </button>
                   </div>
 
@@ -1327,7 +1328,7 @@ export function TaskGrid({
                         <ChevronLeft className="w-3.5 h-3.5" style={{ color: theme.textSecondary }} />
                       </button>
                       <span className="text-xs font-medium" style={{ color: theme.textPrimary }}>
-                        {datePickerState?.month.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}
+                        {datePickerState?.month.toLocaleDateString(esGrid ? 'es-ES' : 'en-US', { month: 'long', year: 'numeric' })}
                       </span>
                       <button
                         type="button"
@@ -1338,7 +1339,7 @@ export function TaskGrid({
                       </button>
                     </div>
                     <div className="grid grid-cols-7 gap-0.5 mb-1">
-                      {/* QA Asakaa 2.4.5: semana en LUNES */}{['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((d, i) => (
+                      {/* QA Asakaa 2.4.5: semana en LUNES */}{(esGrid ? ['L', 'M', 'X', 'J', 'V', 'S', 'D'] : ['M', 'T', 'W', 'T', 'F', 'S', 'S']).map((d, i) => (
                         <div key={i} className="w-6 h-6 flex items-center justify-center text-[10px]" style={{ color: theme.textTertiary }}>{d}</div>
                       ))}
                     </div>
@@ -1941,7 +1942,7 @@ export function TaskGrid({
       {/* Task Rows Container - v0.17.222: Now uses real scroll instead of CSS transform */}
       {/* minHeight ensures scroll area matches Timeline for proper sync */}
       <div className="gantt-taskgrid-content" data-grid-body style={{ minHeight: contentHeight }}
-        role="treegrid" aria-label={esGrid ? 'Tareas del cronograma' : 'Schedule tasks'} aria-rowcount={flatTasks.length}>
+        role="treegrid" aria-label={esGrid ? 'Tareas del Gantt' : 'Gantt tasks'} aria-rowcount={flatTasks.length}>
       {/* Gantt ronda 2 (Yesid) · R1 · VIRTUALIZAR: solo las filas de la franja visible (y un margen); arriba y abajo, su alto. */}
       {filasVisibles && filasVisibles.desde > 0 && <div aria-hidden data-relleno-arriba style={{ height: filasVisibles.desde * ROW_HEIGHT }} />}
       {flatTasks.map(({ task, level }, index) => {

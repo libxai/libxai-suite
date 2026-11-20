@@ -2212,7 +2212,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
       imagen: lienzo,
       cabeceraPx: 60 * escalaCaptura,
       filaPx: rowHeight * escalaCaptura,
-      titulo: projectName || (esVacio ? 'Cronograma' : 'Schedule'),
+      titulo: projectName || 'Gantt',
       fecha: fechaCorta(hoy, esVacio ? 'es' : 'en'),
       leyenda: [
         { texto: esVacio ? 'En curso' : 'In progress', color: '#0FA392' },
@@ -2738,7 +2738,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
                 {esVacio ? 'Este proyecto aún no tiene tareas' : 'This project has no tasks yet'}
               </div>
               <div style={{ fontSize: 12.5, color: theme.textSecondary, marginBottom: 16, lineHeight: 1.45 }}>
-                {esVacio ? 'Crea la primera y el cronograma empezará a dibujarse desde hoy.' : 'Create the first one and the timeline starts from today.'}
+                {esVacio ? 'Cree la primera y el Gantt empezará a dibujarse desde hoy.' : 'Create the first one and the Gantt starts from today.'}
               </div>
               <button
                 type="button"
@@ -2838,7 +2838,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
           // a11y: la zona con scroll se alcanza con el teclado (flechas para moverse por el cronograma)
           tabIndex={0}
           role="region"
-          aria-label={esVacio ? 'Cronograma' : 'Timeline'}
+          aria-label={esVacio ? 'Diagrama de Gantt' : 'Gantt chart'}
           style={{
             minHeight: 0,
             overflowX: 'auto',
