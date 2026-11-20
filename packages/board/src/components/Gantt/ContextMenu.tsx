@@ -31,6 +31,8 @@ export interface ContextMenuItem {
   onClick: () => void;
   separator?: boolean;
   disabled?: boolean;
+  /** QA Latty BUG-41 · por qué está deshabilitada: se lee debajo de la opción (un `title` en un botón deshabilitado no sale en todos los navegadores) */
+  motivo?: string;
   submenu?: ContextMenuItem[];
 }
 
@@ -185,7 +187,12 @@ export function ContextMenu({ isOpen, x, y, items, onClose, theme }: ContextMenu
                     {item.icon}
                   </span>
                 )}
-                <span className="flex-1">{item.label}</span>
+                <span className="flex-1 flex flex-col">
+                  <span>{item.label}</span>
+                  {item.disabled && item.motivo && (
+                    <span data-motivo-deshabilitada className="text-[11px] leading-tight" style={{ color: theme.textTertiary }}>{item.motivo}</span>
+                  )}
+                </span>
                 {item.submenu && (
                   <ChevronRight className="w-3.5 h-3.5" style={{ color: theme.textTertiary }} />
                 )}

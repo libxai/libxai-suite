@@ -104,6 +104,8 @@ interface GanttToolbarProps {
   onCopySnapshotLink?: () => void;
   // v5.1.0: Disable CPM toggle when no dependencies
   hasDependencies?: boolean;
+  /** QA Latty BUG-41 · sin ninguna tarea con línea base, «Líneas base» se apaga y dice por qué */
+  hasBaseline?: boolean;
 }
 
 // Export Dropdown Component
@@ -1460,6 +1462,8 @@ interface ViewOptionsDropdownProps {
   onRowDensityChange: (density: RowDensity) => void;
   // v5.1.0: Disable critical path toggle when no dependencies exist
   hasDependencies?: boolean;
+  /** QA Latty BUG-41 · sin ninguna tarea con línea base, «Líneas base» se apaga y dice por qué */
+  hasBaseline?: boolean;
 }
 
 /** QA Asakaa 2.3.2 · lo que significa cada marca del Gantt (mismos colores que el dibujo). */
@@ -1484,6 +1488,7 @@ function ViewOptionsDropdown({
   rowDensity,
   onRowDensityChange,
   hasDependencies = true,
+  hasBaseline = true,
 }: ViewOptionsDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -1516,7 +1521,7 @@ function ViewOptionsDropdown({
   const isSpanish = t.toolbar.visibility === 'Visibilidad';
   const toggleOptions = [
     { key: 'criticalPath', label: isSpanish ? 'Ruta Crítica' : 'Critical Path', icon: Zap, active: showCriticalPath, onChange: onShowCriticalPathChange, disabled: !hasDependencies, tooltip: !hasDependencies ? (isSpanish ? 'Agrega dependencias entre tareas para ver la ruta crítica' : 'Add dependencies between tasks to see the critical path') : undefined },
-    { key: 'baselines', label: isSpanish ? 'Líneas Base' : 'Baselines', icon: Layers, active: showBaseline, onChange: onShowBaselineChange },
+    { key: 'baselines', label: isSpanish ? 'Líneas base' : 'Baselines', icon: Layers, active: showBaseline, onChange: onShowBaselineChange, disabled: !hasBaseline && !showBaseline, tooltip: !hasBaseline ? (isSpanish ? 'Ninguna tarea tiene línea base: fíjala primero para compararla' : 'No task has a baseline yet: set one first to compare') : undefined },
     { key: 'weekends', label: isSpanish ? 'Fines de Semana' : 'Weekends', icon: CalendarDays, active: highlightWeekends, onChange: onHighlightWeekendsChange },
     { key: 'dependencies', label: isSpanish ? 'Dependencias' : 'Dependencies', icon: GitBranch, active: showDependencies, onChange: onShowDependenciesChange },
   ];
@@ -1751,6 +1756,7 @@ export function GanttToolbar({
   onShowBaselineChange,
   onCopySnapshotLink,
   hasDependencies = true, // v5.1.0
+  hasBaseline = true,
 }: GanttToolbarProps) {
   const t = useGanttI18n(); // v0.15.0: i18n
   const hasExport = onExportPNG || onExportPDF || onExportExcel || onExportCSV || onExportJSON || onExportMSProject;
@@ -1808,6 +1814,7 @@ export function GanttToolbar({
           rowDensity={rowDensity}
           onRowDensityChange={onRowDensityChange}
           hasDependencies={hasDependencies}
+          hasBaseline={hasBaseline}
         />
         <ShareExportDropdown
           theme={theme}
@@ -1964,6 +1971,7 @@ export function GanttToolbar({
               rowDensity={rowDensity}
               onRowDensityChange={onRowDensityChange}
               hasDependencies={hasDependencies}
+              hasBaseline={hasBaseline}
             />
 
             {/* Share & Export Dropdown */}

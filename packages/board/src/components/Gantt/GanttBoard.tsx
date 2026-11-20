@@ -857,6 +857,12 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     return flat.some(t => t.dependencies && t.dependencies.length > 0);
   }, [localTasks]);
 
+  /* QA Latty BUG-41 · «Líneas base» no hacía nada: sin ninguna tarea con línea base no hay nada que pintar */
+  const hasBaseline = useMemo(() => {
+    const flat = ganttUtils.flattenTasks(localTasks);
+    return flat.some(t => !!t.baselineStartDate || !!t.baselineEndDate);
+  }, [localTasks]);
+
   // v1.5.93: Stamp each task with its UNFILTERED WBS code so the visible
   // numbering stays stable when the user filters (e.g. "4.0 Diseño" stays
   // "4.0" instead of becoming "2.0" because earlier siblings were hidden).
@@ -2757,6 +2763,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         }}
         onCopySnapshotLink={onCopySnapshotLink}
         hasDependencies={hasDependencies}
+        hasBaseline={hasBaseline}
       />
       );
       /* 1.9.34 · con `toolbarContainer`, la barra compacta se pinta en la cabecera de quien la pide. */
@@ -3038,6 +3045,11 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
               split: {
                 label: cm?.splitTask || 'Split Task', icon: MenuIcons.Split,
                 disabled: !canUpdateTask || isParentTask || !task.startDate || !task.endDate,
+                /* QA Latty BUG-41 · «Dividir» se apagaba sin decir por qué */
+                motivo: !canUpdateTask ? (locale === 'es' ? 'No tienes permiso para editar esta tarea' : 'You cannot edit this task')
+                  : isParentTask ? (locale === 'es' ? 'Una fase no se divide: divide sus tareas' : 'A phase cannot be split: split its tasks')
+                    : (!task.startDate || !task.endDate) ? (locale === 'es' ? 'Necesita fecha de inicio y de fin' : 'It needs a start and an end date')
+                      : undefined,
                 onClick: () => {
                   const startTime = task.startDate!.getTime();
                   const endTime = task.endDate!.getTime();
