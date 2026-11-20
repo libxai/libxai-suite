@@ -914,6 +914,7 @@ export function GanttAIAssistant({
                       />
                       <button
                         type="submit"
+                        aria-label={(typeof document !== 'undefined' && document.documentElement.lang?.startsWith('en')) ? 'Send' : 'Enviar'} /* QA Latty BUG-28 · solo icono, sin nombre */
                         disabled={!inputValue.trim() || isLoading}
                         className="p-2 rounded-lg transition-all disabled:opacity-30"
                         style={{

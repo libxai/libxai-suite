@@ -117,6 +117,7 @@ export function CreateFieldModal({
           </h2>
           <button
             onClick={onClose}
+            aria-label={locale === 'es' ? 'Cerrar' : 'Close'} /* QA Latty BUG-28 · solo icono, sin nombre */
             className={cn('p-1 rounded', isDark ? 'hover:bg-white/[0.05]' : 'hover:bg-gray-100')}
           >
             <X className={cn('w-5 h-5', isDark ? 'text-white/60' : 'text-gray-400')} />

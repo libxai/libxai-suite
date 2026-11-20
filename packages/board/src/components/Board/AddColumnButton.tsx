@@ -103,6 +103,7 @@ export function AddColumnButton({
             <button
               onClick={handleSubmit}
               disabled={!title.trim()}
+              aria-label={(typeof document !== 'undefined' && document.documentElement.lang?.startsWith('en')) ? 'Add column' : 'Añadir columna'} /* QA Latty BUG-28 · solo icono, sin nombre */
               className="asakaa-add-column__submit"
               type="button"
             >
