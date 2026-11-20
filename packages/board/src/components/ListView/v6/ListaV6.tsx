@@ -994,7 +994,8 @@ export function ListaV6({
           onCambiarPadre={onCambiarPadre ? (t, padreId) => void cambiarPadre(t, padreId) : undefined}
           acciones={panel ? { ...panel, onAbrirEnLista: undefined } : undefined}
           onCerrar={() => { const id = filaDelPanel.t.id; setEnPanel(null); if (visibles.some((f) => f.t.id === id)) enfocar(id); }}
-          onAbrirFicha={onAbrir} onIrA={irA} onVerRiesgo={onVerRiesgo} />
+          /* N23 (2ª revisión de Yesid): «"Open full task" abre el panel viejo y quedan los dos abiertos a la vez»: se cierra este */
+          onAbrirFicha={onAbrir ? (t) => { setEnPanel(null); onAbrir(t); } : undefined} onIrA={irA} onVerRiesgo={onVerRiesgo} />
       )}
       </div>
       {/* guía v4 · un solo pie, «Costos del proyecto» (el mismo del Tablero); el pie de la app, solo si no manda las cifras */}
