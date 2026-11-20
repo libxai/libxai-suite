@@ -189,6 +189,8 @@ export function TaskFormModal({
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
   // v0.18.0: Dependencies dropdown state (same UI as TaskDetailModal)
   const [showDependenciesDropdown, setShowDependenciesDropdown] = useState(false)
+  /* QA Latty BUG-56 · el desplegable de dependencias se cortaba al fondo del modal (el cuerpo tiene su propio scroll): sin sitio debajo, abre hacia arriba */
+  const [depsHaciaArriba, setDepsHaciaArriba] = useState(false)
 
   /* QA Asakaa 2.6.2 · una ventana de diálogo se cierra con Escape. Si hay un desplegable
      abierto, Escape cierra ESE (su propio manejador) y la ventana se queda. */
@@ -1302,6 +1304,9 @@ export function TaskFormModal({
                                   ref={botonDepsRef}
                                   type="button"
                                   onClick={() => {
+                                    const boton = botonDepsRef.current
+                                    const caja = boton?.closest('.overflow-y-auto') as HTMLElement | null
+                                    if (boton && caja) setDepsHaciaArriba(caja.getBoundingClientRect().bottom - boton.getBoundingClientRect().bottom < 290)
                                     setShowDependenciesDropdown(!showDependenciesDropdown)
                                     setDependencySearch('')
                                   }}
@@ -1328,7 +1333,7 @@ export function TaskFormModal({
                                         initial={{ opacity: 0, y: -5 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         exit={{ opacity: 0, y: -5 }}
-                                        className="absolute left-0 top-full mt-1 z-50 rounded-lg overflow-hidden min-w-[280px] max-h-[280px]"
+                                        className={`absolute left-0 ${depsHaciaArriba ? 'bottom-full mb-1' : 'top-full mt-1'} z-50 rounded-lg overflow-hidden min-w-[280px] max-h-[280px]`}
                                         style={{
                                           backgroundColor: isDarkTheme ? '#0a0a0a' : themeColors.bgPrimary,
                                           backdropFilter: isDarkTheme ? 'blur(16px)' : undefined,
