@@ -932,7 +932,7 @@ export function ListaV6({
                           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M4 6l4 4 4-4" /></svg>
                         </button>
                       ) : <span className="ind" />}
-                      <span className="wbs">{f.wbs}</span>
+                      <span className="wbs" title={f.t.taskCode || undefined}>{f.wbs}</span>
                       {/* N29 (2ª revisión de Yesid): «"Convert to milestone" no deja ninguna marca en la Lista» */}
                       {t.isMilestone && <span className="hito" role="img" aria-label={x.esHito} title={x.esHito} data-hito="">◆</span>}
                       <span className="nm" title={ruta}>{t.name}</span>
