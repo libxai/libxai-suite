@@ -1627,7 +1627,7 @@ export function TaskGrid({
                   {' · '}
                   <button type="button" onClick={onOcultarCompletadas} data-ocultar-completadas
                     style={{ border: 0, padding: 0, background: 'transparent', font: 'inherit', color: 'var(--v6-acento-texto, #087F72)', cursor: 'pointer' }}>
-                    {esGrid ? 'Ocultar completadas' : 'Hide completed'}
+                    {/* N14: «… completadas a la vista · Ocultar», como la Lista */ esGrid ? 'Ocultar' : 'Hide'}
                   </button>
                 </>
               )}

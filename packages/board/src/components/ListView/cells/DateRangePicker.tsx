@@ -8,7 +8,7 @@ import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react
 import { createPortal } from 'react-dom';
 import { Calendar, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '../../../utils';
-import { fecha } from '../../../utils/formato';
+import { fecha, diaCorto, CABECERAS_DE_DIAS } from '../../../utils/formato';
 import { motivoDeBloqueo } from './fechaPermitida';
 
 export interface DateRangePickerProps {
@@ -219,22 +219,22 @@ export function DateRangePicker({
       {
         label: locale === 'es' ? 'Hoy' : 'Today',
         date: today,
-        display: today.toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', { weekday: 'short' }).slice(0, 3) + '.',
+        display: diaCorto(today, locale),
       },
       {
         label: locale === 'es' ? 'Mañana' : 'Tomorrow',
         date: tomorrow,
-        display: tomorrow.toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', { weekday: 'short' }).slice(0, 3) + '.',
+        display: diaCorto(tomorrow, locale),
       },
       {
         label: locale === 'es' ? 'Este fin de semana' : 'This weekend',
         date: nextSaturday,
-        display: locale === 'es' ? 'sáb.' : 'sat.',
+        display: diaCorto(nextSaturday, locale),
       },
       {
         label: locale === 'es' ? 'Próxima semana' : 'Next week',
         date: nextMonday,
-        display: locale === 'es' ? 'lun.' : 'mon.',
+        display: diaCorto(nextMonday, locale),
       },
       {
         label: locale === 'es' ? 'Próximo fin de semana' : 'Next weekend',
@@ -406,10 +406,7 @@ export function DateRangePicker({
 
               {/* Weekday Headers */}
               <div className="grid grid-cols-7 gap-1 mb-2">
-                {(locale === 'es'
-                  ? ['do', 'lu', 'ma', 'mi', 'ju', 'vi', 'sá']
-                  : ['su', 'mo', 'tu', 'we', 'th', 'fr', 'sa']
-                ).map((day) => (
+                {CABECERAS_DE_DIAS[locale === 'es' ? 'es' : 'en'].map((day) => (
                   <div
                     key={day}
                     className={cn('w-8 h-8 flex items-center justify-center text-xs', isDark ? 'text-white/30' : 'text-gray-400')}

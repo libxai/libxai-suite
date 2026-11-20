@@ -116,7 +116,7 @@ interface Fila {
 
 const TXT = {
   es: {
-    tareas: 'tareas', tarea: 'tarea', ocultas: 'completadas ocultas', aLaVista: 'completadas a la vista', mostrar: 'Mostrar', ocultar: 'Ocultar',
+    tareas: 'tareas', tarea: 'tarea', ocultas: 'completadas ocultas', aLaVista: 'completadas a la vista', oculta1: 'completada oculta', aLaVista1: 'completada a la vista', mostrar: 'Mostrar', ocultar: 'Ocultar',
     vencidas: 'vencidas', vencida: 'vencida', ver: 'Ver', filtrando: 'Filtrando: vencidas', quitar: 'Quitar el filtro de vencidas',
     plegar: 'Plegar todo', desplegar: 'Desplegar todo', wbs: 'Tarea', resp: 'Responsable', estado: 'Estado', inicio: 'Inicio', fin: 'Fin',
     dur: 'Duración', avance: 'Avance', horas: 'Horas', costo: 'Costo', total: 'Total del proyecto', columnas: 'Ver u ocultar columnas',
@@ -132,7 +132,8 @@ const TXT = {
     vencidaEl: (f: string, n: number) => `${f}, vencida hace ${n} ${n === 1 ? 'día hábil' : 'días hábiles'}`,
     ayudaTit: 'Cómo leer la lista y atajos de teclado', comoLeer: 'Cómo leer la lista', teclado: 'Teclado',
     lVencida: 'Fecha de fin vencida', lRiesgo: 'Riesgo abierto; el color es su nivel', lSinEst: 'Tarea sin horas estimadas',
-    lGuia: 'Cada nivel de la jerarquía sangra 20 px; la guía une a las hijas con su padre',
+    /* N30: sin «20 px», un dato técnico que no le sirve a quien usa la Lista */
+    lGuia: 'Cada nivel de la jerarquía va un poco más adentro; la guía une a las hijas con su padre',
     kFilas: 'Cambiar de fila', kAbrir: 'Desplegar o plegar', kDetalle: 'Abrir el detalle', kHoras: 'Editar las horas registradas', kCerrar: 'Cerrar el panel',
     numeroAvance: 'Escriba un número entero entre 0 y 100.', fEstado: 'Estado', fRiesgo: 'Con riesgo abierto', quitarFiltro: 'Quitar el filtro',
     todas: 'Mostrar todas', ayuda: 'Flechas arriba y abajo: cambiar de fila. Flecha derecha: desplegar; flecha izquierda: plegar o ir a la fila padre. Enter: abrir el detalle.',
@@ -160,7 +161,7 @@ const TXT = {
     fuera: (n: string, p: string) => `«${n}» sale de «${p}».`,
   },
   en: {
-    tareas: 'tasks', tarea: 'task', ocultas: 'completed hidden', aLaVista: 'completed shown', mostrar: 'Show', ocultar: 'Hide',
+    tareas: 'tasks', tarea: 'task', ocultas: 'completed hidden', aLaVista: 'completed shown', oculta1: 'completed hidden', aLaVista1: 'completed shown', mostrar: 'Show', ocultar: 'Hide',
     vencidas: 'overdue', vencida: 'overdue', ver: 'View', filtrando: 'Filtering: overdue', quitar: 'Clear the overdue filter',
     plegar: 'Collapse all', desplegar: 'Expand all', wbs: 'Task', resp: 'Owner', estado: 'Status', inicio: 'Start', fin: 'End',
     dur: 'Duration', avance: 'Progress', horas: 'Hours', costo: 'Cost', total: 'Project total', columnas: 'Show or hide columns',
@@ -176,7 +177,7 @@ const TXT = {
     vencidaEl: (f: string, n: number) => `${f}, overdue by ${n} working ${n === 1 ? 'day' : 'days'}`,
     ayudaTit: 'How to read the list and keyboard shortcuts', comoLeer: 'How to read the list', teclado: 'Keyboard',
     lVencida: 'Overdue end date', lRiesgo: 'Open risk; the colour is its level', lSinEst: 'Task without estimated hours',
-    lGuia: 'Each hierarchy level is indented 20 px; the guide joins the subtasks with their parent',
+    lGuia: 'Each hierarchy level sits a little further in; the guide joins the subtasks with their parent',
     kFilas: 'Change row', kAbrir: 'Expand or collapse', kDetalle: 'Open the details', kHoras: 'Edit the logged hours', kCerrar: 'Close the panel',
     numeroAvance: 'Type a whole number between 0 and 100.', fEstado: 'Status', fRiesgo: 'With an open risk', quitarFiltro: 'Remove the filter',
     todas: 'Show all', ayuda: 'Up and down arrows: change row. Right arrow: expand; left arrow: collapse or go to the parent row. Enter: open the details.',
@@ -801,7 +802,7 @@ export function ListaV6({
           {nHechas > 0 && (
             <>
               <span className="sep" aria-hidden="true">·</span>
-              <span className="mono">{nHechas}</span> {mostrarHechas ? x.aLaVista : x.ocultas}{' '}
+              <span className="mono">{nHechas}</span> {/* N14: «1 completada oculta», en singular */ nHechas === 1 ? (mostrarHechas ? x.aLaVista1 : x.oculta1) : (mostrarHechas ? x.aLaVista : x.ocultas)}{' '}
               <a href="#" onClick={(e) => { e.preventDefault(); cambiarVista({ ...vista, mostrarHechas: !mostrarHechas }); }}>{mostrarHechas ? x.ocultar : x.mostrar}</a>
             </>
           )}
@@ -931,7 +932,7 @@ export function ListaV6({
                           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M4 6l4 4 4-4" /></svg>
                         </button>
                       ) : <span className="ind" />}
-                      <span className="wbs">{f.wbs}</span>
+                      <span className="wbs" title={f.t.taskCode || undefined}>{f.wbs}</span>
                       {/* N29 (2ª revisión de Yesid): «"Convert to milestone" no deja ninguna marca en la Lista» */}
                       {t.isMilestone && <span className="hito" role="img" aria-label={x.esHito} title={x.esHito} data-hito="">◆</span>}
                       <span className="nm" title={ruta}>{t.name}</span>

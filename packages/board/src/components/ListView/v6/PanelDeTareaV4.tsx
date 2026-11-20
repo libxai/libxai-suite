@@ -484,7 +484,8 @@ export function PanelDeTareaV4({
       {esNodo ? (
         <div className="dp-in">
           <div>
-            <div className="dp-w"><span className="code">{wbs}</span><span className="t"> · {esFase ? x.fase : x.tareaPadre}</span></div>
+            {/* N27 (2ª revisión de Yesid): el código TK que encuentra Ctrl K, visible también en la tarea */}
+            <div className="dp-w"><span className="code">{wbs}</span><span className="t"> · {esFase ? x.fase : x.tareaPadre}</span>{t.taskCode && <span className="code" data-codigo-tk> · {t.taskCode}</span>}</div>
             <h2 className="dp-title" id={`${uid}-t`} tabIndex={-1}>{t.name}</h2>
           </div>
           <div className="dp-state">
@@ -522,7 +523,7 @@ export function PanelDeTareaV4({
       ) : (
         <div className="dp-in">
           <div>
-            <div className="code dp-w">{wbs}</div>
+            <div className="code dp-w">{wbs}{t.taskCode && <span data-codigo-tk> · {t.taskCode}</span>}</div>
             <h2 className="dp-title" id={`${uid}-t`} tabIndex={-1}>{t.name}</h2>
           </div>
           <div className="dp-state">

@@ -972,23 +972,26 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
   /* Gantt ronda 2 (Yesid) · R4 · las vencidas (hojas sin terminar con el fin antes de hoy): «12 vencidas · Ver» */
   const vencidas = useMemo(() => ganttUtils.flattenTasks(tasksWithStableWbs)
     .filter((t) => !t.subtasks?.length && esVencida(t)).length, [tasksWithStableWbs]);
-  const completadasOcultas = useMemo(() => {
-    if (!hideCompleted) return 0;
-    const visibles = new Set(ganttUtils.flattenTasks(filteredTasks).map((t) => t.id));
-    return ganttUtils.flattenTasks(tasksWithStableWbs)
-      .filter((t) => !visibles.has(t.id) && ((t.progress ?? 0) >= 100 || t.status === 'completed')).length;
-  }, [hideCompleted, filteredTasks, tasksWithStableWbs]);
+  /* N14 (2ª revisión de Yesid, 19-nov): «El Gantt dice "5 tasks · 2 completed hidden" o "7 tasks"; la Lista, "3 tasks ·
+     2 completed shown"». Un solo conteo, el de la Lista: las tareas ABIERTAS sin subtareas (las fases no cuentan), y
+     aparte las completadas, ocultas o a la vista. */
+  const esHecha = (t: Task) => (t.progress ?? 0) >= 100 || t.status === 'completed';
+  const nHechas = useMemo(() => ganttUtils.flattenTasks(tasksWithStableWbs)
+    .filter((t) => !t.subtasks?.length && esHecha(t)).length, [tasksWithStableWbs]);
+  const completadasOcultas = hideCompleted ? nHechas : 0;
   const resumenV6 = useMemo(() => {
     if (!disenoV6) return undefined;
-    const n = ganttUtils.flattenTasks(filteredTasks).length;
-    const base = esVacio ? `${n} ${n === 1 ? 'tarea' : 'tareas'}` : `${n} ${n === 1 ? 'task' : 'tasks'}`;
-    if (hideCompleted && completadasOcultas > 0) {
-      return `${base} · ${completadasOcultas} ${esVacio ? (completadasOcultas === 1 ? 'completada oculta' : 'completadas ocultas') : 'completed hidden'}`;
+    const n = ganttUtils.flattenTasks(filteredTasks).filter((t) => !t.subtasks?.length && !esHecha(t)).length;
+    let r = esVacio ? `${n} ${n === 1 ? 'tarea' : 'tareas'}` : `${n} ${n === 1 ? 'task' : 'tasks'}`;
+    if (nHechas > 0) {
+      r += ` · ${nHechas} ${esVacio
+        ? (hideCompleted ? (nHechas === 1 ? 'completada oculta' : 'completadas ocultas') : (nHechas === 1 ? 'completada a la vista' : 'completadas a la vista'))
+        : (hideCompleted ? 'completed hidden' : 'completed shown')}`;
     }
-    if (taskFilter === 'overdue') return `${base} · ${esVacio ? 'solo vencidas' : 'overdue only'}`;
-    if (taskFilter !== 'all' || cuantosFiltros(filtros) > 0) return `${base} · ${esVacio ? 'filtradas' : 'filtered'}`;
-    return base;
-  }, [disenoV6, filteredTasks, hideCompleted, completadasOcultas, taskFilter, esVacio, filtros]);
+    if (taskFilter === 'overdue') return `${r} · ${esVacio ? 'solo vencidas' : 'overdue only'}`;
+    if (taskFilter !== 'all' || cuantosFiltros(filtros) > 0) return `${r} · ${esVacio ? 'filtradas' : 'filtered'}`;
+    return r;
+  }, [disenoV6, filteredTasks, hideCompleted, nHechas, taskFilter, esVacio, filtros]);
   const avisoVencidas = disenoV6 && taskFilter !== 'overdue' && vencidas > 0
     ? (esVacio ? `${vencidas} ${vencidas === 1 ? 'vencida' : 'vencidas'}` : `${vencidas} overdue`) : undefined;
   const contraerTodo = useCallback(() => {
@@ -2831,7 +2834,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
             festivos={festivosDelCalendario}
             resumenV6={resumenV6}
             onMostrarOcultas={disenoV6 && completadasOcultas > 0 ? () => setHideCompleted(false) : undefined}
-            onOcultarCompletadas={disenoV6 && !hideCompleted ? () => setHideCompleted(true) : undefined}
+            onOcultarCompletadas={disenoV6 && !hideCompleted && nHechas > 0 ? () => setHideCompleted(true) : undefined}
             avisoVencidas={avisoVencidas}
             onVerVencidas={avisoVencidas ? () => { setHideCompleted(false); setTaskFilter('overdue'); } : undefined}
             onContraerTodo={disenoV6 ? contraerTodo : undefined}

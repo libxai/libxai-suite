@@ -9,6 +9,7 @@ import { inicialesDe } from '../../utils/iniciales';
 import { motion, AnimatePresence } from 'framer-motion'
 import { Flag, CalendarDays, User, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '../../utils'
+import { diaCorto, CABECERAS_DE_DIAS } from '../../utils/formato'
 import type { User as UserType } from '../Card/UserAssignmentSelector'
 
 export interface QuickTaskCreateData {
@@ -271,10 +272,10 @@ export function QuickTaskCreate({
                       const fourWeeks = new Date(today); fourWeeks.setDate(today.getDate() + 28)
                       const loc = isEs ? 'es-ES' : 'en-US'
                       const opts = [
-                        { label: isEs ? 'Hoy' : 'Today', date: today, display: today.toLocaleDateString(loc, { weekday: 'short' }).slice(0, 3) + '.' },
-                        { label: isEs ? 'Mañana' : 'Tomorrow', date: tomorrow, display: tomorrow.toLocaleDateString(loc, { weekday: 'short' }).slice(0, 3) + '.' },
-                        { label: isEs ? 'Este fin de semana' : 'This weekend', date: nextSat, display: isEs ? 'sáb.' : 'sat.' },
-                        { label: isEs ? 'Próxima semana' : 'Next week', date: nextMon, display: isEs ? 'lun.' : 'mon.' },
+                        { label: isEs ? 'Hoy' : 'Today', date: today, display: diaCorto(today, isEs ? 'es' : 'en') },
+                        { label: isEs ? 'Mañana' : 'Tomorrow', date: tomorrow, display: diaCorto(tomorrow, isEs ? 'es' : 'en') },
+                        { label: isEs ? 'Este fin de semana' : 'This weekend', date: nextSat, display: diaCorto(nextSat, isEs ? 'es' : 'en') },
+                        { label: isEs ? 'Próxima semana' : 'Next week', date: nextMon, display: diaCorto(nextMon, isEs ? 'es' : 'en') },
                         { label: isEs ? '2 semanas' : '2 weeks', date: twoWeeks, display: twoWeeks.toLocaleDateString(loc, { day: 'numeric', month: 'short' }) },
                         { label: isEs ? '4 semanas' : '4 weeks', date: fourWeeks, display: fourWeeks.toLocaleDateString(loc, { day: 'numeric', month: 'short' }) },
                       ]
@@ -327,10 +328,7 @@ export function QuickTaskCreate({
                     </div>
 
                     <div className="grid grid-cols-7 gap-0.5 mb-1">
-                      {(isEs
-                        ? ['do', 'lu', 'ma', 'mi', 'ju', 'vi', 'sá']
-                        : ['su', 'mo', 'tu', 'we', 'th', 'fr', 'sa']
-                      ).map((d) => (
+                      {CABECERAS_DE_DIAS[isEs ? 'es' : 'en'].map((d) => (
                         <div key={d} className={cn('w-6 h-6 flex items-center justify-center text-[10px] font-mono', isDark ? 'text-white/30' : 'text-gray-400')}>
                           {d}
                         </div>

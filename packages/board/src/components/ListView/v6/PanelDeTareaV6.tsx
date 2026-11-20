@@ -20,7 +20,8 @@ import { diasDeRetraso, duracionHabil, estaVencida, hojasDe, horasCortas, millon
 const TXT = {
   es: {
     panel: 'Detalle de la tarea', cerrar: 'Cerrar panel', ficha: 'Abrir ficha completa',
-    retraso: (n: number) => `Retraso: ${n} ${n === 1 ? 'día hábil' : 'días hábiles'}`, espera: 'Espera a',
+    /* N30: la misma frase en los dos paneles («Vencida hace N días hábiles»), no «Retraso: N» en uno y «Vencida hace N» en el otro */
+    retraso: (n: number) => `Vencida hace ${n} ${n === 1 ? 'día hábil' : 'días hábiles'}`, espera: 'Espera a',
     resp: 'Responsable', asignar: 'Sin responsable', fechas: 'Fechas', dur: 'Duración', horas: 'Horas', costo: 'Costo',
     prio: 'Prioridad', dep: 'Depende de', nada: 'Nada', desc: 'Descripción', sinDesc: 'Sin descripción.',
     dias: (n: number) => `${n} ${n === 1 ? 'día hábil' : 'días hábiles'}`, hito: 'Hito', sumaHijas: 'suma de las hijas',
@@ -32,7 +33,7 @@ const TXT = {
   },
   en: {
     panel: 'Task detail', cerrar: 'Close panel', ficha: 'Open full task',
-    retraso: (n: number) => `Delay: ${n} working ${n === 1 ? 'day' : 'days'}`, espera: 'Waiting for',
+    retraso: (n: number) => `Overdue by ${n} working ${n === 1 ? 'day' : 'days'}`, espera: 'Waiting for',
     resp: 'Owner', asignar: 'No owner', fechas: 'Dates', dur: 'Duration', horas: 'Hours', costo: 'Cost',
     prio: 'Priority', dep: 'Depends on', nada: 'Nothing', desc: 'Description', sinDesc: 'No description.',
     dias: (n: number) => `${n} working ${n === 1 ? 'day' : 'days'}`, hito: 'Milestone', sumaHijas: 'sum of the subtasks',

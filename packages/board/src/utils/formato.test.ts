@@ -56,3 +56,15 @@ describe('formato (QA Asakaa 2.2: un solo formato, las mismas salidas que la app
     expect(numero(1234.5, 'es-CO', 1)).toBe('1.234,5');
   });
 });
+
+describe('N17 · una sola forma de escribir los días', () => {
+  it('atajos con mayúscula y sin punto, en los dos idiomas', async () => {
+    const { diaCorto, CABECERAS_DE_DIAS } = await import('./formato');
+    const jueves = new Date(2026, 10, 19);
+    const sabado = new Date(2026, 10, 21);
+    expect([diaCorto(jueves, 'en'), diaCorto(sabado, 'en')]).toEqual(['Thu', 'Sat']);
+    expect([diaCorto(jueves, 'es'), diaCorto(sabado, 'es')]).toEqual(['Jue', 'Sáb']);
+    expect(CABECERAS_DE_DIAS.en.slice(1, 4)).toEqual(['Mo', 'Tu', 'We']);
+    for (const d of [...CABECERAS_DE_DIAS.es, ...CABECERAS_DE_DIAS.en]) expect(d[0]).toBe(d[0].toUpperCase());
+  });
+});

@@ -854,7 +854,8 @@ export function CalendarioV6({
       <details className="res">
         <summary>
           <svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M6 4l4 4-4 4" /></svg>
-          <b>{x.recursos}</b><span>{x.personas(recursos.length, mes, horasCortas(totHoras, es))}</span>
+          {/* N14 (2ª revisión de Yesid): «Sin responsable» no es una persona; contaba como «1 person» y la Lista decía «0 people» */}
+          <b>{x.recursos}</b><span>{x.personas(recursos.filter((r) => r.p).length, mes, horasCortas(totHoras, es))}</span>
         </summary>
         <div className="hscroll-r">
           <table className="rtab">

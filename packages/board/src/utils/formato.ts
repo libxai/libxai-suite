@@ -133,3 +133,21 @@ function aFecha(valor: Date | string | null | undefined): Date | null {
   const d = new Date(valor);
   return isNaN(d.getTime()) ? null : d;
 }
+
+/**
+ * N17 (2ª revisión de Yesid, 19-nov): «En el selector de fecha los días van en minúscula ("mo tu we") y los atajos
+ * mezclan "Thu." y "sat."». Una sola forma de escribir los días en los selectores: con mayúscula y sin punto.
+ *   · `diaCorto` para los atajos: «Jue», «Sáb» / «Thu», «Sat».
+ *   · `CABECERAS_DE_DIAS` para la rejilla, de domingo a sábado: «Do Lu Ma…» / «Su Mo Tu…».
+ */
+const DIAS_CORTOS = {
+  es: ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'],
+  en: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+};
+export function diaCorto(d: Date, idioma: Idioma = 'es'): string {
+  return DIAS_CORTOS[String(idioma).startsWith('en') ? 'en' : 'es'][d.getDay()] ?? '';
+}
+export const CABECERAS_DE_DIAS = {
+  es: ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá'],
+  en: ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'],
+};
