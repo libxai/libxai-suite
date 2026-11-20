@@ -455,6 +455,8 @@ export function ListaV6({
 
   /* G4 · la fila del panel (si la tarea ya no está, se cierra) y abrir otra desde él, a la vista */
   const filaDelPanel = enPanel ? porId.get(enPanel) ?? null : null;
+  /* N24 · «Dependencias…»: el panel abre con «Añadir dependencia» desplegado */
+  const [pedirDeps, setPedirDeps] = useState(0);
   useEffect(() => { if (enPanel && !porId.has(enPanel)) setEnPanel(null); }, [enPanel, porId]);
   const irA = (id: string) => {
     const f = porId.get(id);
@@ -666,7 +668,7 @@ export function ListaV6({
         indent: { label: x.m.indent, icon: MenuIcons.Indent, disabled: !hermana, onClick: () => { if (hermana) void cambiarPadre(t, hermana.id); } },
         outdent: { label: x.m.outdent, icon: MenuIcons.Outdent, disabled: !f.padre, onClick: () => void quitarSangria(t) },
       } : {}),
-      ...(panel ? { dependencies: { label: x.m.dependencies, icon: MenuIcons.Link, disabled: esPadre, onClick: () => setEnPanel(t.id) } } : {}),
+      ...(panel ? { dependencies: { label: x.m.dependencies, icon: MenuIcons.Link, disabled: esPadre, onClick: () => { setEnPanel(t.id); setPedirDeps((n) => n + 1); } } } : {}),
       ...(panel?.onActualizar ? {
         milestone: {
           label: t.isMilestone ? x.m.quitarHito : x.m.hito, icon: MenuIcons.Milestone, disabled: esPadre || !puede,
@@ -993,7 +995,8 @@ export function ListaV6({
           porConfirmar={porConfirmar.has(filaDelPanel.t.id)} errorAvance={errorAvance}
           onCambiarPadre={onCambiarPadre ? (t, padreId) => void cambiarPadre(t, padreId) : undefined}
           acciones={panel ? { ...panel, onAbrirEnLista: undefined } : undefined}
-          onCerrar={() => { const id = filaDelPanel.t.id; setEnPanel(null); if (visibles.some((f) => f.t.id === id)) enfocar(id); }}
+          abrirDependencias={pedirDeps}
+          onCerrar={() => { const id = filaDelPanel.t.id; setEnPanel(null); setPedirDeps(0); if (visibles.some((f) => f.t.id === id)) enfocar(id); }}
           /* N23 (2ª revisión de Yesid): «"Open full task" abre el panel viejo y quedan los dos abiertos a la vez»: se cierra este */
           onAbrirFicha={onAbrir ? (t) => { setEnPanel(null); onAbrir(t); } : undefined} onIrA={irA} onVerRiesgo={onVerRiesgo} />
       )}

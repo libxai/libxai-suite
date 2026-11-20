@@ -13,7 +13,8 @@
  */
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import type { Task } from '../../Gantt/types';
-import type { Calendario } from '../../Gantt/motorDeProgramacion';
+import { finConDuracion, habilesEntre, sumarHabiles, type Calendario } from '../../Gantt/motorDeProgramacion';
+import { CalendarioDeFechaV4 } from '../../Gantt/CalendarioDeFechaV4';
 import { fechaCorta } from '../../Gantt/fechaCorta';
 import { EscudoDeRiesgo, nombreDeNivel } from './PuntoDeRiesgo';
 import { diasDeRetraso, duracionHabil, estaVencida, estadoDeHoja, hojasDe, horasCortas, millones, tieneHijas, type CifrasDeFila, type EstadoV6 } from './reglasDeLaLista';
@@ -59,6 +60,9 @@ const TXT = {
     hintHecha: 'Completada: su avance es 100%. Si la reabre, recupera el avance que tenía.',
     hintPorConfirmar: 'Estaba completada y no se conoce su avance anterior: confírmelo con Enter o escriba el real.',
     resp: 'Responsable', sinResp: 'Sin responsable', fechas: 'Fechas', dur: 'Duración', hito: 'Hito',
+    cambiarInicio: 'Cambiar el inicio', cambiarFin: 'Cambiar el fin', cambiarFecha: 'Cambiar la fecha', estimado: 'Estimado', cambiarEstimado: 'Cambiar el estimado',
+    sinPrioridad: 'Sin prioridad', anadirDep: 'Añadir dependencia', quitarDep: (n: string) => `Quitar la dependencia de «${n}»`,
+    editarDesc: 'Editar la descripción', guardarDesc: 'Se guarda al salir del campo.',
     dias: (n: number) => `${n} ${n === 1 ? 'día hábil' : 'días hábiles'}`,
     restriccion: 'Restricción', restriccionDeFecha: 'Restricción de fecha', ninguna: 'Ninguna', laMueven: 'la mueven sus dependencias',
     terminarEl: (f: string) => `Terminar el ${f}`, noAntesDel: (f: string) => `No antes del ${f}`, fijar: 'Fijar fechas', fijas: 'Fechas fijas',
@@ -98,6 +102,9 @@ const TXT = {
     hintHecha: 'Completed: its progress is 100%. If you reopen it, it gets back the progress it had.',
     hintPorConfirmar: 'It was completed and its previous progress is unknown: confirm it with Enter or type the real one.',
     resp: 'Owner', sinResp: 'No owner', fechas: 'Dates', dur: 'Duration', hito: 'Milestone',
+    cambiarInicio: 'Change the start', cambiarFin: 'Change the end', cambiarFecha: 'Change the date', estimado: 'Estimate', cambiarEstimado: 'Change the estimate',
+    sinPrioridad: 'No priority', anadirDep: 'Add dependency', quitarDep: (n: string) => `Remove the dependency on «${n}»`,
+    editarDesc: 'Edit the description', guardarDesc: 'Saved when you leave the field.',
     dias: (n: number) => `${n} working ${n === 1 ? 'day' : 'days'}`,
     restriccion: 'Constraint', restriccionDeFecha: 'Date constraint', ninguna: 'None', laMueven: 'its dependencies move it',
     terminarEl: (f: string) => `Finish on ${f}`, noAntesDel: (f: string) => `Not before ${f}`, fijar: 'Fix dates', fijas: 'Fixed dates',
@@ -256,12 +263,14 @@ export interface PanelDeTareaV4Props {
   onCambiarPadre?: (t: Task, padreId: string) => void;
   /** lo que la vista añade en una fase o tarea padre («Completar la rama») */
   rama?: ReactNode;
+  /** N24 · «Dependencias…» de la Lista: abre el panel con «Añadir dependencia» desplegado (cambia el número para abrirlo) */
+  abrirDependencias?: number;
   acciones?: AccionesDelPanelV4;
 }
 
 export function PanelDeTareaV4({
   fila, es, cal, hoy, nombreProyecto, cifras, estados, nombreEstado, porId, tarifaDe, conCosto = true, onCerrar, onAbrirFicha, onIrA, onVerRiesgo,
-  onEstado, onAvance, porConfirmar = false, errorAvance, onCambiarPadre, rama, acciones = {},
+  onEstado, onAvance, porConfirmar = false, errorAvance, onCambiarPadre, rama, acciones = {}, abrirDependencias: abrirDependencia = 0,
 }: PanelDeTareaV4Props) {
   const x = es ? TXT.es : TXT.en;
   const idioma = es ? 'es' : 'en';
@@ -279,6 +288,11 @@ export function PanelDeTareaV4({
   const [menuMas, setMenuMas] = useState(false);
   const [abrirPadre, setAbrirPadre] = useState(0);
   const [registrando, setRegistrando] = useState(false);
+  /* N23 (2ª revisión de Yesid, 19-nov): «El panel nuevo solo deja cambiar estado, avance, responsable y restricción. Fechas,
+     estimado, prioridad, tarea padre, dependencias y descripción no se pueden editar ahí.» Ahora sí, en el sitio. */
+  const [fechaAbierta, setFechaAbierta] = useState<'inicio' | 'fin' | null>(null);
+  const [editandoEstimado, setEditandoEstimado] = useState(false);
+  const [editandoDesc, setEditandoDesc] = useState(false);
   const [errHoras, setErrHoras] = useState<string | null>(null);
   const [histAbierto, setHistAbierto] = useState(false);
   const [historial, setHistorial] = useState<EntradaDelHistorialV4[] | null>(null);
@@ -289,6 +303,7 @@ export function PanelDeTareaV4({
   useEffect(() => {
     caja.current?.scrollTo?.({ top: 0 });
     setRegistrando(false); setErrHoras(null); setHistAbierto(false); setMenuMas(false); setHistorial(null);
+    setFechaAbierta(null); setEditandoEstimado(false); setEditandoDesc(false);
     let vivo = true;
     if (acciones.cargarHistorial) {
       acciones.cargarHistorial(t).then((h) => { if (vivo) setHistorial(h); }).catch(() => { if (vivo) setHistorial([]); });
@@ -350,6 +365,30 @@ export function PanelDeTareaV4({
   ] : [];
 
   const guardar = async (cambios: Partial<Task>) => { await acciones.onActualizar?.(t, cambios); };
+  const editaCampos = !!acciones.onActualizar && puedeTarea;
+  /* N23 · una fecha nueva con la regla de N25: un inicio después del fin corre el fin (y al revés), con los mismos días
+     hábiles; un hito tiene una sola fecha (N29) */
+  const elegirFecha = (campo: 'inicio' | 'fin', d: Date) => {
+    setFechaAbierta(null);
+    if (t.isMilestone) { void guardar({ startDate: d, endDate: d }); return; }
+    const ini = t.startDate ? new Date(t.startDate) : d;
+    const fin = t.endDate ? new Date(t.endDate) : d;
+    const dias = habilesEntre(ini, fin, cal);
+    const soloDia = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+    if (campo === 'inicio') void guardar(soloDia(d) > soloDia(fin) ? { startDate: d, endDate: finConDuracion(d, dias, cal) } : { startDate: d });
+    else void guardar(soloDia(d) < soloDia(ini) ? { endDate: d, startDate: sumarHabiles(d, -(dias - 1), cal) } : { endDate: d });
+  };
+  const guardarEstimado = (texto: string) => {
+    setEditandoEstimado(false);
+    if (!texto.trim()) { void guardar({ effortMinutes: 0 } as Partial<Task>); return; }
+    const h = leerHoras(texto);
+    if (h != null) void guardar({ effortMinutes: Math.round(h * 60) } as Partial<Task>);
+  };
+  /* dependencias que se pueden añadir: ni ella, ni sus fases o padres, ni sus hijas, ni las que ya tiene */
+  const opcionesDeDependencia: Opcion[] = [...porId.values()]
+    .filter((n) => n.t.id !== t.id && !fila.ancestros.includes(n.t.id) && !n.ancestros.includes(t.id) && !(t.dependencies ?? []).includes(n.t.id))
+    .sort((a, b) => a.wbs.localeCompare(b.wbs, undefined, { numeric: true }))
+    .map((n) => ({ v: n.t.id, codigo: n.wbs, etiqueta: n.t.name, sangria: Math.max(0, n.ancestros.length) }));
   const tipoDe = (id: string) => (t.dependencyLinks ?? []).find((l) => l.id === id) ?? { id, type: 'FS' as TipoDeEnlaceV4, lag: 0 };
 
   const registrar = async (texto: string) => {
@@ -520,9 +559,30 @@ export function PanelDeTareaV4({
             <dt>{x.resp}</dt>
             <dd>{avatar(persona)}<span className={persona ? undefined : 'dp-none'}>{persona?.name ?? x.sinResp}</span></dd>
             <dt>{x.fechas}</dt>
-            <dd>
-              {t.isMilestone ? null : <span className="num">{f(t.startDate)} –</span>}
-              {vencida ? <span className="chip-red">{f(t.endDate)}</span> : <span className="num">{f(t.endDate)}</span>}
+            <dd data-fechas-del-panel="">
+              {editaCampos ? (
+                <>
+                  {!t.isMilestone && (
+                    <button type="button" className="dp-ib num" aria-label={`${x.cambiarInicio}: ${f(t.startDate)}`} aria-expanded={fechaAbierta === 'inicio'}
+                      data-fecha="inicio" onClick={() => setFechaAbierta((v) => (v === 'inicio' ? null : 'inicio'))}>{f(t.startDate)}</button>
+                  )}
+                  {!t.isMilestone && <span aria-hidden="true">–</span>}
+                  <button type="button" className={`dp-ib num${vencida ? ' chip-red' : ''}`} aria-label={`${t.isMilestone ? x.cambiarFecha : x.cambiarFin}: ${f(t.endDate)}`}
+                    aria-expanded={fechaAbierta === 'fin'} data-fecha="fin" onClick={() => setFechaAbierta((v) => (v === 'fin' ? null : 'fin'))}>{f(t.endDate)}</button>
+                  {fechaAbierta && (
+                    <div className="dp-cal v4-pop v4-scope" role="dialog" aria-label={fechaAbierta === 'inicio' ? x.cambiarInicio : x.cambiarFin}>
+                      <CalendarioDeFechaV4 key={fechaAbierta} es={es}
+                        valor={(fechaAbierta === 'inicio' ? t.startDate : t.endDate) ? new Date((fechaAbierta === 'inicio' ? t.startDate : t.endDate) as Date) : null}
+                        alElegir={(d) => elegirFecha(fechaAbierta, d)} alCerrar={() => setFechaAbierta(null)} />
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  {t.isMilestone ? null : <span className="num">{f(t.startDate)} –</span>}
+                  {vencida ? <span className="chip-red">{f(t.endDate)}</span> : <span className="num">{f(t.endDate)}</span>}
+                </>
+              )}
             </dd>
             <dt>{x.dur}</dt>
             <dd><span className="num">{t.isMilestone ? x.hito : dur == null ? '—' : x.dias(dur)}</span></dd>
@@ -545,7 +605,24 @@ export function PanelDeTareaV4({
               <>
                 <dt>{x.horas}</dt>
                 <dd>
-                  <span className="num dp-hrs" title={x.horasTip}>{horasCortas(cifras.reg, es)} / {cifras.est ? horasCortas(cifras.est, es) : '—'} h</span>
+                  {editaCampos && editandoEstimado ? (
+                    <span className="dp-log">
+                      <span className="num">{horasCortas(cifras.reg, es)} /</span>
+                      <input autoFocus className="input" inputMode="decimal" maxLength={6} aria-label={x.cambiarEstimado} data-estimado=""
+                        defaultValue={cifras.est ? horasCortas(cifras.est, es) : ''} placeholder={es ? '0,0' : '0.0'}
+                        onKeyDown={(ev) => {
+                          if (ev.key === 'Enter') { ev.preventDefault(); guardarEstimado(ev.currentTarget.value); }
+                          if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); setEditandoEstimado(false); }
+                        }}
+                        onBlur={(ev) => guardarEstimado(ev.currentTarget.value)} />
+                      <span>h</span>
+                    </span>
+                  ) : editaCampos ? (
+                    <button type="button" className="dp-ib num dp-hrs" title={x.horasTip} aria-label={`${x.cambiarEstimado}: ${cifras.est ? horasCortas(cifras.est, es) : '—'} h`}
+                      onClick={() => setEditandoEstimado(true)}>{horasCortas(cifras.reg, es)} / {cifras.est ? horasCortas(cifras.est, es) : '—'} h</button>
+                  ) : (
+                    <span className="num dp-hrs" title={x.horasTip}>{horasCortas(cifras.reg, es)} / {cifras.est ? horasCortas(cifras.est, es) : '—'} h</span>
+                  )}
                   {acciones.onCronometro && puede && (
                     <button type="button" className={`dp-ib${enMarcha ? ' on' : ''}`} aria-pressed={enMarcha}
                       aria-label={enMarcha ? x.detener : x.iniciar} title={enMarcha ? x.detenerTip : x.iniciarTip}
@@ -578,7 +655,14 @@ export function PanelDeTareaV4({
             )}
             {costo}
             <dt>{x.prio}</dt>
-            <dd>{prioridad}</dd>
+            <dd>
+              {editaCampos ? (
+                <Selector etiqueta={`${x.prio}: ${t.priority ? prioridad : x.sinPrioridad}. ${x.cambiar}`} titulo={x.prio} clase={t.priority ? '' : 'mut'}
+                  contenido={<span className="pk-l">{t.priority ? prioridad : x.sinPrioridad}</span>}
+                  opciones={(['urgent', 'high', 'medium', 'low'] as const).map((v) => ({ v, etiqueta: x.p[v] ?? v, actual: t.priority === v }))}
+                  onElegir={(v) => void guardar({ priority: v as Task['priority'] })} />
+              ) : prioridad}
+            </dd>
             <dt>{x.padre}</dt>
             <dd>
               {onCambiarPadre && puedeTarea && opcionesDePadre.length > 1 ? (
@@ -630,10 +714,21 @@ export function PanelDeTareaV4({
                         </>
                       ) : <span className="st">{x.kinds[k.type][0]} · {textoDeDesfase(k.lag, x)}</span>}
                       {cruza && <span className="warn" title={x.cruzanTip(f(new Date(finDe(d))), f(t.startDate))}><Advertencia />{x.seCruzan}</span>}
+                      {editaCampos && (
+                        <button type="button" className="icon-btn" aria-label={x.quitarDep(d.t.name)} title={x.quitarDep(d.t.name)} data-quitar-dependencia={d.t.id}
+                          onClick={() => void guardar({ dependencies: (t.dependencies ?? []).filter((id) => id !== d.t.id) })}><Cruz /></button>
+                      )}
                     </div>
                   </div>
                 );
               }) : <span className="dp-none">{x.nada}</span>}
+              {/* N24 (2ª revisión de Yesid): «"Dependencies…" solo abre el panel, donde "Depends on: Nothing" no se puede tocar» */}
+              {editaCampos && opcionesDeDependencia.length > 0 && (
+                <Selector etiqueta={x.anadirDep} titulo={x.anadirDep} clase="mut" abrirAhora={abrirDependencia}
+                  contenido={<span className="pk-l" data-anadir-dependencia="">+ {x.anadirDep}</span>}
+                  opciones={opcionesDeDependencia}
+                  onElegir={(v) => void guardar({ dependencies: [...(t.dependencies ?? []), v] })} />
+              )}
             </dd>
           </dl>
           <div>
@@ -648,7 +743,15 @@ export function PanelDeTareaV4({
           </div>
           <div>
             <h3 className="dp-h">{x.desc}</h3>
-            <p className="dp-desc">{descripcion || x.sinDesc}</p>
+            {editaCampos && editandoDesc ? (
+              <textarea autoFocus className="input dp-desc-edit" rows={4} aria-label={x.editarDesc} title={x.guardarDesc} defaultValue={descripcion} data-descripcion=""
+                onKeyDown={(ev) => { if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); setEditandoDesc(false); } }}
+                onBlur={(ev) => { setEditandoDesc(false); if (ev.currentTarget.value.trim() !== descripcion) void guardar({ description: ev.currentTarget.value.trim() } as Partial<Task>); }} />
+            ) : editaCampos ? (
+              <button type="button" className="dp-desc dp-desc-btn" aria-label={x.editarDesc} onClick={() => setEditandoDesc(true)}>{descripcion || x.sinDesc}</button>
+            ) : (
+              <p className="dp-desc">{descripcion || x.sinDesc}</p>
+            )}
           </div>
           {acciones.cargarHistorial && historialEn}
           <div className="dp-foot">
@@ -685,6 +788,11 @@ function Candado() { return svg(<><rect x="3.5" y="7" width="9" height="6.5" rx=
  * Todo cuelga de `.lista-v6 .dp4`: pisa al panel de la v3 (CSS_PANEL_V6), que sigue para lo que aún lo usa.
  */
 export const CSS_PANEL_V4 = `
+/* N23 · lo que ahora se edita en el sitio */
+.dp-cal { display: block; width: max-content; margin-top: 6px; flex-basis: 100%; }
+.dp-desc-btn { display: block; width: 100%; text-align: left; background: none; border: 1px dashed transparent; border-radius: 6px; padding: 4px 6px; margin: 0 -6px; cursor: text; color: inherit; font: inherit; }
+.dp-desc-btn:hover { border-color: var(--v4-border, #E1E5E8); }
+.dp-desc-edit { width: 100%; resize: vertical; min-height: 72px; font: inherit; }
 .lista-v6 .dp4{
   --dp-text:var(--v4-text,var(--v6-texto));--dp-text2:var(--v4-text2,var(--v6-texto-2));--dp-text3:var(--v4-text3,var(--v6-tenue));
   --dp-card:var(--v4-card,var(--v6-tarjeta));--dp-border:var(--v4-border,var(--v6-borde));--dp-soft:var(--v4-soft,var(--v6-linea));
