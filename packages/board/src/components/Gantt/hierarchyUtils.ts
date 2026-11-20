@@ -306,9 +306,11 @@ export function createTask(
   const weekFromNow = new Date(today);
   weekFromNow.setDate(weekFromNow.getDate() + 7);
 
+  /* Yesid (17-nov): ocho «New Task» vacías en P26031. La tarea insertada nace sin nombre: la tabla abre su nombre
+     para escribirlo, y si se deja vacío se quita (no se guarda nada). */
   const newTask: Task = {
     id: `task-${Date.now()}`,
-    name: 'New Task',
+    name: '',
     progress: 0,
     status: 'todo',
     startDate: today,
@@ -329,12 +331,38 @@ export function createTask(
     }
 
     const insertIndex = direction === 'above' ? index : index + 1;
+    /* la tabla ordena por posición: sin ella la nueva saltaba al principio de su grupo. Media posición junto a la
+       elegida; al guardarla, la app le da la suya entera (updateSiblingPositions). */
+    const base = tasks[index]?.position ?? index;
+    newTask.position = direction === 'above' ? base - 0.5 : base + 0.5;
     tasks.splice(insertIndex, 0, newTask);
     return true;
   };
 
   insertTask(result);
   return { tasks: result, newTask };
+}
+
+/**
+ * Pone `tarea` arriba o abajo de `junto` (a cualquier nivel), sin tocar las listas de entrada. Si `junto` no está,
+ * devuelve la misma lista.
+ */
+export function insertarTarea(tasks: Task[], junto: string, direccion: 'above' | 'below', tarea: Task): Task[] {
+  const i = tasks.findIndex((t) => t.id === junto);
+  if (i >= 0) {
+    const r = [...tasks];
+    r.splice(direccion === 'above' ? i : i + 1, 0, tarea);
+    return r;
+  }
+  let hecho = false;
+  const r = tasks.map((t) => {
+    if (hecho || !t.subtasks?.length) return t;
+    const s = insertarTarea(t.subtasks, junto, direccion, tarea);
+    if (s === t.subtasks) return t;
+    hecho = true;
+    return { ...t, subtasks: s };
+  });
+  return hecho ? r : tasks;
 }
 
 /**

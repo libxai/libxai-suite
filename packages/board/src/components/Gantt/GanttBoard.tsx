@@ -37,6 +37,7 @@ import {
   deleteTasks,
   duplicateTasks,
   createTask,
+  insertarTarea,
   renameTask,
   toggleTaskExpansion,
   createSubtask,
@@ -504,8 +505,13 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     // Apply roll-up on initial load so parent dates/progress reflect children
     /* G12 · lo que llega de la app no es un cambio del usuario: si entrara en el historial, Ctrl+Z volvería justo a lo
        que se acaba de guardar y no pasaría nada. */
+    const conPorNombrar = (lista: Task[]): Task[] => {
+      const p = porNombrarRef.current;
+      if (!p || findTask(lista, p.tarea.id)) return lista;
+      return insertarTarea(lista, p.junto, p.direccion, p.tarea);
+    };
     if (expandedStatesRef.current.size > 0) {
-      setLocalTasks(rollUpParentDates(applyExpandedState(tasks)), false);
+      setLocalTasks(conPorNombrar(rollUpParentDates(applyExpandedState(tasks))), false);
     } else {
       // Still deduplicate even without preserved states
       const dedupeAll = (taskList: Task[]): Task[] => {
@@ -533,9 +539,9 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
           expandedStatesRef.current.set(t.id, abierto);
           return { ...t, isExpanded: abierto, subtasks: plegar(t.subtasks) };
         });
-        setLocalTasks(plegar(base), false);
+        setLocalTasks(conPorNombrar(plegar(base)), false);
       } else {
-        setLocalTasks(base, false);
+        setLocalTasks(conPorNombrar(base), false);
       }
     }
   }, [tasks, setLocalTasks]);
@@ -1617,31 +1623,48 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
     }
   }, [config, localTasks]);
 
+  /* Yesid (17-nov), «No guardar tareas sin nombre»: la tarea insertada (Enter, Mayús+Enter, «Insertar arriba/abajo»)
+     entra con su nombre abierto. Quien monta el Gantt la ve en onTasksChange sin nombre y no la guarda; al escribirlo
+     se renombra y entonces sí. Si se deja vacía (Escape, Enter o salir del campo), se quita sin haberse guardado. */
+  const [tareaPorNombrar, setTareaPorNombrar] = useState<string | null>(null);
+  /* Mientras se escribe su nombre, la fila no está en lo que manda la app (no la guarda): cuando la app vuelve a pasar
+     sus tareas, se vuelve a poner en su sitio para no perderla a medio escribir. */
+  const porNombrarRef = useRef<{ tarea: Task; junto: string; direccion: 'above' | 'below' } | null>(null);
+
   const handleTaskCreate = useCallback((afterTaskId: string, direction: 'above' | 'below') => {
-    setLocalTasks((prev) => {
-      const { tasks, newTask } = createTask(prev, afterTaskId, direction);
+    const { tasks, newTask } = createTask(localTasks, afterTaskId, direction);
 
-      // v0.8.0: Before event (cancelable)
-      if (onBeforeTaskAdd) {
-        const shouldContinue = onBeforeTaskAdd(newTask);
-        if (shouldContinue === false) {
-          return prev; // Cancel the addition, return unchanged tasks
-        }
-      }
+    // v0.8.0: Before event (cancelable)
+    if (onBeforeTaskAdd) {
+      const shouldContinue = onBeforeTaskAdd(newTask);
+      if (shouldContinue === false) return; // Cancel the addition
+    }
 
-      config.onTaskCreate?.(newTask.parentId, newTask.position || 0);
+    porNombrarRef.current = { tarea: newTask, junto: afterTaskId, direccion: direction };
+    setLocalTasks(tasks);
+    setTareaPorNombrar(newTask.id);
+    config.onTaskCreate?.(newTask.parentId, newTask.position || 0);
 
-      // v0.8.0: After event
-      onAfterTaskAdd?.(newTask);
-
-      return tasks;
-    });
-  }, [config, onBeforeTaskAdd, onAfterTaskAdd]);
+    // v0.8.0: After event
+    onAfterTaskAdd?.(newTask);
+  }, [config, localTasks, onBeforeTaskAdd, onAfterTaskAdd]);
 
   const handleTaskRename = useCallback((taskId: string, newName: string) => {
     setLocalTasks((prev) => renameTask(prev, taskId, newName));
     config.onTaskRename?.(taskId, newName);
   }, [config]);
+
+  /* La sangría (Tab) de una fila aún sin guardar no se aplica: se guarda con su nombre al mismo nivel y se sangra
+     después por el camino de siempre, donde la app comprueba que el nuevo padre no tenga trabajo (E5). */
+  const handleTareaNombrada = useCallback((taskId: string, nombre: string | null) => {
+    setTareaPorNombrar((actual) => (actual === taskId ? null : actual));
+    if (porNombrarRef.current?.tarea.id === taskId) porNombrarRef.current = null;
+    if (!nombre) {
+      setLocalTasks((prev) => deleteTasks(prev, [taskId]));
+      return;
+    }
+    handleTaskRename(taskId, nombre);
+  }, [handleTaskRename]);
 
   const handleCreateSubtask = useCallback((parentTaskId: string) => {
     // v1.4.15: If onTaskAddSubtask is provided, use it for proper position handling
@@ -2809,6 +2832,8 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
             onTaskDuplicate={handleTaskDuplicate}
             onTaskCreate={handleTaskCreate}
             onTaskRename={handleTaskRename}
+            tareaPorNombrar={tareaPorNombrar}
+            onTareaNombrada={handleTareaNombrada}
             onCreateSubtask={handleCreateSubtask}
             onTaskDependencies={config.onTaskDependencies}
             onOpenTaskModal={onTaskClick ? (task: Task) => onTaskClick(task) : undefined}

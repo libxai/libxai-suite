@@ -58,6 +58,9 @@ interface TaskGridProps {
   onTaskDuplicate?: (taskIds: string[]) => void;
   onTaskCreate?: (afterTaskId: string, direction: 'above' | 'below') => void;
   onTaskRename?: (taskId: string, newName: string) => void;
+  /** La tarea recién insertada: su nombre se abre solo y, si se deja vacío, `onTareaNombrada(id, null)` la quita. */
+  tareaPorNombrar?: string | null;
+  onTareaNombrada?: (taskId: string, nombre: string | null) => void;
   /** 1.9.45 · fila «+ Add task» al final de la rejilla (la app decide qué hace). */
   addTaskRow?: { label: string; onClick: () => void };
   onCreateSubtask?: (parentTaskId: string) => void;
@@ -162,6 +165,8 @@ export function TaskGrid({
   onTaskDuplicate,
   onTaskCreate,
   onTaskRename,
+  tareaPorNombrar,
+  onTareaNombrada,
   addTaskRow,
   onCreateSubtask,
   onTaskDependencies,
@@ -565,6 +570,16 @@ export function TaskGrid({
     return `${days}d`;
   };
 
+  /* La tarea recién insertada entra con su nombre abierto y vacío. */
+  useEffect(() => {
+    if (!tareaPorNombrar || editingTaskId === tareaPorNombrar) return;
+    if (!flattenTasksUtil(tasks).some(t => t.id === tareaPorNombrar)) return;
+    setEditingTaskId(tareaPorNombrar);
+    setEditingTaskName('');
+    setIsEditing(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tareaPorNombrar, tasks]);
+
   // Handle rename start
   const handleRenameStart = (task: Task) => {
     setEditingTaskId(task.id);
@@ -573,17 +588,29 @@ export function TaskGrid({
   };
 
   // Handle rename save
-  const handleRenameSave = (taskId: string) => {
+  /** Devuelve true si era la recién insertada (su nombre va por onTareaNombrada). */
+  const handleRenameSave = (taskId: string): boolean => {
+    if (taskId === tareaPorNombrar && onTareaNombrada) {
+      const nombre = editingTaskName.trim();
+      setEditingTaskId(null);
+      setEditingTaskName('');
+      setIsEditing(false);
+      onTareaNombrada(taskId, nombre || null);
+      return true;
+    }
     if (editingTaskName.trim() && editingTaskName !== tasks.find(t => t.id === taskId)?.name) {
       onTaskRename?.(taskId, editingTaskName.trim());
     }
     setEditingTaskId(null);
     setEditingTaskName('');
     setIsEditing(false);
+    return false;
   };
 
   // Handle rename cancel
   const handleRenameCancel = () => {
+    /* Escape en la recién insertada: se quita (nunca se guardó) */
+    if (editingTaskId && editingTaskId === tareaPorNombrar && onTareaNombrada) onTareaNombrada(editingTaskId, null);
     setEditingTaskId(null);
     setEditingTaskName('');
     setIsEditing(false);
@@ -857,6 +884,7 @@ export function TaskGrid({
           {isEditing ? (
             <input
               ref={editInputRef}
+              placeholder={task.id === tareaPorNombrar ? (esGrid ? 'Nombre de la tarea' : 'Task name') : undefined}
               type="text"
               value={editingTaskName}
               onChange={(e) => setEditingTaskName(e.target.value)}
@@ -864,10 +892,12 @@ export function TaskGrid({
                 e.stopPropagation();
                 if (e.key === 'Escape') { handleRenameCancel(); return; }
                 /* A12 · dentro de la celda, Enter guarda y crea la siguiente; Tab sangra y Mayús+Tab quita sangría. */
-                if (e.key === 'Enter') { handleRenameSave(task.id); onTaskCreate?.(task.id, 'below'); return; }
+                /* sin nombre no se encadena otra: así no quedan filas «New Task» vacías */
+                if (e.key === 'Enter') { const conNombre = !!editingTaskName.trim(); handleRenameSave(task.id); if (conNombre) onTaskCreate?.(task.id, 'below'); return; }
                 if (e.key === 'Tab') {
                   e.preventDefault();
-                  handleRenameSave(task.id);
+                  /* la recién insertada aún no está guardada: Tab le guarda el nombre a su nivel; la sangría, después (E5) */
+                  if (handleRenameSave(task.id)) return;
                   if (e.shiftKey) onTaskOutdent?.([task.id]); else onTaskIndent?.([task.id]);
                 }
               }}
@@ -1036,6 +1066,7 @@ export function TaskGrid({
             {isEditing ? (
               <input
                 ref={editInputRef}
+                placeholder={task.id === tareaPorNombrar ? (esGrid ? 'Nombre de la tarea' : 'Task name') : undefined}
                 type="text"
                 value={editingTaskName}
                 onChange={(e) => setEditingTaskName(e.target.value)}
