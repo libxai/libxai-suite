@@ -12,6 +12,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { inicialesDe } from '../../utils/iniciales';
+import { diaCorto, CABECERAS_DE_DIAS } from '../../utils/formato';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   CheckCircle2,
@@ -1044,10 +1045,10 @@ export function TaskDetailModal({
                                 const fourWeeks = new Date(today); fourWeeks.setDate(today.getDate() + 28);
 
                                 const quickOptions = [
-                                  { label: locale === 'es' ? 'Hoy' : 'Today', date: today, display: today.toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', { weekday: 'short' }).slice(0, 3) + '.' },
-                                  { label: locale === 'es' ? 'Mañana' : 'Tomorrow', date: tomorrow, display: tomorrow.toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', { weekday: 'short' }).slice(0, 3) + '.' },
-                                  { label: locale === 'es' ? 'Este fin de semana' : 'This weekend', date: nextSaturday, display: locale === 'es' ? 'sáb.' : 'sat.' },
-                                  { label: locale === 'es' ? 'Próxima semana' : 'Next week', date: nextMonday, display: locale === 'es' ? 'lun.' : 'mon.' },
+                                  { label: locale === 'es' ? 'Hoy' : 'Today', date: today, display: diaCorto(today, locale) },
+                                  { label: locale === 'es' ? 'Mañana' : 'Tomorrow', date: tomorrow, display: diaCorto(tomorrow, locale) },
+                                  { label: locale === 'es' ? 'Este fin de semana' : 'This weekend', date: nextSaturday, display: diaCorto(nextSaturday, locale) },
+                                  { label: locale === 'es' ? 'Próxima semana' : 'Next week', date: nextMonday, display: diaCorto(nextMonday, locale) },
                                   { label: locale === 'es' ? 'Próximo fin de semana' : 'Next weekend', date: nextWeekend, display: nextWeekend.toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', { day: 'numeric', month: 'short' }) },
                                   { label: locale === 'es' ? '2 semanas' : '2 weeks', date: twoWeeks, display: twoWeeks.toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', { day: 'numeric', month: 'short' }) },
                                   { label: locale === 'es' ? '4 semanas' : '4 weeks', date: fourWeeks, display: fourWeeks.toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', { day: 'numeric', month: 'short' }) },
@@ -1141,10 +1142,7 @@ export function TaskDetailModal({
 
                               {/* Weekday Headers */}
                               <div className="grid grid-cols-7 gap-1 mb-2">
-                                {(locale === 'es'
-                                  ? ['do', 'lu', 'ma', 'mi', 'ju', 'vi', 'sá']
-                                  : ['su', 'mo', 'tu', 'we', 'th', 'fr', 'sa']
-                                ).map((day) => (
+                                {CABECERAS_DE_DIAS[locale === 'es' ? 'es' : 'en'].map((day) => (
                                   <div key={day} className={cn("w-8 h-8 flex items-center justify-center text-xs", isDark ? "text-[#6B7280]" : "text-gray-400")}>
                                     {day}
                                   </div>
