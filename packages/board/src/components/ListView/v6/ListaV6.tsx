@@ -155,7 +155,7 @@ const TXT = {
       hito: 'Convertir en hito', quitarHito: 'Quitar hito', markIncomplete: 'Marcar por hacer', setInProgress: 'Marcar en progreso',
       markComplete: 'Marcar completada', duplicate: 'Duplicar tarea', split: 'Dividir tarea', delete: 'Eliminar tarea' },
     menuDe: (n: string) => `Acciones de «${n}»`,
-    anadir: 'Añadir tarea', anadirEn: (n: string) => `Añadir subtarea en «${n}»`, nombreNueva: 'Nombre de la tarea nueva',
+    esHito: 'Hito', anadir: 'Añadir tarea', anadirEn: (n: string) => `Añadir subtarea en «${n}»`, nombreNueva: 'Nombre de la tarea nueva',
     ayudaNueva: 'Enter crea la tarea (y deja escribir otra); Esc cancela.',
     fuera: (n: string, p: string) => `«${n}» sale de «${p}».`,
   },
@@ -200,6 +200,7 @@ const TXT = {
       markComplete: 'Mark complete', duplicate: 'Duplicate task', split: 'Split task', delete: 'Delete task' },
     menuDe: (n: string) => `Actions for “${n}”`,
     anadir: 'Add task', anadirEn: (n: string) => `Add subtask in “${n}”`, nombreNueva: 'Name of the new task',
+    esHito: 'Milestone',
     ayudaNueva: 'Enter creates the task (and lets you type another); Esc cancels.',
     fuera: (n: string, p: string) => `“${n}” is out of “${p}”.`,
   },
@@ -929,6 +930,8 @@ export function ListaV6({
                         </button>
                       ) : <span className="ind" />}
                       <span className="wbs">{f.wbs}</span>
+                      {/* N29 (2ª revisión de Yesid): «"Convert to milestone" no deja ninguna marca en la Lista» */}
+                      {t.isMilestone && <span className="hito" role="img" aria-label={x.esHito} title={x.esHito} data-hito="">◆</span>}
                       <span className="nm" title={ruta}>{t.name}</span>
                       <EscudoDeRiesgo riesgos={t.riesgos} es={es} className="rk" />
                       {padre && <span className="cnt" title={x.hechas(ci.hechas, ci.hojas)}>{ci.hechas}/{ci.hojas}</span>}
@@ -1175,6 +1178,7 @@ export const CSS_V6 = `
  * tabulares, Mono solo en el WBS; 20 px por nivel con una guía vertical por cada ascendiente).
  */
 export const CSS_LISTA_V4 = `
+.lista-v4 .cell .hito { flex: none; color: var(--v4-amber, #C27803); font-size: 11px; line-height: 1; margin-right: 2px; }
 .lista-v6.lista-v4{
   --lv-text:var(--v4-text,var(--v6-texto));--lv-text2:var(--v4-text2,var(--v6-texto-2));--lv-text3:var(--v4-text3,var(--v6-tenue));
   --lv-card:var(--v4-card,var(--v6-tarjeta));--lv-border:var(--v4-border,var(--v6-borde));--lv-soft:var(--v4-soft,var(--v6-linea));

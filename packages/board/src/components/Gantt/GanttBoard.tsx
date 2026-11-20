@@ -1482,6 +1482,14 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         updates = { ...updates, startDate: sumarHabiles(new Date(updates.endDate), -(dur - 1), cal) };
       }
     }
+    /* N29 (2ª revisión de Yesid): un hito tiene UNA fecha. «Al cambiarle el fin, el inicio se quedó atrás y quedó un hito del
+       19 de noviembre al 18 de diciembre.» La fecha que se cambia manda; al convertir en hito, manda el fin. */
+    const esHito = updates.isMilestone ?? previa?.isMilestone;
+    if (esHito) {
+      if (updates.startDate && !updates.endDate) updates = { ...updates, endDate: updates.startDate };
+      else if (updates.endDate && !updates.startDate) updates = { ...updates, startDate: updates.endDate };
+      else if (updates.isMilestone && !previa?.isMilestone && previa?.endDate) updates = { ...updates, startDate: previa.endDate, endDate: previa.endDate };
+    }
     // v0.8.0: Before event (cancelable)
     if (onBeforeTaskUpdate) {
       const shouldContinue = onBeforeTaskUpdate(taskId, updates);

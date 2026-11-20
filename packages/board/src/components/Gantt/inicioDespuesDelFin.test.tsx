@@ -48,3 +48,17 @@ describe('N25 · el inicio después del fin corre el fin (y al revés), conserva
     expect([dia(m.ultima().startDate), dia(m.ultima().endDate)]).toEqual(['2026-11-16', '2026-11-20']);
   });
 });
+
+describe('N29 · un hito tiene una sola fecha', () => {
+  it('al cambiarle el fin, el inicio va con él (antes quedaba un hito del 19-nov al 18-dic)', () => {
+    const actualizada = vi.fn();
+    const hito: Task = { id: 'h', name: 'Diseño aprobado', startDate: d('2026-11-19'), endDate: d('2026-11-19'), progress: 0, status: 'todo', isMilestone: true };
+    render(<GanttBoard tasks={[hito]} config={{ ...(config as object), onTaskUpdate: actualizada } as never} />);
+    const fila = document.querySelector('[data-task-row]') as HTMLElement;
+    const botones = [...fila.querySelectorAll('button')].filter((b) => /\d{1,2} nov/.test(b.textContent ?? ''));
+    act(() => { fireEvent.click(botones[1]); });
+    act(() => { fireEvent.click(document.querySelector('[data-calendario-del-gantt] [data-iso="2026-11-27"]') as HTMLElement); });
+    const t = actualizada.mock.calls.at(-1)?.[0] as Task;
+    expect([dia(t.startDate), dia(t.endDate)]).toEqual(['2026-11-27', '2026-11-27']);
+  });
+});
