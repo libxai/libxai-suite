@@ -9,7 +9,7 @@ import { TaskGrid } from './TaskGrid';
 import { Timeline } from './Timeline';
 import { anchoDelDia, escalaParaAjustar, conHoy, diasTrasHoy, fechaAlAbrir, HOY_AL_ABRIR, inicioDeLaEscala, ladoDeHoy } from './rangoDeLaEscala';
 import { esVencida } from './vencidas';
-import { calendarioDe, fechasQueCumplen, finConDuracion, empujarSucesoras, holguras, moverConservandoHabiles, sumarHabiles } from './motorDeProgramacion';
+import { calendarioDe, fechasQueCumplen, finConDuracion, empujarSucesoras, habilesEntre, holguras, moverConservandoHabiles, sumarHabiles } from './motorDeProgramacion';
 import { COLUMNAS_OPCIONALES, type ContextoDeColumnas } from './columnasDelGantt';
 import { aPdf, aPng, type DatosDelDocumento, type OpcionesDeExportacion } from './exportarDocumento';
 import { fechaCorta } from './fechaCorta';
@@ -1468,6 +1468,20 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
 
   // Handle task updates from context menu (memoized)
   const handleTaskUpdate = useCallback((taskId: string, updates: Partial<Task>) => {
+    /* N25 (2ª revisión de Yesid, 19-nov): «Poner el inicio después del fin da "Error updating task", sin más». Un inicio
+       después del fin corre el fin y una fecha de fin antes del inicio corre el inicio, conservando los días hábiles de la
+       tarea (mover, no estirar al revés). Así nunca se manda una tarea con el fin antes del inicio. */
+    const previa = ganttUtils.findTaskById(localTasks, taskId);
+    if (previa?.startDate && previa?.endDate && ('startDate' in updates) !== ('endDate' in updates)) {
+      const dia = (d: Date | string) => { const x = new Date(d); return new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime(); };
+      const cal = calendarioDe(config?.workingDaysConfig);
+      const dur = habilesEntre(new Date(previa.startDate), new Date(previa.endDate), cal);
+      if (updates.startDate && dia(updates.startDate) > dia(previa.endDate)) {
+        updates = { ...updates, endDate: finConDuracion(new Date(updates.startDate), dur, cal) };
+      } else if (updates.endDate && dia(updates.endDate) < dia(previa.startDate)) {
+        updates = { ...updates, startDate: sumarHabiles(new Date(updates.endDate), -(dur - 1), cal) };
+      }
+    }
     // v0.8.0: Before event (cancelable)
     if (onBeforeTaskUpdate) {
       const shouldContinue = onBeforeTaskUpdate(taskId, updates);
@@ -1509,7 +1523,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
         onProgressChange?.(taskId, oldProgress, updates.progress);
       }
     }
-  }, [localTasks, onTaskUpdate, onBeforeTaskUpdate, onAfterTaskUpdate, onProgressChange]);
+  }, [localTasks, onTaskUpdate, onBeforeTaskUpdate, onAfterTaskUpdate, onProgressChange, config?.workingDaysConfig]);
 
   // Drag-fill: apply ONE value to MANY tasks in a single state update, then let
   // the consumer persist via a dedicated callback. Doing it in one pass (instead
