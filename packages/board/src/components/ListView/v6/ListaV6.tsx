@@ -23,7 +23,7 @@ import { CSS_PANEL_V4, PanelDeTareaV4, type AccionesDelPanelV4 } from './PanelDe
 import { EscudoDeRiesgo } from './PuntoDeRiesgo';
 import { CSS_RECURSOS_V6 } from './RecursosDeLaListaV6';
 import { CSS_COSTOS_V4, CostosDelProyectoV4, type SaludDelPieV4 } from './CostosDelProyectoV4';
-import { avanceDeTarea, collectLeaves, computeWeightedProgress } from '../../../utils/avanceFisico';
+import { avanceDeTarea, collectLeaves, computeWeightedProgress, hayTrabajoQueMedir } from '../../../utils/avanceFisico';
 import { MenuIcons } from '../../Gantt/ContextMenu';
 import { armarMenuDeLaTarea } from '../../Gantt/menuDeLaTarea';
 
@@ -532,6 +532,8 @@ export function ListaV6({
   }, [hojas]);
   /* regla v4 única (utils/avanceFisico): todas las hojas del proyecto, 1 h sin estimar, completada = 100 */
   const pctTotal = useMemo(() => computeWeightedProgress(collectLeaves(tasks)), [tasks]);
+  /* 21-nov · solo hitos: no hay nada que medir («No evaluable»), no un 0 % */
+  const hayTrabajo = useMemo(() => hayTrabajoQueMedir(tasks), [tasks]);
 
   /* F2 · guardar: se ve ya, se registra a los 5 s (la anterior en espera, si la hay, se registra antes) */
   const guardarHoras = (t: Task, wbs: string, antes: number, ahora: number) => {
@@ -978,7 +980,7 @@ export function ListaV6({
                     </td>
                   );
                 }
-                if (c === 'pct') return <td key={c} className="num">{avanceTotal != null ? Math.round(avanceTotal) : pctTotal}%</td>;
+                if (c === 'pct') return <td key={c} className="num">{avanceTotal != null ? `${Math.round(avanceTotal)}%` : hayTrabajo ? `${pctTotal}%` : <span title={es ? 'No evaluable: solo hay hitos' : 'Not assessable: milestones only'}>—</span>}</td>;
                 if (c === 'hrs') return <td key={c} className="num">{horasCortas(total.reg, es)} / {horasCortas(total.est, es)} h</td>;
                 if (c === 'cost') return <td key={c} className="num">{millones(total.costo, es)}</td>;
                 return <td key={c} className={c === 'dur' ? 'col-dur' : undefined} />;

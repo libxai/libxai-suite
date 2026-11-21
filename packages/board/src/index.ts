@@ -196,7 +196,7 @@ export type { ListViewThemeName } from './components/ListView'
 export { estadoDe, estadoDeHoja, estaVencida, diasDeRetraso, hojasDe, tieneHijas } from './components/ListView/v6/reglasDeLaLista'
 export type { EstadoV6 } from './components/ListView/v6/reglasDeLaLista'
 // 18-nov · la regla única del avance (v4: horas estimadas, 1 h sin estimar, completada = 100): la usan la app, el Gantt, la Lista y el Tablero
-export { computeWeightedProgress, collectLeaves, minutosQuePesa, avanceDeTarea } from './utils/avanceFisico'
+export { computeWeightedProgress, collectLeaves, minutosQuePesa, avanceDeTarea, hayTrabajoQueMedir, contarHitos } from './utils/avanceFisico'
 export type { HojaConAvance } from './utils/avanceFisico'
 export { fechaCorta } from './components/Gantt/fechaCorta'
 export type { RiesgoDeLaTarea } from './components/Gantt/types'

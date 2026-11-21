@@ -3,7 +3,7 @@
  * lo que cambia a propósito respecto a la fórmula anterior.
  */
 import { describe, it, expect } from 'vitest';
-import { avanceDeTarea, collectLeaves, computeWeightedProgress, minutosQuePesa } from './avanceFisico';
+import { avanceDeTarea, collectLeaves, computeWeightedProgress, contarHitos, hayTrabajoQueMedir, minutosQuePesa } from './avanceFisico';
 import type { Task } from '../components/Gantt/types';
 
 const tarea = (id: string, o: { progress?: number; horas?: number | null; vendidas?: number | null; status?: string; weight?: number; hijas?: Task[] } = {}) =>
@@ -61,5 +61,40 @@ describe('regla v4: horas estimadas, 1 h sin estimar, completada = 100', () => {
 
   it('sin hojas, 0', () => {
     expect(computeWeightedProgress([])).toBe(0);
+  });
+});
+
+describe('21-nov · los hitos no pesan (Yesid: «un hito es una fecha, no trabajo»)', () => {
+  const hito = (id: string, status = 'todo') => ({ ...tarea(id, { status }), isMilestone: true } as unknown as Task);
+
+  it('una fase con 1 de 2 tareas hechas y un hito pendiente: 50 % (antes, con el hito pesando 1 h, 33 %)', () => {
+    const fase = tarea('f', { hijas: [tarea('a', { status: 'completed' }), tarea('b'), hito('h')] });
+    expect(avanceDeTarea(fase)).toBe(50);
+  });
+
+  it('un hito cumplido tampoco sube el avance', () => {
+    const fase = tarea('f', { hijas: [tarea('a'), tarea('b'), hito('h', 'completed')] });
+    expect(avanceDeTarea(fase)).toBe(0);
+  });
+
+  it('con pesos manuales, el hito no entra ni en la suma ni en la cobertura', () => {
+    const fase = tarea('f', { hijas: [tarea('a', { weight: 60, status: 'completed' }), tarea('b', { weight: 40 }), hito('h')] });
+    expect(avanceDeTarea(fase)).toBe(60);
+  });
+
+  it('solo hitos: no hay trabajo que medir («No evaluable») y el número queda en 0', () => {
+    const arbol = [hito('h1', 'completed'), hito('h2')];
+    expect(hayTrabajoQueMedir(arbol)).toBe(false);
+    expect(computeWeightedProgress(collectLeaves(arbol))).toBe(0);
+    expect(hayTrabajoQueMedir([...arbol, tarea('a')])).toBe(true);
+  });
+
+  it('los hitos se cuentan aparte: «2 de 5 hitos cumplidos», también dentro de las fases', () => {
+    const arbol = [
+      hito('h1', 'completed'), hito('h2'),
+      tarea('f', { hijas: [tarea('a'), hito('h3', 'completed'), hito('h4'), hito('h5')] }),
+    ];
+    expect(contarHitos(arbol)).toEqual({ total: 5, cumplidos: 2 });
+    expect(contarHitos([tarea('a')])).toEqual({ total: 0, cumplidos: 0 });
   });
 });
