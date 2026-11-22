@@ -43,7 +43,7 @@ export function AddColumnButton({
   onAddColumn,
   className,
   placeholder = 'Nombre de la columna...',
-  buttonLabel = 'Agregar Columna',
+  buttonLabel = 'Agregar columna',
   disabled = false,
 }: AddColumnButtonProps) {
   const [isEditing, setIsEditing] = useState(false)

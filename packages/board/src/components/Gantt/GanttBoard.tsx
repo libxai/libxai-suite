@@ -3130,7 +3130,8 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
                       className="text-lg font-semibold"
                       style={{ color: theme.textPrimary, fontFamily: 'Inter, sans-serif' }}
                     >
-                      {translations.contextMenu?.deleteTask || 'Delete Task'}?
+                      {/* QA Latty R3 · BUG-26 · «Eliminar tarea?» sin el «¿» de apertura */}
+                      {locale === 'es' ? '¿' : ''}{translations.contextMenu?.deleteTask || 'Delete Task'}?
                     </h3>
                     <p
                       className="text-sm mt-1"
