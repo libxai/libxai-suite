@@ -208,7 +208,7 @@ export const Column = memo<ColumnProps>(
               {(onColumnRename || onColumnDelete) && (
                 <ColumnMenu
                   columnTitle={column.title}
-                  onRename={onColumnRename ? (newTitle) => onColumnRename(column.id, newTitle) : undefined}
+                  onRename={onColumnRename && column.renombrable !== false ? (newTitle) => onColumnRename(column.id, newTitle) : undefined}
                   onDelete={onColumnDelete ? () => onColumnDelete(column.id) : undefined}
                   isDeletable={isDeletable}
                   locale={locale}
