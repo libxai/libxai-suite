@@ -10,7 +10,7 @@ import { inicialesDe } from '../../utils/iniciales';
 import { horas, moneda, numero, porcentaje } from '../../utils/formato';
 import { ListaV6 } from './v6/ListaV6';
 import { TODOS_LOS_DIAS } from '../Gantt/motorDeProgramacion';
-import { anchoMinimoDeColumna, anchoMinimoDeLaTabla } from './anchoDeColumnas';
+import { anchoMinimoDeColumna, anchoMinimoDeLaTabla, NOMBRE_SUELO } from './anchoDeColumnas';
 import { computeWeightedProgress, collectLeaves } from '../../utils/avanceFisico';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -1043,7 +1043,9 @@ export function ListView({
 
     const handleMouseMove = (e: MouseEvent) => {
       const delta = e.clientX - resizeStartX;
-      const newWidth = Math.max(50, resizeStartWidth + delta);
+      /* QA Latty R3 · BUG-55 · la de Nombre no se arrastra por debajo de su suelo */
+      const suelo = columns.find(c => c.id === resizingColumn)?.type === 'name' ? NOMBRE_SUELO : 50;
+      const newWidth = Math.max(suelo, resizeStartWidth + delta);
       latestColumns = latestColumns.map(col =>
         col.id === resizingColumn ? { ...col, width: newWidth } : col
       );
@@ -2776,6 +2778,8 @@ export function ListView({
                       style={{
                         width: columnWidthPercent[column.id], minWidth: anchoMinimo[column.id],
                         position: 'relative',
+                        /* QA Latty R3 · BUG-55 · lo que no cabe en el Nombre se recorta: no se pinta encima de la columna de al lado */
+                        overflow: column.type === 'name' ? 'hidden' : undefined,
                         backgroundColor: cellInFill ? 'rgba(0, 229, 204, 0.13)' : undefined,
                         boxShadow: cellInFill ? 'inset 0 0 0 1px rgba(0, 229, 204, 0.45)' : undefined,
                       }}
@@ -2848,7 +2852,8 @@ export function ListView({
                             {/* Line 3: First tag badge */}
                             {task.tags?.[0] && (
                               <span
-                                className={cn("text-[9px] font-mono uppercase tracking-wide px-1.5 py-0.5 rounded w-fit", compacta && "min-w-0 max-w-[40%] truncate")}
+                                className={cn("text-[9px] font-mono uppercase tracking-wide px-1.5 py-0.5 rounded w-fit", compacta && "min-w-[3rem] max-w-[40%] truncate flex-shrink")}
+                                /* QA Latty R3 · BUG-40 · la etiqueta se recortaba hasta una letra: conserva al menos 3rem */
                                 style={{
                                   backgroundColor: `${task.tags[0].color}20`,
                                   color: task.tags[0].color,

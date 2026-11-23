@@ -9,6 +9,11 @@
  * en horizontal.
  */
 export const NOMBRE_MINIMO = 220;
+/**
+ * QA Latty R3 · BUG-55 · «en 390 px el avatar se monta sobre el nombre»: un ancho GUARDADO de la columna Nombre
+ * (al arrastrar su borde) podía dejarla en ~70 px, y su mínimo era ese mismo ancho. El nombre no baja de aquí.
+ */
+export const NOMBRE_SUELO = 160;
 
 export interface ColumnaConAncho {
   id: string;
@@ -19,7 +24,7 @@ export interface ColumnaConAncho {
 
 export function anchoMinimoDeColumna(c: ColumnaConAncho): number {
   if (c.minWidth != null) return c.minWidth;
-  return c.type === 'name' ? Math.min(c.width, NOMBRE_MINIMO) : c.width;
+  return c.type === 'name' ? Math.max(NOMBRE_SUELO, Math.min(c.width, NOMBRE_MINIMO)) : c.width;
 }
 
 /** El ancho por debajo del cual la tabla se desplaza, con los huecos fijos de la fila. */

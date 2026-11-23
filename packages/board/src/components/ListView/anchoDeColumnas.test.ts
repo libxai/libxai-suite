@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { anchoMinimoDeColumna, anchoMinimoDeLaTabla, NOMBRE_MINIMO } from './anchoDeColumnas';
+import { anchoMinimoDeColumna, anchoMinimoDeLaTabla, NOMBRE_MINIMO, NOMBRE_SUELO } from './anchoDeColumnas';
 
 describe('anchos mínimos de la Lista (QA Asakaa E39: cabeceras montadas)', () => {
   it('una columna no baja de su ancho de diseño', () => {
@@ -10,6 +10,10 @@ describe('anchos mínimos de la Lista (QA Asakaa E39: cabeceras montadas)', () =
   it('la de Nombre puede ceder hasta su mínimo, no más', () => {
     expect(anchoMinimoDeColumna({ id: 'name', type: 'name', width: 400 })).toBe(NOMBRE_MINIMO);
     expect(anchoMinimoDeColumna({ id: 'name', type: 'name', width: 180 })).toBe(180);
+  });
+
+  it('QA Latty R3 · BUG-55 · ni con un ancho guardado diminuto baja del suelo', () => {
+    expect(anchoMinimoDeColumna({ id: 'name', type: 'name', width: 60 })).toBe(NOMBRE_SUELO);
   });
 
   it('un minWidth explícito manda', () => {
