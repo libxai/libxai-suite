@@ -1544,7 +1544,11 @@ export function TaskGrid({
     // (Antes una fase tenía 3 opciones y «Duplicar» caía donde las demás filas tienen «Agregar subtarea».)
     const cm = translations?.contextMenu;
     return armarMenuDeLaTarea({
-      edit: { label: cm?.editTask || 'Edit Task', icon: MenuIcons.Pencil, onClick: () => onTaskDblClick?.(task), disabled: !!isParentTask },
+      edit: {
+        label: cm?.editTask || 'Edit Task', icon: MenuIcons.Pencil, onClick: () => onTaskDblClick?.(task), disabled: !!isParentTask,
+        /* QA Latty R3 · BUG-41 · el mismo motivo que el menú de la barra */
+        motivo: isParentTask ? (esGrid ? 'Una fase se calcula con sus tareas: abre su panel para el nombre' : 'A phase comes from its tasks: open its panel to rename it') : undefined,
+      },
       addSubtask: { label: cm?.addSubtask || 'Add Subtask', icon: MenuIcons.Add, onClick: () => onCreateSubtask?.(task.id) },
       ...(onTaskIndent ? {
         indent: { label: cm?.indent || 'Indent', icon: MenuIcons.Indent, onClick: () => onTaskIndent([task.id]), disabled: isBulk || !hermanaDeArriba(tasks, task.id) },
@@ -1582,7 +1586,12 @@ export function TaskGrid({
       // v1.4.3: Duplicate Task — bulk-aware
       duplicate: { label: (cm?.duplicateTask || 'Duplicate Task') + sfx, icon: MenuIcons.Duplicate, onClick: () => onTaskDuplicate?.(bulkIds) },
       // Split Task: solo desde el menú de la barra (clic derecho en el diagrama)
-      split: { label: cm?.splitTask || 'Split Task', icon: MenuIcons.Split, onClick: () => {}, disabled: true },
+      /* QA Latty R3 · BUG-41 · «Dividir tarea» salía apagada sin decir por qué: aquí se dice dónde se hace */
+      split: {
+        label: cm?.splitTask || 'Split Task', icon: MenuIcons.Split, onClick: () => {}, disabled: true,
+        motivo: isParentTask ? (esGrid ? 'Una fase no se divide: divide sus tareas' : 'A phase cannot be split: split its tasks')
+          : (esGrid ? 'Se divide desde su barra: clic derecho sobre la barra en el diagrama' : 'Split it from its bar: right-click the bar in the chart'),
+      },
       // Delete Task - v0.17.34: Use confirmation modal if available — bulk-aware
       delete: { label: (cm?.deleteTask || 'Delete Task') + sfx, icon: MenuIcons.Delete, onClick: requestDelete },
     });
