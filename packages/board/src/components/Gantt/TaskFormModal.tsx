@@ -132,6 +132,11 @@ export interface TaskFormModalProps {
    * perdía. Sólo salen si quien usa el modal los guarda.
    */
   mostrarUbicacionYActivo?: boolean
+  /**
+   * QA Latty R3 · N-02 · «Horas estimadas» es de Asakaa, no de Latty (decisión de Yesid): sin ella, el campo no sale.
+   * Por omisión sale, como hasta ahora.
+   */
+  mostrarHorasEstimadas?: boolean
   /** v2.2.0: Pre-select status when creating from a specific column */
   defaultStatus?: string
 }
@@ -160,6 +165,7 @@ export function TaskFormModal({
   attachments = [],
   onUploadAttachments,
   mostrarUbicacionYActivo = false,
+  mostrarHorasEstimadas = true,
   onDeleteAttachment,
   defaultStatus,
 }: TaskFormModalProps) {
@@ -1046,8 +1052,8 @@ export function TaskFormModal({
                           className="overflow-hidden"
                         >
                           <div className="pt-3 space-y-3">
-                            {/* v1.2.0: Duración estimada (Effort Estimate) */}
-                            <div>
+                            {/* v1.2.0: Duración estimada (Effort Estimate) · QA Latty R3 N-02: sólo si quien usa el modal la quiere */}
+                            {mostrarHorasEstimadas && (<div>
                               <div className="flex items-center gap-2 mb-2">
                                 <svg
                                   width="16"
@@ -1097,7 +1103,7 @@ export function TaskFormModal({
                                   {esForm ? 'No se entiende: escribe 8, 2h 30m, 45m, 2,5 o 1d' : 'Not understood: type 8, 2h 30m, 45m, 2.5 or 1d'}
                                 </p>
                               )}
-                            </div>
+                            </div>)}
 
                             {/* v2.3.0: Parent Phase dropdown */}
                             {availableTasks.length > 0 && (

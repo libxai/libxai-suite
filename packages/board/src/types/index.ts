@@ -152,6 +152,11 @@ export interface Column {
   color?: string
   /** Custom metadata */
   metadata?: Record<string, unknown>
+  /**
+   * QA Latty R3 · BUG-38 · `false`: el menú no ofrece «Renombrar» en esta columna (las de siempre de la app: antes dejaba
+   * escribir y luego respondía «no se renombran»). Por omisión, renombrable.
+   */
+  renombrable?: boolean
 
   // Timestamps
   createdAt?: Date | string

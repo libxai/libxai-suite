@@ -2990,6 +2990,10 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
               // v0.16.0: Edit Task - opens edit modal or calls custom handler
               edit: {
                 label: cm?.editTask || 'Edit Task', icon: MenuIcons.Pencil, disabled: !canUpdateTask || isParentTask,
+                /* QA Latty R3 · BUG-41 · en una fase «Editar tarea» se apagaba sin decir por qué */
+                motivo: !canUpdateTask ? (locale === 'es' ? 'No tienes permiso para editar esta tarea' : 'You cannot edit this task')
+                  : isParentTask ? (locale === 'es' ? 'Una fase se calcula con sus tareas: abre su panel para el nombre' : 'A phase comes from its tasks: open its panel to rename it')
+                    : undefined,
                 onClick: () => { if (onTaskEdit) onTaskEdit(task); else setEditingTask(task); },
               },
               addSubtask: {
@@ -3126,7 +3130,8 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
                       className="text-lg font-semibold"
                       style={{ color: theme.textPrimary, fontFamily: 'Inter, sans-serif' }}
                     >
-                      {translations.contextMenu?.deleteTask || 'Delete Task'}?
+                      {/* QA Latty R3 · BUG-26 · «Eliminar tarea?» sin el «¿» de apertura */}
+                      {locale === 'es' ? '¿' : ''}{translations.contextMenu?.deleteTask || 'Delete Task'}?
                     </h3>
                     <p
                       className="text-sm mt-1"
@@ -3160,6 +3165,20 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
                       <span className="font-semibold" style={{ color: theme.textPrimary }}>
                         "{deleteConfirmation.taskName}"
                       </span>
+                      {/* QA Latty R3 · BUG-09 · «Eliminar fase» con 2 subtareas no las nombraba, y se borraban las tres */}
+                      {(() => {
+                        const fase = ganttUtils.flattenTasks(localTasks).find((t) => t.id === deleteConfirmation.taskIds[0])
+                        const n = fase?.subtasks?.length ? ganttUtils.flattenTasks(fase.subtasks).length : 0
+                        if (!n) return null
+                        return (
+                          <>
+                            {locale === 'es' ? ' y ' : ' and '}
+                            <span className="font-semibold" style={{ color: theme.textPrimary }}>
+                              {locale === 'es' ? (n === 1 ? 'su subtarea' : `sus ${n} subtareas`) : (n === 1 ? 'its subtask' : `its ${n} subtasks`)}
+                            </span>
+                          </>
+                        )
+                      })()}
                       .
                     </>
                   )}
