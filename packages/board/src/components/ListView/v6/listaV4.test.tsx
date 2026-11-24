@@ -40,8 +40,8 @@ describe('Lista v4 · la tabla', () => {
   it('cabeceras sin abreviar, con la unidad en el globo; abre sin Inicio ni Duración', () => {
     const { container } = montar();
     const ths = [...container.querySelectorAll('.lt thead th')].map((t) => t.textContent?.replace(/[↑↓+\d]/g, '').trim()).filter(Boolean);
-    expect(ths).toEqual(['Tarea', 'Responsable', 'Estado', 'Fin', 'Avance', 'Horas', 'Costo']);
-    expect(container.querySelector('thead th[title^="Horas registradas / estimadas"]')).toBeTruthy();
+    expect(ths).toEqual(['Tarea', 'Responsable', 'Estado', 'Fin', 'Avance', 'Registradas', 'Estimadas', '% de horas', 'Costo']);
+    expect(container.querySelector('thead th[title^="Horas registradas en la tarea"]')).toBeTruthy();
     expect(container.querySelector('thead th[title^="Costo real en COP"]')).toBeTruthy();
   });
 

@@ -27,6 +27,7 @@ import {
 import { CSS_V6 } from '../../ListView/v6/ListaV6';
 import { CSS_PANEL_V6, type FilaDelPanel } from '../../ListView/v6/PanelDeTareaV6';
 import { CSS_PANEL_V4, PanelDeTareaV4, type AccionesDelPanelV4 } from '../../ListView/v6/PanelDeTareaV4';
+import { CSS_RESPONSABLES } from '../../ListView/v6/SelectorDeResponsables';
 import { EscudoDeRiesgo } from '../../ListView/v6/PuntoDeRiesgo';
 import { CSS_RECURSOS_V6 } from '../../ListView/v6/RecursosDeLaListaV6';
 import { CSS_COSTOS_V4, CostosDelProyectoV4, type SaludDelPieV4 } from '../../ListView/v6/CostosDelProyectoV4';
@@ -1030,7 +1031,7 @@ export function TableroV6({
   return (
     <section className={`lista-v6 tablero-v6${mostrarHechas ? ' show-done' : ''}${filaPanel ? ' has-panel' : ''}${vista.densidad === 'compacta' ? ' dens-compact' : vista.densidad === 'comoda' ? ' dens-comfy' : ''}`}
       aria-label={x.tablero}>
-      <style>{CSS_V6 + CSS_PANEL_V6 + CSS_RECURSOS_V6 + CSS_TABLERO_V6 + CSS_PANEL_V4 + CSS_COSTOS_V4}</style>
+      <style>{CSS_V6 + CSS_PANEL_V6 + CSS_RECURSOS_V6 + CSS_TABLERO_V6 + CSS_PANEL_V4 + CSS_COSTOS_V4 + CSS_RESPONSABLES}</style>
       <p id="kb-v6-ayuda" className="sr">{x.ayuda}</p>
       <div className="sumline">
         <div>
