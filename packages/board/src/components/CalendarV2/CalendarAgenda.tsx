@@ -26,9 +26,11 @@ interface Props {
   todaySerial: number;
   locale: 'es' | 'en';
   onTaskOpen?: (taskId: string) => void;
+  /** QA Latty R3 · BUG-11 · la tarea en CADA día de su rango (inicio → fin), no sólo en el que arranca. */
+  porRango?: boolean;
 }
 
-export function CalendarAgenda({ grid, tasks, items, money, projColor, todaySerial, locale, onTaskOpen }: Props) {
+export function CalendarAgenda({ grid, tasks, items, money, projColor, todaySerial, locale, onTaskOpen, porRango = false }: Props) {
   const es = locale === 'es';
 
   // Agrupa por día: una tarea aparece en el día en que ARRANCA (su startSerial),
@@ -40,7 +42,10 @@ export function CalendarAgenda({ grid, tasks, items, money, projColor, todaySeri
       return byDay.get(serial)!;
     };
     for (const t of tasks) {
-      if (t.startSerial >= 1 && t.startSerial <= 42) ensure(t.startSerial).tasks.push(t);
+      if (porRango) {
+        /* QA Latty R3 · BUG-11 · «Agenda: la tarea aparece en cada día de su rango» (un hito ya trae inicio = fin) */
+        for (let d = Math.max(t.startSerial, 1); d <= Math.min(t.endSerial, 42); d++) ensure(d).tasks.push(t);
+      } else if (t.startSerial >= 1 && t.startSerial <= 42) ensure(t.startSerial).tasks.push(t);
     }
     for (const it of items) {
       if (it.serial >= 1 && it.serial <= 42) ensure(it.serial).items.push(it);
@@ -48,7 +53,7 @@ export function CalendarAgenda({ grid, tasks, items, money, projColor, todaySeri
     return [...byDay.values()]
       .filter((r) => r.tasks.length || r.items.length)
       .sort((a, b) => a.serial - b.serial);
-  }, [tasks, items, grid]);
+  }, [tasks, items, grid, porRango]);
 
   if (rows.length === 0) {
     return (
