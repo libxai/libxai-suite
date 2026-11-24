@@ -409,8 +409,10 @@ export function KanbanBoard({
                       enableVirtualization={config?.enableVirtualization}
                       cardHeight={config?.cardHeight}
                       isCollapsed={config?.collapsedColumnIds?.includes(column.id)}
+                      /* QA Latty R3 · N-17 · el pie, dentro de la columna; la zona punteada, sólo al arrastrar */
+                      footer={columnFooter}
+                      arrastrando={dragState.isDragging}
                     />
-                    {columnFooter}
                   </div>
                 )
               })}

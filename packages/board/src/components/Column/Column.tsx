@@ -56,6 +56,13 @@ export interface ColumnProps {
   renderMetrics?: (column: ColumnType, cards: CardType[]) => React.ReactNode
   /** Locale for i18n */
   locale?: 'en' | 'es'
+  /**
+   * QA Latty R3 · N-17 · el pie de la columna («Agregar tarea»), DENTRO de su contenedor, después de la última tarjeta.
+   * Con scroll, queda fijo al pie y siempre visible.
+   */
+  footer?: React.ReactNode
+  /** QA Latty R3 · N-17 · se está arrastrando una tarjeta: sólo entonces la columna vacía enseña la zona punteada. */
+  arrastrando?: boolean
 }
 
 /**
@@ -84,6 +91,8 @@ export const Column = memo<ColumnProps>(
     className,
     renderMetrics,
     locale,
+    footer,
+    arrastrando = false,
   }) => {
     const { setNodeRef, isOver } = useDroppable({
       id: column.id,
@@ -248,9 +257,14 @@ export const Column = memo<ColumnProps>(
                 renderEmptyState ? (
                   renderEmptyState(column)
                 ) : (
-                  <div className="asakaa-drop-zone asakaa-empty">
-                    <p>{locale === 'es' ? 'Suelta aquí las tarjetas' : 'Drop cards here' /* QA Latty BUG-26 */}</p>
-                  </div>
+                  /* QA Latty R3 · N-17 · el borde punteado sólo mientras se arrastra; en reposo, «Sin tareas» en texto tenue */
+                  arrastrando ? (
+                    <div className="asakaa-drop-zone asakaa-empty">
+                      <p>{locale === 'es' ? 'Suelta aquí las tarjetas' : 'Drop cards here' /* QA Latty BUG-26 */}</p>
+                    </div>
+                  ) : (
+                    <p className="asakaa-column-vacia">{locale === 'es' ? 'Sin tareas' : 'No tasks'}</p>
+                  )
                 )
               ) : useVirtualization ? (
                 // Virtualized list
@@ -305,6 +319,7 @@ export const Column = memo<ColumnProps>(
           </div>
         )}
 
+        {footer != null && footer !== false && <div className="asakaa-column-footer">{footer}</div>}
       </div>
     )
   }
