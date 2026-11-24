@@ -889,6 +889,11 @@ export interface GanttConfig {
   defaultRate?: number;
   /** A14 · quien puede ver dinero: sin esto, la columna Costo no se ofrece. */
   verCostos?: boolean;
+  /**
+   * QA Latty R3 · sección 4 · : el tooltip de la barra no enseña horas de trabajo (estimado, registrado,
+   * ofertado). Por omisión, como siempre.
+   */
+  mostrarHorasDeTrabajo?: boolean;
   /** A14 · el dinero con el formato de la app. */
   formatearDinero?: (valor: number) => string;
 }

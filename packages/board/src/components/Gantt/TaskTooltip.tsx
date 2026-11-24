@@ -51,6 +51,8 @@ interface TaskTooltipProps {
   theme: any;
   locale?: 'en' | 'es';
   workingDaysConfig?: WorkingDaysConfig;
+  /** QA Latty R3 · sección 4 · false: sin «Estimado / Registrado / Ofertado» */
+  mostrarHorasDeTrabajo?: boolean;
 }
 
 const TOOLTIP_WIDTH = 260;
@@ -58,7 +60,7 @@ const SCREEN_PADDING = 8;
 const CURSOR_OFFSET_X = 16;  // px to the right of cursor
 const CURSOR_OFFSET_Y = -12; // px above cursor (negative = up)
 
-export function TaskTooltip({ tooltipData, theme, locale = 'en', workingDaysConfig }: TaskTooltipProps) {
+export function TaskTooltip({ tooltipData, theme, locale = 'en', workingDaysConfig, mostrarHorasDeTrabajo = true }: TaskTooltipProps) {
   const [pos, setPos] = useState<{ left: number; top: number; showBelow: boolean } | null>(null);
 
   useLayoutEffect(() => {
@@ -68,7 +70,7 @@ export function TaskTooltip({ tooltipData, theme, locale = 'en', workingDaysConf
     }
 
     const { task, mouseX, mouseY } = tooltipData;
-    const hasTimeData = task.effortMinutes != null || task.timeLoggedMinutes != null || task.soldEffortMinutes != null;
+    const hasTimeData = mostrarHorasDeTrabajo && (task.effortMinutes != null || task.timeLoggedMinutes != null || task.soldEffortMinutes != null);
     const hasLastActivity = task.lastActivity != null;
     const tooltipH = (hasTimeData ? 155 : 105) + (hasLastActivity ? 28 : 0);
 
@@ -94,12 +96,12 @@ export function TaskTooltip({ tooltipData, theme, locale = 'en', workingDaysConf
     }
 
     setPos({ left, top, showBelow });
-  }, [tooltipData]);
+  }, [tooltipData, mostrarHorasDeTrabajo]);
 
   if (!tooltipData || !pos) return null;
 
   const { task } = tooltipData;
-  const hasTimeData = task.effortMinutes != null || task.timeLoggedMinutes != null || task.soldEffortMinutes != null;
+  const hasTimeData = mostrarHorasDeTrabajo && (task.effortMinutes != null || task.timeLoggedMinutes != null || task.soldEffortMinutes != null);
 
   // Translations
   const t = {
