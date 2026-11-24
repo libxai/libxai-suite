@@ -112,6 +112,11 @@ interface Props {
   openOnToday?: boolean;
   /** 1.9.42 · `false`: ni horas ni coste en las barras. */
   showValues?: boolean;
+  /**
+   * QA Latty R3 · BUG-11 · la Agenda pone cada tarea en CADA día de su rango (inicio → fin), no sólo en el día en que
+   * arranca. Por defecto, como siempre (el día de inicio).
+   */
+  agendaPorRango?: boolean;
 }
 
 // Color por defecto si el proyecto no define uno (paleta del diseño).
@@ -125,7 +130,7 @@ export function CalendarView({
   canReschedule, onReschedule,
   members = [], holidayDates = [], timesheetSettings, onVisibleRangeChange,
   monthMode = 'span', showValues = true, openOnToday = false,
-  currencyCode,
+  currencyCode, agendaPorRango = false,
 }: Props) {
   /* 1.9.42 · en modo vencimiento, cuántos chips caben por día según el alto real. */
   const semanasRef = useRef<HTMLDivElement>(null);
@@ -397,6 +402,7 @@ export function CalendarView({
         <div className="cal-grid-zone" style={{ position: 'relative', overflow: isAgenda ? 'hidden' : undefined }}>
           {isAgenda ? (
             <CalendarAgenda
+              porRango={agendaPorRango}
               grid={grid}
               tasks={visibleTasks}
               items={visibleItems}

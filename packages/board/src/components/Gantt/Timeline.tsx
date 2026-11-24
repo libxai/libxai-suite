@@ -62,6 +62,8 @@ interface TimelineProps {
   onTaskProgressDrag?: (task: Task, newProgress: number) => void;
   /** v4.3.0: Workspace working-day config for the tooltip Duration field. */
   workingDaysConfig?: WorkingDaysConfig;
+  /** QA Latty R3 · sección 4 · sin horas de trabajo en el tooltip */
+  mostrarHorasDeTrabajo?: boolean;
   /** Gantt v6: la cabecera mide lo mismo que la de la tabla (60). */
   alturaCabecera?: number;
   /** Gantt v6 (Asakaa): escala, barras y marcas de la maqueta. */
@@ -106,6 +108,7 @@ export function Timeline({
   canEditTask,
   onTaskProgressDrag,
   workingDaysConfig,
+  mostrarHorasDeTrabajo = true,
   ventanaVisible,
   filasVisibles = null,
   onIrAFecha,
@@ -1751,6 +1754,7 @@ export function Timeline({
           theme={theme}
           locale={locale === 'es' ? 'es' : 'en'}
           workingDaysConfig={workingDaysConfig}
+          mostrarHorasDeTrabajo={mostrarHorasDeTrabajo}
         />
       )}
     </div>

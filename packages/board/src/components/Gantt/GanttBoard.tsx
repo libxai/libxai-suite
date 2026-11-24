@@ -2949,6 +2949,7 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
             weekHeaderFormat={config.weekHeaderFormat}
             canEditTask={permissions?.canEditTask}
             workingDaysConfig={config?.workingDaysConfig}
+            mostrarHorasDeTrabajo={config?.mostrarHorasDeTrabajo !== false}
             ventanaVisible={ventanaVisible}
             onIrAFecha={(d: Date) => desplazarA(d, 'center')}
             onExpandirGrupo={handleTaskToggle}
