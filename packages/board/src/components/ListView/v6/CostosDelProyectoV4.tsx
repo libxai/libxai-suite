@@ -12,7 +12,7 @@
  * Las cifras de la salud las pone la app (las mismas de la cabecera: `indicadores_de_proyectos`); las de cada persona salen
  * de las tareas: una hoja cuenta para su PRIMER responsable; sin responsable, se costea con la tarifa del espacio.
  */
-import { useMemo, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import type { Task } from '../../Gantt/types';
 import { estadoDeHoja, hojasDe, horasCortas, millones } from './reglasDeLaLista';
 
@@ -116,6 +116,9 @@ export function personasDelProyecto(tasks: Task[], tarifaDe: (h: Task) => number
   return { personas, total, planeado, sinRespAbiertas };
 }
 
+const CLAVE_ABIERTO = 'asakaa:costos-del-proyecto:abierto';
+const leerAbierto = () => { try { return localStorage.getItem(CLAVE_ABIERTO) === '1'; } catch { return false; } };
+
 export function CostosDelProyectoV4({ tasks, es, tarifaDe, tarifaDePersona, monedaCodigo, salud, conCosto = true, onVerRecursos }: {
   tasks: Task[];
   es: boolean;
@@ -128,6 +131,11 @@ export function CostosDelProyectoV4({ tasks, es, tarifaDe, tarifaDePersona, mone
   conCosto?: boolean;
   onVerRecursos?: () => void;
 }) {
+  const [abierto, setAbierto] = useState(leerAbierto);
+  const recordarAbierto = (si: boolean) => {
+    setAbierto(si);
+    try { localStorage.setItem(CLAVE_ABIERTO, si ? '1' : '0'); } catch { /* sin almacenamiento, solo esta vez */ }
+  };
   const x = es ? TXT.es : TXT.en;
   const moneda = monedaCodigo || '';
   const { personas, total, planeado: planeadoDeTareas, sinRespAbiertas } = useMemo(
@@ -176,7 +184,8 @@ export function CostosDelProyectoV4({ tasks, es, tarifaDe, tarifaDePersona, mone
     desviacion ? (desviacion > 0 ? x.masHoras : x.menosHoras) : undefined, desviacion != null && desviacion > 10);
 
   return (
-    <details className="fin" data-costos-v4>
+    /* David (Axon), 24-nov · si la deja abierta, sigue abierta al cambiar de vista o de proyecto */
+    <details className="fin" data-costos-v4 open={abierto} onToggle={(ev) => recordarAbierto((ev.currentTarget as HTMLDetailsElement).open)}>
       <summary><Chevron /><b>{x.titulo}</b><span className="fin-sum">{resumen}</span></summary>
       <div className="fin-body">
         <section className="fin-col">

@@ -17,6 +17,7 @@ import { finConDuracion, habilesEntre, sumarHabiles, type Calendario } from '../
 import { CalendarioDeFechaV4 } from '../../Gantt/CalendarioDeFechaV4';
 import { fechaCorta } from '../../Gantt/fechaCorta';
 import { EscudoDeRiesgo, nombreDeNivel } from './PuntoDeRiesgo';
+import { SelectorDeResponsables, type PersonaAsignable } from './SelectorDeResponsables';
 import { diasDeRetraso, duracionHabil, estaVencida, estadoDeHoja, hojasDe, horasCortas, millones, tieneHijas, type CifrasDeFila, type EstadoV6 } from './reglasDeLaLista';
 import { avanceDeTarea } from '../../../utils/avanceFisico';
 
@@ -31,6 +32,10 @@ export interface AccionesDelPanelV4 {
   /** v4 · si quien mira puede cambiar ESTA tarea (un ejecutor, solo las suyas): sin él, todas. Las horas (cronómetro y
    *  «Registrar») van a la hoja de quien mira y siguen solo con `puedeEditar`. */
   puedeEditarTarea?: (t: Task) => boolean;
+  /** David (Axon), 24-nov · a quién se puede asignar y en qué tareas: sin personas (o sin `onActualizar`), el responsable
+   *  es de solo lectura. Un padre no se asigna: sus responsables son los de sus hijas. */
+  personas?: PersonaAsignable[];
+  puedeAsignar?: (t: Task) => boolean;
   /** guardar campos de la tarea (restricción, lista de dependencias); `false` si no se pudo (y la app ya avisó) */
   onActualizar?: (t: Task, cambios: Partial<Task>) => boolean | void | Promise<boolean | void>;
   /** el tipo y el desfase de un enlace que ya existe */
@@ -47,6 +52,11 @@ export interface AccionesDelPanelV4 {
   onAbrirEnLista?: (t: Task, wbs: string) => void;
   onCopiarEnlace?: (t: Task) => void;
 }
+
+/** si en esta tarea se ofrece cambiar el responsable (la tabla y el panel miran lo mismo) */
+export const asignable = (a: AccionesDelPanelV4 | undefined, t: Task): boolean =>
+  !!a?.onActualizar && !!a.personas?.length && a.puedeEditar !== false && !tieneHijas(t)
+  && (a.puedeEditarTarea ? a.puedeEditarTarea(t) : true) && (a.puedeAsignar ? a.puedeAsignar(t) : true);
 
 export interface FilaDelPanelV4 { t: Task; wbs: string; ancestros: string[]; nivel?: number }
 
@@ -169,6 +179,23 @@ export function leerHoras(texto: string): number | null {
   if (!/^\d{1,2}(\.\d)?$/.test(v)) return null;
   const n = Number(v);
   return n > 0 && n <= 24 ? n : null;
+}
+
+/** Las horas ESTIMADAS de una tarea: hasta 9999,99 («leerHoras» es para lo registrado en un día y cortaba en 24 sin avisar). */
+export function leerEstimado(texto: string): number | null {
+  const v = texto.trim().replace(',', '.');
+  return /^\d{1,4}(\.\d{1,2})?$/.test(v) ? Number(v) : null;
+}
+
+/** Los cambios de mover el inicio o el fin: si se cruzan, el otro se corre con los días hábiles de la tarea (N25). */
+export function cambiosDeFecha(t: Task, campo: 'inicio' | 'fin', d: Date, cal: Calendario): Partial<Task> {
+  if (t.isMilestone) return { startDate: d, endDate: d };
+  const ini = t.startDate ? new Date(t.startDate) : d;
+  const fin = t.endDate ? new Date(t.endDate) : d;
+  const dias = habilesEntre(ini, fin, cal);
+  const soloDia = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  if (campo === 'inicio') return soloDia(d) > soloDia(fin) ? { startDate: d, endDate: finConDuracion(d, dias, cal) } : { startDate: d };
+  return soloDia(d) < soloDia(ini) ? { endDate: d, startDate: sumarHabiles(d, -(dias - 1), cal) } : { endDate: d };
 }
 
 interface Opcion { v: string; etiqueta: string; codigo?: string; pista?: string; actual?: boolean; pre?: ReactNode; sangria?: number }
@@ -345,6 +372,7 @@ export function PanelDeTareaV4({
   const dur = duracionHabil(t, cal);
   const planeado = hojasDe(t).reduce((a, h) => a + (((h as { effortMinutes?: number }).effortMinutes ?? 0) / 60) * (tarifaDe(h) || 0), 0);
   const persona = (t.assignees ?? [])[0];
+  const masDeUno = (t.assignees ?? []).length > 1 ? ` +${t.assignees!.length - 1}` : '';
   const descripcion = String((t as { description?: string }).description ?? '').trim();
   const prioridad = t.priority ? x.p[t.priority] ?? t.priority : '—';
   const riesgos = t.riesgos ?? [];
@@ -370,18 +398,12 @@ export function PanelDeTareaV4({
      hábiles; un hito tiene una sola fecha (N29) */
   const elegirFecha = (campo: 'inicio' | 'fin', d: Date) => {
     setFechaAbierta(null);
-    if (t.isMilestone) { void guardar({ startDate: d, endDate: d }); return; }
-    const ini = t.startDate ? new Date(t.startDate) : d;
-    const fin = t.endDate ? new Date(t.endDate) : d;
-    const dias = habilesEntre(ini, fin, cal);
-    const soloDia = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
-    if (campo === 'inicio') void guardar(soloDia(d) > soloDia(fin) ? { startDate: d, endDate: finConDuracion(d, dias, cal) } : { startDate: d });
-    else void guardar(soloDia(d) < soloDia(ini) ? { endDate: d, startDate: sumarHabiles(d, -(dias - 1), cal) } : { endDate: d });
+    void guardar(cambiosDeFecha(t, campo, d, cal));
   };
   const guardarEstimado = (texto: string) => {
     setEditandoEstimado(false);
     if (!texto.trim()) { void guardar({ effortMinutes: 0 } as Partial<Task>); return; }
-    const h = leerHoras(texto);
+    const h = leerEstimado(texto);
     if (h != null) void guardar({ effortMinutes: Math.round(h * 60) } as Partial<Task>);
   };
   /* dependencias que se pueden añadir: ni ella, ni sus fases o padres, ni sus hijas, ni las que ya tiene */
@@ -558,7 +580,12 @@ export function PanelDeTareaV4({
           )}
           <dl className="dp-f">
             <dt>{x.resp}</dt>
-            <dd>{avatar(persona)}<span className={persona ? undefined : 'dp-none'}>{persona?.name ?? x.sinResp}</span></dd>
+            <dd data-responsable-del-panel="">{asignable(acciones, t) ? (
+              <SelectorDeResponsables valor={t.assignees ?? []} personas={acciones.personas!} es={es} clase="dp-ib"
+                onCambiar={(assignees) => void guardar({ assignees })}>
+                {avatar(persona)}<span className={`sr-n${persona ? '' : ' dp-none'}`}>{persona?.name ?? x.sinResp}{masDeUno}</span>
+              </SelectorDeResponsables>
+            ) : <>{avatar(persona)}<span className={persona ? undefined : 'dp-none'}>{persona?.name ?? x.sinResp}{masDeUno}</span></>}</dd>
             <dt>{x.fechas}</dt>
             <dd data-fechas-del-panel="">
               {editaCampos ? (
@@ -609,7 +636,7 @@ export function PanelDeTareaV4({
                   {editaCampos && editandoEstimado ? (
                     <span className="dp-log">
                       <span className="num">{horasCortas(cifras.reg, es)} /</span>
-                      <input autoFocus className="input" inputMode="decimal" maxLength={6} aria-label={x.cambiarEstimado} data-estimado=""
+                      <input autoFocus className="input" inputMode="decimal" maxLength={7} aria-label={x.cambiarEstimado} data-estimado=""
                         defaultValue={cifras.est ? horasCortas(cifras.est, es) : ''} placeholder={es ? '0,0' : '0.0'}
                         onKeyDown={(ev) => {
                           if (ev.key === 'Enter') { ev.preventDefault(); guardarEstimado(ev.currentTarget.value); }

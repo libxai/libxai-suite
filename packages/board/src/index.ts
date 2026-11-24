@@ -208,6 +208,7 @@ export { TableroV6, VISTA_TABLERO_V6_POR_DEFECTO, FILTROS_TABLERO_V6_VACIOS, STA
 export type { TableroV6Props, VistaTableroV6, FiltrosTableroV6, AgruparTableroV6, SubtareasTableroV6 } from './components/Board/v6/TableroV6'
 // Guía v4 · el panel de la tarea (Tablero y Lista)
 export { PanelDeTareaV4, textoDeRestriccion, cambiosDeRestriccion, textoDeDesfase, leerHoras } from './components/ListView/v6/PanelDeTareaV4'
+export type { PersonaAsignable } from './components/ListView/v6/SelectorDeResponsables'
 export type { AccionesDelPanelV4, EntradaDelHistorialV4, OrigenDelCambio, TipoDeEnlaceV4, PanelDeTareaV4Props } from './components/ListView/v6/PanelDeTareaV4'
 export { EscudoDeRiesgo, tituloDelEscudo } from './components/ListView/v6/PuntoDeRiesgo'
 export { CostosDelProyectoV4, personasDelProyecto } from './components/ListView/v6/CostosDelProyectoV4'

@@ -11,7 +11,7 @@
  *
  * Las reglas (estado del padre, vencidas, días hábiles, cifras de las hojas) están en `reglasDeLaLista.ts`.
  */
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
 import type { Task } from '../../Gantt/types';
 import type { Calendario } from '../../Gantt/motorDeProgramacion';
 import { fechaCorta } from '../../Gantt/fechaCorta';
@@ -19,7 +19,9 @@ import {
   cifrasDe, diasDeRetraso, duracionHabil, estadoDe, estadoDeHoja, estaVencida, horasCortas, juzgarHoras, millones, tieneHijas, type EstadoV6,
 } from './reglasDeLaLista';
 import { CSS_PANEL_V6 } from './PanelDeTareaV6';
-import { CSS_PANEL_V4, PanelDeTareaV4, type AccionesDelPanelV4 } from './PanelDeTareaV4';
+import { asignable, cambiosDeFecha, CSS_PANEL_V4, leerEstimado, PanelDeTareaV4, type AccionesDelPanelV4 } from './PanelDeTareaV4';
+import { CeldaFecha, CeldaNumero, CSS_CELDAS } from './CeldasEditables';
+import { CSS_RESPONSABLES, SelectorDeResponsables } from './SelectorDeResponsables';
 import { EscudoDeRiesgo } from './PuntoDeRiesgo';
 import { CSS_RECURSOS_V6 } from './RecursosDeLaListaV6';
 import { CSS_COSTOS_V4, CostosDelProyectoV4, type SaludDelPieV4 } from './CostosDelProyectoV4';
@@ -27,8 +29,11 @@ import { avanceDeTarea, collectLeaves, computeWeightedProgress, hayTrabajoQueMed
 import { MenuIcons } from '../../Gantt/ContextMenu';
 import { armarMenuDeLaTarea } from '../../Gantt/menuDeLaTarea';
 
-type Columna = 'who' | 'st' | 's' | 'e' | 'dur' | 'pct' | 'hrs' | 'cost';
-const COLUMNAS: Columna[] = ['who', 'st', 's', 'e', 'dur', 'pct', 'hrs', 'cost'];
+/* David (Axon), 24-nov · las horas registradas y las estimadas, cada una en su columna, y el % usado de lo estimado */
+type Columna = 'who' | 'st' | 's' | 'e' | 'dur' | 'pct' | 'reg' | 'est' | 'uso' | 'cost';
+const COLUMNAS: Columna[] = ['who', 'st', 's', 'e', 'dur', 'pct', 'reg', 'est', 'uso', 'cost'];
+const DE_HORAS: Columna[] = ['reg', 'est', 'uso'];
+type Rellenable = 'who' | 's' | 'e' | 'est';
 type Orden = { k: 'wbs' | 's' | 'e' | 'dur' | 'pct' | 'cost'; desc: boolean };
 
 /** El menú Vista de la maqueta: densidad, completadas, agrupar por fase y leyenda. La lleva la app (se recuerda). */
@@ -119,6 +124,11 @@ const TXT = {
     tareas: 'tareas', tarea: 'tarea', ocultas: 'completadas ocultas', aLaVista: 'completadas a la vista', oculta1: 'completada oculta', aLaVista1: 'completada a la vista', mostrar: 'Mostrar', ocultar: 'Ocultar',
     vencidas: 'vencidas', vencida: 'vencida', ver: 'Ver', filtrando: 'Filtrando: vencidas', quitar: 'Quitar el filtro de vencidas',
     plegar: 'Plegar todo', desplegar: 'Desplegar todo', wbs: 'Tarea', resp: 'Responsable', estado: 'Estado', inicio: 'Inicio', fin: 'Fin',
+    registradas: 'Registradas', estimadas: 'Estimadas', uso: '% de horas',
+    cambiarInicio: (n: string) => `Inicio de «${n}», cambiar`, cambiarFin: (n: string) => `Fin de «${n}», cambiar`,
+    cambiarEst: (n: string) => `Horas estimadas de «${n}», cambiar`, cambiarPct: (n: string) => `Avance de «${n}», cambiar`,
+    malEst: 'Escriba las horas estimadas, por ejemplo 40 o 8,5.', arrastre: 'Arrastre hacia arriba o abajo para aplicar a varias tareas',
+    rellenadas: (k: number) => (k === 1 ? '1 tarea actualizada.' : `${k} tareas actualizadas.`), rellenoFallo: (k: number) => `No se pudo actualizar ${k === 1 ? '1 tarea' : `${k} tareas`}.`,
     dur: 'Duración', avance: 'Avance', horas: 'Horas', costo: 'Costo', total: 'Total del proyecto', columnas: 'Ver u ocultar columnas',
     finPrevistoTip: (p: string, plan: string) => `Fin previsto: ${p}, con lo vencido corrido. El plan vigente termina el ${plan}.`,
     tips: {
@@ -126,7 +136,8 @@ const TXT = {
       s: 'Fecha de inicio', e: 'Fecha de fin; en rojo, vencida (días hábiles del calendario del proyecto)',
       dur: 'Duración en días hábiles del calendario del proyecto',
       pct: 'Avance en %. El de una fase o del proyecto es el de sus tareas, ponderado por sus horas estimadas (una tarea sin estimar pesa como 1 h)',
-      hrs: 'Horas registradas / estimadas, en horas', cost: (m: string) => `Costo real${m ? ` en ${m}` : ''}: horas registradas × tarifa de cada persona`,
+      reg: 'Horas registradas en la tarea', est: 'Horas estimadas de la tarea', uso: 'Horas registradas como % de las estimadas; en rojo, pasan de lo estimado',
+      cost: (m: string) => `Costo real${m ? ` en ${m}` : ''}: horas registradas × tarifa de cada persona`,
     } as Record<string, string | ((m: string) => string)>,
     sinEstimar: 'Sin estimar', sinEstimarTip: 'Esta tarea no tiene horas estimadas: para el avance pesa como 1 h.',
     vencidaEl: (f: string, n: number) => `${f}, vencida hace ${n} ${n === 1 ? 'día hábil' : 'días hábiles'}`,
@@ -164,6 +175,11 @@ const TXT = {
     tareas: 'tasks', tarea: 'task', ocultas: 'completed hidden', aLaVista: 'completed shown', oculta1: 'completed hidden', aLaVista1: 'completed shown', mostrar: 'Show', ocultar: 'Hide',
     vencidas: 'overdue', vencida: 'overdue', ver: 'View', filtrando: 'Filtering: overdue', quitar: 'Clear the overdue filter',
     plegar: 'Collapse all', desplegar: 'Expand all', wbs: 'Task', resp: 'Owner', estado: 'Status', inicio: 'Start', fin: 'End',
+    registradas: 'Logged', estimadas: 'Estimated', uso: '% of hours',
+    cambiarInicio: (n: string) => `Start of “${n}”, change`, cambiarFin: (n: string) => `End of “${n}”, change`,
+    cambiarEst: (n: string) => `Estimated hours of “${n}”, change`, cambiarPct: (n: string) => `Progress of “${n}”, change`,
+    malEst: 'Type the estimated hours, for example 40 or 8.5.', arrastre: 'Drag up or down to apply to several tasks',
+    rellenadas: (k: number) => (k === 1 ? '1 task updated.' : `${k} tasks updated.`), rellenoFallo: (k: number) => `Could not update ${k === 1 ? '1 task' : `${k} tasks`}.`,
     dur: 'Duration', avance: 'Progress', horas: 'Hours', costo: 'Cost', total: 'Project total', columnas: 'Show or hide columns',
     finPrevistoTip: (p: string, plan: string) => `Forecast end: ${p}, with overdue work moved forward. The current plan ends on ${plan}.`,
     tips: {
@@ -171,7 +187,8 @@ const TXT = {
       s: 'Start date', e: 'End date; in red, overdue (working days of the project calendar)',
       dur: 'Duration in working days of the project calendar',
       pct: 'Progress in %. A phase’s or the project’s is its tasks’, weighted by their estimated hours (a task without an estimate weighs 1 h)',
-      hrs: 'Hours logged / estimated, in hours', cost: (m: string) => `Actual cost${m ? ` in ${m}` : ''}: logged hours × each person’s rate`,
+      reg: 'Hours logged on the task', est: 'Estimated hours of the task', uso: 'Logged hours as a % of the estimate; in red, over the estimate',
+      cost: (m: string) => `Actual cost${m ? ` in ${m}` : ''}: logged hours × each person’s rate`,
     } as Record<string, string | ((m: string) => string)>,
     sinEstimar: 'Not estimated', sinEstimarTip: 'This task has no estimated hours: for progress it weighs 1 h.',
     vencidaEl: (f: string, n: number) => `${f}, overdue by ${n} working ${n === 1 ? 'day' : 'days'}`,
@@ -209,7 +226,7 @@ const TXT = {
 
 /* guía v4 · cabeceras sin abreviar; la unidad va en el globo */
 const NOMBRE_COL = (c: Columna, x: typeof TXT.es): string => ({
-  who: x.resp, st: x.estado, s: x.inicio, e: x.fin, dur: x.dur, pct: x.avance, hrs: x.horas, cost: x.costo,
+  who: x.resp, st: x.estado, s: x.inicio, e: x.fin, dur: x.dur, pct: x.avance, reg: x.registradas, est: x.estimadas, uso: x.uso, cost: x.costo,
 }[c]);
 const AYUDA_COL = (c: Columna, x: typeof TXT.es, moneda?: string | null): string => {
   const a = x.tips[c];
@@ -224,7 +241,9 @@ function leerOcultas(clave?: string): Set<Columna> {
     const guardado = localStorage.getItem(clave);
     if (guardado == null) return new Set(OCULTAS_POR_DEFECTO);
     const v = JSON.parse(guardado);
-    return new Set((Array.isArray(v) ? v : []).filter((c): c is Columna => COLUMNAS.includes(c)));
+    /* quien había ocultado «Horas» (una sola columna hasta el 24-nov) sigue sin verlas */
+    const lista = (Array.isArray(v) ? v : []).flatMap((c) => (c === 'hrs' ? DE_HORAS : [c]));
+    return new Set(lista.filter((c): c is Columna => COLUMNAS.includes(c)));
   } catch { return new Set(); }
 }
 
@@ -309,6 +328,7 @@ export function ListaV6({
     return () => { document.removeEventListener('mousedown', fuera); document.removeEventListener('keydown', esc); };
   }, [menuCols]);
   const [activa, setActiva] = useState<string | null>(null);
+  const [relleno, setRelleno] = useState<{ ids: Set<string> } | null>(null);
   /* G4 · la tarea del panel acoplado (la fila queda seleccionada) */
   const [enPanel, setEnPanel] = useState<string | null>(null);
 
@@ -451,7 +471,7 @@ export function ListaV6({
     else if (e.key === 'Enter') { e.preventDefault(); if (f.esFase && agrupar) alternar(f); else setEnPanel(f.t.id); }
     else if (e.key === ' ') { e.preventDefault(); if (tieneHijas(f.t)) alternar(f); else setEnPanel(f.t.id); }
     else if (e.key === 'Escape' && enPanel) { e.preventDefault(); setEnPanel(null); }
-    else if (e.key === 'F2' && onRegistrarHoras && !tieneHijas(f.t) && columnas.includes('hrs')) { e.preventDefault(); setEditando(f.t.id); }
+    else if (e.key === 'F2' && onRegistrarHoras && !tieneHijas(f.t) && columnas.includes('reg')) { e.preventDefault(); setEditando(f.t.id); }
   };
 
   /* G4 · la fila del panel (si la tarea ya no está, se cierra) y abrir otra desde él, a la vista */
@@ -702,6 +722,60 @@ export function ListaV6({
     </th>
   );
 
+  /* David (Axon), 24-nov · lo que se edita en la tabla: lo mismo que el panel (una hoja y con permiso). El estimado y el
+     responsable son de quien edita las tareas de los demás. */
+  const editable = (t: Task, soloGestor = false): boolean => !!panel?.onActualizar && panel.puedeEditar !== false && !tieneHijas(t)
+    && (panel.puedeEditarTarea ? panel.puedeEditarTarea(t) : true) && (!soloGestor || (panel.puedeAsignar ? panel.puedeAsignar(t) : true));
+  const admite = (c: Rellenable, t: Task) => (c === 'who' ? asignable(panel, t) : c === 'est' ? editable(t, true) && !t.isMilestone : editable(t));
+  /* «arrastrar para rellenar»: de la celda de origen a las filas de arriba o abajo, con «Deshacer» */
+  const cambiosDeRelleno = (c: Rellenable, de: Task, a: Task): Partial<Task> | null => {
+    if (c === 'who') return { assignees: [...(de.assignees ?? [])] };
+    if (c === 'est') return { effortMinutes: (de as { effortMinutes?: number }).effortMinutes ?? 0 } as Partial<Task>;
+    const d = c === 's' ? de.startDate : de.endDate;
+    return d ? cambiosDeFecha(a, c === 's' ? 'inicio' : 'fin', new Date(d), cal) : null;
+  };
+  const aplicar = async (lista: Array<[Task, Partial<Task>]>) => {
+    let mal = 0;
+    /* de una en una: cada guardado parte de la tarea como la dejó el anterior */
+    for (const [t, cambios] of lista) { try { if ((await panel!.onActualizar!(t, cambios)) === false) mal += 1; } catch { mal += 1; } }
+    return mal;
+  };
+  const rellenar = async (c: Rellenable, de: Task, ids: string[]) => {
+    const lista = ids.map((id) => porId.get(id)!.t).flatMap((t): Array<[Task, Partial<Task>]> => {
+      const cambios = cambiosDeRelleno(c, de, t);
+      return cambios ? [[t, cambios]] : [];
+    });
+    if (!lista.length) return;
+    const antes = lista.map(([t, cambios]): [Task, Partial<Task>] => [t, Object.fromEntries(Object.keys(cambios)
+      .map((k) => [k, (t as unknown as Record<string, unknown>)[k] ?? (k === 'assignees' ? [] : k === 'effortMinutes' ? 0 : undefined)])) as Partial<Task>]);
+    const mal = await aplicar(lista);
+    setAvisoPadre({ texto: mal ? x.rellenoFallo(mal) : x.rellenadas(lista.length), deshacer: () => { setAvisoPadre(null); void aplicar(antes); } });
+  };
+  const empezarRelleno = (ev: ReactMouseEvent, c: Rellenable, t: Task) => {
+    if (ev.button !== 0) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    const filas = [...(tbody.current?.querySelectorAll<HTMLElement>('tr[data-id]') ?? [])];
+    const origen = filas.findIndex((r) => r.dataset.id === t.id);
+    let ids: string[] = [];
+    const mover = (m: MouseEvent) => {
+      let destino = origen;
+      filas.forEach((r, i) => { const b = r.getBoundingClientRect(); if (m.clientY >= b.top && m.clientY < b.bottom) destino = i; });
+      const [a, b] = origen < destino ? [origen, destino] : [destino, origen];
+      ids = filas.slice(a, b + 1).map((r) => r.dataset.id!).filter((id) => { const o = porId.get(id); return id !== t.id && !!o && admite(c, o.t); });
+      setRelleno({ ids: new Set([t.id, ...ids]) });
+    };
+    const fin = () => { document.removeEventListener('mousemove', mover); document.removeEventListener('mouseup', soltar); document.removeEventListener('keydown', esc, true); setRelleno(null); };
+    const soltar = () => { fin(); if (ids.length) void rellenar(c, t, ids); };
+    const esc = (k: globalThis.KeyboardEvent) => { if (k.key === 'Escape') { k.stopPropagation(); fin(); } };
+    document.addEventListener('mousemove', mover);
+    document.addEventListener('mouseup', soltar);
+    document.addEventListener('keydown', esc, true);
+  };
+  /* siempre montado (solo cambia su opacidad): si apareciera con el ratón, la celda se volvería a montar */
+  const tirador = (c: Rellenable, t: Task) => (
+    <span className="tirador" aria-hidden="true" data-tirador={c} title={x.arrastre} onMouseDown={(ev) => empezarRelleno(ev, c, t)} onClick={(ev) => ev.stopPropagation()} />
+  );
   const celda = (c: Columna, f: Fila) => {
     const t = f.t;
     const ci = cifras.get(t.id)!;
@@ -710,6 +784,16 @@ export function ListaV6({
       case 'who': {
         if (padre) return <td key={c} className="col-who" />;
         const a = (t.assignees ?? [])[0] as { name?: string; initials?: string } | undefined;
+        /* David (Axon), 24-nov · el «+» era un dibujo: ahora asigna desde la tabla */
+        if (asignable(panel, t)) return (
+          <td key={c} className="col-who rel">
+            {tirador('who', t)}
+            <SelectorDeResponsables valor={t.assignees ?? []} personas={panel!.personas!} es={es}
+              onCambiar={(assignees) => void panel!.onActualizar!(t, { assignees })}>
+              {a ? <span className="avatar" aria-hidden="true">{a.initials || iniciales(a.name)}</span> : <span className="avatar none" aria-hidden="true">+</span>}
+            </SelectorDeResponsables>
+          </td>
+        );
         return (
           <td key={c} className="col-who">
             {a ? <span className="avatar" role="img" title={a.name} aria-label={a.name}>{a.initials || iniciales(a.name)}</span>
@@ -721,29 +805,67 @@ export function ListaV6({
         const e = estados.get(t.id)!;
         return <td key={c} className="col-st"><span className={`schip ${e}`}><i aria-hidden="true" />{x.st[e]}</span></td>;
       }
-      case 's': return <td key={c} className="num dt">{t.startDate ? fechaCorta(new Date(t.startDate), idioma, hoy) : '—'}</td>;
+      case 's': {
+        const txt = t.startDate ? fechaCorta(new Date(t.startDate), idioma, hoy) : '—';
+        if (!editable(t)) return <td key={c} className="num dt">{txt}</td>;
+        return (
+          <td key={c} className="num dt rel">{tirador('s', t)}
+            <CeldaFecha valor={t.startDate ? new Date(t.startDate) : null} es={es} etiqueta={x.cambiarInicio(t.name)}
+              onElegir={(d) => void panel!.onActualizar!(t, cambiosDeFecha(t, 'inicio', d, cal))}>{txt}</CeldaFecha>
+          </td>
+        );
+      }
       case 'e': {
         const txt = t.endDate ? fechaCorta(new Date(t.endDate), idioma, hoy) : '—';
-        if (estaVencida(t, hoy)) {
-          const n = diasDeRetraso(t, hoy, cal);
-          return <td key={c} className="num dt"><span className="chip-red" title={x.vencidaEl(txt, n)}>{txt}<span className="sr">, {x.venceHace(n)}</span></span></td>;
-        }
-        return <td key={c} className="num dt">{txt}</td>;
+        const n = estaVencida(t, hoy) ? diasDeRetraso(t, hoy, cal) : 0;
+        const dentro = estaVencida(t, hoy) ? <span className="chip-red" title={x.vencidaEl(txt, n)}>{txt}<span className="sr">, {x.venceHace(n)}</span></span> : txt;
+        if (!editable(t)) return <td key={c} className="num dt">{dentro}</td>;
+        return (
+          <td key={c} className="num dt rel">{tirador('e', t)}
+            <CeldaFecha valor={t.endDate ? new Date(t.endDate) : null} es={es} etiqueta={x.cambiarFin(t.name)}
+              onElegir={(d) => void panel!.onActualizar!(t, cambiosDeFecha(t, 'fin', d, cal))}>{dentro}</CeldaFecha>
+          </td>
+        );
       }
       case 'dur': { const d = duracionHabil(t, cal); return <td key={c} className="num col-dur">{d == null ? '—' : `${d} d`}</td>; }
-      case 'pct': { const p = avanceDeTarea(t); return <td key={c} className="num"><span className={`pct${p === 0 ? ' zero' : ''}`}>{p}%</span></td>; }
-      case 'hrs': {
+      case 'pct': {
+        const p = avanceDeTarea(t);
+        const cifra = <span className={`pct${p === 0 ? ' zero' : ''}`}>{p}%</span>;
+        /* como en el panel: una completada vale 100 hasta que cambie su estado */
+        if (padre || t.isMilestone || !onGuardarEstado || !panel || !editable(t) || estados.get(t.id) === 'done') return <td key={c} className="num">{cifra}</td>;
+        return (
+          <td key={c} className="num">
+            <CeldaNumero inicial={String(p)} etiqueta={x.cambiarPct(t.name)} error={x.numeroAvance}
+              vale={(v) => /^\d{1,3}$/.test(v) && Number(v) <= 100} onGuardar={(v) => void guardarAvance(t, v)}>{cifra}</CeldaNumero>
+          </td>
+        );
+      }
+      case 'uso': {
+        if (!ci.est) return <td key={c} className="num">—</td>;
+        const u = Math.round((100 * ci.reg) / ci.est);
+        return <td key={c} className="num"><span className={`uso${ci.reg > ci.est ? ' pasa' : ''}`} title={`${horasCortas(ci.reg, es)} / ${horasCortas(ci.est, es)} h`}>{u}%</span></td>;
+      }
+      case 'est': {
+        const sinEstimar = !padre && !t.isMilestone && !ci.est;
+        /* guía v4 · una hoja sin horas estimadas dice «Sin estimar» (para el avance pesa como 1 h) */
+        const texto = sinEstimar ? <span className="noest" title={x.sinEstimarTip}>{x.sinEstimar}</span> : <span className="hrs">{ci.est ? `${horasCortas(ci.est, es)} h` : '—'}</span>;
+        if (padre || t.isMilestone || !editable(t, true)) return <td key={c} className="num">{texto}</td>;
+        return (
+          <td key={c} className="num rel">{tirador('est', t)}
+            <CeldaNumero inicial={ci.est ? horasCortas(ci.est, es) : ''} etiqueta={x.cambiarEst(t.name)} error={x.malEst}
+              vale={(v) => v === '' || leerEstimado(v) != null}
+              onGuardar={(v) => void panel!.onActualizar!(t, { effortMinutes: Math.round((leerEstimado(v) ?? 0) * 60) } as Partial<Task>)}>{texto}</CeldaNumero>
+          </td>
+        );
+      }
+      case 'reg': {
         if (editando === t.id) return (
           <td key={c} className="num" onClick={(e) => e.stopPropagation()}>
             <EditorDeHoras t={t} antes={ci.reg} est={ci.est} es={es} x={x} hoy={hoy} cal={cal} idioma={idioma}
               onGuardar={(v) => guardarHoras(t, f.wbs, ci.reg, v)} onCancelar={() => { setEditando(null); enfocar(t.id); }} />
           </td>
         );
-        /* guía v4 · una hoja sin horas estimadas dice «Sin estimar» (para el avance pesa como 1 h) */
-        const sinEstimar = !padre && !t.isMilestone && !ci.est;
-        const texto = sinEstimar
-          ? <><b>{horasCortas(ci.reg, es)}</b><span className="est"> / </span><span className="noest" title={x.sinEstimarTip}>{x.sinEstimar}</span></>
-          : <><b>{horasCortas(ci.reg, es)}</b><span className="est"> / {horasCortas(ci.est, es)} h</span></>;
+        const texto = <><b>{horasCortas(ci.reg, es)}</b><span className="est"> h</span></>;
         return (
           <td key={c} className="num">
             {!padre && onRegistrarHoras ? (
@@ -785,7 +907,7 @@ export function ListaV6({
 
   return (
     <section className={`lista-v6 lista-v4${vista.densidad === 'compacta' ? ' d32' : vista.densidad === 'comoda' ? ' d48' : ''}${filaDelPanel ? ' has-panel' : ''}`} aria-label={x.tareasDe}>
-      <style>{CSS_V6 + CSS_PANEL_V6 + CSS_RECURSOS_V6 + CSS_PANEL_V4 + CSS_COSTOS_V4 + CSS_LISTA_V4}</style>
+      <style>{CSS_V6 + CSS_PANEL_V6 + CSS_RECURSOS_V6 + CSS_PANEL_V4 + CSS_COSTOS_V4 + CSS_LISTA_V4 + CSS_RESPONSABLES + CSS_CELDAS}</style>
       <div className="sumline">
         <div>
           {soloVencidas && (
@@ -868,7 +990,7 @@ export function ListaV6({
                   </th>
                 );
                 if (c === 'st') return <th key={c} scope="col" className="col-st" title={AYUDA_COL(c, x)}>{x.estado}</th>;
-                if (c === 'hrs') return <th key={c} scope="col" className="num col-hrs" title={AYUDA_COL(c, x)}>{x.horas}</th>;
+                if (DE_HORAS.includes(c)) return <th key={c} scope="col" className="num" title={AYUDA_COL(c, x)}>{NOMBRE_COL(c, x)}</th>;
                 const k = ({ s: 's', e: 'e', dur: 'dur', pct: 'pct', cost: 'cost' } as Record<string, Orden['k']>)[c];
                 return <Th key={c} k={k} num dur={c === 'dur'} ayuda={AYUDA_COL(c, x, monedaCodigo)}>{NOMBRE_COL(c, x)}</Th>;
               })}
@@ -909,7 +1031,7 @@ export function ListaV6({
               const ruta = [...f.ancestros.map((a) => porId.get(a)?.t.name ?? ''), t.name].join(' › ');
               const nivel = agrupar ? f.nivel : f.nivel - (f.ancestros.length - ancestrosVisibles(f).length);
               const fila = (
-                <tr key={t.id} data-id={t.id} className={`${f.esFase ? 'grp' : padre ? 'par' : 'task'}${(enPanel ?? seleccionada) === t.id ? ' sel' : ''}`}
+                <tr key={t.id} data-id={t.id} className={`${f.esFase ? 'grp' : padre ? 'par' : 'task'}${(enPanel ?? seleccionada) === t.id ? ' sel' : ''}${relleno?.ids.has(t.id) ? ' en-relleno' : ''}`}
                   tabIndex={tabActiva ? 0 : -1} aria-level={nivel + 1} aria-expanded={padre ? abierta : undefined}
                   aria-selected={(enPanel ?? seleccionada) === t.id}
                   onClick={() => { setActiva(t.id); if (f.esFase && agrupar) alternar(f); else setEnPanel(t.id); }}
@@ -981,7 +1103,9 @@ export function ListaV6({
                   );
                 }
                 if (c === 'pct') return <td key={c} className="num">{avanceTotal != null ? `${Math.round(avanceTotal)}%` : hayTrabajo ? `${pctTotal}%` : <span title={es ? 'No evaluable: solo hay hitos' : 'Not assessable: milestones only'}>—</span>}</td>;
-                if (c === 'hrs') return <td key={c} className="num">{horasCortas(total.reg, es)} / {horasCortas(total.est, es)} h</td>;
+                if (c === 'reg') return <td key={c} className="num">{horasCortas(total.reg, es)} h</td>;
+                if (c === 'est') return <td key={c} className="num">{horasCortas(total.est, es)} h</td>;
+                if (c === 'uso') return <td key={c} className="num">{total.est ? `${Math.round((100 * total.reg) / total.est)}%` : '—'}</td>;
                 if (c === 'cost') return <td key={c} className="num">{millones(total.costo, es)}</td>;
                 return <td key={c} className={c === 'dur' ? 'col-dur' : undefined} />;
               })}
@@ -1224,7 +1348,6 @@ export const CSS_LISTA_V4 = `
 .lista-v6.lista-v4 .lt .c1{width:38%;min-width:320px;max-width:560px;padding-left:8px}
 .lista-v6.lista-v4 .lt thead .c1{padding-left:14px}
 .lista-v6.lista-v4 .lt .col-who{width:40px;padding:0 6px;text-align:center}
-.lista-v6.lista-v4 .lt .col-hrs{min-width:126px}
 .lista-v6.lista-v4 .lt .cell{display:flex;align-items:center;gap:0;min-width:0;height:calc(var(--rh) - 1px)}
 .lista-v6.lista-v4 .lt .gd{flex:none;align-self:stretch;width:calc(var(--n) * 20px);background:repeating-linear-gradient(90deg,transparent 0 9px,var(--lv-border) 9px 10px,transparent 10px 20px)}
 .lista-v6.lista-v4 .lt .chev,.lista-v6.lista-v4 .lt .ind{width:20px;height:24px;flex:none;margin:0}
