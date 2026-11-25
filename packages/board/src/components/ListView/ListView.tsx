@@ -2041,7 +2041,8 @@ export function ListView({
   // Get column label with translations
   const getColumnLabel = useCallback((column: TableColumn): string => {
     const labelMap: Record<string, string> = {
-      name: t.columns.name,
+      /* QA Latty R4 · BUG-20/40 · el rótulo que pide la app («Tarea») manda; «Name» es el de fábrica */
+      name: column.label && column.label !== 'Name' ? column.label : t.columns.name,
       status: t.columns.status,
       priority: t.columns.priority,
       assignees: t.columns.assignees,

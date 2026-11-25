@@ -95,8 +95,8 @@ export const en: ListViewTranslations = {
 export const es: ListViewTranslations = {
   columns: {
     name: 'ID Tarea / Nombre',
-    startDate: 'Fecha Inicio',
-    endDate: 'Fecha Fin',
+    startDate: 'Fecha de inicio',
+    endDate: 'Fecha de fin',
     progress: 'Progreso',
     status: 'Estado',
     assignees: 'Asignados',
