@@ -973,6 +973,18 @@
 }
 
 /* QA Latty R3 · N-17 · la columna vacía, en reposo: «Sin tareas» en texto tenue (la zona punteada, sólo al arrastrar) */
+/* QA Latty R4 · R4-25 · con scroll, la última tarjeta se desvanece bajo «Agregar tarea» en vez de cortarse */
+.asakaa-column-footer::before {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: 100%;
+  height: 16px;
+  pointer-events: none;
+  background: inherit;
+  mask-image: linear-gradient(to top, #000, transparent);
+  -webkit-mask-image: linear-gradient(to top, #000, transparent);
+}
+
 .asakaa-column-vacia {
   margin: 0;
   padding: var(--space-3) var(--space-3);
