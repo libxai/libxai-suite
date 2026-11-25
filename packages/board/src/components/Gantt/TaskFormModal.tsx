@@ -788,7 +788,7 @@ export function TaskFormModal({
                       {esForm ? 'Rango de fechas' : 'Date range'}
                     </label>
                   <div className="flex items-center gap-3" style={{ backgroundColor: isDarkTheme ? '#191b22' : themeColors.bgSecondary, borderRadius: 8, border: `1px solid ${isDarkTheme ? 'rgba(65,71,84,0.05)' : themeColors.borderLight}`, padding: '10px 16px' }}>
-                    <Calendar className="w-5 h-5" style={{ color: '#00E5CC' }} />
+                    <Calendar className="w-5 h-5" style={{ color: 'var(--pj-acento, #00E5CC)' }} />
                     <div ref={dateRowRef} className="flex items-center gap-2 flex-1 relative">
                       <button
                         type="button"
@@ -1009,7 +1009,7 @@ export function TaskFormModal({
                       <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: themeColors.textTertiary }}>
                         {esForm ? 'Progreso inicial' : 'Initial progress'}
                       </label>
-                      <span style={{ fontSize: 10, fontWeight: 700, color: '#00E5CC' }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--pj-acento, #00E5CC)' }}>
                         {formData.progress}%
                       </span>
                     </div>
@@ -1025,7 +1025,7 @@ export function TaskFormModal({
                     >
                       <div
                         className="h-full rounded-full transition-all"
-                        style={{ width: `${formData.progress}%`, backgroundColor: '#00E5CC' }}
+                        style={{ width: `${formData.progress}%`, backgroundColor: 'var(--pj-acento, #00E5CC)' }}
                       />
                     </div>
                   </div>
@@ -1467,8 +1467,8 @@ export function TaskFormModal({
                     disabled={isLoading}
                     className="px-8 py-3 font-bold rounded-lg transition-all flex items-center gap-2"
                     style={{
-                      backgroundColor: '#00E5CC',
-                      color: '#FFF',
+                      backgroundColor: 'var(--pj-primario, #00E5CC)',
+                      color: 'var(--pj-primario-texto, #FFF)',
                       fontSize: 14,
                       fontFamily: "'Inter', system-ui, sans-serif",
                       boxShadow: '0 4px 20px rgba(0, 123, 255, 0.2)',
