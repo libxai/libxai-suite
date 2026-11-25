@@ -183,6 +183,8 @@ export function UserAssignmentSelector({
                 key={user.id}
                 className="asakaa-avatar"
                 title={user.name}
+                /* QA Latty R4 · BUG-27 · el color de la persona, como en el Tablero y la Lista (salía negro) */
+                style={!user.avatar && user.color ? { background: user.color, color: '#fff' } : undefined}
               >
                 {user.avatar ? (
                   <img
