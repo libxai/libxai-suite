@@ -48,6 +48,8 @@ export interface AddCardButtonProps {
   theme?: 'light' | 'dark'
   /** Locale for translations */
   locale?: 'en' | 'es'
+  /** QA Latty R4 · R4-18 · la tarea nace sin fechas si no se elige una. */
+  sinFechaPorDefecto?: boolean
 }
 
 export function AddCardButton({
@@ -59,6 +61,7 @@ export function AddCardButton({
   disabled = false,
   theme = 'dark',
   locale = 'es',
+  sinFechaPorDefecto = false,
 }: AddCardButtonProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const buttonRef = useRef<HTMLDivElement>(null)
@@ -104,6 +107,7 @@ export function AddCardButton({
           isDark={isDark}
           locale={locale}
           dropdownDirection="up"
+          sinFechaPorDefecto={sinFechaPorDefecto}
         />
       ) : (
         <button

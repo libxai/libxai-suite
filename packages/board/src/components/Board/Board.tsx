@@ -374,7 +374,7 @@ export function KanbanBoard({
         >
           <div
             ref={boardRef}
-            className={cn('asakaa-board', sidePanel ? 'flex-1' : '', themeClass, className)}
+            className={cn('asakaa-board flex-1 min-w-0' /* QA Latty R4 · N-11: sin flex-1 el tablero medía lo que sus columnas y su barra de scroll quedaba en medio de la pantalla */, themeClass, className)}
             style={{ ...style, cursor: isPanning ? 'grabbing' : undefined }}
             data-theme={themeName}
           >

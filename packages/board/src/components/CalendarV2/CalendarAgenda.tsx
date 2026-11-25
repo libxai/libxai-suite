@@ -28,9 +28,11 @@ interface Props {
   onTaskOpen?: (taskId: string) => void;
   /** QA Latty R3 · BUG-11 · la tarea en CADA día de su rango (inicio → fin), no sólo en el que arranca. */
   porRango?: boolean;
+  /** QA Latty R4 · `false`: ni horas ni coste junto a la tarea. */
+  conValores?: boolean;
 }
 
-export function CalendarAgenda({ grid, tasks, items, money, projColor, todaySerial, locale, onTaskOpen, porRango = false }: Props) {
+export function CalendarAgenda({ grid, tasks, items, money, projColor, todaySerial, locale, onTaskOpen, porRango = false, conValores = true }: Props) {
   const es = locale === 'es';
 
   // Agrupa por día: una tarea aparece en el día en que ARRANCA (su startSerial),
@@ -96,7 +98,7 @@ export function CalendarAgenda({ grid, tasks, items, money, projColor, todaySeri
               {t.critical ? <span style={{ fontFamily: 'var(--mono)', fontSize: 8, letterSpacing: '0.1em', color: '#031', background: 'var(--cyan)', borderRadius: 3, padding: '1.5px 3.5px', fontWeight: 700 }}>CPM</span> : null}
               {t.id ? <span style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--txt2)' }}>{t.id}</span> : null}
               <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</span>
-              <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--txt2)' }}>{money === '$' ? t.cost : fmtHrs(t.hrs, locale) /* QA Asakaa 2.2 */}</span>
+              {conValores && <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--txt2)' }}>{money === '$' ? t.cost : fmtHrs(t.hrs, locale) /* QA Asakaa 2.2 */}</span>}
             </button>
           ))}
           {r.items.map((it, i) => (

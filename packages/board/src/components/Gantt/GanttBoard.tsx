@@ -3138,7 +3138,9 @@ export const GanttBoard = forwardRef<GanttBoardRef, GanttBoardProps>(function Ga
                       className="text-sm mt-1"
                       style={{ color: theme.textSecondary, fontFamily: 'Inter, sans-serif' }}
                     >
-                      {locale === 'es' ? 'Esta acción no se puede deshacer' : 'This action cannot be undone'}
+                      {config?.eliminarSePuedeDeshacer
+                        ? (locale === 'es' ? 'Podrás deshacerlo durante unos segundos' : 'You can undo it for a few seconds')
+                        : (locale === 'es' ? 'Esta acción no se puede deshacer' : 'This action cannot be undone')}
                     </p>
                   </div>
                 </div>

@@ -894,6 +894,8 @@ export interface GanttConfig {
    * ofertado). Por omisión, como siempre.
    */
   mostrarHorasDeTrabajo?: boolean;
+  /** QA Latty R4 · BUG-09 · la app ofrece «Deshacer» al eliminar: la ventana no dice que no se puede deshacer. */
+  eliminarSePuedeDeshacer?: boolean;
   /** A14 · el dinero con el formato de la app. */
   formatearDinero?: (valor: number) => string;
 }

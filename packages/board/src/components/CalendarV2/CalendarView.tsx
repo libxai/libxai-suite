@@ -117,6 +117,8 @@ interface Props {
    * arranca. Por defecto, como siempre (el día de inicio).
    */
   agendaPorRango?: boolean;
+  /** QA Latty R4 · `false`: la Semana no pinta la capacidad del equipo en horas. */
+  mostrarCapacidad?: boolean;
 }
 
 // Color por defecto si el proyecto no define uno (paleta del diseño).
@@ -130,7 +132,7 @@ export function CalendarView({
   canReschedule, onReschedule,
   members = [], holidayDates = [], timesheetSettings, onVisibleRangeChange,
   monthMode = 'span', showValues = true, openOnToday = false,
-  currencyCode, agendaPorRango = false,
+  currencyCode, agendaPorRango = false, mostrarCapacidad = true,
 }: Props) {
   /* 1.9.42 · en modo vencimiento, cuántos chips caben por día según el alto real. */
   const semanasRef = useRef<HTMLDivElement>(null);
@@ -402,7 +404,7 @@ export function CalendarView({
         <div className="cal-grid-zone" style={{ position: 'relative', overflow: isAgenda ? 'hidden' : undefined }}>
           {isAgenda ? (
             <CalendarAgenda
-              porRango={agendaPorRango}
+              porRango={agendaPorRango} conValores={showValues}
               grid={grid}
               tasks={visibleTasks}
               items={visibleItems}
@@ -424,7 +426,8 @@ export function CalendarView({
                 projColor={projColor}
                 todaySerial={todaySerial}
                 locale={locale}
-                capRows={capRows}
+                capRows={mostrarCapacidad ? capRows : undefined}
+                mostrarCapacidad={mostrarCapacidad}
                 teamSize={teamSize}
                 onTaskOpen={onTaskOpen}
                 onMore={(day, items, tasksOfDay) => setMorePopover({ day, items, tasks: tasksOfDay })}

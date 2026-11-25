@@ -45,6 +45,8 @@ export interface WeekGridViewProps {
   capRows?: CapRowsByWeek;
   /** nº de personas en la capacidad del equipo (para el footer). */
   teamSize?: number;
+  /** QA Latty R4 · `false`: sin la franja «Capacidad del equipo». */
+  mostrarCapacidad?: boolean;
   onTaskOpen?: (taskId: string) => void;
   onMore: (day: number, items: DayItem[], tasksOfDay: CalTask[]) => void;
   /** click en una celda de capacidad → abre desglose por persona. */
@@ -53,7 +55,7 @@ export interface WeekGridViewProps {
 
 export function WeekGridView({
   grid, weeks, tasks, items, money, projColor, todaySerial, locale,
-  capRows, teamSize, onTaskOpen, onMore, onCapDay,
+  capRows, teamSize, mostrarCapacidad = true, onTaskOpen, onMore, onCapDay,
 }: WeekGridViewProps): React.ReactElement {
   const isEs = locale === 'es';
   return (
@@ -81,7 +83,7 @@ export function WeekGridView({
         ))}
       </div>
 
-      <div className="cal-cap-label">
+      {mostrarCapacidad && <div className="cal-cap-label">
         <span>
           {isEs ? 'Capacidad del equipo' : 'Team capacity'}
           {teamSize != null
@@ -93,7 +95,7 @@ export function WeekGridView({
             ? 'Click en un día abre el desglose por persona'
             : 'Click a day to open the per-person breakdown'}
         </span>
-      </div>
+      </div>}
     </div>
   );
 }

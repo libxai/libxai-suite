@@ -34,6 +34,8 @@ export interface QuickTaskCreateProps {
   locale?: 'en' | 'es'
   /** Default date (e.g. the calendar cell's date) */
   defaultDate?: Date
+  /** QA Latty R4 · R4-18 · sin fecha elegida, la tarea nace SIN fechas (y el botón lo enseña). Por defecto, la de hoy. */
+  sinFechaPorDefecto?: boolean
   /** Extra CSS class */
   className?: string
   /** Whether dropdowns open upward (bottom-full) or downward (top-full). Default: 'up' */
@@ -47,6 +49,7 @@ export function QuickTaskCreate({
   isDark = true,
   locale = 'es',
   defaultDate,
+  sinFechaPorDefecto = false,
   className,
   dropdownDirection = 'up',
 }: QuickTaskCreateProps) {
@@ -95,7 +98,7 @@ export function QuickTaskCreate({
    * Un control que ensena un valor y guarda otro es peor que uno que no ensena
    * nada: el usuario no tiene motivo para revisar lo que ya leyo.
    */
-  const fechaDeLaTarea = selectedDate || defaultDate || new Date()
+  const fechaDeLaTarea: Date | null = selectedDate || defaultDate || (sinFechaPorDefecto ? null : new Date())
 
   const handleSubmit = useCallback(() => {
     const trimmed = name.trim()
@@ -107,8 +110,8 @@ export function QuickTaskCreate({
       priority,
       assignee: selectedUser || undefined,
       assigneeId,
-      startDate: taskDate,
-      endDate: taskDate,
+      startDate: taskDate ?? undefined,
+      endDate: taskDate ?? undefined,
     })
     // Reset for next task
     setName('')
@@ -246,7 +249,7 @@ export function QuickTaskCreate({
               )}
             >
               <CalendarDays className="w-3 h-3" />
-              {displayDate.toLocaleDateString(isEs ? 'es-ES' : 'en-US', { day: 'numeric', month: 'short' })}
+              {displayDate ? displayDate.toLocaleDateString(isEs ? 'es-ES' : 'en-US', { day: 'numeric', month: 'short' }) : (isEs ? 'Fecha' : 'Date')}
             </button>
             <AnimatePresence>
               {showDatePicker && (
