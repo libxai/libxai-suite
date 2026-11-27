@@ -20,6 +20,12 @@ interface TaskTag {
     name: string;
     color: string;
 }
+interface RiesgoDeLaTarea {
+    id: string;
+    codigo: string;
+    titulo: string;
+    nivel: 'bajo' | 'medio' | 'alto' | 'critico';
+}
 interface Task {
     id: string;
     name: string;
@@ -34,6 +40,8 @@ interface Task {
     }>;
     status?: string;
     dependencies?: string[];
+    /** R6 · los riesgos abiertos que afectan a la tarea (los pone la app: punto en la fila y en su panel) */
+    riesgos?: RiesgoDeLaTarea[];
     /**
      * QA Asakaa · mejora fuerte 5: el tipo (FS/SS/FF/SF) y el desfase (días hábiles) de cada
      * predecesora. Un id de `dependencies` sin entrada aquí es FS sin desfase.
@@ -47,6 +55,12 @@ interface Task {
     isExpanded?: boolean;
     isMilestone?: boolean;
     isCriticalPath?: boolean;
+    /** A17 · fijada a mano: nada la mueve, ni arrastrar ni los enlaces. Si un enlace deja de cumplirse, sale como conflicto. */
+    fijada?: boolean;
+    /** A17 · restricción: no empieza antes de esta fecha. */
+    noAntesDe?: Date;
+    /** A17 · restricción: debe terminar como tarde esta fecha. */
+    terminarEl?: Date;
     cpmData?: {
         earlyStart: number;
         earlyFinish: number;
@@ -88,12 +102,13 @@ interface Task {
         relativeTime: string;
     };
 }
-type TimeScale = 'day' | 'week' | 'month';
+type TimeScale = 'day' | 'week' | 'month' | 'quarter' | 'year';
 type Theme$1 = 'dark' | 'light' | 'neutral';
 type RowDensity = 'compact' | 'comfortable' | 'spacious';
 type DependencyLineStyle = 'curved' | 'squared';
-type TaskFilterType = 'all' | 'incomplete' | 'in_progress' | 'completed';
-type ColumnType$1 = 'name' | 'startDate' | 'endDate' | 'duration' | 'assignees' | 'status' | 'progress' | 'priority';
+/** Gantt ronda 2 (Yesid) · R4 · 'overdue': sin terminar y con el fin ya pasado. */
+type TaskFilterType = 'all' | 'incomplete' | 'in_progress' | 'completed' | 'overdue';
+type ColumnType$1 = 'name' | 'startDate' | 'endDate' | 'duration' | 'assignees' | 'status' | 'progress' | 'priority' | 'predecessors' | 'hours' | 'cost' | 'slack' | 'baselineEnd' | 'variance';
 interface GanttColumn {
     id: ColumnType$1;
     label: string;
@@ -420,6 +435,10 @@ interface GanttWorkingDaysConfig {
     enabledWeekdays?: boolean[];
     /** Holiday dates in 'YYYY-MM-DD' (workspace-local) to exclude. */
     holidayDates?: Set<string> | string[];
+    /** G15 · 'YYYY-MM-DD' → nombre del festivo, para su tooltip. */
+    holidayNames?: Record<string, string>;
+    /** A20 · la jornada, en minutos: sin ella no se mira la sobreasignación. */
+    minutosPorDia?: number;
 }
 interface GanttConfig {
     theme?: Theme$1;
@@ -503,6 +522,11 @@ interface GanttConfig {
         icono?: ReactNode;
         alPulsar: () => void;
     }>;
+    /** Gantt ronda 2 (Yesid) · P2 · lo que la app pone en el menú «Vista» (p. ej. sus líneas base), entre la densidad y «Mostrar». */
+    contenidoDeVista?: (cerrar: () => void) => ReactNode;
+    /** Gantt ronda 2 · P2 · «Mostrar leyenda» en el menú «Vista» (la leyenda la pinta la app, bajo demanda). */
+    leyendaVisible?: boolean;
+    onLeyendaVisibleChange?: (visible: boolean) => void;
     /** Avisa del cambio de densidad (para que la app la recuerde). */
     onRowDensityChange?: (density: RowDensity) => void;
     /** 1.9.36 · cabecera de la escala W: 'number' («Week 36», por defecto) o 'range' («Sep 1–7»). */
@@ -738,6 +762,8 @@ interface GanttConfig {
     onTaskDuplicate?: (task: Task) => void;
     /** 1.9.47 · QA Asakaa E14: el menú contextual «Dependencias…» (si falta, abre onTaskEdit). */
     onTaskDependencies?: (task: Task) => void;
+    /** A17 · se intentó mover una tarea fijada. */
+    onTareaFijada?: (task: Task) => void;
     /** 1.9.47 · QA Asakaa E14: una tarea se soltó antes de que acabe su predecesora y se ajustó al primer día posible. */
     onDependencyConstraint?: (info: {
         task: Task;
@@ -758,6 +784,17 @@ interface GanttConfig {
     rateMap?: Record<string, number>;
     /** v2.5.0: Default hourly rate fallback when rateMap has no match for a user */
     defaultRate?: number;
+    /** A14 · quien puede ver dinero: sin esto, la columna Costo no se ofrece. */
+    verCostos?: boolean;
+    /**
+     * QA Latty R3 · sección 4 · : el tooltip de la barra no enseña horas de trabajo (estimado, registrado,
+     * ofertado). Por omisión, como siempre.
+     */
+    mostrarHorasDeTrabajo?: boolean;
+    /** QA Latty R4 · BUG-09 · la app ofrece «Deshacer» al eliminar: la ventana no dice que no se puede deshacer. */
+    eliminarSePuedeDeshacer?: boolean;
+    /** A14 · el dinero con el formato de la app. */
+    formatearDinero?: (valor: number) => string;
 }
 
 /**
@@ -947,6 +984,11 @@ interface Column$1 {
     color?: string;
     /** Custom metadata */
     metadata?: Record<string, unknown>;
+    /**
+     * QA Latty R3 · BUG-38 · `false`: el menú no ofrece «Renombrar» en esta columna (las de siempre de la app: antes dejaba
+     * escribir y luego respondía «no se renombran»). Por omisión, renombrable.
+     */
+    renombrable?: boolean;
     createdAt?: Date | string;
     updatedAt?: Date | string;
 }
@@ -1914,8 +1956,10 @@ interface AddCardButtonProps {
     theme?: 'light' | 'dark';
     /** Locale for translations */
     locale?: 'en' | 'es';
+    /** QA Latty R4 · R4-18 · la tarea nace sin fechas si no se elige una. */
+    sinFechaPorDefecto?: boolean;
 }
-declare function AddCardButton({ columnId, onAddCard, availableUsers, className, buttonLabel, disabled, theme, locale, }: AddCardButtonProps): react_jsx_runtime.JSX.Element;
+declare function AddCardButton({ columnId, onAddCard, availableUsers, className, buttonLabel, disabled, theme, locale, sinFechaPorDefecto, }: AddCardButtonProps): react_jsx_runtime.JSX.Element;
 
 interface QuickTaskCreateData {
     name: string;
@@ -1938,12 +1982,14 @@ interface QuickTaskCreateProps {
     locale?: 'en' | 'es';
     /** Default date (e.g. the calendar cell's date) */
     defaultDate?: Date;
+    /** QA Latty R4 · R4-18 · sin fecha elegida, la tarea nace SIN fechas (y el botón lo enseña). Por defecto, la de hoy. */
+    sinFechaPorDefecto?: boolean;
     /** Extra CSS class */
     className?: string;
     /** Whether dropdowns open upward (bottom-full) or downward (top-full). Default: 'up' */
     dropdownDirection?: 'up' | 'down';
 }
-declare function QuickTaskCreate({ onSubmit, onCancel, availableUsers, isDark, locale, defaultDate, className, dropdownDirection, }: QuickTaskCreateProps): react_jsx_runtime.JSX.Element;
+declare function QuickTaskCreate({ onSubmit, onCancel, availableUsers, isDark, locale, defaultDate, sinFechaPorDefecto, className, dropdownDirection, }: QuickTaskCreateProps): react_jsx_runtime.JSX.Element;
 
 interface ColumnProps {
     /** Column data */
@@ -1986,6 +2032,13 @@ interface ColumnProps {
     renderMetrics?: (column: Column$1, cards: Card$1[]) => React.ReactNode;
     /** Locale for i18n */
     locale?: 'en' | 'es';
+    /**
+     * QA Latty R3 · N-17 · el pie de la columna («Agregar tarea»), DENTRO de su contenedor, después de la última tarjeta.
+     * Con scroll, queda fijo al pie y siempre visible.
+     */
+    footer?: React.ReactNode;
+    /** QA Latty R3 · N-17 · se está arrastrando una tarjeta: sólo entonces la columna vacía enseña la zona punteada. */
+    arrastrando?: boolean;
 }
 /**
  * Column Component
@@ -2936,6 +2989,8 @@ interface GanttToolbarProps {
     onShowBaselineChange?: (show: boolean) => void;
     onCopySnapshotLink?: () => void;
     hasDependencies?: boolean;
+    /** QA Latty BUG-41 · sin ninguna tarea con línea base, «Líneas base» se apaga y dice por qué */
+    hasBaseline?: boolean;
 }
 interface ExportDropdownProps {
     theme: any;
@@ -2951,147 +3006,8 @@ declare function GanttToolbar({ enCabecera, theme, timeScale, onTimeScaleChange,
 showCreateTaskButton, createTaskLabel, // v0.15.0: Will use translations if not provided
 onCreateTask, taskFilter, // v0.17.300: Task filter
 onTaskFilterChange, hideCompleted, // v0.18.0: Hide completed toggle
-onHideCompletedChange, toolbarRightContent, wbsLevel, onWbsLevelChange, maxWbsDepth, viewMode, onViewModeChange, projectForecast, hideForecastHud, currencyCode, onExportPNG, onExportPDF, onExportExcel, onExportCSV, onExportJSON, onExportMSProject, showCriticalPath, onShowCriticalPathChange, showDependencies, onShowDependenciesChange, highlightWeekends, onHighlightWeekendsChange, showBaseline, onShowBaselineChange, onCopySnapshotLink, hasDependencies, }: GanttToolbarProps): react_jsx_runtime.JSX.Element;
-
-interface TaskGridProps {
-    tasks: Task[];
-    theme: any;
-    rowHeight: number;
-    availableUsers?: Array<{
-        id: string;
-        name: string;
-        initials: string;
-        color: string;
-    }>;
-    templates: Required<GanttTemplates>;
-    onTaskClick?: (task: Task) => void;
-    /** v1.9.16: la seleccion sale del Gantt — ver `onTaskSelectionChange` en types.ts */
-    onTaskSelectionChange?: (taskId: string | null) => void;
-    /** v1.9.17: ...y tambien entra — ver `selectedTaskId` en types.ts */
-    selectedTaskId?: string | null;
-    onTaskDblClick?: (task: Task) => void;
-    onTaskContextMenu?: (task: Task, event: React.MouseEvent) => void;
-    onTaskToggle?: (taskId: string) => void;
-    scrollTop: number;
-    columns: GanttColumn[];
-    onToggleColumn: (columnType: ColumnType$1) => void;
-    onColumnResize?: (columnId: ColumnType$1, newWidth: number) => void;
-    onTaskUpdate?: (taskId: string, updates: Partial<Task>) => void;
-    onBulkFill?: (taskIds: string[], column: 'assignees' | 'startDate' | 'endDate', value: any) => void;
-    onTaskIndent?: (taskIds: string[]) => void;
-    onTaskOutdent?: (taskIds: string[]) => void;
-    onTaskMove?: (taskIds: string[], direction: 'up' | 'down') => void;
-    onMultiTaskDelete?: (taskIds: string[]) => void;
-    onTaskDuplicate?: (taskIds: string[]) => void;
-    onTaskCreate?: (afterTaskId: string, direction: 'above' | 'below') => void;
-    onTaskRename?: (taskId: string, newName: string) => void;
-    /** 1.9.45 · fila «+ Add task» al final de la rejilla (la app decide qué hace). */
-    addTaskRow?: {
-        label: string;
-        onClick: () => void;
-    };
-    onCreateSubtask?: (parentTaskId: string) => void;
-    /** 1.9.47 · QA Asakaa E14: «Dependencias…» en el menú contextual. */
-    onTaskDependencies?: (task: Task) => void;
-    onOpenTaskModal?: (task: Task) => void;
-    /** v1.9.6: ahora recibe TODOS los ids a borrar (bulk desde el menú contextual
-     *  con multi-selección) + una etiqueta para el modal de confirmación. */
-    onDeleteRequest?: (taskIds: string[], label: string) => void;
-    onTaskReparent?: (taskId: string, newParentId: string | null, position?: number) => void;
-    /** v1.9.10: árbol COMPLETO sin filtrar. Cuando hay un filtro activo, `tasks`
-     *  es un subconjunto; para reordenar correctamente la posición de destino debe
-     *  traducirse al índice real entre TODOS los hermanos (no solo los visibles). */
-    allTasks?: Task[];
-    scrollContainerRef?: React.RefObject<HTMLElement>;
-    showCriticalPath?: boolean;
-    /** Gantt v6 (Asakaa): la tabla de la maqueta — Tarea · Resp. · Inicio · Fin · %, cabecera de 60 px. */
-    v6?: boolean;
-    /** Gantt v6: «13 tareas · completadas ocultas», encima de los títulos. */
-    resumenV6?: string;
-    /** Gantt v6: el botón «contraer todos los grupos». */
-    onContraerTodo?: () => void;
-}
-declare function TaskGrid({ tasks, theme, rowHeight: ROW_HEIGHT, availableUsers, templates: _templates, // TODO: Use templates for custom rendering
-onTaskClick, onTaskSelectionChange, selectedTaskId, onTaskDblClick, // v0.8.0
-onTaskContextMenu, // v0.8.0
-onTaskToggle, scrollTop: _scrollTop, columns, onToggleColumn, onColumnResize, onTaskUpdate, onBulkFill, onTaskIndent, onTaskOutdent, onTaskMove, onMultiTaskDelete, onTaskDuplicate, onTaskCreate, onTaskRename, addTaskRow, onCreateSubtask, onTaskDependencies, onOpenTaskModal, onDeleteRequest, // v0.17.34
-onTaskReparent, // v0.17.68
-allTasks, // v1.9.10: árbol completo para traducir posición con filtros activos
-scrollContainerRef, // v0.18.15
-showCriticalPath, // v5.1.0
-v6, resumenV6, onContraerTodo, }: TaskGridProps): react_jsx_runtime.JSX.Element;
-
-/**
- * Optional working-days configuration so the tooltip Duration reflects the
- * workspace's actual working schedule (weekend toggles + holidays) instead
- * of raw calendar days. When omitted, falls back to calendar days.
- */
-interface WorkingDaysConfig {
-    /** Which weekdays count as working days. 0=Sun, 1=Mon, ..., 6=Sat. */
-    enabledWeekdays?: boolean[];
-    /** Holiday dates in 'YYYY-MM-DD' (workspace-local) to exclude. */
-    holidayDates?: Set<string> | string[];
-}
-
-interface TimelineProps {
-    /** Mejora fuerte 6 · la ventana visible (px) para marcar las barras fuera de vista, y adónde ir. */
-    ventanaVisible?: {
-        izq: number;
-        der: number;
-    } | null;
-    onIrAFecha?: (fecha: Date) => void;
-    /** Mejora fuerte 6 · fin planeado del proyecto y fin previsto (pronóstico). */
-    finPlaneado?: Date | null;
-    finPrevisto?: Date | null;
-    tasks: Task[];
-    theme: any;
-    rowHeight: number;
-    timeScale: TimeScale;
-    startDate: Date;
-    endDate: Date;
-    zoom: number;
-    locale?: string;
-    templates: Required<GanttTemplates>;
-    dependencyLineStyle?: DependencyLineStyle;
-    showTaskBarLabels?: boolean;
-    onTaskClick?: (task: Task) => void;
-    onTaskDblClick?: (task: Task) => void;
-    onTaskContextMenu?: (task: Task, event: React__default.MouseEvent) => void;
-    onTaskDateChange?: (task: Task, newStart: Date, newEnd: Date) => void;
-    onDependencyCreate?: (fromTask: Task, toTaskId: string, tipo?: 'FS' | 'SS' | 'FF' | 'SF') => void;
-    onDependencyDelete?: (taskId: string, dependencyId: string) => void;
-    /** v3.0.0: Show baseline ghost bars behind actual bars (Oracle view) */
-    showBaseline?: boolean;
-    showCriticalPath?: boolean;
-    showDependencies?: boolean;
-    highlightWeekends?: boolean;
-    /** 1.9.36 · 'range' pinta «Sep 1–7» en la escala W. */
-    weekHeaderFormat?: 'number' | 'range';
-    /** v4.1.0: Per-task edit check — returns false for read-only bars */
-    canEditTask?: (task: Task) => boolean;
-    /** v4.2.0: Committed on pointerup after dragging the progress edge of a task bar. */
-    onTaskProgressDrag?: (task: Task, newProgress: number) => void;
-    /** v4.3.0: Workspace working-day config for the tooltip Duration field. */
-    workingDaysConfig?: WorkingDaysConfig;
-    /** Gantt v6: la cabecera mide lo mismo que la de la tabla (60). */
-    alturaCabecera?: number;
-    /** Gantt v6 (Asakaa): escala, barras y marcas de la maqueta. */
-    v6?: boolean;
-    /** Gantt v6: alto de la barra según la densidad (18 · 22 · 26). */
-    alturaBarra?: number;
-}
-interface TaskPosition {
-    id: string;
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-}
-declare function Timeline({ tasks, theme, rowHeight: ROW_HEIGHT, timeScale, startDate, endDate, zoom, locale, // v0.17.400: Default to English
-templates, dependencyLineStyle, // v0.17.310
-showTaskBarLabels, onTaskClick, onTaskDblClick, // v0.8.0
-onTaskContextMenu, // v0.8.0
-onTaskDateChange, onDependencyCreate, onDependencyDelete, showBaseline, showCriticalPath, showDependencies, highlightWeekends, weekHeaderFormat, canEditTask, onTaskProgressDrag, workingDaysConfig, ventanaVisible, onIrAFecha, finPlaneado, finPrevisto, alturaCabecera, v6, alturaBarra, }: TimelineProps): react_jsx_runtime.JSX.Element;
+onHideCompletedChange, toolbarRightContent, wbsLevel, onWbsLevelChange, maxWbsDepth, viewMode, onViewModeChange, projectForecast, hideForecastHud, currencyCode, onExportPNG, onExportPDF, onExportExcel, onExportCSV, onExportJSON, onExportMSProject, showCriticalPath, onShowCriticalPathChange, showDependencies, onShowDependenciesChange, highlightWeekends, onHighlightWeekendsChange, showBaseline, onShowBaselineChange, onCopySnapshotLink, hasDependencies, // v5.1.0
+hasBaseline, }: GanttToolbarProps): react_jsx_runtime.JSX.Element;
 
 /**
  * ═══ EL MOTOR DEL CRONOGRAMA (QA Asakaa, mejora fuerte 5) ════════════════════════
@@ -3133,6 +3049,11 @@ declare function habilDesde(d: Date, cal: Calendario, haciaAtras?: boolean): Dat
  */
 declare function sumarHabiles(d: Date, n: number, cal: Calendario): Date;
 /** Días hábiles de `inicio` a `fin`, los dos incluidos (la duración de una barra). Mínimo 1. */
+/**
+ * L1 · LA unidad del retraso: días hábiles de `desde` a `hasta`, sin contar `desde`; negativo si `hasta` es anterior. El 0 existe
+ * (`habilesEntre` cuenta duraciones y nunca baja de 1).
+ */
+declare function diferenciaHabil(desde: Date, hasta: Date, cal: Calendario): number;
 declare function habilesEntre(inicio: Date, fin: Date, cal: Calendario): number;
 /** El fin de una tarea que empieza en `inicio` y dura `dias` hábiles. */
 declare function finConDuracion(inicio: Date, dias: number, cal: Calendario): Date;
@@ -3144,6 +3065,8 @@ interface Limite {
     finMin?: Date;
     enlace: EnlaceDeTarea;
     predecesora: Task;
+    /** A17 · no lo pide un enlace, sino la restricción «no antes de» de la propia tarea. */
+    restriccion?: boolean;
 }
 /** Lo que exige UN enlace a su sucesora (null si la predecesora no tiene fechas). */
 declare function limiteDelEnlace(enlace: EnlaceDeTarea, pred: Task, cal: Calendario): Limite | null;
@@ -3159,7 +3082,7 @@ interface Ajuste {
  * (una tarea se puede poner MÁS TARDE de lo que exigen sus enlaces: no se adelanta sola).
  * Un hito ocupa un solo día: inicio = fin.
  */
-declare function fechasQueCumplen(tarea: Pick<Task, 'id' | 'dependencies' | 'dependencyLinks' | 'isMilestone'>, inicio: Date, fin: Date, todas: Task[] | Map<string, Task>, cal: Calendario): Ajuste;
+declare function fechasQueCumplen(tarea: Pick<Task, 'id' | 'dependencies' | 'dependencyLinks' | 'isMilestone' | 'noAntesDe'>, inicio: Date, fin: Date, todas: Task[] | Map<string, Task>, cal: Calendario): Ajuste;
 interface TareaEmpujada {
     id: string;
     startDate: Date;
@@ -3181,6 +3104,207 @@ interface Conflicto {
 }
 /** Los enlaces que NO se cumplen hoy (para marcarlos y avisar). */
 declare function conflictosDelCronograma(todas: Task[], cal: Calendario): Conflicto[];
+
+/**
+ * A14 (revisión de Yesid) · LAS COLUMNAS A ELECCIÓN del Gantt v6: se añaden con el «+» del encabezado. Aquí solo está qué
+ * son y qué texto lleva cada celda; los calculados no se guardan, salen de la tarea, del calendario y de la línea base.
+ */
+
+interface ContextoDeColumnas {
+    cal: Calendario;
+    es: boolean;
+    /** id → WBS, para nombrar las predecesoras. */
+    wbsDe: Map<string, string>;
+    /** Tarifa por hora de una tarea (la de su responsable). */
+    tarifa?: (t: Task) => number;
+    dinero?: (n: number) => string;
+}
+
+interface TaskGridProps {
+    tasks: Task[];
+    theme: any;
+    rowHeight: number;
+    availableUsers?: Array<{
+        id: string;
+        name: string;
+        initials: string;
+        color: string;
+    }>;
+    templates: Required<GanttTemplates>;
+    onTaskClick?: (task: Task) => void;
+    /** v1.9.16: la seleccion sale del Gantt — ver `onTaskSelectionChange` en types.ts */
+    onTaskSelectionChange?: (taskId: string | null) => void;
+    /** v1.9.17: ...y tambien entra — ver `selectedTaskId` en types.ts */
+    selectedTaskId?: string | null;
+    onTaskDblClick?: (task: Task) => void;
+    onTaskContextMenu?: (task: Task, event: React.MouseEvent) => void;
+    onTaskToggle?: (taskId: string) => void;
+    scrollTop: number;
+    columns: GanttColumn[];
+    onToggleColumn: (columnType: ColumnType$1) => void;
+    onColumnResize?: (columnId: ColumnType$1, newWidth: number) => void;
+    onTaskUpdate?: (taskId: string, updates: Partial<Task>) => void;
+    onBulkFill?: (taskIds: string[], column: 'assignees' | 'startDate' | 'endDate', value: any) => void;
+    onTaskIndent?: (taskIds: string[]) => void;
+    onTaskOutdent?: (taskIds: string[]) => void;
+    onTaskMove?: (taskIds: string[], direction: 'up' | 'down') => void;
+    onMultiTaskDelete?: (taskIds: string[]) => void;
+    onTaskDuplicate?: (taskIds: string[]) => void;
+    onTaskCreate?: (afterTaskId: string, direction: 'above' | 'below') => void;
+    onTaskRename?: (taskId: string, newName: string) => void;
+    /** La tarea recién insertada: su nombre se abre solo y, si se deja vacío, `onTareaNombrada(id, null)` la quita. */
+    tareaPorNombrar?: string | null;
+    /** { 'AAAA-MM-DD': 'Nombre' }: los festivos del espacio, marcados en el calendario de Inicio/Fin. */
+    festivos?: Readonly<Record<string, string>>;
+    onTareaNombrada?: (taskId: string, nombre: string | null) => void;
+    /** 1.9.45 · fila «+ Add task» al final de la rejilla (la app decide qué hace). */
+    addTaskRow?: {
+        label: string;
+        onClick: () => void;
+    };
+    onCreateSubtask?: (parentTaskId: string) => void;
+    /** 1.9.47 · QA Asakaa E14: «Dependencias…» en el menú contextual. */
+    onTaskDependencies?: (task: Task) => void;
+    onOpenTaskModal?: (task: Task) => void;
+    /** v1.9.6: ahora recibe TODOS los ids a borrar (bulk desde el menú contextual
+     *  con multi-selección) + una etiqueta para el modal de confirmación. */
+    onDeleteRequest?: (taskIds: string[], label: string) => void;
+    onTaskReparent?: (taskId: string, newParentId: string | null, position?: number) => void;
+    /** v1.9.10: árbol COMPLETO sin filtrar. Cuando hay un filtro activo, `tasks`
+     *  es un subconjunto; para reordenar correctamente la posición de destino debe
+     *  traducirse al índice real entre TODOS los hermanos (no solo los visibles). */
+    allTasks?: Task[];
+    scrollContainerRef?: React.RefObject<HTMLElement>;
+    showCriticalPath?: boolean;
+    /** Gantt v6 (Asakaa): la tabla de la maqueta — Tarea · Resp. · Inicio · Fin · %, cabecera de 60 px. */
+    v6?: boolean;
+    /** G15 · Alt+←/→: mover la tarea N días hábiles. */
+    onMoverDias?: (task: Task, dias: number) => void;
+    /** A12 · editar en la celda. */
+    puedeEditarEnTabla?: (task: Task) => boolean;
+    onDuracionEnTabla?: (task: Task, dias: number) => void;
+    onProgresoEnTabla?: (task: Task, avance: number) => void;
+    /** A14 · las columnas del «+». */
+    columnasV6?: {
+        elegidas: ColumnType$1[];
+        alternar: (id: ColumnType$1) => void;
+        contexto: ContextoDeColumnas;
+        verCostos: boolean;
+        hayLineaBase: boolean;
+    };
+    /** Gantt v6: «13 tareas · completadas ocultas», encima de los títulos. */
+    resumenV6?: string;
+    /** Gantt v6: el botón «contraer todos los grupos». */
+    onContraerTodo?: () => void;
+    /** Gantt ronda 2 · P2 · «Mostrar» las completadas ocultas, junto a su contador. */
+    onMostrarOcultas?: () => void;
+    /** G14 · tras «Mostrar», la acción para volver a ocultar */
+    onOcultarCompletadas?: () => void;
+    /** Gantt ronda 2 · R1 · las filas que se dibujan; `null`, todas. */
+    filasVisibles?: {
+        desde: number;
+        hasta: number;
+    } | null;
+    /** Gantt ronda 2 · R4 · «12 vencidas» y su «Ver» (activa el filtro «Solo vencidas»). */
+    avisoVencidas?: string;
+    onVerVencidas?: () => void;
+}
+declare function TaskGrid({ tasks, theme, rowHeight: ROW_HEIGHT, availableUsers, templates: _templates, // TODO: Use templates for custom rendering
+onTaskClick, onTaskSelectionChange, selectedTaskId, onTaskDblClick, // v0.8.0
+onTaskContextMenu, // v0.8.0
+onTaskToggle, scrollTop: _scrollTop, columns, onToggleColumn, onColumnResize, onTaskUpdate, onBulkFill, onTaskIndent, onTaskOutdent, onTaskMove, onMultiTaskDelete, onTaskDuplicate, onTaskCreate, onTaskRename, tareaPorNombrar, onTareaNombrada, festivos, addTaskRow, onCreateSubtask, onTaskDependencies, onOpenTaskModal, onDeleteRequest, // v0.17.34
+onTaskReparent, // v0.17.68
+allTasks, // v1.9.10: árbol completo para traducir posición con filtros activos
+scrollContainerRef, // v0.18.15
+showCriticalPath, // v5.1.0
+v6, onMoverDias, columnasV6, puedeEditarEnTabla, onDuracionEnTabla, onProgresoEnTabla, resumenV6, onContraerTodo, onMostrarOcultas, onOcultarCompletadas, filasVisibles, avisoVencidas, onVerVencidas, }: TaskGridProps): react_jsx_runtime.JSX.Element;
+
+/**
+ * Optional working-days configuration so the tooltip Duration reflects the
+ * workspace's actual working schedule (weekend toggles + holidays) instead
+ * of raw calendar days. When omitted, falls back to calendar days.
+ */
+interface WorkingDaysConfig {
+    /** Which weekdays count as working days. 0=Sun, 1=Mon, ..., 6=Sat. */
+    enabledWeekdays?: boolean[];
+    /** Holiday dates in 'YYYY-MM-DD' (workspace-local) to exclude. */
+    holidayDates?: Set<string> | string[];
+    /** G15 · 'YYYY-MM-DD' → nombre del festivo, para su tooltip. */
+    holidayNames?: Record<string, string>;
+    /** A20 · la jornada, en minutos: sin ella no se mira la sobreasignación. */
+    minutosPorDia?: number;
+}
+
+interface TimelineProps {
+    /** Mejora fuerte 6 · la ventana visible (px) para marcar las barras fuera de vista, y adónde ir. */
+    ventanaVisible?: {
+        izq: number;
+        der: number;
+    } | null;
+    /** Gantt ronda 2 (Yesid) · R1 · las filas que se dibujan (las visibles y un margen); `null`, todas (p. ej. al exportar). */
+    filasVisibles?: {
+        desde: number;
+        hasta: number;
+    } | null;
+    onIrAFecha?: (fecha: Date) => void;
+    /** G3 · despliega un grupo plegado */
+    onExpandirGrupo?: (id: string) => void;
+    /** Mejora fuerte 6 · fin planeado del proyecto y fin previsto (pronóstico). */
+    finPlaneado?: Date | null;
+    finPrevisto?: Date | null;
+    tasks: Task[];
+    theme: any;
+    rowHeight: number;
+    timeScale: TimeScale;
+    startDate: Date;
+    endDate: Date;
+    zoom: number;
+    locale?: string;
+    templates: Required<GanttTemplates>;
+    dependencyLineStyle?: DependencyLineStyle;
+    showTaskBarLabels?: boolean;
+    onTaskClick?: (task: Task) => void;
+    onTaskDblClick?: (task: Task) => void;
+    onTaskContextMenu?: (task: Task, event: React__default.MouseEvent) => void;
+    onTaskDateChange?: (task: Task, newStart: Date, newEnd: Date) => void;
+    onDependencyCreate?: (fromTask: Task, toTaskId: string, tipo?: 'FS' | 'SS' | 'FF' | 'SF') => void;
+    onDependencyDelete?: (taskId: string, dependencyId: string) => void;
+    /** v3.0.0: Show baseline ghost bars behind actual bars (Oracle view) */
+    showBaseline?: boolean;
+    showCriticalPath?: boolean;
+    showDependencies?: boolean;
+    highlightWeekends?: boolean;
+    /** 1.9.36 · 'range' pinta «Sep 1–7» en la escala W. */
+    weekHeaderFormat?: 'number' | 'range';
+    /** v4.1.0: Per-task edit check — returns false for read-only bars */
+    canEditTask?: (task: Task) => boolean;
+    /** v4.2.0: Committed on pointerup after dragging the progress edge of a task bar. */
+    onTaskProgressDrag?: (task: Task, newProgress: number) => void;
+    /** v4.3.0: Workspace working-day config for the tooltip Duration field. */
+    workingDaysConfig?: WorkingDaysConfig;
+    /** QA Latty R3 · sección 4 · sin horas de trabajo en el tooltip */
+    mostrarHorasDeTrabajo?: boolean;
+    /** Gantt v6: la cabecera mide lo mismo que la de la tabla (60). */
+    alturaCabecera?: number;
+    /** Gantt v6 (Asakaa): escala, barras y marcas de la maqueta. */
+    v6?: boolean;
+    /** Gantt ronda 2 (Yesid) · P2 · la tarea seleccionada: sus conectores no se atenúan en la escala Mes. */
+    tareaEnFoco?: string | null;
+    /** Gantt v6: alto de la barra según la densidad (18 · 22 · 26). */
+    alturaBarra?: number;
+}
+interface TaskPosition {
+    id: string;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+}
+declare function Timeline({ tasks, theme, rowHeight: ROW_HEIGHT, timeScale, startDate, endDate, zoom, locale, // v0.17.400: Default to English
+templates, dependencyLineStyle, // v0.17.310
+showTaskBarLabels, onTaskClick, onTaskDblClick, // v0.8.0
+onTaskContextMenu, // v0.8.0
+onTaskDateChange, onDependencyCreate, onDependencyDelete, showBaseline, showCriticalPath, showDependencies, highlightWeekends, weekHeaderFormat, canEditTask, onTaskProgressDrag, workingDaysConfig, mostrarHorasDeTrabajo, ventanaVisible, filasVisibles, onIrAFecha, onExpandirGrupo, finPlaneado, finPrevisto, alturaCabecera, v6, tareaEnFoco, alturaBarra, }: TimelineProps): react_jsx_runtime.JSX.Element;
 
 interface TaskTooltipData {
     task: Task;
@@ -3222,13 +3346,19 @@ interface TaskBarProps {
     alturaBarra?: number;
     /** Gantt v6: la duración en días hábiles, a la derecha de la barra («5 d»). */
     duracionV6?: string;
+    /** A20 · su responsable pasa de la jornada algún día de esta tarea: la etiqueta va en ámbar. */
+    sobreasignada?: boolean;
+    /** L1 · con el calendario, el retraso frente a la línea base va en días hábiles */
+    calendario?: Calendario;
+    /** Gantt ronda 2 (Yesid) · R3 · una tarea TRANSVERSAL (dura casi todo el proyecto: seguimiento, informes): línea fina. */
+    transversal?: boolean;
 }
 declare function TaskBar({ task, x, y, width, theme, dayWidth, startDate, templates, onClick, onDoubleClick, // v0.8.0
 onContextMenu, // v0.8.0
 onDateChange, onDependencyCreate, allTaskPositions, onDragMove, // v0.13.0
 onHoverChange, // v0.17.76
 showBaseline, // v3.0.0
-showTaskBarLabels, showCriticalPath, readOnly, onProgressChange, v6, alturaBarra, duracionV6, }: TaskBarProps): react_jsx_runtime.JSX.Element;
+showTaskBarLabels, showCriticalPath, readOnly, onProgressChange, v6, alturaBarra, duracionV6, sobreasignada, calendario, transversal, }: TaskBarProps): react_jsx_runtime.JSX.Element;
 
 interface DependencyLineProps {
     x1: number;
@@ -3248,6 +3378,21 @@ interface DependencyLineProps {
     entradaPorFin?: boolean;
     /** «CC +2», «FF», «+1»…: el tipo (si no es FC) y el desfase (si no es 0). */
     etiqueta?: string;
+    /** Gantt ronda 2 (Yesid) · P1-4 · un enlace en conflicto va DISCONTINUO (y en ámbar, por `colorOverride`). */
+    discontinua?: boolean;
+    /** El tooltip del conector (p. ej. el porqué del conflicto). */
+    titulo?: string;
+    /** Gantt ronda 2 (Yesid) · P2 · un conector largo que no toca la tarea en foco, atenuado (escala Mes). */
+    atenuada?: boolean;
+    /**
+     * Gantt ronda 2 (Yesid) · E14 · «se marca, pero nada avisa ni propone corregir». En la capa del hover de un enlace en
+     * conflicto, la píldora «Corregir → 19 oct» junto a la flecha de llegada: mueve la sucesora lo justo para cumplirlo.
+     */
+    corregir?: {
+        texto: string;
+        titulo: string;
+        onClick: () => void;
+    };
 }
 /**
  * v0.17.364: TRUE ClickUp-style dependency line routing
@@ -3267,7 +3412,7 @@ interface DependencyLineProps {
  *   The vertical segment must still be LEFT of destination: turnX = x2 - OFFSET
  *   Path: right → horizontal past source → down/up → LEFT back to destination
  */
-declare function DependencyLine({ x1, y1, x2, y2, theme, onDelete, lineStyle, isHoverLayer, onHoverChange, hoverOverlayOnly, colorOverride, strokeWidthOverride, glowFilter, salidaPorInicio, entradaPorFin, etiqueta, }: DependencyLineProps): react_jsx_runtime.JSX.Element;
+declare function DependencyLine({ x1, y1, x2, y2, theme, onDelete, lineStyle, isHoverLayer, onHoverChange, hoverOverlayOnly, colorOverride, strokeWidthOverride, glowFilter, salidaPorInicio, entradaPorFin, etiqueta, discontinua, titulo, atenuada, corregir, }: DependencyLineProps): react_jsx_runtime.JSX.Element;
 
 interface MilestoneProps {
     task: Task;
@@ -3294,6 +3439,8 @@ interface ContextMenuItem {
     onClick: () => void;
     separator?: boolean;
     disabled?: boolean;
+    /** QA Latty BUG-41 · por qué está deshabilitada: se lee debajo de la opción (un `title` en un botón deshabilitado no sale en todos los navegadores) */
+    motivo?: string;
     submenu?: ContextMenuItem[];
 }
 interface ContextMenuProps {
@@ -3323,6 +3470,8 @@ declare const MenuIcons: {
     Split: react_jsx_runtime.JSX.Element;
     Duplicate: react_jsx_runtime.JSX.Element;
     Milestone: react_jsx_runtime.JSX.Element;
+    Indent: react_jsx_runtime.JSX.Element;
+    Outdent: react_jsx_runtime.JSX.Element;
     MarkIncomplete: react_jsx_runtime.JSX.Element;
     SetInProgress: react_jsx_runtime.JSX.Element;
     MarkComplete: react_jsx_runtime.JSX.Element;
@@ -3378,10 +3527,20 @@ interface TaskFormModalProps {
     attachments?: Attachment[];
     onUploadAttachments?: (taskId: string, files: File[]) => Promise<void> | void;
     onDeleteAttachment?: (attachmentId: string) => void;
+    /**
+     * QA Latty BUG-33 · «Ubicación» y «Activo / equipo» se pedían siempre y ninguna app los guardaba: lo escrito se
+     * perdía. Sólo salen si quien usa el modal los guarda.
+     */
+    mostrarUbicacionYActivo?: boolean;
+    /**
+     * QA Latty R3 · N-02 · «Horas estimadas» es de Asakaa, no de Latty (decisión de Yesid): sin ella, el campo no sale.
+     * Por omisión sale, como hasta ahora.
+     */
+    mostrarHorasEstimadas?: boolean;
     /** v2.2.0: Pre-select status when creating from a specific column */
     defaultStatus?: string;
 }
-declare function TaskFormModal({ isOpen, onClose, task, availableTasks, availableUsers, onSubmit, isLoading, mode, theme, customStatuses, availableTags, onCreateTag, attachments, onUploadAttachments, onDeleteAttachment, defaultStatus, }: TaskFormModalProps): react_jsx_runtime.JSX.Element;
+declare function TaskFormModal({ isOpen, onClose, task, availableTasks, availableUsers, onSubmit, isLoading, mode, theme, customStatuses, availableTags, onCreateTag, attachments, onUploadAttachments, mostrarUbicacionYActivo, mostrarHorasEstimadas, onDeleteAttachment, defaultStatus, }: TaskFormModalProps): react_jsx_runtime.JSX.Element;
 
 interface GanttAIAssistantProps {
     /** All current tasks in the Gantt */
@@ -3923,6 +4082,9 @@ interface GanttTranslations {
         deleteTask: string;
         /** 1.9.47 · QA Asakaa E14 */
         dependencies?: string;
+        /** QA Asakaa E14 (17-nov): sangría desde el menú */
+        indent?: string;
+        outdent?: string;
     };
     actions: {
         edit: string;
@@ -4045,11 +4207,394 @@ declare const GanttI18nContext: React$1.Context<GanttTranslations>;
 declare function useGanttI18n(): GanttTranslations;
 
 /**
- * ListView Component Types
- * @version 0.18.0
+ * Maquetas v3 de Yesid (4-nov) · LAS REGLAS DE LA LISTA v6, sin React (también para el Tablero).
  *
- * v0.18.0: Added dynamic columns, custom fields, context menu support
+ *   · estado de una hoja: el suyo (Completada · En progreso · Bloqueada · Por hacer);
+ *   · estado de un padre (B9, la misma regla en Gantt, Lista y Tablero): Completada si todas sus hojas lo están;
+ *     Bloqueada si todas las abiertas están bloqueadas; En progreso si alguna avanza o ya terminó; si no, Por hacer;
+ *   · vencida: hoja sin terminar cuyo fin ya pasó (G2 · B2 · C2); el retraso, en días hábiles DESDE el día siguiente;
+ *   · las cifras de un padre salen SOLO de sus hojas (P12: «sumar solo los estimados de las hojas»).
  */
+
+type EstadoV6 = 'done' | 'prog' | 'blocked' | 'todo';
+declare const tieneHijas: (t: Task) => boolean;
+/** El estado de una hoja, de su `status` (y su avance, si el estado no dice nada). */
+declare function estadoDeHoja(t: Task): EstadoV6;
+declare function hojasDe(t: Task, fuera?: Task[]): Task[];
+/** B9 · el estado de cualquier fila: el de la hoja, o el que sale de sus hojas. */
+declare function estadoDe(t: Task): EstadoV6;
+/** Vencida: hoja sin terminar cuyo fin es anterior a hoy. */
+declare function estaVencida(t: Task, hoy: Date): boolean;
+/** Los días hábiles de retraso de una vencida: del día hábil siguiente a su fin hasta hoy, incluido (0 si no hay). */
+declare function diasDeRetraso(t: Task, hoy: Date, cal: Calendario): number;
+interface CifrasDeFila {
+    /** horas registradas y estimadas (de las hojas) */
+    reg: number;
+    est: number;
+    /** costo real: horas registradas × tarifa de la hoja */
+    costo: number;
+    /** hojas terminadas y en total (para «2/3») */
+    hechas: number;
+    hojas: number;
+    /** hojas vencidas */
+    vencidas: number;
+}
+
+interface PersonaAsignable {
+    id: string;
+    name: string;
+    avatar?: string;
+    initials?: string;
+    color?: string;
+}
+
+type TipoDeEnlaceV4 = 'FS' | 'SS' | 'FF' | 'SF';
+type OrigenDelCambio = 'app' | 'mcp' | 'odoo' | 'importacion' | 'sistema';
+interface EntradaDelHistorialV4 {
+    id: string;
+    cuando: Date;
+    quien?: string | null;
+    texto: string;
+    origen: OrigenDelCambio;
+}
+/** Lo que el panel hace con la app. Cada acción es opcional: sin ella, su control no se ofrece. */
+interface AccionesDelPanelV4 {
+    /** sin permiso de escritura: el panel es de solo lectura */
+    puedeEditar?: boolean;
+    /** v4 · si quien mira puede cambiar ESTA tarea (un ejecutor, solo las suyas): sin él, todas. Las horas (cronómetro y
+     *  «Registrar») van a la hoja de quien mira y siguen solo con `puedeEditar`. */
+    puedeEditarTarea?: (t: Task) => boolean;
+    /** David (Axon), 24-nov · a quién se puede asignar y en qué tareas: sin personas (o sin `onActualizar`), el responsable
+     *  es de solo lectura. Un padre no se asigna: sus responsables son los de sus hijas. */
+    personas?: PersonaAsignable[];
+    puedeAsignar?: (t: Task) => boolean;
+    /** guardar campos de la tarea (restricción, lista de dependencias); `false` si no se pudo (y la app ya avisó) */
+    onActualizar?: (t: Task, cambios: Partial<Task>) => boolean | void | Promise<boolean | void>;
+    /** el tipo y el desfase de un enlace que ya existe */
+    onTipoDeEnlace?: (t: Task, predecesora: string, tipo: TipoDeEnlaceV4, desfase: number) => boolean | void | Promise<boolean | void>;
+    /** los cambios de la tarea, el más reciente primero */
+    cargarHistorial?: (t: Task) => Promise<EntradaDelHistorialV4[]>;
+    /** el cronómetro en marcha de quien mira (uno a la vez) */
+    cronometro?: {
+        taskId: string;
+        desde: Date;
+    } | null;
+    /** iniciar o detener el cronómetro en esta tarea (al detenerlo, el tiempo va a la hoja de horas) */
+    onCronometro?: (t: Task) => void | Promise<void>;
+    /** registrar horas de hoy en la tarea; `false` si no se pudo (la app dice por qué) */
+    onRegistrarHoras?: (t: Task, horas: number) => boolean | void | Promise<boolean | void>;
+    /** «Abrir en la Lista»: la Lista abre su panel con #t=<wbs> */
+    onAbrirEnLista?: (t: Task, wbs: string) => void;
+    onCopiarEnlace?: (t: Task) => void;
+}
+interface FilaDelPanelV4 {
+    t: Task;
+    wbs: string;
+    ancestros: string[];
+    nivel?: number;
+}
+declare const TXT: {
+    es: {
+        cerrar: string;
+        mas: string;
+        acciones: string;
+        ficha: string;
+        lista: string;
+        copiar: string;
+        verHist: string;
+        cambiarPadre: string;
+        estado: string;
+        cambiar: string;
+        vencida: (n: number) => string;
+        espera: string;
+        indique: string;
+        empiezaAntes: string;
+        avanceSr: string;
+        hintAvance: string;
+        hintHecha: string;
+        hintPorConfirmar: string;
+        resp: string;
+        sinResp: string;
+        fechas: string;
+        dur: string;
+        hito: string;
+        cambiarInicio: string;
+        cambiarFin: string;
+        cambiarFecha: string;
+        estimado: string;
+        cambiarEstimado: string;
+        sinPrioridad: string;
+        anadirDep: string;
+        quitarDep: (n: string) => string;
+        editarDesc: string;
+        guardarDesc: string;
+        dias: (n: number) => string;
+        restriccion: string;
+        restriccionDeFecha: string;
+        ninguna: string;
+        laMueven: string;
+        terminarEl: (f: string) => string;
+        noAntesDel: (f: string) => string;
+        fijar: string;
+        fijas: string;
+        horas: string;
+        horasTip: string;
+        sumaHijas: string;
+        iniciar: string;
+        detener: string;
+        iniciarTip: string;
+        detenerTip: string;
+        registrar: string;
+        horasHoy: string;
+        hHoy: string;
+        guardar: string;
+        cancelar: string;
+        errHoras: string;
+        costo: string;
+        planeado: (v: string) => string;
+        costoBloqueado: string;
+        costoBloqueadoTip: string;
+        prio: string;
+        p: Record<string, string>;
+        padre: string;
+        directa: string;
+        bloqueadaPor: string;
+        sinIndicar: string;
+        depende: string;
+        nada: string;
+        tipoEnlace: string;
+        desfase: string;
+        sinDesfase: string;
+        seCruzan: string;
+        cruzanTip: (a: string, b: string) => string;
+        kinds: Record<TipoDeEnlaceV4, [string, string]>;
+        riesgo: string;
+        sinRiesgos: string;
+        desc: string;
+        sinDesc: string;
+        hist: (n: number | null) => string;
+        cargando: string;
+        sinHist: string;
+        origen: Record<OrigenDelCambio, string>;
+        origenTip: Record<OrigenDelCambio, string>;
+        comentar: string;
+        fase: string;
+        tareaPadre: string;
+        subVencidas: (n: number) => string;
+        subtareas: string;
+        hijas: string;
+        notaNodo: (f: boolean) => string;
+        calculado: string;
+        panel: (n: string) => string;
+    };
+    en: {
+        cerrar: string;
+        mas: string;
+        acciones: string;
+        ficha: string;
+        lista: string;
+        copiar: string;
+        verHist: string;
+        cambiarPadre: string;
+        estado: string;
+        cambiar: string;
+        vencida: (n: number) => string;
+        espera: string;
+        indique: string;
+        empiezaAntes: string;
+        avanceSr: string;
+        hintAvance: string;
+        hintHecha: string;
+        hintPorConfirmar: string;
+        resp: string;
+        sinResp: string;
+        fechas: string;
+        dur: string;
+        hito: string;
+        cambiarInicio: string;
+        cambiarFin: string;
+        cambiarFecha: string;
+        estimado: string;
+        cambiarEstimado: string;
+        sinPrioridad: string;
+        anadirDep: string;
+        quitarDep: (n: string) => string;
+        editarDesc: string;
+        guardarDesc: string;
+        dias: (n: number) => string;
+        restriccion: string;
+        restriccionDeFecha: string;
+        ninguna: string;
+        laMueven: string;
+        terminarEl: (f: string) => string;
+        noAntesDel: (f: string) => string;
+        fijar: string;
+        fijas: string;
+        horas: string;
+        horasTip: string;
+        sumaHijas: string;
+        iniciar: string;
+        detener: string;
+        iniciarTip: string;
+        detenerTip: string;
+        registrar: string;
+        horasHoy: string;
+        hHoy: string;
+        guardar: string;
+        cancelar: string;
+        errHoras: string;
+        costo: string;
+        planeado: (v: string) => string;
+        costoBloqueado: string;
+        costoBloqueadoTip: string;
+        prio: string;
+        p: Record<string, string>;
+        padre: string;
+        directa: string;
+        bloqueadaPor: string;
+        sinIndicar: string;
+        depende: string;
+        nada: string;
+        tipoEnlace: string;
+        desfase: string;
+        sinDesfase: string;
+        seCruzan: string;
+        cruzanTip: (a: string, b: string) => string;
+        kinds: Record<TipoDeEnlaceV4, [string, string]>;
+        riesgo: string;
+        sinRiesgos: string;
+        desc: string;
+        sinDesc: string;
+        hist: (n: number | null) => string;
+        cargando: string;
+        sinHist: string;
+        origen: Record<OrigenDelCambio, string>;
+        origenTip: Record<OrigenDelCambio, string>;
+        comentar: string;
+        fase: string;
+        tareaPadre: string;
+        subVencidas: (n: number) => string;
+        subtareas: string;
+        hijas: string;
+        notaNodo: (f: boolean) => string;
+        calculado: string;
+        panel: (n: string) => string;
+    };
+};
+type Textos = typeof TXT.es | typeof TXT.en;
+/** El texto de la restricción de una tarea («Ninguna», «Terminar el 23 oct», «No antes del 3 nov», «Fechas fijas»). */
+declare function textoDeRestriccion(t: Task, x: Textos, f: (d: Date) => string): string;
+/** La restricción que pide cada opción del selector (con `null` para borrar lo que había). */
+declare function cambiosDeRestriccion(t: Task, v: 'none' | 'fin' | 'ini' | 'fix'): Partial<Task>;
+/** «Sin desfase», «+2 días hábiles», «−1 día hábil». */
+declare function textoDeDesfase(n: number, x: Textos): string;
+/** Horas escritas por una persona: «1,5», «2», «0.5». `null` si no es un número entre 0,1 y 24 con un decimal como mucho. */
+declare function leerHoras(texto: string): number | null;
+interface PanelDeTareaV4Props {
+    fila: FilaDelPanelV4;
+    es: boolean;
+    cal: Calendario;
+    hoy: Date;
+    nombreProyecto?: string;
+    cifras: CifrasDeFila;
+    estados: Map<string, EstadoV6>;
+    nombreEstado: Record<EstadoV6, string>;
+    porId: Map<string, FilaDelPanelV4>;
+    tarifaDe: (hoja: Task) => number;
+    /** costo y tarifa: solo administradores, Finanzas y el gerente del proyecto */
+    conCosto?: boolean;
+    onCerrar: () => void;
+    onAbrirFicha?: (t: Task) => void;
+    onIrA: (id: string) => void;
+    onVerRiesgo?: (id: string) => void;
+    /** cambiar el estado de una hoja (con la regla del % y «Deshacer» de la vista) */
+    onEstado?: (t: Task, e: EstadoV6) => void;
+    /** guardar el avance escrito (la vista valida y avisa) */
+    onAvance?: (t: Task, texto: string) => void;
+    porConfirmar?: boolean;
+    errorAvance?: string | null;
+    /** mover la hoja a otra tarea padre de su fase (o directa de la fase) */
+    onCambiarPadre?: (t: Task, padreId: string) => void;
+    /** lo que la vista añade en una fase o tarea padre («Completar la rama») */
+    rama?: ReactNode;
+    /** N24 · «Dependencias…» de la Lista: abre el panel con «Añadir dependencia» desplegado (cambia el número para abrirlo) */
+    abrirDependencias?: number;
+    acciones?: AccionesDelPanelV4;
+}
+declare function PanelDeTareaV4({ fila, es, cal, hoy, nombreProyecto, cifras, estados, nombreEstado, porId, tarifaDe, conCosto, onCerrar, onAbrirFicha, onIrA, onVerRiesgo, onEstado, onAvance, porConfirmar, errorAvance, onCambiarPadre, rama, acciones, abrirDependencias: abrirDependencia, }: PanelDeTareaV4Props): react_jsx_runtime.JSX.Element;
+
+interface SaludDelPieV4 {
+    /** sql/481 · quien mira ve dinero (administrador, Finanzas o gerente del proyecto) */
+    veDinero: boolean;
+    /** contrato + adicionales; null si no hay contrato */
+    ofertado: number | null;
+    planeado: number;
+    real: number;
+    /** costo estimado al terminar al ritmo actual (EAC) */
+    alTerminar: number | null;
+    /** horas registradas y las que vale el avance logrado (solo hojas) */
+    horasRegistradas: number;
+    horasGanadas: number;
+    /** «No evaluable»: el motivo (costos, márgenes y tarifas no se calculan) */
+    noEvaluable?: string | null;
+    /** v4 · el motivo corto que sigue a «No evaluable» en el pie («por horas sin registrar»); sin él, el de las escalas */
+    noEvaluableCorto?: string | null;
+    /** por qué quien mira ve la tarifa de cada persona («porque gerencia este proyecto») */
+    porQueVe?: string | null;
+}
+interface Persona {
+    clave: string;
+    nombre: string;
+    iniciales: string;
+    abiertas: number;
+    reg: number;
+    est: number;
+    costo: number;
+    tarifa: number;
+    sinResp: boolean;
+}
+/** Por persona: tareas abiertas, horas y costo real; una hoja cuenta para su primer responsable. */
+declare function personasDelProyecto(tasks: Task[], tarifaDe: (h: Task) => number, tarifaDePersona?: (id: string) => number | undefined, sinResp?: string): {
+    personas: Persona[];
+    total: {
+        abiertas: number;
+        reg: number;
+        est: number;
+        costo: number;
+    };
+    planeado: number;
+    sinRespAbiertas: number;
+};
+declare function CostosDelProyectoV4({ tasks, es, tarifaDe, tarifaDePersona, monedaCodigo, salud, conCosto, onVerRecursos }: {
+    tasks: Task[];
+    es: boolean;
+    tarifaDe: (hoja: Task) => number;
+    tarifaDePersona?: (id: string) => number | undefined;
+    monedaCodigo?: string | null;
+    /** las cifras de la cabecera; sin ellas, el pie suma las de las tareas */
+    salud?: SaludDelPieV4 | null;
+    /** sin `salud`: ¿quien mira ve dinero? */
+    conCosto?: boolean;
+    onVerRecursos?: () => void;
+}): react_jsx_runtime.JSX.Element | null;
+
+/** El menú Vista de la maqueta: densidad, completadas, agrupar por fase y leyenda. La lleva la app (se recuerda). */
+interface VistaV6 {
+    densidad: 'compacta' | 'normal' | 'comoda';
+    mostrarHechas: boolean;
+    agruparPorFase: boolean;
+    leyenda: boolean;
+}
+declare const VISTA_V6_POR_DEFECTO: VistaV6;
+/** Guía v4 · «Filtros» de la Lista: Estado, Responsable, «Solo vencidas» y «Con riesgo abierto» (la clave de cada
+ * responsable: su id, o su nombre; '' = sin responsable). Los lleva la app. */
+interface FiltrosDeLaListaV4 {
+    estados: EstadoV6[];
+    responsables: string[];
+    vencidas: boolean;
+    conRiesgo: boolean;
+}
+declare const FILTROS_LISTA_V4_VACIOS: FiltrosDeLaListaV4;
 
 /**
  * Sort direction for list columns
@@ -4416,6 +4961,45 @@ interface ListViewConfig {
     completedStyle?: 'strike' | 'dim';
     /** 1.9.38 · 'compact': filas de una línea y 40 px; 'comfortable' (por defecto) las de dos líneas y 56 px. */
     rowDensity?: 'comfortable' | 'compact';
+    /** Maquetas v3 (Yesid, 4-nov) · la Lista v6 (sólo Asakaa): `ListaV6` en vez de la tabla de siempre. */
+    disenoV6?: boolean;
+    /** v6 · el calendario del espacio (días hábiles y festivos), para la duración y el retraso */
+    calendarioV6?: Calendario;
+    /** v6 · al pie de la lista: la salud financiera y los recursos, plegados */
+    pieV6?: ReactNode;
+    /** v6 · la tarea abierta en el panel (su fila, seleccionada) */
+    seleccionadaV6?: string | null;
+    /** v6 · clave de localStorage para recordar las columnas ocultas */
+    claveColumnasV6?: string;
+    /** v6 · el avance del proyecto que dice la cabecera (el total de la lista dice el mismo) */
+    avanceTotalV6?: number | null;
+    /** v6 · el menú Vista (densidad, completadas, agrupar por fase, leyenda); sin él, la lista lo lleva sola */
+    vistaV6?: VistaV6;
+    onVistaV6?: (v: VistaV6) => void;
+    /** v6 · «Columnas…» del menú Vista: cada cambio abre el menú del «+» */
+    peticionColumnasV6?: number;
+    /** v6 · G4: las migas del panel de la tarea empiezan por el proyecto */
+    nombreProyectoV6?: string;
+    /** v6 · «Recursos e impacto de flujo de caja»: costo al terminar (EAC) y el enlace a Recursos */
+    costoAlTerminarV6?: number | null;
+    /** v4 · «una sola verdad»: el fin previsto de la cabecera; el total de la Lista dice esa fecha (y el plan, en su globo) */
+    finPrevistoV6?: Date | null;
+    onVerRecursosV6?: () => void;
+    /** v6 · R6: abrir un riesgo desde el panel de la tarea */
+    onVerRiesgoV6?: (id: string) => void;
+    /** guía v4 · el pie «Costos del proyecto» con las cifras de la cabecera */
+    saludV4?: SaludDelPieV4 | null;
+    /** guía v4 · lo que el panel de la tarea hace con la app */
+    panelV4?: AccionesDelPanelV4;
+    /** guía v4 · guardar el estado y el avance de una hoja desde el panel */
+    onGuardarEstadoV4?: (t: Task, status: string, progreso: number) => boolean | void | Promise<boolean | void>;
+    /** v4 · cambiar la tarea padre desde el panel de la Lista (padre null = raíz; posición entre sus hijas); `false` si no se pudo */
+    onCambiarPadreV4?: (t: Task, padre: string | null, posicion: number) => boolean | void | Promise<boolean | void>;
+    /** E15 (Yesid, 17-nov) · «+ Añadir tarea» en la tabla v4 y «Agregar subtarea» del menú: crea la tarea con ese nombre al final de su padre (null = raíz). Duplicar y eliminar salen de callbacks.onTaskDuplicate / onTaskDelete. */
+    onCrearTareaV4?: (nombre: string, padre: string | null) => boolean | void | Promise<boolean | void>;
+    /** guía v4 · los filtros de la barra de la Lista */
+    filtrosV4?: FiltrosDeLaListaV4;
+    onFiltrosV4?: (f: FiltrosDeLaListaV4) => void;
     /**
      * 1.9.39 · `false` quita el botón «Filters» (estado / ocultar completadas) de
      * la barra, para la app que tiene su propio sistema de filtros. Por defecto se pinta.
@@ -4760,6 +5344,208 @@ declare function getListViewTranslations(locale: ListViewSupportedLocale | strin
 declare function mergeListViewTranslations(locale: ListViewSupportedLocale | string, customTranslations?: Partial<ListViewTranslations>): ListViewTranslations;
 
 /**
+ * El avance de un conjunto de tareas · UNA sola fórmula en la librería (y la app, el servidor y la base la copian).
+ *
+ * Movida desde ListView (1.9.46, QA Asakaa E4) para que el Gantt la use también (1.9.47, QA Asakaa E6).
+ *
+ * 18-nov · REGLA v4 (guía de Yesid; revisión de producción del 17-nov: la fase COMPRAS de P26031 daba 10 % en la
+ * Lista, 56 % en el Gantt y 82 % en el Informe, porque cada vista tenía su fórmula):
+ *   · se cuentan las tareas HOJA (sin subtareas);
+ *   · cada una pesa sus HORAS ESTIMADAS; sin estimado (o 0) pesa 1 h. Sin respaldo en las horas vendidas;
+ *   · una hoja COMPLETADA cuenta 100 % (aunque su porcentaje guardado diga otra cosa);
+ *   · excepción que se conserva: si un coordinador repartió PESOS manuales (suman ≥ 99 y los tienen ≥ 95 % de las
+ *     hojas), mandan los pesos (sql/124, Axon);
+ *   · redondeado a entero.
+ * Pruebas de aceptación de Yesid: «1 de 4 completadas, sin estimar» = 25 %; P26025 Materialización 21 de 74 h = 28 %.
+ *
+ * 21-nov · LOS HITOS NO PESAN (respuesta de Yesid a N29 de su 2ª revisión): «un hito es una fecha, no trabajo; la regla
+ * de "sin estimado pesa 1 h" es solo para tareas. Los hitos se cuentan aparte ("2 de 5 hitos cumplidos"), y un proyecto
+ * que solo tiene hitos sale "No evaluable" en avance». Una hoja que es hito no entra en el avance (ni por horas ni por
+ * pesos manuales); sin tareas que no sean hitos, el avance es 0 y `hayTrabajoQueMedir` dice que no hay nada que medir.
+ */
+
+type HojaConAvance = {
+    progress: number;
+    weight: number;
+    effort_minutes?: number | null;
+    /** ya no pesa (regla v4); se deja en el tipo para no romper a quien lo pase */
+    sold_effort_minutes?: number | null;
+    /** completada por su estado: cuenta 100 */
+    hecha?: boolean;
+    /** un hito: no pesa en el avance (21-nov) */
+    hito?: boolean;
+};
+/** Minutos que pesa una hoja: sus horas estimadas; sin estimado (o 0), 1 h. */
+declare function minutosQuePesa(l: Pick<HojaConAvance, 'effort_minutes'>): number;
+declare function computeWeightedProgress(todas: HojaConAvance[]): number;
+/**
+ * Collects all leaf tasks (tasks without subtasks) from a tree.
+ */
+declare function collectLeaves(list: Task[], out?: HojaConAvance[]): HojaConAvance[];
+/**
+ * El avance de UNA tarea con la regla única: una fase (o cualquier padre) se calcula con sus hojas; una hoja, su
+ * propio avance (100 si está completada). Lo usan la Lista, su panel y su orden, en vez de leer el `progress` que
+ * guardó la base para los padres (otra fórmula: hijas directas y sin estimar fuera).
+ */
+declare function avanceDeTarea(t: Task): number;
+/** ¿Hay alguna tarea que no sea hito (algo que medir)? Sin ninguna, el avance es «No evaluable». */
+declare function hayTrabajoQueMedir(list: Task[]): boolean;
+/** Los hitos de un árbol, aparte del avance: cuántos hay y cuántos se cumplieron («2 de 5 hitos cumplidos»). */
+declare function contarHitos(list: Task[]): {
+    total: number;
+    cumplidos: number;
+};
+
+/** «30 jul» / «30 jul 2027» · «Jul 30» / «Jul 30, 2027». */
+declare function fechaCorta(d: Date, locale: string | undefined, hoy?: Date): string;
+
+type EscalaCalendarioV6 = 'mes' | 'semana';
+/** «Vista › Color de las barras» */
+type ColorDelCalendarioV4 = 'estado' | 'fase' | 'responsable';
+/** El menú Vista del Calendario (lo lleva la app y lo recuerda). */
+interface VistaCalendarioV6 {
+    escala: EscalaCalendarioV6;
+    /** `null`: las completadas se ven en los periodos que ya pasaron y se ocultan en los demás */
+    mostrarHechas: boolean | null;
+    finesDeSemana: boolean;
+    festivos: boolean;
+    color: ColorDelCalendarioV4;
+}
+declare const VISTA_CALENDARIO_V6_POR_DEFECTO: VistaCalendarioV6;
+/** «Filtros» del Calendario: responsable, estado y fase. Las completadas no se filtran por estado (las gobierna «Vista»). */
+interface FiltrosDelCalendarioV4 {
+    /** claves de responsable; '' = sin responsable */
+    responsables: string[];
+    estados: EstadoV6[];
+    /** id de la tarea raíz de cada fase */
+    fases: string[];
+}
+declare const FILTROS_CALENDARIO_V4_VACIOS: FiltrosDelCalendarioV4;
+/** La semana ISO (la del jueves de esa semana). */
+declare function semanaIsoDe(d: Date): number;
+/** Si las completadas se ven: lo que diga «Vista», o (sin elegir) sólo en los periodos que ya pasaron. */
+declare function completadasALaVista(vista: VistaCalendarioV6, ancla: Date, hoy?: Date): boolean;
+/** Mover un periodo: un mes o una semana desde la fecha que lo ancla. */
+declare function pasoDelCalendarioV6(ancla: Date, escala: EscalaCalendarioV6, paso: number): Date;
+/** Las fases del calendario: las tareas raíz, en orden («Fase 3 · Desarrollo»). */
+declare function fasesDelCalendario(tasks: Task[]): {
+    clave: string;
+    nombre: string;
+    corto: string;
+    n: number;
+}[];
+interface CalendarioV6Props {
+    tasks: Task[];
+    es: boolean;
+    cal: Calendario;
+    festivos?: {
+        date: string;
+        name: string;
+    }[];
+    /** los días laborables del calendario del proyecto, de domingo (0) a sábado (6); por omisión, lunes a viernes */
+    diasLaborables?: boolean[];
+    /** una fecha del periodo a la vista (la lleva la app) */
+    ancla: Date;
+    onAncla: (d: Date) => void;
+    vista: VistaCalendarioV6;
+    onVista: (v: VistaCalendarioV6) => void;
+    filtros: FiltrosDelCalendarioV4;
+    onFiltros: (f: FiltrosDelCalendarioV4) => void;
+    tarifaDe: (hoja: Task) => number;
+    /** quien mira ve dinero (el costo planeado por persona); si no, el candado «visible para gerente y Finanzas» */
+    conCosto?: boolean;
+    /** las tarifas no se pueden comparar: el costo dice «No evaluable» con este motivo */
+    noEvaluable?: string | null;
+    monedaCodigo?: string;
+    nombreProyecto?: string;
+    /** la ficha: «Abrir en la Lista» (la Lista abre su panel con #t=<wbs>) */
+    onAbrirEnLista?: (t: Task, wbs: string) => void;
+    /** la ficha, sin Lista: «Abrir ficha completa» */
+    onAbrir?: (t: Task) => void;
+    /** la franja de vencidas: «Ver en la Lista» / «+N más» (la Lista con #vencidas) */
+    onVerVencidas?: () => void;
+    /** el pie: «Ver en la Ficha» (su calendario) */
+    onVerCalendarioDelProyecto?: () => void;
+    /** el pie de recursos: «Ver la carga de cada persona en Recursos» */
+    onVerRecursos?: () => void;
+    onVerRiesgo?: (id: string) => void;
+    /** reprogramar arrastrando una barra; `false` si no se pudo */
+    onReprogramar?: (t: Task, inicio: Date, fin: Date) => boolean | void | Promise<boolean | void>;
+    hoy?: Date;
+}
+declare function CalendarioV6({ tasks, es, cal, festivos, diasLaborables, ancla, onAncla, vista, onVista, filtros, onFiltros, tarifaDe, conCosto, noEvaluable, monedaCodigo, onAbrirEnLista, onAbrir, onVerVencidas, onVerCalendarioDelProyecto, onVerRecursos, onVerRiesgo, onReprogramar, hoy: hoyProp, }: CalendarioV6Props): react_jsx_runtime.JSX.Element;
+
+type AgruparTableroV6 = 'fase' | 'padre' | 'todo';
+/** Subtareas: separadas (cada hoja, su tarjeta), bajo su padre (la tarjeta del padre las lista) u ocultas (sólo el padre). */
+type SubtareasTableroV6 = 'separadas' | 'bajo' | 'ocultas';
+/** El menú Vista del Tablero (lo lleva la app y lo recuerda). */
+interface VistaTableroV6 {
+    densidad: 'compacta' | 'normal' | 'comoda';
+    mostrarHechas: boolean;
+    horas: boolean;
+    leyenda: boolean;
+    agrupar: AgruparTableroV6;
+    subtareas: SubtareasTableroV6;
+}
+declare const VISTA_TABLERO_V6_POR_DEFECTO: VistaTableroV6;
+/** Filtros («Mostrar solo»): `responsables` lleva la clave de cada uno ('' = sin responsable). */
+interface FiltrosTableroV6 {
+    vencidas: boolean;
+    bloqueadas: boolean;
+    responsables: string[];
+}
+declare const FILTROS_TABLERO_V6_VACIOS: FiltrosTableroV6;
+/** El estado que se guarda para cada columna (los ids de las columnas de siempre). */
+declare const STATUS_DE_ESTADO_V6: Record<EstadoV6, string>;
+/** Las personas de las hojas, para el menú de filtros («Sin responsable» al final si hay hojas sin nadie). */
+declare function responsablesDelTablero(tasks: Task[]): {
+    clave: string;
+    nombre: string;
+}[];
+interface TableroV6Props {
+    tasks: Task[];
+    es: boolean;
+    cal: Calendario;
+    tarifaDe: (hoja: Task) => number;
+    tarifaDePersona?: (id: string) => number | undefined;
+    monedaCodigo?: string;
+    conCosto?: boolean;
+    costoAlTerminar?: number | null;
+    onVerRecursos?: () => void;
+    nombreProyecto?: string;
+    vista: VistaTableroV6;
+    onVista: (v: VistaTableroV6) => void;
+    filtros: FiltrosTableroV6;
+    onFiltros: (f: FiltrosTableroV6) => void;
+    /** guardar el estado y el avance de una hoja; `false` si la app no lo permite (y ya lo dijo) */
+    onMover: (t: Task, status: string, progreso: number) => boolean | void | Promise<boolean | void>;
+    /** cambiar de tarea padre (con «Tarea padre», a otro carril de la misma fase); sin él, no se permite */
+    onCambiarPadre?: (t: Task, padre: string | null, posicion: number) => boolean | void | Promise<boolean | void>;
+    /** la ficha completa de siempre */
+    onAbrir?: (t: Task) => void;
+    /** R6 · abrir un riesgo desde el panel de la tarea */
+    onVerRiesgo?: (id: string) => void;
+    /** guía v4 · lo que el panel hace con la app (historial, cronómetro, horas, restricción, enlaces, abrir en la Lista) */
+    panel?: AccionesDelPanelV4;
+    /** guía v4 · el pie «Costos del proyecto» (el mismo de la Lista) con las cifras de la cabecera */
+    salud?: SaludDelPieV4 | null;
+    hoy?: Date;
+}
+declare function TableroV6({ tasks: tasksProp, es, cal, tarifaDe, tarifaDePersona, monedaCodigo, conCosto, onVerRecursos, nombreProyecto, vista, onVista, filtros, onFiltros, onMover, onCambiarPadre, onAbrir, onVerRiesgo, panel, salud, hoy: hoyProp, }: TableroV6Props): react_jsx_runtime.JSX.Element;
+
+/** «Riesgo R-01 · Alto: Retraso del proveedor (y 1 más)», el globo del escudo (guía v4). */
+declare function tituloDelEscudo(rs: RiesgoDeLaTarea[], es: boolean): string;
+/**
+ * Guía v4 · «El riesgo es un escudo con el color del nivel y un tooltip, no un punto gris» (Tablero y Lista). El color
+ * lo pone el CSS de la vista por `data-nivel` (tokens `--v4-lvl-*`); aquí solo la forma.
+ */
+declare function EscudoDeRiesgo({ riesgos, es, className }: {
+    riesgos?: RiesgoDeLaTarea[];
+    es: boolean;
+    className?: string;
+}): react_jsx_runtime.JSX.Element | null;
+
+/**
  * Motor de layout del Calendario (Asakaa Pulse) — Sprint 1.
  *
  * Convierte tareas reales (del Gantt) en barras posicionadas por semana, y los
@@ -4936,8 +5722,15 @@ interface Props {
     openOnToday?: boolean;
     /** 1.9.42 · `false`: ni horas ni coste en las barras. */
     showValues?: boolean;
+    /**
+     * QA Latty R3 · BUG-11 · la Agenda pone cada tarea en CADA día de su rango (inicio → fin), no sólo en el día en que
+     * arranca. Por defecto, como siempre (el día de inicio).
+     */
+    agendaPorRango?: boolean;
+    /** QA Latty R4 · `false`: la Semana no pinta la capacidad del equipo en horas. */
+    mostrarCapacidad?: boolean;
 }
-declare function CalendarView({ tasks, projectName, projectId, projectColor, locale, themeMode, hourlyRate, money, onMoneyChange, onTaskOpen, toolbarContainer, hiddenViews, mostrarFiltroDeFases, mostrarConmutadorDeDinero, onCreateTask, canReschedule, onReschedule, members, holidayDates, timesheetSettings, onVisibleRangeChange, monthMode, showValues, openOnToday, currencyCode, }: Props): react_jsx_runtime.JSX.Element;
+declare function CalendarView({ tasks, projectName, projectId, projectColor, locale, themeMode, hourlyRate, money, onMoneyChange, onTaskOpen, toolbarContainer, hiddenViews, mostrarFiltroDeFases, mostrarConmutadorDeDinero, onCreateTask, canReschedule, onReschedule, members, holidayDates, timesheetSettings, onVisibleRangeChange, monthMode, showValues, openOnToday, currencyCode, agendaPorRango, mostrarCapacidad, }: Props): react_jsx_runtime.JSX.Element;
 
 /**
  * Simulación de reprogramación con CPM (Calendario, Sprint 3, regla C5).
@@ -7130,4 +7923,4 @@ declare const themes: Record<ThemeName, Theme>;
  */
 declare const defaultTheme: ThemeName;
 
-export { type AICallbacks, type AICommandResult, type GanttTask as AIGanttTask, type AIMessage, type AIModelKey, type AIOperation, AIUsageDashboard, type AIUsageDashboardProps, AI_FEATURES, AI_MODELS, type Activity, type ActivityType, AddCardButton, type AddCardButtonProps, type AddCardData, AddColumnButton, type AddColumnButtonProps, type AssigneeSuggestion, type Attachment, AttachmentUploader, type AttachmentUploaderProps, type AvailableUser, type Board, type BoardCallbacks, type BoardConfig, BoardProvider, type BoardProviderProps, type BorderRadiusToken, BulkOperationsToolbar, type BulkOperationsToolbarProps, BurnDownChart, type BurnDownChartProps, type BurnDownDataPoint, CUSTOM_FIELD_TYPES, type CalLayerId, type CalMoney, type CalView, CalendarView as CalendarBoard, type DailyLog as CalendarDailyLog, type TeamMember as CalendarTeamMember, type Calendario as CalendarioDelCronograma, Card, type CardFilter, type CardFilters, CardHistoryReplay, type CardHistoryReplayProps, CardHistoryTimeline, type CardHistoryTimelineProps, type CardProps, CardRelationshipsGraph, type CardRelationshipsGraphProps, type CardSort, type CardSortKey, CardStack, type CardStackProps, type CardStack$1 as CardStackType, type CardStatus, type CardTemplate, CardTemplateSelector, type CardTemplateSelectorProps, type CardTimeProps, type Card$1 as CardType, CircuitBreaker, Column, ColumnManager, type ColumnProps, type Column$1 as ColumnType, CommandPalette, type CommandPaletteProps, type Comment, type CommentAttachment, ConfigMenu, type ConfigMenuProps, type Conflicto as ConflictoDelCronograma, ContextMenu, type ContextMenuAction, type ContextMenuState, type CustomFieldDefinition, type CustomFieldValue, DEFAULT_SHORTCUTS, DEFAULT_TABLE_COLUMNS, DEFAULT_TEMPLATES, type DateFilter, DateRangePicker, type DateRangePickerProps, DependenciesSelector, type DependenciesSelectorProps, DependencyLine, type DesignTokens, DistributionCharts, type DistributionChartsProps, type DistributionDataPoint, type DragData, type DropData, type DurationToken, type EasingToken, EditableColumnTitle, type EditableColumnTitleProps, type EnlaceDeTarea, ErrorBoundary, type ErrorBoundaryProps, ExportDropdown, type ExportFormat, ExportImportModal, type ExportImportModalProps, type ExportOptions, type FillColumn, FilterBar, type FilterBarProps, type FilterState, type FlattenedTask, type FontSizeToken, type FontWeightToken, GANTT_AI_SYSTEM_PROMPT, GanttAIAssistant, type GanttAIAssistantConfig, type Assignee as GanttAssignee, GanttBoard, type GanttConfig as GanttBoardConfig, type GanttBoardRef, type GanttColumn, type ColumnType$1 as GanttColumnType, type GanttConfig, GanttI18nContext, Milestone as GanttMilestone, type GanttPermissions, type Task as GanttTask, type GanttTemplates, type Theme$1 as GanttTheme, type GanttTheme as GanttThemeConfig, GanttToolbar, type GanttTranslations, GenerateGanttTasksDialog, type GenerateGanttTasksDialogProps, GeneratePlanModal, type GeneratePlanModalProps, type GeneratedPlan, type GeneratedTasksResponse, type GroupByOption, GroupBySelector, type GroupBySelectorProps, HealthBar, type HealthBarProps, type IPluginManager, type ImportResult, type Insight, type InsightSeverity, type InsightType, KanbanBoard, type KanbanBoardProps, KanbanToolbar, type KanbanToolbarProps, KanbanViewAdapter, type KanbanViewConfig, type KeyboardAction, type KeyboardShortcut, KeyboardShortcutsHelp, type KeyboardShortcutsHelpProps, type LineHeightToken, type ListColumn, type ColumnType as ListColumnType, type ListFilter, type ListSort, type ListSortColumn, ListView, type ListViewCallbacks, type ListViewConfig, type ListViewPermissions, type ListViewProps, type ListViewSupportedLocale, type ListViewTheme, type ListViewThemeName, type ListViewTranslations, MenuIcons, type MoneyMode, type OpacityToken, type PendingFile, type PersistHistoryConfig, type Plugin, type PluginContext, type PluginHooks, PluginManager, type Priority, PrioritySelector, type PrioritySelectorProps, ProfitabilityReport, type ProfitabilityReportProps, type ProjectForecast, type ProjectHealthData, QuickTaskCreate, type QuickTaskCreateData, type QuickTaskCreateProps, RATE_LIMITS, type RenderProps, type RescheduleSimulation, type RetryOptions, type RetryResult, STANDARD_FIELDS, type ShadowToken, type SortBy, type SortDirection, type SortOrder, type SortState, type SpacingToken, type StackSuggestion, type StackingConfig, type StackingStrategy, type Subtask, type SupportedLocale, type Swimlane, SwimlaneBoardView, type SwimlaneBoardViewProps, type SwimlaneConfig, TODOS_LOS_DIAS, type TableColumn, TagBadge, TagList, TagPicker, type TareaEmpujada, TaskBar, type TaskComment, TaskDetailModal, type TaskDetailModalProps, type TaskFilterType, type TaskFormData, TaskFormModal, type TaskFormModalProps, TaskGrid, type TaskPriority, type TaskTag, type Theme, type ThemeColors, type ThemeContextValue, ThemeModal, type ThemeModalProps, type ThemeName, ThemeProvider, ThemeSwitcher, type TimeEntry, TimeInputPopover, type TimeInputPopoverProps, type TimeLogInput, type TimeLogSource, TimePill, type TimePillProps, TimePopover, type TimePopoverProps, type TimeScale, type TimeTrackingBoardProps, type TimeTrackingCallbacks, type TimeTrackingSummary, Timeline, type TimerState, type TipoDeEnlace, type ThemeColors$1 as TokenThemeColors, type TokenValue, type UsageStats, type UseAIOptions, type UseAIReturn, type UseBoardReturn as UseBoardCoreReturn, type UseBoardOptions, type UseBoardReturn$1 as UseBoardReturn, type UseCardStackingOptions, type UseCardStackingResult, type UseDragStateReturn, type UseFiltersOptions, type UseFiltersReturn, type UseKanbanStateOptions, type UseKanbanStateReturn, type UseKeyboardShortcutsOptions, type UseKeyboardShortcutsReturn, type UseMultiSelectReturn, type UseSelectionStateReturn, type User$1 as User, UserAssignmentSelector, type UserAssignmentSelectorProps, VelocityChart, type VelocityChartProps, type VelocityDataPoint, VirtualGrid, type VirtualGridProps, VirtualList, type VirtualListProps, type ZIndexToken, aiUsageTracker, borderRadius, buildCalendar, calculatePosition, calendarioDe, cardToGanttTask, cardsToGanttTasks, cn, conflictosDelCronograma, createKanbanView, createRetryWrapper, darkTheme, darkTheme$1 as darkTokenTheme, defaultTheme, designTokens, duration, easing, empujarSucesoras, enlacesDe, exportTokensToCSS, fechasQueCumplen, finConDuracion, findTaskByName, fontSize, fontWeight, formatCost, en$1 as ganttEnTranslations, es$1 as ganttEsTranslations, ganttTaskToCardUpdate, themes$1 as ganttThemes, gantt as ganttTokens, translations as ganttTranslations, ganttUtils, generateCSSVariables, generateCompleteCSS, generateInitialPositions, generateTasksContext, generateThemeVariables, getListViewTheme, getListViewTranslations, getToken, getTranslations, habilDesde, habilesEntre, kanban as kanbanTokens, lightTheme, lightTheme$1 as lightTokenTheme, limiteDelEnlace, lineHeight, darkTheme$2 as listViewDarkTheme, en as listViewEnTranslations, es as listViewEsTranslations, lightTheme$2 as listViewLightTheme, neutralTheme$2 as listViewNeutralTheme, listViewThemes, listViewTranslations, mergeListViewTranslations, mergeTranslations, neutralTheme, neutralTheme$1 as neutralTokenTheme, opacity, parseLocalCommand, parseNaturalDate, parseNaturalDuration, parseProgress, parseStatus, pluginManager, retrySyncOperation, retryWithBackoff, shadows, shouldVirtualizeGrid, simulateReschedule, spacing, sumarHabiles, themes, useAI, useBoard$1 as useBoard, useBoard as useBoardCore, useBoardStore, useCardStacking, useDragState, useFilteredCards, useFilters, useGanttI18n, useKanbanState, useKeyboardShortcuts, useMultiSelect, useSelectionState, useSortedCards, useTheme, useVirtualGrid, useVirtualList, validateAIResponse, withErrorBoundary, wouldCreateCircularDependency, zIndex };
+export { type AICallbacks, type AICommandResult, type GanttTask as AIGanttTask, type AIMessage, type AIModelKey, type AIOperation, AIUsageDashboard, type AIUsageDashboardProps, AI_FEATURES, AI_MODELS, type AccionesDelPanelV4, type Activity, type ActivityType, AddCardButton, type AddCardButtonProps, type AddCardData, AddColumnButton, type AddColumnButtonProps, type AgruparTableroV6, type AssigneeSuggestion, type Attachment, AttachmentUploader, type AttachmentUploaderProps, type AvailableUser, type Board, type BoardCallbacks, type BoardConfig, BoardProvider, type BoardProviderProps, type BorderRadiusToken, BulkOperationsToolbar, type BulkOperationsToolbarProps, BurnDownChart, type BurnDownChartProps, type BurnDownDataPoint, CUSTOM_FIELD_TYPES, type CalLayerId, type CalMoney, type CalView, CalendarView as CalendarBoard, type DailyLog as CalendarDailyLog, type TeamMember as CalendarTeamMember, type Calendario as CalendarioDelCronograma, CalendarioV6, type CalendarioV6Props, Card, type CardFilter, type CardFilters, CardHistoryReplay, type CardHistoryReplayProps, CardHistoryTimeline, type CardHistoryTimelineProps, type CardProps, CardRelationshipsGraph, type CardRelationshipsGraphProps, type CardSort, type CardSortKey, CardStack, type CardStackProps, type CardStack$1 as CardStackType, type CardStatus, type CardTemplate, CardTemplateSelector, type CardTemplateSelectorProps, type CardTimeProps, type Card$1 as CardType, CircuitBreaker, type ColorDelCalendarioV4, Column, ColumnManager, type ColumnProps, type Column$1 as ColumnType, CommandPalette, type CommandPaletteProps, type Comment, type CommentAttachment, ConfigMenu, type ConfigMenuProps, type Conflicto as ConflictoDelCronograma, ContextMenu, type ContextMenuAction, type ContextMenuState, CostosDelProyectoV4, type CustomFieldDefinition, type CustomFieldValue, DEFAULT_SHORTCUTS, DEFAULT_TABLE_COLUMNS, DEFAULT_TEMPLATES, type DateFilter, DateRangePicker, type DateRangePickerProps, DependenciesSelector, type DependenciesSelectorProps, DependencyLine, type DesignTokens, DistributionCharts, type DistributionChartsProps, type DistributionDataPoint, type DragData, type DropData, type DurationToken, type EasingToken, EditableColumnTitle, type EditableColumnTitleProps, type EnlaceDeTarea, type EntradaDelHistorialV4, ErrorBoundary, type ErrorBoundaryProps, type EscalaCalendarioV6, EscudoDeRiesgo, type EstadoV6, ExportDropdown, type ExportFormat, ExportImportModal, type ExportImportModalProps, type ExportOptions, FILTROS_CALENDARIO_V4_VACIOS, FILTROS_LISTA_V4_VACIOS, FILTROS_TABLERO_V6_VACIOS, type FillColumn, FilterBar, type FilterBarProps, type FilterState, type FiltrosDeLaListaV4, type FiltrosDelCalendarioV4, type FiltrosTableroV6, type FlattenedTask, type FontSizeToken, type FontWeightToken, GANTT_AI_SYSTEM_PROMPT, GanttAIAssistant, type GanttAIAssistantConfig, type Assignee as GanttAssignee, GanttBoard, type GanttConfig as GanttBoardConfig, type GanttBoardRef, type GanttColumn, type ColumnType$1 as GanttColumnType, type GanttConfig, GanttI18nContext, Milestone as GanttMilestone, type GanttPermissions, type Task as GanttTask, type GanttTemplates, type Theme$1 as GanttTheme, type GanttTheme as GanttThemeConfig, GanttToolbar, type GanttTranslations, GenerateGanttTasksDialog, type GenerateGanttTasksDialogProps, GeneratePlanModal, type GeneratePlanModalProps, type GeneratedPlan, type GeneratedTasksResponse, type GroupByOption, GroupBySelector, type GroupBySelectorProps, HealthBar, type HealthBarProps, type HojaConAvance, type IPluginManager, type ImportResult, type Insight, type InsightSeverity, type InsightType, KanbanBoard, type KanbanBoardProps, KanbanToolbar, type KanbanToolbarProps, KanbanViewAdapter, type KanbanViewConfig, type KeyboardAction, type KeyboardShortcut, KeyboardShortcutsHelp, type KeyboardShortcutsHelpProps, type LineHeightToken, type ListColumn, type ColumnType as ListColumnType, type ListFilter, type ListSort, type ListSortColumn, ListView, type ListViewCallbacks, type ListViewConfig, type ListViewPermissions, type ListViewProps, type ListViewSupportedLocale, type ListViewTheme, type ListViewThemeName, type ListViewTranslations, MenuIcons, type MoneyMode, type OpacityToken, type OrigenDelCambio, PanelDeTareaV4, type PanelDeTareaV4Props, type PendingFile, type PersistHistoryConfig, type PersonaAsignable, type Plugin, type PluginContext, type PluginHooks, PluginManager, type Priority, PrioritySelector, type PrioritySelectorProps, ProfitabilityReport, type ProfitabilityReportProps, type ProjectForecast, type ProjectHealthData, QuickTaskCreate, type QuickTaskCreateData, type QuickTaskCreateProps, RATE_LIMITS, type RenderProps, type RescheduleSimulation, type RetryOptions, type RetryResult, type RiesgoDeLaTarea, STANDARD_FIELDS, STATUS_DE_ESTADO_V6, type SaludDelPieV4, type ShadowToken, type SortBy, type SortDirection, type SortOrder, type SortState, type SpacingToken, type StackSuggestion, type StackingConfig, type StackingStrategy, type SubtareasTableroV6, type Subtask, type SupportedLocale, type Swimlane, SwimlaneBoardView, type SwimlaneBoardViewProps, type SwimlaneConfig, TODOS_LOS_DIAS, type TableColumn, TableroV6, type TableroV6Props, TagBadge, TagList, TagPicker, type TareaEmpujada, TaskBar, type TaskComment, TaskDetailModal, type TaskDetailModalProps, type TaskFilterType, type TaskFormData, TaskFormModal, type TaskFormModalProps, TaskGrid, type TaskPriority, type TaskTag, type Theme, type ThemeColors, type ThemeContextValue, ThemeModal, type ThemeModalProps, type ThemeName, ThemeProvider, ThemeSwitcher, type TimeEntry, TimeInputPopover, type TimeInputPopoverProps, type TimeLogInput, type TimeLogSource, TimePill, type TimePillProps, TimePopover, type TimePopoverProps, type TimeScale, type TimeTrackingBoardProps, type TimeTrackingCallbacks, type TimeTrackingSummary, Timeline, type TimerState, type TipoDeEnlace, type TipoDeEnlaceV4, type ThemeColors$1 as TokenThemeColors, type TokenValue, type UsageStats, type UseAIOptions, type UseAIReturn, type UseBoardReturn as UseBoardCoreReturn, type UseBoardOptions, type UseBoardReturn$1 as UseBoardReturn, type UseCardStackingOptions, type UseCardStackingResult, type UseDragStateReturn, type UseFiltersOptions, type UseFiltersReturn, type UseKanbanStateOptions, type UseKanbanStateReturn, type UseKeyboardShortcutsOptions, type UseKeyboardShortcutsReturn, type UseMultiSelectReturn, type UseSelectionStateReturn, type User$1 as User, UserAssignmentSelector, type UserAssignmentSelectorProps, VISTA_CALENDARIO_V6_POR_DEFECTO, VISTA_TABLERO_V6_POR_DEFECTO, VISTA_V6_POR_DEFECTO, VelocityChart, type VelocityChartProps, type VelocityDataPoint, VirtualGrid, type VirtualGridProps, VirtualList, type VirtualListProps, type VistaCalendarioV6, type VistaTableroV6, type VistaV6, type ZIndexToken, aiUsageTracker, avanceDeTarea, borderRadius, buildCalendar, calculatePosition, calendarioDe, cambiosDeRestriccion, cardToGanttTask, cardsToGanttTasks, cn, collectLeaves, completadasALaVista, computeWeightedProgress, conflictosDelCronograma, contarHitos, createKanbanView, createRetryWrapper, darkTheme, darkTheme$1 as darkTokenTheme, defaultTheme, designTokens, diasDeRetraso, diferenciaHabil, duration, easing, empujarSucesoras, enlacesDe, estaVencida, estadoDe, estadoDeHoja, exportTokensToCSS, fasesDelCalendario, fechaCorta, fechasQueCumplen, finConDuracion, findTaskByName, fontSize, fontWeight, formatCost, en$1 as ganttEnTranslations, es$1 as ganttEsTranslations, ganttTaskToCardUpdate, themes$1 as ganttThemes, gantt as ganttTokens, translations as ganttTranslations, ganttUtils, generateCSSVariables, generateCompleteCSS, generateInitialPositions, generateTasksContext, generateThemeVariables, getListViewTheme, getListViewTranslations, getToken, getTranslations, habilDesde, habilesEntre, hayTrabajoQueMedir, hojasDe, kanban as kanbanTokens, leerHoras, lightTheme, lightTheme$1 as lightTokenTheme, limiteDelEnlace, lineHeight, darkTheme$2 as listViewDarkTheme, en as listViewEnTranslations, es as listViewEsTranslations, lightTheme$2 as listViewLightTheme, neutralTheme$2 as listViewNeutralTheme, listViewThemes, listViewTranslations, mergeListViewTranslations, mergeTranslations, minutosQuePesa, neutralTheme, neutralTheme$1 as neutralTokenTheme, opacity, parseLocalCommand, parseNaturalDate, parseNaturalDuration, parseProgress, parseStatus, pasoDelCalendarioV6, personasDelProyecto, pluginManager, responsablesDelTablero, retrySyncOperation, retryWithBackoff, semanaIsoDe, shadows, shouldVirtualizeGrid, simulateReschedule, spacing, sumarHabiles, textoDeDesfase, textoDeRestriccion, themes, tieneHijas, tituloDelEscudo, useAI, useBoard$1 as useBoard, useBoard as useBoardCore, useBoardStore, useCardStacking, useDragState, useFilteredCards, useFilters, useGanttI18n, useKanbanState, useKeyboardShortcuts, useMultiSelect, useSelectionState, useSortedCards, useTheme, useVirtualGrid, useVirtualList, validateAIResponse, withErrorBoundary, wouldCreateCircularDependency, zIndex };

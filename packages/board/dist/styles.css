@@ -7970,6 +7970,11 @@ body {
 }
 
 
+.h-\[13px\] {
+  height: 13px;
+}
+
+
 .h-\[15px\] {
   height: 15px;
 }
@@ -8175,11 +8180,6 @@ body {
 }
 
 
-.w-36 {
-  width: 9rem;
-}
-
-
 .w-4 {
   width: 1rem;
 }
@@ -8242,6 +8242,11 @@ body {
 
 .w-96 {
   width: 24rem;
+}
+
+
+.w-\[13px\] {
+  width: 13px;
 }
 
 
@@ -8351,6 +8356,11 @@ body {
 }
 
 
+.min-w-\[3rem\] {
+  min-width: 3rem;
+}
+
+
 .min-w-\[400px\] {
   min-width: 400px;
 }
@@ -8363,6 +8373,11 @@ body {
 
 .min-w-\[42px\] {
   min-width: 42px;
+}
+
+
+.min-w-\[5rem\] {
+  min-width: 5rem;
 }
 
 
@@ -8401,6 +8416,11 @@ body {
 }
 
 
+.max-w-\[40\%\] {
+  max-width: 40%;
+}
+
+
 .max-w-\[400px\] {
   max-width: 400px;
 }
@@ -8428,6 +8448,11 @@ body {
 
 .flex-1 {
   flex: 1 1 0%;
+}
+
+
+.flex-shrink {
+  flex-shrink: 1;
 }
 
 
@@ -8827,11 +8852,6 @@ body {
 
 .overflow-hidden {
   overflow: hidden;
-}
-
-
-.overflow-visible {
-  overflow: visible;
 }
 
 
@@ -9296,11 +9316,6 @@ body {
 .bg-\[\#0A0A0A\] {
   --tw-bg-opacity: 1;
   background-color: rgb(10 10 10 / var(--tw-bg-opacity, 1));
-}
-
-
-.bg-\[\#0A0A0A\]\/95 {
-  background-color: rgb(10 10 10 / 0.95);
 }
 
 
@@ -10265,6 +10280,11 @@ body {
 }
 
 
+.leading-tight {
+  line-height: 1.25;
+}
+
+
 .tracking-\[0\.15em\] {
   letter-spacing: 0.15em;
 }
@@ -10761,13 +10781,6 @@ body {
 .shadow-2xl {
   --tw-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
   --tw-shadow-colored: 0 25px 50px -12px var(--tw-shadow-color);
-  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
-}
-
-
-.shadow-\[0_8px_32px_rgba\(0\2c 0\2c 0\2c 0\.6\)\] {
-  --tw-shadow: 0 8px 32px rgba(0,0,0,0.6);
-  --tw-shadow-colored: 0 8px 32px var(--tw-shadow-color);
   box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
 }
 
@@ -11369,29 +11382,45 @@ body {
 }
 
 
+/* QA Latty R3 · N-17 · «Agregar columna»: una cabecera fantasma a la derecha de la última columna, alineada con los
+   títulos de las columnas; sin caja punteada; fondo sólo al pasar el mouse o con foco */
+
+
 .asakaa-add-column__button {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: var(--space-2);
   width: 100%;
-  height: 48px;
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-2) var(--space-3);
+  margin-left: calc(-1 * var(--space-3));
   font-size: var(--font-sm);
-  font-weight: var(--font-medium);
+  font-weight: var(--font-semibold);
   color: var(--color-text-tertiary);
   background: transparent;
-  border: 2px dashed var(--color-border-primary);
-  border-radius: var(--radius-lg);
+  border: none;
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: color var(--duration-fast) var(--ease-smooth), border-color var(--duration-fast) var(--ease-smooth), background var(--duration-fast) var(--ease-smooth);
+  transition: color var(--duration-fast) var(--ease-smooth), background var(--duration-fast) var(--ease-smooth);
 }
 
 
-.asakaa-add-column__button:hover:not(:disabled) {
-  color: var(--color-blue);
-  border-color: var(--color-blue);
-  background: rgba(0, 229, 204, var(--opacity-subtle));
+.asakaa-add-column__button:hover:not(:disabled),
+.asakaa-add-column__button:focus-visible {
+  color: var(--color-text-secondary);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+
+.asakaa-add-column__button:focus-visible {
+  outline: 2px solid var(--color-blue);
+  outline-offset: 1px;
+}
+
+
+.asakaa-board:not(.dark) .asakaa-add-column__button:hover:not(:disabled),
+.asakaa-board:not(.dark) .asakaa-add-column__button:focus-visible {
+  background: rgba(0, 0, 0, 0.04);
 }
 
 
@@ -11541,8 +11570,22 @@ body {
    ============================================================================ */
 
 
+/* QA Latty R3 · N-17 (Respuesta_Divar_R3 §2.5) · «+ Agregar tarea»: botón de texto DENTRO de la columna, alineado a la
+   izquierda con las tarjetas, en gris medio; el radio de la tarjeta; fondo sólo al pasar el mouse o con foco */
+
+
+.asakaa-column-footer {
+  flex-shrink: 0;
+  padding-top: var(--space-2);
+  /* con scroll, fijo al pie y siempre visible */
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  background: inherit;
+}
+
+
 .asakaa-add-card {
-  padding: var(--space-2) 0 0;
   flex-shrink: 0;
   width: 100%;
   box-sizing: border-box;
@@ -11552,26 +11595,58 @@ body {
 .asakaa-add-card__button {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: var(--space-2);
   width: 100%;
-  height: 40px;
   padding: var(--space-2) var(--space-3);
   font-size: var(--font-sm);
   font-weight: var(--font-medium);
   color: var(--color-text-tertiary);
   background: transparent;
-  border: 2px dashed var(--color-border-primary);
-  border-radius: var(--radius-lg);
+  border: none;
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: color var(--duration-fast) var(--ease-smooth), border-color var(--duration-fast) var(--ease-smooth), background var(--duration-fast) var(--ease-smooth);
+  transition: color var(--duration-fast) var(--ease-smooth), background var(--duration-fast) var(--ease-smooth);
 }
 
 
-.asakaa-add-card__button:hover:not(:disabled) {
-  color: var(--color-blue);
-  border-color: var(--color-blue);
-  background: rgba(0, 229, 204, var(--opacity-subtle));
+.asakaa-add-card__button:hover:not(:disabled),
+.asakaa-add-card__button:focus-visible {
+  color: var(--color-text-secondary);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+
+.asakaa-add-card__button:focus-visible {
+  outline: 2px solid var(--color-blue);
+  outline-offset: 1px;
+}
+
+
+/* QA Latty R3 · N-17 · la columna vacía, en reposo: «Sin tareas» en texto tenue (la zona punteada, sólo al arrastrar) */
+
+
+/* QA Latty R4 · R4-25 · con scroll, la última tarjeta se desvanece bajo «Agregar tarea» en vez de cortarse */
+
+
+.asakaa-column-footer::before {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: 100%;
+  height: 16px;
+  pointer-events: none;
+  background: inherit;
+  mask-image: linear-gradient(to top, #000, transparent);
+  -webkit-mask-image: linear-gradient(to top, #000, transparent);
+}
+
+
+.asakaa-column-vacia {
+  margin: 0;
+  padding: var(--space-3) var(--space-3);
+  font-size: var(--font-sm);
+  color: var(--color-text-tertiary);
+  opacity: 0.8;
 }
 
 
@@ -11584,11 +11659,8 @@ body {
 .asakaa-add-card--editing {
   padding: 0;
   background: rgba(10, 10, 10, 0.95);
-  backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
-  margin-top: var(--space-2);
+  border-radius: var(--radius-md);
 }
 
 
@@ -11596,23 +11668,20 @@ body {
 
 
 .asakaa-board:not(.dark) .asakaa-add-card__button {
-  border-color: rgba(0, 0, 0, 0.15);
   color: var(--color-text-tertiary);
 }
 
 
-.asakaa-board:not(.dark) .asakaa-add-card__button:hover:not(:disabled) {
-  border-color: var(--color-blue);
-  color: var(--color-blue);
-  background: rgba(0, 229, 204, 0.05);
+.asakaa-board:not(.dark) .asakaa-add-card__button:hover:not(:disabled),
+.asakaa-board:not(.dark) .asakaa-add-card__button:focus-visible {
+  color: var(--color-text-secondary);
+  background: rgba(0, 0, 0, 0.04);
 }
 
 
 .asakaa-board:not(.dark) .asakaa-add-card--editing {
   background: white;
-  border-color: rgba(0, 0, 0, 0.1);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-  backdrop-filter: none;
+  border-color: rgba(0, 0, 0, 0.12);
 }
 
 
